@@ -28,6 +28,8 @@ import {
   AlertTriangle,
   Activity,
   UserPlus,
+  SlidersHorizontal,
+  X,
   UserMinus,
   DollarSign,
   ArrowUpRight,
@@ -36,6 +38,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -473,48 +476,86 @@ export default function AreasPage() {
                     data-testid="input-search-areas"
                   />
                 </div>
-                <Input
-                  placeholder="Filter by Area Name"
-                  value={filterArea}
-                  onChange={(e) => setFilterArea(e.target.value)}
-                  className="h-9 w-[170px]"
-                  data-testid="input-filter-area"
-                />
-                <Input
-                  placeholder="Filter by Main Area"
-                  value={filterMainArea}
-                  onChange={(e) => setFilterMainArea(e.target.value)}
-                  className="h-9 w-[170px]"
-                  data-testid="input-filter-main-area"
-                />
-                <Input
-                  placeholder="Filter by City"
-                  value={filterCity}
-                  onChange={(e) => setFilterCity(e.target.value)}
-                  className="h-9 w-[150px]"
-                  data-testid="input-filter-city"
-                />
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[130px] h-9" data-testid="select-status-filter">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-                {(filterArea || filterMainArea || filterCity || statusFilter !== "all") && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-9 px-3 text-muted-foreground"
-                    onClick={() => { setFilterArea(""); setFilterMainArea(""); setFilterCity(""); setStatusFilter("all"); setSearch(""); }}
-                    data-testid="button-clear-filters"
-                  >
-                    Clear
-                  </Button>
-                )}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 gap-2"
+                      data-testid="button-filter"
+                    >
+                      <SlidersHorizontal className="h-4 w-4" />
+                      Filter
+                      {(filterArea || filterMainArea || filterCity || statusFilter !== "all") && (
+                        <Badge className="ml-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px] bg-blue-600 text-white">
+                          {[filterArea, filterMainArea, filterCity, statusFilter !== "all"].filter(Boolean).length}
+                        </Badge>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-72 p-4" align="start">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm font-semibold">Filter Areas</p>
+                        {(filterArea || filterMainArea || filterCity || statusFilter !== "all") && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs text-muted-foreground"
+                            onClick={() => { setFilterArea(""); setFilterMainArea(""); setFilterCity(""); setStatusFilter("all"); }}
+                            data-testid="button-clear-filters"
+                          >
+                            <X className="h-3 w-3 mr-1" />
+                            Clear all
+                          </Button>
+                        )}
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">Area Name</label>
+                        <Input
+                          placeholder="e.g. Gulberg"
+                          value={filterArea}
+                          onChange={(e) => setFilterArea(e.target.value)}
+                          className="h-8 text-sm"
+                          data-testid="input-filter-area"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">Main Area</label>
+                        <Input
+                          placeholder="e.g. Lahore City"
+                          value={filterMainArea}
+                          onChange={(e) => setFilterMainArea(e.target.value)}
+                          className="h-8 text-sm"
+                          data-testid="input-filter-main-area"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">City</label>
+                        <Input
+                          placeholder="e.g. Lahore"
+                          value={filterCity}
+                          onChange={(e) => setFilterCity(e.target.value)}
+                          className="h-8 text-sm"
+                          data-testid="input-filter-city"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">Status</label>
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                          <SelectTrigger className="h-8 text-sm" data-testid="select-status-filter">
+                            <SelectValue placeholder="All Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Status</SelectItem>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="inactive">Inactive</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
             </CardHeader>
             <CardContent className="p-0">
