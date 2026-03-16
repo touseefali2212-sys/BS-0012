@@ -491,7 +491,10 @@ export default function BonusCommissionPage() {
             setFormType(v);
             const customType = commissionTypesData.find((ct: any) => `custom__${ct.id}` === v);
             if (customType) {
-              setFormIncentiveType(customType.incentiveType || "bonus");
+              setFormIncentiveType(customType.category === "commission" ? "commission" : "bonus");
+              if (customType.amount && Number(customType.amount) > 0) {
+                setFormAmount(String(Number(customType.amount)));
+              }
             } else {
               setFormIncentiveType(v.includes("commission") ? "commission" : "bonus");
             }
@@ -522,6 +525,16 @@ export default function BonusCommissionPage() {
         <div>
           <label className="text-[12px] font-medium text-muted-foreground mb-1 block">Amount (Rs.)</label>
           <Input type="number" value={formAmount} onChange={e => setFormAmount(e.target.value)} className="h-9 text-[13px]" placeholder="0" data-testid="input-amount" />
+          {(() => {
+            const customType = formType.startsWith("custom__")
+              ? (commissionTypesData as any[]).find((ct: any) => `custom__${ct.id}` === formType)
+              : null;
+            return customType && Number(customType.amount) > 0 ? (
+              <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5">
+                Default from type: Rs. {Number(customType.amount).toLocaleString()} — you can edit this.
+              </p>
+            ) : null;
+          })()}
         </div>
         <div className="col-span-2">
           <label className="text-[12px] font-medium text-muted-foreground mb-1 block">Reason</label>
@@ -870,7 +883,7 @@ export default function BonusCommissionPage() {
                         <Button variant="outline" size="sm" className="px-2 text-blue-600" onClick={() => { setSelectedEntry(entry); setViewDialog(true); }} data-testid={`button-view-${entry.id}`}>
                           <Eye className="h-3 w-3" />
                         </Button>
-                        {(entry.status === "draft" || entry.status === "pending") && (
+                        {entry.status !== "paid" && (
                           <Button variant="outline" size="sm" className="px-2 text-amber-600" onClick={() => openEdit(entry)} data-testid={`button-edit-${entry.id}`}>
                             <Edit className="h-3 w-3" />
                           </Button>
