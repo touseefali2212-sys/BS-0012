@@ -1477,6 +1477,21 @@ export async function registerRoutes(
       const existing = await storage.getPayrolls(month);
       const existingEmpIds = new Set(existing.map(p => p.employeeId));
       const allLoans = await storage.getAdvanceLoans();
+
+      const monthBonusCommissions = await storage.getBonusCommissions(month);
+      const approvedBCs = monthBonusCommissions.filter(
+        (bc: any) => bc.status === "approved" && bc.includeInPayroll !== false
+      );
+      const bcByEmployee: Record<number, { bonus: number; commission: number }> = {};
+      for (const bc of approvedBCs) {
+        if (!bcByEmployee[bc.employeeId]) bcByEmployee[bc.employeeId] = { bonus: 0, commission: 0 };
+        if (bc.incentiveType === "commission") {
+          bcByEmployee[bc.employeeId].commission += Number(bc.amount) || 0;
+        } else {
+          bcByEmployee[bc.employeeId].bonus += Number(bc.amount) || 0;
+        }
+      }
+
       const results: any[] = [];
       for (const emp of activeEmployees) {
         if (existingEmpIds.has(emp.id)) continue;
@@ -1494,16 +1509,17 @@ export async function registerRoutes(
         for (const loan of oneTimeLoans) {
           loanDeduction += Number(loan.amount) - Number(loan.paidAmount);
         }
+        const empBC = bcByEmployee[emp.id] || { bonus: 0, commission: 0 };
         const tax = baseSalary > 100000 ? Math.round(baseSalary * 0.05) : baseSalary > 50000 ? Math.round(baseSalary * 0.02) : 0;
-        const netSalary = baseSalary - loanDeduction - tax;
+        const netSalary = baseSalary + empBC.bonus + empBC.commission - loanDeduction - tax;
         const entry = await storage.createPayroll({
           employeeId: emp.id,
           payrollMonth: month,
           baseSalary: baseSalary.toFixed(2),
           attendanceDeduction: "0",
           overtime: "0",
-          bonus: "0",
-          commission: "0",
+          bonus: empBC.bonus.toFixed(2),
+          commission: empBC.commission.toFixed(2),
           loanDeduction: loanDeduction.toFixed(2),
           tax: tax.toFixed(2),
           otherDeductions: "0",

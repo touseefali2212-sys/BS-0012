@@ -146,6 +146,16 @@ export default function BonusCommissionPage() {
     queryKey: ["/api/commission-types"],
   });
 
+  const getTypeLabel = (type: string): string => {
+    if (typeLabels[type]) return typeLabels[type];
+    if (type.startsWith("custom__")) {
+      const id = parseInt(type.replace("custom__", ""));
+      const ct = (commissionTypesData as any[]).find((c: any) => c.id === id);
+      return ct ? ct.name : type;
+    }
+    return type;
+  };
+
   const createMutation = useMutation({
     mutationFn: async (data: any) => await apiRequest("POST", "/api/bonus-commissions", data),
     onSuccess: () => {
@@ -477,7 +487,15 @@ export default function BonusCommissionPage() {
         </div>
         <div>
           <label className="text-[12px] font-medium text-muted-foreground mb-1 block">Type</label>
-          <Select value={formType} onValueChange={(v) => { setFormType(v); setFormIncentiveType(v.includes("commission") ? "commission" : "bonus"); }}>
+          <Select value={formType} onValueChange={(v) => {
+            setFormType(v);
+            const customType = commissionTypesData.find((ct: any) => `custom__${ct.id}` === v);
+            if (customType) {
+              setFormIncentiveType(customType.incentiveType || "bonus");
+            } else {
+              setFormIncentiveType(v.includes("commission") ? "commission" : "bonus");
+            }
+          }}>
             <SelectTrigger className="h-9 text-[13px]" data-testid="select-type">
               <SelectValue />
             </SelectTrigger>
@@ -488,6 +506,16 @@ export default function BonusCommissionPage() {
               <SelectItem value="collection_commission">Collection Commission</SelectItem>
               <SelectItem value="installation_commission">Installation Commission</SelectItem>
               <SelectItem value="custom_incentive">Custom Incentive</SelectItem>
+              {commissionTypesData.length > 0 && (
+                <>
+                  <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider border-t mt-1 pt-2">Custom Types</div>
+                  {commissionTypesData.map((ct: any) => (
+                    <SelectItem key={ct.id} value={`custom__${ct.id}`}>
+                      {ct.name}
+                    </SelectItem>
+                  ))}
+                </>
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -720,6 +748,9 @@ export default function BonusCommissionPage() {
                   <SelectItem value="sales_commission">Sales Commission</SelectItem>
                   <SelectItem value="collection_commission">Collection Commission</SelectItem>
                   <SelectItem value="custom_incentive">Custom Incentive</SelectItem>
+                  {commissionTypesData.map((ct: any) => (
+                    <SelectItem key={ct.id} value={`custom__${ct.id}`}>{ct.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -820,7 +851,7 @@ export default function BonusCommissionPage() {
                     </td>
                     <td className="py-2 px-3">
                       <Badge variant="secondary" className={`text-[10px] font-medium border-0 ${incentiveTypeColors[entry.incentiveType] || incentiveTypeColors.bonus}`}>
-                        {typeLabels[entry.type] || entry.type}
+                        {getTypeLabel(entry.type)}
                       </Badge>
                     </td>
                     <td className="py-2 px-3 text-muted-foreground">{entry.linkedSource || "—"}</td>
@@ -1036,7 +1067,7 @@ export default function BonusCommissionPage() {
                 <div>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Type</p>
                   <Badge variant="secondary" className={`text-[10px] font-medium border-0 mt-1 ${incentiveTypeColors[selectedEntry.incentiveType] || incentiveTypeColors.bonus}`}>
-                    {typeLabels[selectedEntry.type] || selectedEntry.type}
+                    {getTypeLabel(selectedEntry.type)}
                   </Badge>
                 </div>
                 <div>
