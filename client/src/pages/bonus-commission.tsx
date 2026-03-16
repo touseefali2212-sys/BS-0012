@@ -883,11 +883,9 @@ export default function BonusCommissionPage() {
                         <Button variant="outline" size="sm" className="px-2 text-blue-600" onClick={() => { setSelectedEntry(entry); setViewDialog(true); }} data-testid={`button-view-${entry.id}`}>
                           <Eye className="h-3 w-3" />
                         </Button>
-                        {entry.status !== "paid" && (
-                          <Button variant="outline" size="sm" className="px-2 text-amber-600" onClick={() => openEdit(entry)} data-testid={`button-edit-${entry.id}`}>
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                        )}
+                        <Button variant="outline" size="sm" className="px-2 text-amber-600" onClick={() => openEdit(entry)} data-testid={`button-edit-${entry.id}`}>
+                          <Edit className="h-3 w-3" />
+                        </Button>
                         {entry.status === "pending" && (
                           <>
                             <Button variant="outline" size="sm" className="px-2 text-emerald-600" onClick={() => approveMutation.mutate(entry.id)} data-testid={`button-approve-${entry.id}`}>
@@ -903,17 +901,15 @@ export default function BonusCommissionPage() {
                             <Banknote className="h-3 w-3" />
                           </Button>
                         )}
-                        {entry.status !== "paid" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="px-2 text-red-600"
-                            onClick={() => { if (confirm("Delete this entry?")) deleteMutation.mutate(entry.id); }}
-                            data-testid={`button-delete-${entry.id}`}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="px-2 text-red-600"
+                          onClick={() => { if (confirm("Delete this entry?")) deleteMutation.mutate(entry.id); }}
+                          data-testid={`button-delete-${entry.id}`}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
                       </div>
                     </td>
                   </tr>
