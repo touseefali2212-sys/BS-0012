@@ -1080,6 +1080,18 @@ function BranchesTab() {
     defaultValues: branchDefaultValues,
   });
 
+  const watchedBranchName = branchForm.watch("name");
+  const watchedBranchCity = branchForm.watch("city");
+
+  useEffect(() => {
+    if (!editingBranch) {
+      const namePart = (watchedBranchName || "").replace(/\s+/g, "").toUpperCase().slice(0, 3);
+      const cityPart = (watchedBranchCity || "").replace(/\s+/g, "").toUpperCase().slice(0, 3);
+      const generated = [namePart, cityPart].filter(Boolean).join("-");
+      branchForm.setValue("code", generated, { shouldValidate: false });
+    }
+  }, [watchedBranchName, watchedBranchCity, editingBranch]);
+
   const createMutation = useMutation({
     mutationFn: async (data: InsertBranch) => {
       const res = await apiRequest("POST", "/api/branches", data);
@@ -1321,11 +1333,16 @@ function BranchesTab() {
                       <FormLabel>Branch Code</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="e.g. BR-001"
+                          placeholder="e.g. MAI-LAH"
                           data-testid="input-branch-code"
                           {...field}
                         />
                       </FormControl>
+                      {!editingBranch && (
+                        <FormDescription className="text-xs">
+                          Auto-generated from name &amp; city. You can edit it manually.
+                        </FormDescription>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
