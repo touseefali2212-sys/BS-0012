@@ -77,12 +77,13 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useTab } from "@/hooks/use-tab";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { insertAreaSchema, type Area, type InsertArea, type Customer, type Reseller } from "@shared/schema";
+import { insertAreaSchema, type Area, type InsertArea, type Customer, type Reseller, type Branch } from "@shared/schema";
 import { z } from "zod";
 
 const areaFormSchema = insertAreaSchema.extend({
   name: z.string().min(2, "Name must be at least 2 characters"),
   city: z.string().min(2, "City is required"),
+  mainArea: z.string().optional(),
 });
 
 const markerIcon = new L.Icon({
@@ -154,6 +155,7 @@ export default function AreasPage() {
     queryKey: ["/api/areas"],
   });
 
+  const { data: branches = [] } = useQuery<Branch[]>({ queryKey: ["/api/branches"] });
   const { data: allCustomers } = useQuery<Customer[]>({ queryKey: ["/api/customers"] });
   const { data: allResellers } = useQuery<Reseller[]>({ queryKey: ["/api/resellers"] });
   const { data: branchStats, isLoading: branchStatsLoading } = useQuery<{
@@ -167,6 +169,7 @@ export default function AreasPage() {
     resolver: zodResolver(areaFormSchema),
     defaultValues: {
       name: "",
+      mainArea: "",
       city: "",
       zone: "",
       branch: "",
@@ -180,6 +183,7 @@ export default function AreasPage() {
     resolver: zodResolver(areaFormSchema),
     defaultValues: {
       name: "",
+      mainArea: "",
       city: "",
       zone: "",
       branch: "",
@@ -243,6 +247,7 @@ export default function AreasPage() {
     setEditingArea(null);
     form.reset({
       name: "",
+      mainArea: "",
       city: "",
       zone: "",
       branch: "",
@@ -257,6 +262,7 @@ export default function AreasPage() {
     setEditingArea(area);
     form.reset({
       name: area.name,
+      mainArea: area.mainArea || "",
       city: area.city,
       zone: area.zone || "",
       branch: area.branch || "",
@@ -625,33 +631,48 @@ export default function AreasPage() {
             <CardContent>
               <Form {...addForm}>
                 <form onSubmit={addForm.handleSubmit(onAddSubmit)} className="space-y-4 max-w-lg">
-                  <FormField
-                    control={addForm.control}
-                    name="name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Name</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Area name" data-testid="input-add-area-name" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={addForm.control}
-                    name="city"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>City</FormLabel>
-                        <FormControl>
-                          <Input placeholder="City name" data-testid="input-add-area-city" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={addForm.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Area Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. Gulberg III" data-testid="input-add-area-name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={addForm.control}
+                      name="mainArea"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Main Area Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. Gulberg" data-testid="input-add-area-main-area" {...field} value={field.value || ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={addForm.control}
+                      name="city"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>City</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. Lahore" data-testid="input-add-area-city" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <FormField
                       control={addForm.control}
                       name="zone"
@@ -659,33 +680,44 @@ export default function AreasPage() {
                         <FormItem>
                           <FormLabel>Zone</FormLabel>
                           <FormControl>
-                            <Input placeholder="Zone" data-testid="input-add-area-zone" {...field} value={field.value || ""} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={addForm.control}
-                      name="branch"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Branch</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Branch" data-testid="input-add-area-branch" {...field} value={field.value || ""} />
+                            <Input placeholder="e.g. North Zone" data-testid="input-add-area-zone" {...field} value={field.value || ""} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={addForm.control}
+                    name="branch"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Branch</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-add-area-branch">
+                              <SelectValue placeholder="Select branch" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {branches.filter(b => b.status === "active").map((b) => (
+                              <SelectItem key={b.id} value={b.name}>
+                                {b.name}{b.city ? ` — ${b.city}` : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={addForm.control}
                       name="totalHousesOffices"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Total Houses & Offices</FormLabel>
+                          <FormLabel>Total Houses & Offices Estimate</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
@@ -705,7 +737,7 @@ export default function AreasPage() {
                       name="totalCustomers"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Total Customers (estimate)</FormLabel>
+                          <FormLabel>Total Customers Estimate</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
@@ -1370,41 +1402,15 @@ export default function AreasPage() {
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Area name" data-testid="input-area-name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>City</FormLabel>
-                    <FormControl>
-                      <Input placeholder="City name" data-testid="input-area-city" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="zone"
+                  name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Zone</FormLabel>
+                      <FormLabel>Area Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Zone" data-testid="input-area-zone" {...field} value={field.value || ""} />
+                        <Input placeholder="e.g. Gulberg III" data-testid="input-area-name" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1412,12 +1418,12 @@ export default function AreasPage() {
                 />
                 <FormField
                   control={form.control}
-                  name="branch"
+                  name="mainArea"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Branch</FormLabel>
+                      <FormLabel>Main Area Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Branch" data-testid="input-area-branch" {...field} value={field.value || ""} />
+                        <Input placeholder="e.g. Gulberg" data-testid="input-area-main-area" {...field} value={field.value || ""} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1427,10 +1433,62 @@ export default function AreasPage() {
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
+                  name="city"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>City</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Lahore" data-testid="input-area-city" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="zone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Zone</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. North Zone" data-testid="input-area-zone" {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="branch"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Branch</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-area-branch">
+                          <SelectValue placeholder="Select branch" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {branches.filter(b => b.status === "active").map((b) => (
+                          <SelectItem key={b.id} value={b.name}>
+                            {b.name}{b.city ? ` — ${b.city}` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
                   name="totalHousesOffices"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Total Houses & Offices</FormLabel>
+                      <FormLabel>Total Houses & Offices Estimate</FormLabel>
                       <FormControl>
                         <Input
                           type="number"
@@ -1450,7 +1508,7 @@ export default function AreasPage() {
                   name="totalCustomers"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Total Customers (estimate)</FormLabel>
+                      <FormLabel>Total Customers Estimate</FormLabel>
                       <FormControl>
                         <Input
                           type="number"

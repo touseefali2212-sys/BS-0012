@@ -179,6 +179,7 @@ export const activityLogs = pgTable("activity_logs", {
 export const areas = pgTable("areas", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  mainArea: text("main_area"),
   city: text("city").notNull(),
   zone: text("zone"),
   branch: text("branch"),
