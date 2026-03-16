@@ -205,6 +205,7 @@ export default function EmployeeTypesRolesPage() {
 
   const { data: hrmRoles = [] } = useQuery<any[]>({
     queryKey: ["/api/hrm-roles"],
+    staleTime: 0,
   });
 
   const createTypeMutation = useMutation({

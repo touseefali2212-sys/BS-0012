@@ -82,6 +82,7 @@ export default function HrmRightsSetupPage() {
 
   const { data: roles = [], isLoading: rolesLoading } = useQuery<HrmRole[]>({
     queryKey: ["/api/hrm-roles"],
+    staleTime: 0,
   });
 
   const { data: permissions = [], isLoading: permsLoading } = useQuery<HrmPermission[]>({
