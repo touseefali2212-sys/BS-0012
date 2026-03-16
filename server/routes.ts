@@ -1714,7 +1714,7 @@ export async function registerRoutes(
       if (isNaN(payrollId)) return res.status(400).json({ message: "Invalid payroll ID" });
       const entry = await storage.getPayroll(payrollId);
       if (!entry) return res.status(404).json({ message: "Payroll entry not found" });
-      const { amount, paymentMethod, paymentRef, remarks, bankName, bankBranch, bankAccount } = req.body;
+      const { amount, paymentMethod, paymentRef, remarks, bankName, bankBranch, bankAccount, paidBy } = req.body;
       const payAmount = Number(amount);
       if (!isFinite(payAmount) || payAmount <= 0) return res.status(400).json({ message: "Valid amount is required" });
       const validMethods = ["bank", "cash", "cheque", "online"];
@@ -1727,6 +1727,7 @@ export async function registerRoutes(
         paymentRef: paymentRef || "",
         remarks: remarks || "",
         paidDate: today,
+        paidBy: paidBy || "",
       });
 
       const allPayments = await storage.getSalaryPayments(payrollId);

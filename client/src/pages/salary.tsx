@@ -289,6 +289,7 @@ function PayslipDialog({
                             <TableHead className="text-[10px] h-8 font-semibold">Amount</TableHead>
                             <TableHead className="text-[10px] h-8 font-semibold">Method</TableHead>
                             <TableHead className="text-[10px] h-8 font-semibold">Ref</TableHead>
+                            <TableHead className="text-[10px] h-8 font-semibold">Paid By</TableHead>
                             <TableHead className="text-[10px] h-8 font-semibold text-center">Actions</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -299,6 +300,7 @@ function PayslipDialog({
                               <TableCell className="text-[11px] py-1.5 font-semibold tabular-nums text-emerald-600 dark:text-emerald-400" data-testid={`text-payment-amount-${pm.id}`}>Rs. {Number(pm.amount).toLocaleString()}</TableCell>
                               <TableCell className="text-[11px] py-1.5 capitalize" data-testid={`text-payment-method-${pm.id}`}>{pm.paymentMethod}</TableCell>
                               <TableCell className="text-[11px] py-1.5 text-muted-foreground" data-testid={`text-payment-ref-${pm.id}`}>{pm.paymentRef || "-"}</TableCell>
+                              <TableCell className="text-[11px] py-1.5 text-muted-foreground" data-testid={`text-payment-paidby-${pm.id}`}>{pm.paidBy || "-"}</TableCell>
                               <TableCell className="py-1.5 text-center">
                                 <div className="flex items-center justify-center gap-1">
                                   <Button
@@ -468,6 +470,7 @@ function PayDialogComponent({
   const [payBankName, setPayBankName] = useState("");
   const [payBankBranch, setPayBankBranch] = useState("");
   const [payBankAccount, setPayBankAccount] = useState("");
+  const [payPaidBy, setPayPaidBy] = useState("");
 
   useEffect(() => {
     if (payDialog && employees) {
@@ -506,7 +509,7 @@ function PayDialogComponent({
   const defaultAmount = remainingAmount;
 
   return (
-    <Dialog open={!!payDialog} onOpenChange={open => { if (!open) { setPayDialog(null); setPayMethod("bank"); setPayRef(""); setPayRemarks(""); setPayAmount(""); } }}>
+    <Dialog open={!!payDialog} onOpenChange={open => { if (!open) { setPayDialog(null); setPayMethod("bank"); setPayRef(""); setPayRemarks(""); setPayAmount(""); setPayPaidBy(""); } }}>
       <DialogContent className="max-w-md" data-testid="dialog-mark-paid">
         {payDialog && (
           <>
@@ -649,6 +652,16 @@ function PayDialogComponent({
                 </div>
               )}
               <div>
+                <label className="text-xs font-medium text-muted-foreground">Salary Paid By / Send By</label>
+                <Input
+                  value={payPaidBy}
+                  onChange={e => setPayPaidBy(e.target.value)}
+                  className="h-9 text-[13px] mt-1"
+                  placeholder="e.g. Ahmed Raza, HR Manager, Finance Dept."
+                  data-testid="input-pay-paid-by"
+                />
+              </div>
+              <div>
                 <label className="text-xs font-medium text-muted-foreground">Transaction Reference</label>
                 <Input
                   value={payRef}
@@ -672,7 +685,7 @@ function PayDialogComponent({
             <DialogFooter>
               <Button variant="outline" onClick={() => setPayDialog(null)} data-testid="button-cancel-pay">Cancel</Button>
               <Button
-                onClick={() => markPaidMutation.mutate({ id: payDialog.id, method: payMethod, ref: payRef, remarks: payRemarks, amount: payAmount || String(defaultAmount), bankName: payBankName, bankBranch: payBankBranch, bankAccount: payBankAccount })}
+                onClick={() => markPaidMutation.mutate({ id: payDialog.id, method: payMethod, ref: payRef, remarks: payRemarks, amount: payAmount || String(defaultAmount), bankName: payBankName, bankBranch: payBankBranch, bankAccount: payBankAccount, paidBy: payPaidBy })}
                 disabled={markPaidMutation.isPending || (!payAmount && !defaultAmount) || Number(payAmount || defaultAmount) <= 0}
                 data-testid="button-confirm-pay"
               >
@@ -772,7 +785,7 @@ export default function SalaryPage() {
   });
 
   const markPaidMutation = useMutation({
-    mutationFn: ({ id, method, ref, remarks, amount, bankName, bankBranch, bankAccount }: { id: number; method: string; ref: string; remarks: string; amount: string; bankName?: string; bankBranch?: string; bankAccount?: string }) =>
+    mutationFn: ({ id, method, ref, remarks, amount, bankName, bankBranch, bankAccount, paidBy }: { id: number; method: string; ref: string; remarks: string; amount: string; bankName?: string; bankBranch?: string; bankAccount?: string; paidBy?: string }) =>
       apiRequest("POST", `/api/payroll/${id}/payments`, {
         amount,
         paymentMethod: method,
@@ -781,6 +794,7 @@ export default function SalaryPage() {
         bankName: bankName || undefined,
         bankBranch: bankBranch || undefined,
         bankAccount: bankAccount || undefined,
+        paidBy: paidBy || undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/payroll?month=${selectedMonth}`] });
