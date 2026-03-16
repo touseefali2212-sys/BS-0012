@@ -242,26 +242,16 @@ export default function EmployeeTypesRolesPage() {
       const res = await apiRequest("POST", "/api/roles", data);
       return res.json();
     },
-    onSuccess: async (createdRole: any) => {
+    onSuccess: (createdRole: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/roles"] });
-      const alreadyExists = hrmRoles.some(
-        (hr: any) => hr.name.toLowerCase().trim() === (createdRole.name || roleName).toLowerCase().trim()
-      );
-      if (!alreadyExists) {
-        try {
-          await apiRequest("POST", "/api/hrm-roles", {
-            name: createdRole.name || roleName,
-            description: createdRole.description || `HRM access role for ${createdRole.name || roleName}`,
-            isSystem: false,
-          });
-          queryClient.invalidateQueries({ queryKey: ["/api/hrm-roles"] });
-          toast({ title: "Role Created & Linked", description: `"${createdRole.name || roleName}" added to HRM Rights Setup automatically` });
-        } catch {
-          toast({ title: "Role Created", description: "Role saved. Link to HRM Rights Setup failed — please add manually." });
-        }
-      } else {
-        toast({ title: "Created", description: `"${createdRole.name || roleName}" created. A matching HRM rights role already exists.` });
-      }
+      queryClient.invalidateQueries({ queryKey: ["/api/hrm-roles"] });
+      const linked = createdRole?.hrmRoleLinked;
+      toast({
+        title: linked ? "Role Created & Linked" : "Role Created",
+        description: linked
+          ? `"${createdRole.name}" was automatically added to HRM Rights Setup`
+          : `"${createdRole.name}" created. A matching HRM rights role already exists.`,
+      });
       setRoleDialog(false);
       resetRoleForm();
     },
