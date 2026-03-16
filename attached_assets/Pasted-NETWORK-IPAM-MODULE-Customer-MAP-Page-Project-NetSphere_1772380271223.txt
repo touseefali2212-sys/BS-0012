@@ -1,0 +1,275 @@
+NETWORK & IPAM MODULE
+Customer MAP Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop an interactive Customer Map Page that visualizes all subscribers geographically, linked with POPs, routers, VLANs, and IP pools.
+
+This page enables:
+
+✔ Real-time customer location tracking
+✔ POP coverage visualization
+✔ Network density analysis
+✔ Fault impact identification
+✔ Area-wise revenue insights
+✔ Expansion planning
+✔ Field team navigation support
+
+This is your network footprint intelligence dashboard.
+
+🎨 UI / Theme Design
+
+Style:
+Modern GIS-Based NOC Interface
+
+Primary Gradient:
+Blue → Teal (#2563EB → #14B8A6)
+
+Map Theme Options:
+
+✔ Light Map
+✔ Dark Map
+✔ Satellite View
+✔ Hybrid View
+
+Markers:
+
+🟢 Active Customer
+🔴 Suspended Customer
+🟡 Pending Installation
+🔵 Corporate Customer
+🟣 High-Usage Customer
+⚫ Offline / Fault Affected
+
+Typography:
+Inter
+
+Map interaction must be smooth and responsive.
+
+📊 Page Layout Structure
+
+The page contains 6 main components:
+
+1️⃣ Map Overview Panel
+2️⃣ Customer Geo Markers
+3️⃣ POP & Infrastructure Layer
+4️⃣ Heatmap & Density View
+5️⃣ Area Analytics Panel
+6️⃣ Filter & Drill-Down Controls
+
+1️⃣ Map Overview Panel
+
+Top Summary Cards:
+
+Total Customers
+
+Active Customers
+
+Suspended Customers
+
+Corporate Clients
+
+POP Count
+
+Coverage Areas
+
+Quick Stats:
+
+📊 Customers per City
+📈 Growth by Area
+📊 Revenue by Region
+
+2️⃣ Customer Geo Markers
+
+Each customer appears as a location marker.
+
+Clicking a marker shows:
+
+Customer Name
+
+Account ID
+
+Package Speed
+
+Current Status
+
+IP Address
+
+VLAN
+
+POP / Router
+
+Signal Type (FTTH / Wireless)
+
+Installation Date
+
+Outstanding Balance
+
+Last Activity
+
+Quick Actions:
+
+✔ View Profile
+✔ Suspend / Activate
+✔ Create Task
+✔ Navigate via Google Maps
+
+3️⃣ POP & Infrastructure Layer
+
+Show network infrastructure on map:
+
+✔ POP Locations
+✔ OLT Locations
+✔ MikroTik Routers
+✔ Distribution Boxes
+✔ Fiber Routes (Optional Layer)
+✔ Wireless Towers
+
+Each POP shows:
+
+Total Connected Users
+
+Capacity
+
+Utilization %
+
+Congestion Status
+
+Color Coding:
+
+🟢 < 60% utilization
+🟡 60–80%
+🔴 > 80%
+
+4️⃣ Heatmap & Density View
+
+Advanced geo-analysis feature:
+
+Heatmap modes:
+
+✔ Customer Density
+✔ Revenue Density
+✔ Bandwidth Consumption
+✔ Complaint Frequency
+✔ Installation Requests
+
+Use cases:
+
+✔ Identify high-demand zones
+✔ Plan new POP
+✔ Plan fiber expansion
+✔ Detect overloaded areas
+
+5️⃣ Area Analytics Panel
+
+Select area to display:
+
+Total Customers
+
+Active vs Suspended
+
+Revenue Generated
+
+Average Package Speed
+
+Bandwidth Consumption
+
+Fault Rate
+
+Growth Rate
+
+Include:
+
+📈 Monthly Growth Graph
+📊 Area Revenue Trend
+
+6️⃣ Filter & Drill-Down Controls
+
+Advanced filtering:
+
+✔ Filter by POP
+✔ Filter by Router
+✔ Filter by VLAN
+✔ Filter by Package
+✔ Filter by Status
+✔ Filter by Installation Date
+✔ Filter by Service Type (FTTH / Wireless / Corporate)
+✔ Filter by Overdue Customers
+
+Zoom Levels:
+
+✔ City View
+✔ Town View
+✔ Street View
+✔ Cluster View (Auto grouping markers)
+
+🔄 Automation Logic
+
+When new customer added:
+
+✔ Auto-pin location
+✔ Assign POP connection
+✔ Sync with IPAM
+
+When customer suspended:
+
+✔ Marker color changes
+✔ Update in real-time
+
+When POP overloaded:
+
+✔ Highlight POP in red
+✔ Notify admin
+✔ Suggest expansion zone
+
+When complaint created:
+
+✔ Highlight customer marker
+✔ Show issue icon
+
+🔐 Role-Based Access
+
+Admin:
+Full access
+
+Network Engineer:
+Infrastructure view
+
+Operations Manager:
+Customer & POP visibility
+
+Field Technician:
+Area view + navigation
+
+Viewer:
+Read-only map
+
+🔗 Integration Required
+
+✔ Customer Module
+✔ IPAM Module
+✔ MikroTik / BRAS Integration
+✔ OLT Integration
+✔ Task Management
+✔ Billing Module
+✔ Bandwidth Usage Module
+✔ Complaint Management System
+
+📈 Business Impact
+
+This page enables:
+
+✔ Visual network control
+✔ Faster troubleshooting
+✔ Smart expansion planning
+✔ Reduced downtime
+✔ Higher operational efficiency
+✔ Better revenue targeting
+
+When you open this page, it should feel like:
+
+“I can see my entire network on one screen.”
+“I know exactly where my customers are.”
+“I can plan expansion intelligently.”

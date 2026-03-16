@@ -1,0 +1,258 @@
+TASK MANAGEMENT MODULE
+Progress Tracking Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized Progress Tracking Page to monitor, analyze, and evaluate the real-time progress of tasks and projects across departments and teams.
+
+This page enables:
+
+✔ Real-time task completion monitoring
+✔ Project progress visibility
+✔ Delay detection
+✔ Team performance evaluation
+✔ Resource efficiency analysis
+✔ SLA & deadline tracking
+
+This is your execution intelligence dashboard.
+
+🎨 UI / Theme Design
+
+Style:
+Enterprise Analytics Dashboard
+
+Primary Gradient:
+Indigo → Blue (#4F46E5 → #1D4ED8)
+
+Background:
+Light Neutral Gray (#F5F7FA)
+
+Cards:
+White, soft shadow, 14px rounded corners
+
+Progress Indicators:
+
+🟢 100% Completed
+🟡 50–99% In Progress
+🔴 Overdue
+🔵 Not Started
+🟣 Pending Approval
+
+Typography:
+Inter / Poppins
+
+📊 Page Layout Structure
+
+The page contains 5 main sections:
+
+1️⃣ Progress Overview Summary
+2️⃣ Project-Level Progress Tracking
+3️⃣ Task-Level Progress Monitoring
+4️⃣ Employee Performance Tracking
+5️⃣ Timeline & Gantt Visualization
+
+1️⃣ Progress Overview Summary
+
+Top KPI Cards:
+
+Total Active Projects
+
+Total Active Tasks
+
+Overall Completion %
+
+Overdue Tasks Count
+
+On-Time Completion Rate
+
+Average Task Duration
+
+Charts:
+
+📈 Weekly Progress Trend
+📊 Project Completion Distribution
+📊 Department Performance Comparison
+📊 Priority-Based Completion
+
+This gives instant visibility of company execution health.
+
+2️⃣ Project-Level Progress Tracking
+
+Each project shows:
+
+Project Name
+
+Project Manager
+
+Total Tasks
+
+Completed Tasks
+
+Pending Tasks
+
+Overdue Tasks
+
+Overall Completion % (Auto-calculated)
+
+Estimated Completion Date
+
+Delay Indicator
+
+Progress Bar Example:
+
+████████░░ 80%
+
+If project is delayed:
+
+✔ Highlight in red
+✔ Show delay days
+✔ Alert manager
+
+3️⃣ Task-Level Progress Monitoring
+
+Professional task tracking grid:
+
+Columns:
+
+Task ID
+
+Task Title
+
+Project
+
+Assigned To
+
+Priority
+
+Estimated Hours
+
+Actual Time Spent
+
+Progress %
+
+Due Date
+
+Status
+
+Delay (Days)
+
+Features:
+
+✔ Inline progress update
+✔ Filter by department
+✔ Filter by employee
+✔ Filter by overdue
+✔ Date range filter
+✔ Export to Excel
+
+Auto Calculations:
+
+✔ Completion %
+✔ Remaining time
+✔ Time variance (Actual vs Estimated)
+
+4️⃣ Employee Performance Tracking
+
+Track productivity per employee:
+
+Metrics:
+
+Assigned Tasks
+
+Completed Tasks
+
+On-Time Completion Rate
+
+Overdue Tasks
+
+Average Completion Time
+
+Efficiency Score
+
+Display:
+
+📊 Employee Ranking
+📈 Monthly Productivity Trend
+📊 Department Leaderboard
+
+This helps you measure real team performance.
+
+5️⃣ Timeline & Gantt Visualization
+
+Interactive timeline view:
+
+✔ Project-wise task timeline
+✔ Task dependencies
+✔ Start & End Dates
+✔ Delay visualization
+✔ Milestone tracking
+
+Features:
+
+✔ Zoom by week / month
+✔ Drag to adjust deadlines (permission-based)
+✔ Real-time recalculation of completion %
+
+🔄 System Logic
+
+When task updated:
+
+✔ Progress recalculated
+✔ Project % auto-updated
+✔ Employee KPI updated
+
+When task overdue:
+
+✔ Mark overdue
+✔ Add delay count
+✔ Notify supervisor
+
+When project completion ≥ 100%:
+
+✔ Mark project completed
+✔ Log completion date
+✔ Update performance analytics
+
+🔐 Role-Based Access
+
+Admin:
+Full visibility & control
+
+Project Manager:
+View & adjust project progress
+
+Supervisor:
+View department progress
+
+Employee:
+View own task progress only
+
+Viewer:
+Read-only access
+
+🔗 Integration Required
+
+✔ Task Module
+✔ Project Module
+✔ HR Module
+✔ Notification System
+✔ Dashboard Analytics
+✔ SLA Monitoring
+
+📈 Business Impact
+
+This page ensures:
+
+✔ No hidden delays
+✔ Transparent accountability
+✔ Data-driven performance review
+✔ Better project forecasting
+✔ Increased operational efficiency
+
+When you open this page, it should feel like:
+
+“I know exactly how my company is performing.”
+“I can identify delays instantly.”
+“I can measure every team member’s productivity.”

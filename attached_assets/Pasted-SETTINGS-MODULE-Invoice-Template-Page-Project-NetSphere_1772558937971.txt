@@ -1,0 +1,324 @@
+SETTINGS MODULE
+Invoice Template Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized Invoice Template Management Page to design, customize, and control invoice layouts, branding, financial structure, tax formatting, and document presentation across the system.
+
+This page ensures:
+
+✔ Professional invoice branding
+✔ Legal compliance formatting
+✔ Flexible layout customization
+✔ Multi-template support
+✔ Tax & financial transparency
+✔ Print & PDF optimization
+
+It acts as the invoice design and compliance control center of the ERP.
+
+🎨 UI / Theme Design
+
+Style:
+Professional Document Design Interface
+
+Primary Gradient:
+Slate → Royal Blue (#334155 → #2563EB)
+
+Background:
+Clean White Document Canvas
+
+Template Status Indicators:
+
+🟢 Active
+🟡 Draft
+🔵 Default
+🟣 Scheduled
+🔴 Disabled
+⚫ Archived
+
+Typography:
+Inter / Poppins
+Optional custom font selection
+
+Layout:
+Template List + Live Preview Panel + Drag & Drop Layout Builder + Configuration Tabs
+
+📊 Page Layout Structure
+
+The page contains 5 structured sections:
+
+1️⃣ Template Management Dashboard
+2️⃣ Invoice Layout Builder
+3️⃣ Financial & Tax Configuration
+4️⃣ Branding & Styling Controls
+5️⃣ Print, PDF & Export Settings
+
+1️⃣ Template Management Dashboard
+
+Allows multiple invoice templates.
+
+Fields:
+
+Template Name
+
+Template Type (Standard / Proforma / Credit Note / Recurring)
+
+Assigned Customer Group
+
+Assigned Branch
+
+Default Status
+
+Last Modified
+
+Active / Draft Status
+
+Actions:
+
+✔ Create New Template
+✔ Duplicate
+✔ Edit
+✔ Set as Default
+✔ Preview
+✔ Archive
+
+Supports:
+
+• Multiple branches
+• Different templates per customer category
+• Corporate vs Residential layout
+
+2️⃣ Invoice Layout Builder
+
+Drag-and-drop builder for structural customization.
+
+Configurable Sections:
+
+Header Area:
+
+Company Logo
+
+Company Details
+
+Tax Registration Number
+
+Contact Information
+
+Invoice Information Section:
+
+Invoice Number
+
+Invoice Date
+
+Due Date
+
+Payment Terms
+
+Customer ID
+
+Customer Section:
+
+Customer Name
+
+Address
+
+Contact Info
+
+Account Number
+
+Item Table Section:
+
+Item Description
+
+SKU
+
+Quantity
+
+Unit Price
+
+Discount
+
+Tax
+
+Subtotal
+
+Total
+
+Footer Section:
+
+Notes
+
+Bank Details
+
+QR Code
+
+Authorized Signature
+
+Terms & Conditions
+
+Allows:
+
+✔ Show/Hide specific fields
+✔ Rearrange layout
+✔ Adjust column width
+✔ Custom header/footer text
+
+Live preview updates instantly.
+
+3️⃣ Financial & Tax Configuration
+
+Controls invoice calculation display.
+
+Options:
+
+Tax Inclusive / Exclusive
+
+Multi-Tax Support
+
+VAT / GST Label Customization
+
+Currency Symbol Position
+
+Decimal Precision
+
+Rounding Rule
+
+Display Discount Column
+
+Display Tax Breakdown
+
+Show Grand Total in Words
+
+Advanced Controls:
+
+✔ Multi-currency support
+✔ Branch-based tax configuration
+✔ Withholding tax option
+✔ Late fee display
+
+Ensures legal and regional compliance.
+
+4️⃣ Branding & Styling Controls
+
+Controls visual identity.
+
+Options:
+
+Primary Color
+
+Accent Color
+
+Font Style
+
+Font Size
+
+Table Header Style
+
+Border Style
+
+Background Watermark
+
+Company Seal / Stamp
+
+Branding Elements:
+
+✔ Logo position
+✔ Footer branding
+✔ Custom background
+
+Supports corporate identity alignment.
+
+5️⃣ Print, PDF & Export Settings
+
+Controls document output.
+
+Options:
+
+✔ A4 / Letter size
+✔ Portrait / Landscape
+✔ Margin settings
+✔ Page numbering
+✔ QR Code (for payment link)
+✔ Barcode (Invoice ID)
+✔ Download as PDF
+✔ Email-ready formatting
+
+Email Integration:
+
+Attach invoice automatically to billing email.
+
+Digital Signature Option:
+
+✔ Authorized signatory signature upload
+✔ Auto digital stamp
+
+🔄 Automation & Logic
+
+When invoice generated:
+
+✔ Uses assigned template
+✔ Applies customer group template
+✔ Applies branch-specific branding
+✔ Applies financial default settings
+
+If template updated:
+
+✔ New invoices use updated template
+✔ Old invoices remain unchanged (archived copy stored)
+
+Supports:
+
+✔ Recurring invoice templates
+✔ Credit note formatting
+✔ Proforma invoice design
+
+🔐 Role-Based Permissions
+
+Admin:
+Full control
+
+Finance Manager:
+Edit & assign templates
+
+Branch Manager:
+Assign branch-specific template
+
+Sales:
+Preview only
+
+Customers:
+View final generated invoice only
+
+Only Admin can delete active template.
+
+🔗 Integration
+
+This page integrates with:
+
+✔ Sales Module
+✔ Billing Module
+✔ Customer Portal
+✔ Accounting Module
+✔ Payment Gateway
+✔ Reports Module
+
+It controls how every financial document appears system-wide.
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Professional invoice presentation
+✔ Legal compliance
+✔ Strong brand identity
+✔ Transparent billing structure
+✔ Reduced billing disputes
+✔ Improved customer trust
+
+When opening this page, it should feel like:
+
+“This is our financial identity.”
+“Every invoice reflects our brand.”
+“Billing is clean, structured, and compliant.”

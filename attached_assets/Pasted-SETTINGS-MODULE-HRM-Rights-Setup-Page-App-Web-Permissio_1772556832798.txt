@@ -1,0 +1,298 @@
+SETTINGS MODULE
+HRM Rights Setup Page
+
+(App & Web Permissions – Module & Submenu Level Control)
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized HRM Rights Setup Page to configure and manage role-based access permissions for all modules and submenus across both Web and Mobile App platforms.
+
+This page ensures:
+
+✔ Controlled system access
+✔ Role-based permission governance
+✔ Web vs App access separation
+✔ Action-level control (View, Create, Edit, Delete, Approve)
+✔ Secure data isolation
+✔ Compliance-ready access management
+
+It serves as the core access control framework (RBAC Engine) of the ERP.
+
+🎨 UI / Theme Design
+
+Style:
+Enterprise Security & Permission Matrix Dashboard
+
+Primary Gradient:
+Slate → Indigo (#334155 → #4F46E5)
+
+Background:
+Light Neutral (#F8FAFC)
+
+Permission Status Indicators:
+
+🟢 Full Access
+🟡 Limited Access
+🔵 View Only
+🟣 Conditional Access
+🔴 No Access
+⚫ Inherited
+
+Typography:
+Inter / Poppins
+
+Layout:
+Role Selector + Permission Matrix Grid + Detailed Rights Panel + Access Summary
+
+📊 Page Layout Structure
+
+The page contains 4 main sections:
+
+1️⃣ Role Selection & Overview
+2️⃣ Module & Submenu Permission Matrix
+3️⃣ Action-Level Permission Configuration
+4️⃣ App vs Web Access Control Panel
+
+1️⃣ Role Selection & Overview
+
+At the top:
+
+Dropdown to select:
+
+Admin
+
+Finance Manager
+
+Inventory Manager
+
+Sales Manager
+
+Warehouse Manager
+
+HR Manager
+
+Customer Support
+
+Technician
+
+Custom Roles
+
+Displays:
+
+Total Modules Assigned
+
+Full Access Modules
+
+Limited Access Modules
+
+App Access Enabled
+
+Web Access Enabled
+
+Last Updated By
+
+Option to:
+
+✔ Create New Role
+✔ Duplicate Existing Role
+✔ Edit Role Name
+✔ Archive Role
+
+2️⃣ Module & Submenu Permission Matrix
+
+A structured permission grid displaying:
+
+Modules (Left Column):
+
+Dashboard
+
+Inventory
+
+Sales
+
+Purchase Orders
+
+Assets
+
+Service Outages
+
+CRM
+
+HRM
+
+Notifications
+
+Reports
+
+Settings
+
+Each module expands to show submenus.
+
+Example (Inventory Module):
+
+• Product Types
+• Suppliers
+• Brands & Products
+• Purchase Orders
+• Stock Management
+• Inventory List
+• Batch & Serial
+• Sales
+
+For each submenu, permissions include:
+
+✔ View
+✔ Create
+✔ Edit
+✔ Delete
+✔ Approve
+✔ Export
+✔ Print
+
+Permission toggles are displayed as checkboxes or switches.
+
+3️⃣ Action-Level Permission Configuration
+
+Advanced permission logic.
+
+Granular Controls:
+
+• View Own Data Only
+• View Department Data
+• View All Data
+• Edit Own Records Only
+• Approve Up To Specific Amount
+• Restrict Deletion
+• Restrict Financial Fields
+• Restrict Cost Visibility
+
+Example:
+
+Sales Manager:
+✔ Create Invoice
+✔ Edit Invoice
+❌ Delete Invoice
+✔ View All Sales
+❌ Edit Cost Price
+
+Inventory Manager:
+✔ Adjust Stock
+✔ Transfer
+❌ Approve Purchase Order
+
+Conditional Access:
+
+IF user belongs to Warehouse A
+→ Can only view Warehouse A stock
+
+4️⃣ App vs Web Access Control Panel
+
+Separate toggles for:
+
+Web Access
+Mobile App Access
+
+For each module/submenu:
+
+✔ Web Only
+✔ App Only
+✔ Both
+❌ Disabled
+
+Example:
+
+Technician Role:
+✔ App: Assets Tracking
+✔ App: Customer Map
+❌ Web: Finance Module
+
+Finance Role:
+✔ Web: Sales & Reports
+❌ App: Inventory Adjustment
+
+Supports platform-specific UI restrictions.
+
+🔄 Permission Inheritance Logic
+
+Supports:
+
+✔ Role-Based Access Control (RBAC)
+✔ Permission Inheritance
+✔ Parent-Child Module Control
+✔ Override Rules
+
+Example:
+
+If Inventory Module disabled →
+All submenus auto disabled
+
+If Admin role →
+Full access auto-granted
+
+System prevents conflicting permissions.
+
+🔐 Security Features
+
+✔ Audit log of permission changes
+✔ Track who modified role access
+✔ Timestamp tracking
+✔ Multi-factor confirmation for critical changes
+✔ Lock system roles (Admin cannot be deleted)
+
+Prevents:
+
+• Unauthorized access
+• Data leaks
+• Accidental deletion
+• Financial manipulation
+
+📊 Permission Summary & Validation
+
+Before saving changes:
+
+System displays summary:
+
+Total Permissions Granted
+
+High-Risk Permissions
+
+Financial Access Level
+
+Delete Rights Enabled
+
+Validation alerts if:
+
+• Too many critical rights assigned
+• Financial module given to non-finance role
+• App-only user given restricted backend access
+
+🔗 Integration
+
+This page integrates with:
+
+✔ User Management Module
+✔ HRM Module
+✔ All Operational Modules
+✔ Mobile App System
+✔ Audit & Logs Module
+
+Every module checks this page before allowing access.
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Structured organizational hierarchy
+✔ Secure operational boundaries
+✔ Platform-level access control
+✔ Reduced internal fraud risk
+✔ Compliance-ready audit trails
+✔ Clean separation of duties
+
+When opening this page, it should feel like:
+
+“I control the system structure.”
+“No one sees what they shouldn’t.”
+“Every action is permission-controlled.”

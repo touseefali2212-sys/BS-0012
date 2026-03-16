@@ -1,0 +1,303 @@
+NOTIFICATIONS MODULE
+Push Notification Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized Push Notification Management Page to create, schedule, manage, and monitor real-time push alerts across web and mobile platforms.
+
+This page ensures:
+
+✔ Instant alert delivery
+✔ Real-time operational awareness
+✔ Critical event escalation
+✔ Targeted user notifications
+✔ Delivery performance tracking
+
+It functions as the live alert broadcasting system of the ERP.
+
+🎨 UI / Theme Design
+
+Style:
+Modern Real-Time Alert Dashboard
+
+Primary Gradient:
+Electric Blue → Violet (#2563EB → #7C3AED)
+
+Background:
+Soft Gray (#F9FAFB)
+
+Push Status Indicators:
+
+🟢 Sent
+🟡 Scheduled
+🔵 Draft
+🟣 Processing
+🔴 Failed
+⚫ Cancelled
+
+Typography:
+Inter / Poppins
+Bold headings for alert titles
+
+Layout:
+Push Overview KPIs + Create Push Panel + Push History Table + Delivery Analytics
+
+📊 Page Layout Structure
+
+The page contains 4 structured sections:
+
+1️⃣ Push Notification Overview
+2️⃣ Create Push Notification
+3️⃣ Push History & Management
+4️⃣ Delivery Analytics & Logs
+
+1️⃣ Push Notification Overview
+
+KPI Cards:
+
+Total Push Notifications
+
+Sent Today
+
+Scheduled
+
+Failed
+
+Delivery Success Rate
+
+Click-Through Rate (CTR)
+
+Charts:
+
+📊 Notifications by Module
+📈 Delivery Performance Trend
+📊 Device Distribution (Web / Android / iOS)
+📉 Failure Rate Monitoring
+
+This provides visibility into communication performance.
+
+2️⃣ Create Push Notification Panel
+
+Professional push creation interface.
+
+Basic Fields:
+
+Notification Title
+
+Message Body
+
+Module Source
+
+Priority Level (Low / Medium / High / Critical)
+
+Icon (Optional)
+
+Image Banner (Optional)
+
+Audience Targeting:
+
+All Users
+
+Specific Role (Admin, Sales, Inventory Manager)
+
+Specific Users
+
+Customers (Segment-based)
+
+Warehouse-based Users
+
+Region-based Customers
+
+Trigger Options:
+
+✔ Manual Send
+✔ Event-Based
+✔ Scheduled
+✔ Recurring
+
+Advanced Options:
+
+Deep Link (redirect to specific module page)
+
+Expiry Time
+
+Silent Push (background refresh)
+
+Require Acknowledgment (for critical alerts)
+
+Preview Mode:
+
+Live preview for:
+
+• Desktop browser
+• Mobile device
+• Admin dashboard
+
+3️⃣ Push History & Management
+
+Master table displaying all push notifications.
+
+Columns:
+
+Title
+
+Module
+
+Audience
+
+Sent Date
+
+Delivery Count
+
+Click Count
+
+Success Rate
+
+Status
+
+Created By
+
+Actions
+
+Actions:
+
+• View Details
+• Duplicate
+• Cancel (if scheduled)
+• Resend
+• View Logs
+• Delete (Admin Only)
+
+Filters:
+
+✔ Date range
+✔ Status
+✔ Module
+✔ Audience
+✔ Priority
+
+4️⃣ Delivery Analytics & Logs
+
+Detailed push tracking.
+
+Displays:
+
+Total Devices Targeted
+
+Successfully Delivered
+
+Failed Devices
+
+Opened Notifications
+
+Acknowledged (if required)
+
+Device Type
+
+Browser Type
+
+OS Type
+
+Failure reasons:
+
+• Device Offline
+• Token Expired
+• Permission Denied
+• Server Error
+
+System auto-cleans invalid tokens.
+
+🔄 Automation & Trigger Logic
+
+Push notifications can be triggered from:
+
+Inventory Module:
+• Low stock alert
+• Serial mismatch
+
+Sales Module:
+• Invoice created
+• Payment overdue
+
+Assets Module:
+• Asset assigned
+• Asset transfer
+
+Service Outages:
+• Outage started
+• Outage resolved
+
+Security:
+• Suspicious login
+• Password changed
+
+Escalation logic:
+
+If critical alert not acknowledged within X minutes:
+→ Notify supervisor
+→ Notify Admin
+
+🔐 Role-Based Permissions
+
+Admin:
+Full push control
+
+System Manager:
+Create & schedule push
+
+Module Managers:
+Trigger module-specific push
+
+Users:
+Receive only
+
+Only Admin can delete sent push notifications.
+
+🌐 Technical Capabilities
+
+✔ Web Push (Browser-based)
+✔ Mobile Push (Android / iOS)
+✔ Token Management
+✔ Firebase Integration Support
+✔ Real-Time WebSocket Option
+✔ Queue-Based Processing
+✔ Delivery Retry Mechanism
+
+Scalable for:
+
+✔ Thousands of users
+✔ High-frequency alerts
+✔ Multi-region operations
+
+🔗 Integration
+
+Push Notification Page integrates with:
+
+✔ Notification Type Page
+✔ Inventory Module
+✔ Sales Module
+✔ Assets Module
+✔ Service Outages Module
+✔ User Management
+✔ CRM Module
+
+It works as a real-time overlay across all modules.
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Instant awareness
+✔ Faster decision-making
+✔ Reduced downtime
+✔ Better team coordination
+✔ Improved customer experience
+✔ Critical event escalation control
+
+When opening this page, it should feel like:
+
+“Alerts move instantly.”
+“The system reacts in real time.”
+“No critical event is missed.”

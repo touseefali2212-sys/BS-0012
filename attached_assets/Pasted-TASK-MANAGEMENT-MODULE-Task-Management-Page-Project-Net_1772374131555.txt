@@ -1,0 +1,260 @@
+TASK MANAGEMENT MODULE
+Task Management Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized Task Management Page that provides complete visibility and control over all operational, technical, field, and administrative tasks across the organization.
+
+This page enables:
+
+✔ Real-time monitoring of tasks
+✔ Team accountability
+✔ Deadline enforcement
+✔ Performance evaluation
+✔ Project execution tracking
+✔ Operational efficiency
+
+This is the main execution control panel of the company.
+
+🎨 UI / Theme Design
+
+Style:
+Modern Enterprise Operations Dashboard
+
+Primary Gradient:
+Teal → Royal Blue (#0EA5E9 → #1D4ED8)
+
+Background:
+Light Neutral Gray (#F3F4F6)
+
+Cards:
+White with soft shadow
+Rounded corners (14px)
+
+Typography:
+Inter / Poppins
+
+Status Colors:
+
+🟢 Completed
+🟡 In Progress
+🔴 Overdue
+🔵 Assigned
+🟣 Pending Approval
+⚫ On Hold
+
+📊 Page Layout Structure
+
+The page is divided into 5 main sections:
+
+1️⃣ Task Overview Dashboard
+2️⃣ Task Filters & Controls
+3️⃣ Task List Grid View
+4️⃣ Kanban / Board View
+5️⃣ Performance & Analytics Section
+
+1️⃣ Task Overview Dashboard
+
+Top KPI Summary Cards:
+
+Total Tasks
+
+Active Tasks
+
+Completed Tasks
+
+Overdue Tasks
+
+High Priority Tasks
+
+Tasks Due Today
+
+Analytics Widgets:
+
+📈 Weekly Completion Trend
+📊 Tasks by Department
+📊 Tasks by Project
+📊 Tasks by Branch
+📊 Team Workload Distribution
+
+This section gives instant operational clarity.
+
+2️⃣ Task Filters & Controls
+
+Advanced filtering system:
+
+✔ Filter by Project
+✔ Filter by Department
+✔ Filter by Branch
+✔ Filter by Assigned User
+✔ Filter by Priority
+✔ Filter by Status
+✔ Date Range Filter
+✔ Overdue Filter
+
+Quick Actions:
+
+➕ Create New Task
+📤 Export to Excel
+🔁 Bulk Status Update
+🔔 Send Reminder
+
+3️⃣ Task List Grid View
+
+Professional structured table for task tracking.
+
+Columns:
+
+Task ID
+
+Task Title
+
+Project
+
+Department
+
+Assigned To
+
+Priority
+
+Progress %
+
+Start Date
+
+Due Date
+
+Status
+
+Days Remaining
+
+Action Menu
+
+Features:
+
+✔ Quick Edit
+✔ Inline Status Update
+✔ Progress Bar Indicator
+✔ Attachment Indicator
+✔ Comment Counter
+✔ Activity Log Access
+
+4️⃣ Kanban / Board View
+
+Visual drag-and-drop task management.
+
+Columns:
+
+Assigned
+
+In Progress
+
+Pending Approval
+
+On Hold
+
+Completed
+
+Overdue
+
+Users can:
+
+✔ Drag to change status
+✔ Add quick comments
+✔ Upload field proof
+✔ Update progress
+
+Ideal for:
+
+• Field Teams
+• Daily stand-up meetings
+• Operations review
+
+5️⃣ Performance & Analytics Section
+
+Enterprise-level monitoring tools:
+
+✔ Task Completion Rate
+✔ Average Completion Time
+✔ Overdue Percentage
+✔ Employee Productivity Score
+✔ High Priority Resolution Rate
+✔ Project Task Progress
+
+Optional:
+
+📊 Gantt Chart View
+📊 Workload Heatmap
+📊 Team Performance Ranking
+
+🔄 System Logic
+
+When Task Created:
+
+✔ Unique Task ID auto-generated
+✔ Linked to Project (if selected)
+✔ Assigned user notified
+✔ Appears in dashboard
+
+When Status Updated:
+
+✔ Activity log recorded
+✔ Supervisor notified
+✔ Progress recalculated
+
+When Overdue:
+
+✔ Automatically marked overdue
+✔ Alert notification sent
+✔ Highlighted in red
+
+When Completed:
+
+✔ Completion time recorded
+✔ Project progress updated
+✔ Employee KPI updated
+
+🔐 Role-Based Access Control
+
+Admin:
+Full Control
+
+Project Manager:
+Create / Assign / Monitor
+
+Supervisor:
+View team tasks
+
+Employee:
+Update assigned tasks only
+
+Viewer:
+Read-only access
+
+Task deletion only by Admin.
+
+🔗 Integration Required
+
+✔ Project Module
+✔ HR Module
+✔ Customer Module
+✔ Notification System
+✔ Reporting & Analytics
+✔ Mobile App (Field Teams)
+
+📈 Business Impact
+
+This page ensures:
+
+✔ No missed deadlines
+✔ Clear team accountability
+✔ Controlled operations
+✔ Measurable productivity
+✔ Better project execution
+
+When you open this page, it should feel like:
+
+"I control operations."
+"I know exactly what my team is doing."
+"Nothing is delayed without visibility."

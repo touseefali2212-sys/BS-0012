@@ -1,0 +1,340 @@
+TRANSACTIONS MODULE
+Corporate Customer Collections Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a Corporate Customer Collections Management Page to efficiently track, manage, and control payment collections from corporate clients.
+
+This module ensures:
+
+✔ Structured invoice-level collection
+✔ Corporate credit control
+✔ Overdue monitoring
+✔ Recovery officer tracking
+✔ Automatic accounting integration
+✔ Contract & billing compliance
+
+This page is designed for serious B2B revenue management.
+
+🎨 UI / Theme Design
+
+Style:
+Modern Corporate Finance Dashboard
+
+Primary Gradient:
+Midnight Blue → Royal Blue (#0A1F44 → #1E40AF)
+
+Status Colors:
+
+🟢 Paid
+🟡 Partial
+🔴 Overdue
+🔵 Under Collection
+⚫ Suspended
+
+Background:
+Light Gray (#F4F6F9)
+White cards
+Soft shadows
+14px rounded corners
+
+Typography:
+Inter / Poppins
+
+📊 Page Structure
+
+The page contains:
+
+1️⃣ Corporate Collections Overview
+2️⃣ Corporate Outstanding & Credit Summary
+3️⃣ Record Corporate Collection Form
+4️⃣ Corporate Collections List
+5️⃣ Recovery & Credit Monitoring
+
+1️⃣ Corporate Collections Overview
+
+Top KPI Cards:
+
+Total Corporate Outstanding
+
+Total Collected Today
+
+Total Collected This Month
+
+Overdue Corporate Amount
+
+Active Corporate Customers
+
+Collection Efficiency %
+
+Add:
+
+📈 Monthly Corporate Collection Trend
+📊 Top 10 Overdue Corporate Clients
+
+2️⃣ Corporate Outstanding & Credit Summary
+
+For selected corporate client display:
+
+Company Name
+
+Account ID
+
+Branch
+
+Account Manager
+
+Credit Limit
+
+Available Credit
+
+Total Outstanding
+
+Current Invoice
+
+Past Due Amount
+
+Security Deposit (if any)
+
+Aging Buckets:
+
+0–30 Days
+
+31–60 Days
+
+61–90 Days
+
+90+ Days
+
+Allow clickable aging filter to view invoices.
+
+➕ 3️⃣ Record Corporate Collection Form
+
+Professional multi-step form with financial safeguards.
+
+Section A – Corporate Client Details
+
+Company Name (Auto-search Corporate only)
+
+Branch
+
+Account Manager
+
+Recovery Officer
+
+Display:
+
+Total Outstanding
+
+Open Invoices
+
+Credit Balance
+
+Section B – Payment Details
+
+Collection Date
+
+Payment Method:
+
+Bank Transfer
+
+Online Payment Gateway
+
+Cheque
+
+Cash
+
+Corporate Wallet
+
+Amount Received
+
+Transaction Reference
+
+Bank Name
+
+Attachment Upload
+
+Options:
+
+☐ Apply to selected invoice
+☐ Auto-adjust oldest invoices
+☐ Apply to credit balance
+☐ Apply security deposit
+
+Section C – Adjustments
+
+Late Fee
+
+Discount
+
+Credit Note Apply
+
+Write-off Adjustment
+
+System should auto-calculate:
+
+Late fee after grace period.
+
+Section D – Accounting Posting
+
+Automatic Journal Entry:
+
+Debit:
+
+Bank / Cash Account
+
+Credit:
+
+Accounts Receivable – Corporate
+
+If late fee applied:
+
+Credit:
+
+Late Fee Income
+
+If discount:
+
+Debit:
+
+Discount Expense
+
+📑 4️⃣ Corporate Collections List
+
+Professional corporate transaction grid.
+
+Columns:
+
+Collection ID
+
+Date
+
+Company Name
+
+Invoice No
+
+Payment Method
+
+Amount
+
+Adjustment
+
+Outstanding After
+
+Status
+
+Recovery Officer
+
+Branch
+
+Action
+
+Features:
+
+✔ Advanced Search
+✔ Filter by Company
+✔ Filter by Branch
+✔ Filter by Recovery Officer
+✔ Filter by Status
+✔ Date Range Filter
+✔ Export to Excel / PDF
+✔ Print Receipt
+✔ Reverse Entry (Admin only)
+
+👤 5️⃣ Recovery & Credit Monitoring
+
+Track:
+
+Average Payment Days
+
+Credit Limit Utilization %
+
+Overdue Trend
+
+Risk Score
+
+Recovery Officer Performance
+
+Collection Target vs Achieved
+
+Add:
+
+✔ Follow-up notes
+✔ Promise-to-Pay tracking
+✔ Automated reminders
+✔ Suspension trigger if limit exceeded
+
+🔄 System Logic
+
+When payment is recorded:
+
+✔ Reduce invoice balance
+✔ Update corporate outstanding
+✔ Update AR aging
+✔ Update credit utilization
+✔ Create accounting journal entry
+✔ Update dashboard KPIs
+
+If credit exceeds limit:
+
+✔ Trigger alert
+✔ Notify finance manager
+
+If fully paid:
+
+✔ Remove suspension
+✔ Update account to Active
+
+🔐 Role-Based Access
+
+Admin:
+Full control
+
+Finance Manager:
+Approve / Reverse / Write-off
+
+Recovery Officer:
+Record collections
+
+Account Manager:
+View status & follow-up
+
+Viewer:
+Read-only
+
+🔗 Integration Required With
+
+✔ Invoice Module
+✔ Corporate Customers Module
+✔ Credit Notes
+✔ Accounts Receivable
+✔ Accounting – Income Entry
+✔ Payment Gateway
+✔ Budget Allocation
+✔ Financial Reports
+✔ CEO Dashboard
+
+📊 Financial Intelligence KPIs
+
+Include:
+
+Collection Efficiency Ratio
+
+Days Sales Outstanding (DSO)
+
+Corporate Revenue Share %
+
+Overdue Ratio
+
+Bad Debt Risk %
+
+🎯 Emotional Impact Goal
+
+When management opens this page:
+
+“We have full control over our corporate revenue.”
+“Every B2B client is monitored.”
+“Our credit exposure is managed.”
+“Our cash flow is predictable.”

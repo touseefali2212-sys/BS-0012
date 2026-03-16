@@ -1,0 +1,298 @@
+ACCOUNTING MODULE
+Budget Allocation Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Build a professional “Budget Allocation” page inside the Accounting module.
+
+This page must allow Admin/Finance to:
+
+Create annual / monthly budgets
+
+Allocate budget to departments
+
+Assign budgets to expense accounts
+
+Allocate branch-wise budgets
+
+Track Budget vs Actual
+
+Control overspending with alerts
+
+This page turns your system into a Financial Planning & Control ERP.
+
+🎨 Professional UI Theme
+
+Style:
+Corporate Financial Planning Dashboard
+
+Primary Gradient:
+Navy → Royal Blue (#002B5B → #0066FF)
+
+Accent Colors:
+
+🟢 Under Budget → Green
+🟡 Near Limit → Orange
+🔴 Over Budget → Red
+
+Background:
+Light Gray (#F4F6F9)
+White financial cards
+Soft shadow
+14px rounded corners
+
+Typography:
+Inter / Poppins
+Clean tables with financial emphasis
+
+📊 Page Layout Structure
+
+The page contains:
+
+1️⃣ Budget Overview Dashboard
+2️⃣ Create New Budget
+3️⃣ Budget Allocation Table
+4️⃣ Budget vs Actual Monitoring
+
+📈 1️⃣ Budget Overview Dashboard
+
+Top summary cards:
+
+Total Annual Budget
+
+Total Allocated Budget
+
+Total Used Budget
+
+Remaining Budget
+
+Over-Budget Alerts Count
+
+Add a progress bar showing:
+
+Used % vs Allocated %
+
+Add chart:
+
+Monthly Budget vs Actual comparison
+
+➕ 2️⃣ Create New Budget Section
+
+Professional form layout.
+
+Section A – Budget Basic Information
+
+Budget Name
+(Example: 2026 Operations Budget)
+
+Budget Year
+
+Budget Period
+
+Annual
+
+Quarterly
+
+Monthly
+
+Start Date
+
+End Date
+
+Branch (Multi-branch support)
+
+Status
+
+Draft
+
+Active
+
+Closed
+
+Section B – Allocation Method
+
+Dropdown:
+
+By Department
+
+By Expense Account
+
+By Branch
+
+By Cost Center
+
+Custom Allocation
+
+📑 3️⃣ Budget Allocation Table
+
+Dynamic financial table.
+
+Columns:
+
+Expense Account
+
+Department
+
+Allocated Amount
+
+Used Amount (Auto calculated)
+
+Remaining Amount
+
+Utilization %
+
+Status Indicator
+
+Color indicators:
+
+Green → Under 70%
+Orange → 70–95%
+Red → Over 95%
+
+🧮 Allocation Logic
+
+Example:
+
+Salary Expense → 3,000,000
+Bandwidth Expense → 2,500,000
+Commission Expense → 800,000
+Maintenance → 500,000
+
+System must:
+
+✔ Automatically calculate total allocation
+✔ Compare with actual expense entries
+✔ Show real-time utilization
+✔ Prevent expense posting if over budget (optional control)
+
+📊 4️⃣ Budget vs Actual Monitoring
+
+Interactive reporting section:
+
+Filters:
+
+Date Range
+
+Department
+
+Branch
+
+Account
+
+Display:
+
+Bar chart:
+Budget vs Actual
+
+Line chart:
+Monthly trend comparison
+
+Table:
+
+Budget
+
+Actual
+
+Variance
+
+Variance %
+
+🔔 Budget Control Rules
+
+Admin can enable:
+
+☐ Soft Warning on 80% utilization
+☐ Hard Stop on 100% utilization
+☐ Require approval if over budget
+☐ Email notification to Finance
+☐ Dashboard alert
+
+🔄 System Logic
+
+When Expense Entry is posted:
+
+✔ System checks budget allocation
+✔ Deducts from allocated budget
+✔ Updates remaining balance
+✔ Changes status indicator
+✔ Generates alert if threshold reached
+
+When Budget Period Ends:
+
+✔ Lock new allocations
+✔ Archive budget
+✔ Generate budget performance report
+
+🔐 Permission System
+
+Admin:
+Full control
+
+Finance Manager:
+Create / Edit / Activate budgets
+
+Accountant:
+View & monitor
+
+Department Head:
+View only assigned department budget
+
+💎 Advanced Enterprise Features
+
+Add:
+
+✔ Multi-year budgeting
+✔ Budget copy from previous year
+✔ Department-wise allocation templates
+✔ Budget revision history
+✔ Budget approval workflow
+✔ Export Budget vs Actual report (Excel/PDF)
+✔ Drill-down to expense transaction level
+✔ Forecasting integration
+
+🔗 ERP Integration
+
+This page must integrate with:
+
+✔ Expense Entry Page
+✔ Payroll Module
+✔ Vendor Payments
+✔ Branch Module
+✔ Chart of Accounts
+✔ Financial Reports
+
+📌 Example Use Case (ISP Business)
+
+You allocate:
+
+Annual Budget 2026 → 10,000,000 PKR
+
+Operations:
+
+Bandwidth → 2.5M
+
+Salary → 3M
+
+Commission → 800K
+
+Maintenance → 500K
+
+If bandwidth expense hits 2.3M:
+
+System shows:
+92% Utilized → Orange Alert
+
+If reaches 2.6M:
+
+Red Alert → Over Budget
+
+🎯 Emotional Impact Goal
+
+When you open this page:
+
+“I have financial control.”
+“I know where money is going.”
+“I can scale without losing control.”
+“This is investor-level planning.”

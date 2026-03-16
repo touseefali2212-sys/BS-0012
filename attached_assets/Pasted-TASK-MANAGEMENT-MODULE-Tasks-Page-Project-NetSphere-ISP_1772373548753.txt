@@ -1,0 +1,302 @@
+TASK MANAGEMENT MODULE
+Tasks Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a structured Task Management Page to create, assign, track, and monitor tasks across departments and projects.
+
+This page ensures:
+
+✔ Clear responsibility
+✔ Real-time task tracking
+✔ Deadline control
+✔ Performance measurement
+✔ Field team coordination
+✔ Project-linked execution
+
+This is the heart of daily operations.
+
+🎨 UI / Theme Design
+
+Style:
+Modern Operational Task Board
+
+Primary Gradient:
+Cyan → Royal Blue (#0891B2 → #1D4ED8)
+
+Status Indicators:
+
+🟢 Completed
+🟡 In Progress
+🔴 Overdue
+🔵 Assigned
+⚫ On Hold
+
+Background:
+Light Gray (#F4F6F9)
+White task cards
+Soft shadows
+14px rounded corners
+
+Typography:
+Inter / Poppins
+
+📊 Page Structure
+
+The page contains:
+
+1️⃣ Task Overview Dashboard
+2️⃣ Create / Edit Task Form
+3️⃣ Task List Grid
+4️⃣ Kanban Board View
+5️⃣ Task Timeline & Performance Tracking
+
+1️⃣ Task Overview Dashboard
+
+Top KPI Cards:
+
+Total Tasks
+
+Tasks In Progress
+
+Completed Tasks
+
+Overdue Tasks
+
+High Priority Tasks
+
+Tasks Due Today
+
+Add:
+
+📈 Weekly Task Completion Trend
+📊 Tasks by Department
+📊 Team Performance Overview
+
+➕ 2️⃣ Create / Edit Task Form
+
+Professional structured task creation form.
+
+Section A – Task Details
+
+Task Title
+
+Task Code (Auto-generated)
+
+Project (Link to Project Page)
+
+Department
+
+Branch
+
+Task Type:
+
+Installation
+
+Maintenance
+
+Complaint Handling
+
+Network Upgrade
+
+Internal Work
+
+Development
+
+Description
+
+Section B – Assignment
+
+Assigned To (Single / Multiple Users)
+
+Supervisor
+
+Priority:
+
+High
+
+Medium
+
+Low
+
+Estimated Hours
+
+Required Resources
+
+Section C – Timeline
+
+Start Date
+
+Due Date
+
+Reminder Date
+
+System should auto-calculate:
+
+✔ Days Remaining
+✔ Overdue Indicator
+
+Section D – Attachments & Notes
+
+File Upload (Images, Documents)
+
+Task Checklist
+
+Internal Notes
+
+Customer Notes (if linked)
+
+📑 3️⃣ Task List Grid
+
+Professional task tracking grid.
+
+Columns:
+
+Task Code
+
+Task Title
+
+Project
+
+Assigned To
+
+Department
+
+Branch
+
+Priority
+
+Start Date
+
+Due Date
+
+Status
+
+Progress %
+
+Action
+
+Features:
+
+✔ Advanced Search
+✔ Filter by Project
+✔ Filter by Department
+✔ Filter by Status
+✔ Filter by Assigned User
+✔ Date Range Filter
+✔ Export to Excel
+✔ Quick Status Update
+
+📋 4️⃣ Kanban Board View
+
+Visual drag-and-drop interface:
+
+Columns:
+
+Assigned
+
+In Progress
+
+On Hold
+
+Completed
+
+Users can:
+
+✔ Drag task to update status
+✔ View quick details
+✔ Add comments
+✔ Upload proof images
+
+Ideal for field teams & daily meetings.
+
+📊 5️⃣ Task Timeline & Performance Tracking
+
+Include:
+
+✔ Gantt Chart (Project-linked tasks)
+✔ Completion % (Auto-calculated)
+✔ Time Spent vs Estimated
+✔ Delay Indicator
+✔ Resource Utilization
+
+If overdue:
+
+✔ Mark as Overdue
+✔ Send notification
+✔ Notify supervisor
+
+🔄 System Logic
+
+When task created:
+
+✔ Assign unique task ID
+✔ Link to project (if selected)
+✔ Notify assigned user
+✔ Add to dashboard
+
+When task updated:
+
+✔ Update progress %
+✔ Log activity history
+✔ Notify supervisor
+
+When task completed:
+
+✔ Mark Completed
+✔ Record completion time
+✔ Update project progress
+✔ Update team performance KPI
+
+🔐 Role-Based Access
+
+Admin:
+Full control
+
+Project Manager:
+Create / Assign / Monitor
+
+Team Member:
+Update status
+
+Supervisor:
+Monitor team tasks
+
+Viewer:
+Read-only
+
+No task deletion without admin permission.
+
+📊 Performance KPIs
+
+Include:
+
+Task Completion Rate
+
+Average Task Duration
+
+Overdue Task Ratio
+
+Team Productivity Score
+
+High Priority Completion %
+
+🔗 Integration Required With
+
+✔ Project Module
+✔ HR Module (Employee Data)
+✔ Customer Module (for service tasks)
+✔ Notification System
+✔ Dashboard
+✔ Performance Analytics
+
+🎯 Emotional Impact Goal
+
+When you open this page:
+
+“I know who is working on what.”
+“No task is missed.”
+“Deadlines are visible.”
+“My team is accountable.”

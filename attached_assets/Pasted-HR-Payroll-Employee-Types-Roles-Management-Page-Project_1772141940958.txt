@@ -1,0 +1,356 @@
+HR & Payroll – Employee Types & Roles Management Page
+
+Project: NetSphere ISP Billing & ERP
+
+🎯 Objective
+
+Design and develop a professional, enterprise-level Employee Types & Roles Management page.
+
+The page must allow administrators to:
+
+Create and manage Employee Types
+
+Define Organizational Roles
+
+Configure Salary Structure per Type
+
+Assign Role-based permissions
+
+Link commission eligibility
+
+Define payroll rules
+
+Control access to system modules
+
+Support multi-branch hierarchy
+
+This page acts as the foundation of HR + Payroll + Access Control.
+
+🎨 Professional Enterprise Theme
+
+Style:
+Corporate ERP / HRMS
+
+Primary:
+Deep Blue Gradient (#003366 → #007BFF)
+
+Accent Colors:
+
+Teal → Active Roles
+
+Purple → Management Roles
+
+Green → Operational Staff
+
+Orange → Contract / Temporary
+
+Red → Inactive / Suspended
+
+Background:
+Light neutral gray (#F5F7FA)
+White content cards
+Soft shadow
+14px rounded edges
+
+Typography:
+Inter / Poppins
+Clear hierarchy
+Bold section headers
+
+📋 Page Layout Structure
+1️⃣ Top Summary Cards
+
+Show:
+
+Total Employee Types
+
+Total Active Roles
+
+Management Roles Count
+
+Field Staff Count
+
+Contract Employees Count
+
+Each card:
+
+Icon
+
+Count number
+
+Subtext description
+
+Subtle animation
+
+🧩 Section A – Employee Types
+
+Employee Type defines employment category.
+
+Add Employee Type Button
+
+Opens professional modal form.
+
+Employee Type Form Fields
+
+Type Name
+(Permanent, Contract, Probation, Intern, Part-Time, Freelancer)
+
+Employment Category
+
+Full-Time
+
+Part-Time
+
+Contract
+
+Temporary
+
+Default Working Hours
+
+Leave Policy Mapping
+
+Salary Structure Type
+
+Fixed Salary
+
+Hourly
+
+Commission-Based
+
+Hybrid
+
+Eligible for Bonus (Yes/No)
+
+Eligible for Commission (Yes/No)
+
+Eligible for Overtime (Yes/No)
+
+Probation Period (if applicable)
+
+Status:
+
+Active
+
+Inactive
+
+Buttons:
+Save / Update / Cancel
+
+🏢 Section B – Role Management
+
+Roles define responsibility + system permissions.
+
+➕ Add Role Button
+
+Modal Form Layout:
+
+Role Information
+
+Role Name
+(HR Manager, Accountant, Sales Executive, Network Engineer, Technician, Reseller Manager)
+
+Department
+
+Reports To (Hierarchy)
+
+Branch Assignment
+
+Role Level:
+
+Level 1 – Admin
+
+Level 2 – Manager
+
+Level 3 – Supervisor
+
+Level 4 – Executive
+
+Level 5 – Field Staff
+
+Role Permission Configuration
+
+Checkbox-based module access:
+
+HR Module:
+☐ View Employees
+☐ Edit Employees
+☐ Process Payroll
+☐ Approve Salary
+
+Finance Module:
+☐ View Accounts
+☐ Approve Expenses
+☐ Manage Commission
+
+ISP Billing Module:
+☐ Create Customer
+☐ Manage Packages
+☐ Suspend Connection
+
+Vendor Module:
+☐ View Vendor
+☐ Manage Vendor
+
+Reseller Module:
+☐ View Resellers
+☐ Approve Commission
+
+Reports:
+☐ View Financial Reports
+☐ Export Reports
+
+Payroll Configuration Per Role
+
+Default Salary Grade
+
+Default Allowances
+
+Default Deductions
+
+Commission Slab Applicable (Yes/No)
+
+Incentive Target Applicable (Yes/No)
+
+📊 Role & Type Table View
+
+Professional data grid.
+
+Columns:
+
+Role Name
+
+Employee Type
+
+Department
+
+Role Level
+
+Commission Eligible
+
+Payroll Type
+
+Status
+
+Action
+
+Features:
+
+Search bar
+
+Filter by Department
+
+Filter by Role Level
+
+Filter by Type
+
+Filter by Status
+
+Bulk Activate / Deactivate
+
+Export Excel
+
+Status Badge:
+Green = Active
+Red = Inactive
+
+🌳 Organizational Hierarchy View
+
+Include visual hierarchy tree:
+
+CEO
+→ HR Manager
+→ Accountant
+→ Sales Manager
+→ Sales Executive
+→ Technician
+
+Clickable interactive tree layout.
+
+🔄 System Logic Integration
+
+This page must integrate with:
+
+✔ Employee creation form
+✔ Payroll processing
+✔ Bonus & Commission system
+✔ Loan & Advance eligibility
+✔ Leave management
+✔ Attendance rules
+✔ Access control (RBAC system)
+
+When employee is created:
+
+Role auto loads salary structure
+
+Role auto loads commission eligibility
+
+Role auto sets system permissions
+
+🧠 Advanced Enterprise Features
+
+Add these:
+
+✔ Role cloning feature
+✔ Permission template presets
+✔ Multi-branch role duplication
+✔ Salary grade mapping
+✔ Commission slab linking
+✔ Incentive target mapping
+✔ KPI-based role configuration
+✔ Approval authority matrix
+✔ Auto escalation hierarchy
+
+🔐 Role-Based Security Model
+
+Admin:
+
+Full control
+
+HR:
+
+Manage employee types
+
+Assign roles
+
+Cannot edit system permissions
+
+Super Admin:
+
+Full role permission control
+
+Employee:
+
+No access
+
+📈 Reporting Section
+
+Small analytics section:
+
+Employees by Type Chart
+
+Employees by Role Level
+
+Department Distribution Pie Chart
+
+Salary Structure Breakdown
+
+💎 UI Enhancements
+
+Hover elevation on rows
+
+Smooth modal animation
+
+Expandable role detail view
+
+Animated count-up on summary cards
+
+Toggle switches with gradient effect
+
+🎯 Emotional Impact Goal
+
+When you (ISP Owner) open this page:
+
+“Everything is structured.”
+“I control access properly.”
+“Salary logic is automated.”
+“This feels like enterprise ERP.”

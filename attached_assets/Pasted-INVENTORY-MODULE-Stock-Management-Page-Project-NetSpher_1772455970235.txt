@@ -1,0 +1,342 @@
+INVENTORY MODULE
+Stock Management Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized Stock Management Page to monitor, control, and manage inventory quantities across all warehouses, POPs, and storage locations in real time.
+
+This page ensures:
+
+✔ Accurate stock visibility
+✔ Multi-location inventory control
+✔ Stock movement tracking
+✔ Loss & shrinkage prevention
+✔ Automated reorder alerts
+✔ Financial stock valuation
+
+It is the operational backbone of your entire supply chain.
+
+🎨 UI / Theme Design
+
+Style:
+Enterprise Inventory Operations Dashboard
+
+Primary Gradient:
+Steel Blue → Emerald (#1E293B → #059669)
+
+Background:
+Light Neutral (#F8FAFC)
+
+Stock Status Indicators:
+
+🟢 Healthy Stock
+🟡 Low Stock
+🔴 Critical Stock
+⚫ Out of Stock
+🔵 Reserved Stock
+🟣 In Transit
+
+Typography:
+Inter / Poppins
+Monospace for SKU / Stock Codes
+
+Layout:
+Dashboard + Stock Table + Warehouse Matrix + Movement Log
+
+📊 Page Layout Structure
+
+The page contains 6 core sections:
+
+1️⃣ Stock Overview Dashboard
+2️⃣ Warehouse Stock Matrix
+3️⃣ Stock Master Table
+4️⃣ Stock Movement Log
+5️⃣ Stock Adjustment Panel
+6️⃣ Reorder & Alert System
+
+1️⃣ Stock Overview Dashboard
+
+KPI Cards:
+
+Total Inventory Value
+
+Total SKUs
+
+Total Units in Stock
+
+Low Stock Items
+
+Out of Stock Items
+
+Reserved Stock
+
+In Transit Stock
+
+Analytics:
+
+📊 Stock by Warehouse
+📈 Monthly Stock Movement
+📊 Stock by Category
+📉 Inventory Turnover Ratio
+
+2️⃣ Warehouse Stock Matrix
+
+Real-time multi-location view:
+
+| Product | Warehouse A | Warehouse B | POP Sargodha | Reserved | In Transit | Available |
+
+Color-coded indicators:
+
+🟢 Sufficient
+🟡 Low
+🔴 Critical
+
+Quick actions:
+
+• Transfer Stock
+• Reserve Stock
+• View Movement
+• View Allocation
+
+This matrix allows quick operational decisions.
+
+3️⃣ Stock Master Table
+
+Detailed stock grid:
+
+Columns:
+
+Product ID
+
+Product Name
+
+Brand
+
+Category
+
+SKU
+
+Warehouse
+
+Current Quantity
+
+Reserved Quantity
+
+Available Quantity
+
+Reorder Level
+
+Average Cost
+
+Total Stock Value
+
+Status
+
+Actions
+
+Actions:
+
+• View Details
+• Adjust Stock
+• Transfer
+• View Movement History
+• Export Report
+
+Advanced Filters:
+
+✔ By warehouse
+✔ By category
+✔ By stock status
+✔ By low stock
+✔ By brand
+
+4️⃣ Stock Movement Log
+
+Complete transaction history:
+
+Types of Movements:
+
+Purchase Receipt
+
+Transfer
+
+Allocation
+
+Assignment
+
+Sales
+
+Adjustment
+
+Return
+
+Write-Off
+
+Movement Log Fields:
+
+Date & Time
+
+Reference ID
+
+Movement Type
+
+Product
+
+Warehouse
+
+Quantity In
+
+Quantity Out
+
+Balance After Movement
+
+Performed By
+
+Notes
+
+Immutable audit trail.
+
+5️⃣ Stock Adjustment Panel
+
+Controlled stock correction system.
+
+Adjustment Types:
+
+Physical Count Adjustment
+
+Damage Adjustment
+
+Lost Stock
+
+Expired Stock
+
+Data Correction
+
+Fields:
+
+Adjustment ID
+
+Warehouse
+
+Product
+
+Quantity Adjustment
+
+Reason
+
+Approval Required
+
+Supporting Documents
+
+Rules:
+
+❌ High-value adjustments require approval
+❌ Mandatory reason field
+❌ All adjustments logged permanently
+
+6️⃣ Reorder & Alert System
+
+Automated stock intelligence:
+
+When stock ≤ Reorder Level:
+
+✔ Trigger low-stock alert
+✔ Notify procurement
+✔ Suggest reorder quantity
+✔ Generate draft Purchase Order
+
+If stock below minimum:
+
+✔ Mark as Critical
+✔ Highlight in dashboard
+
+Forecasting Logic:
+
+Based on:
+
+Average monthly usage
+
+Sales trend
+
+Allocation trend
+
+Historical demand
+
+🔄 Automation Logic
+
+When PO received:
+
+✔ Increase stock
+✔ Update inventory value
+
+When product assigned to customer:
+
+✔ Reduce available stock
+
+When transferred:
+
+✔ Reduce source warehouse
+✔ Increase destination warehouse
+
+When adjustment approved:
+
+✔ Update stock balance
+✔ Log financial impact
+
+When product discontinued:
+
+✔ Prevent new entries
+
+🔐 Role-Based Access
+
+Admin:
+Full inventory control
+
+Inventory Manager:
+Manage stock & adjustments
+
+Warehouse Manager:
+View & update warehouse stock
+
+Procurement Officer:
+View low stock alerts
+
+Finance Manager:
+View stock valuation
+
+Viewer:
+Read-only
+
+Only Admin can approve large adjustments.
+
+🔗 Integration Required
+
+✔ Brands & Products Page
+✔ Product Type Page
+✔ Suppliers Page
+✔ Purchase Order Module
+✔ Goods Receipt Module
+✔ Assets Module
+✔ Allocation Module
+✔ Transfer Module
+✔ Accounting Module
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Real-time inventory visibility
+✔ Reduced stock losses
+✔ Faster procurement decisions
+✔ Strong financial accuracy
+✔ Improved warehouse efficiency
+✔ Complete operational transparency
+
+When you open this page, it should feel like:
+
+“I know exactly how much stock we have.”
+“I know where it is.”
+“I know when to reorder.”
+“Inventory is fully under control.”

@@ -1,0 +1,343 @@
+NETWORK & IPAM MODULE
+Customers FTTH / P2P MAP Page
+
+(FTTH Fiber Map + Wireless P2P Map + GPON Splitter & ONU/ONT Mapping)
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop an advanced Interactive GIS-Based Network Mapping System that enables visualization, management, and editing of:
+
+✔ FTTH Fiber Routes
+✔ Wireless P2P Backhaul Links
+✔ OLT Infrastructure
+✔ GPON Splitters
+✔ ONU / ONT Devices
+✔ Customer Endpoints
+✔ IP Address Allocation
+
+This page acts as the real-time digital representation of your ISP network infrastructure.
+
+🎨 UI / Theme Design
+
+Style:
+Professional Network Operations Map Interface
+
+Primary Gradient:
+Deep Navy → Electric Blue (#0B1120 → #2563EB)
+
+Map Modes:
+
+• Satellite View
+• Street View
+• Hybrid Mode
+• Dark Network Mode
+
+Network Status Colors:
+
+🟢 Active
+🟡 Warning
+🔵 Planned
+🟠 Maintenance
+🔴 Down
+⚫ Disconnected
+
+Layer Control Panel (Toggle ON/OFF):
+
+✔ Fiber Routes
+✔ Wireless Links
+✔ OLT Nodes
+✔ Splitters
+✔ ONU/ONT Devices
+✔ Customer Markers
+✔ IP Subnets
+
+🗺 Core Functional Sections
+
+The page consists of 5 major interactive layers:
+
+1️⃣ FTTH Fiber Route Map (Editable)
+2️⃣ Wireless P2P Link Map
+3️⃣ FTTH OLT & GPON Splitter Map
+4️⃣ ONU / ONT Device Mapping
+5️⃣ IPAM Overlay & Address Visualization
+
+1️⃣ FTTH Fiber Route Map (Editable)
+
+Provides full fiber infrastructure planning and editing tools.
+
+Features:
+
+✔ Draw Fiber Route (Polyline Tool)
+✔ Edit Route by Drag & Adjust
+✔ Define Fiber Core Count
+✔ Auto Distance Calculation
+✔ Route Labeling (Route ID)
+✔ Assign Route to OLT
+✔ Attach Route to Splitter
+
+Route Information Panel:
+
+Route Name
+
+Total Length (Meters/KM)
+
+Fiber Capacity
+
+Used Fibers
+
+Available Fibers
+
+Connected Customers
+
+Advanced Tools:
+
+✔ Split Fiber Route
+✔ Extend Route
+✔ Merge Routes
+✔ Mark Joint Closure
+✔ Mark Distribution Box
+✔ Route Utilization Indicator
+
+This allows real-time fiber expansion planning.
+
+2️⃣ Wireless P2P Link Map
+
+Visualizes wireless backhaul and P2P infrastructure.
+
+Features:
+
+✔ Add Tower Location
+✔ Add Wireless Access Point
+✔ Draw P2P Link Between Nodes
+✔ Display Directional Alignment
+✔ Set Frequency Band
+✔ Define Bandwidth Capacity
+
+Live Link Data (Optional Monitoring Integration):
+
+✔ Signal Strength (RSSI)
+✔ Throughput
+✔ Latency
+✔ Uptime
+✔ Packet Loss
+
+Editable Controls:
+
+✔ Move tower marker
+✔ Update link capacity
+✔ Change link path
+✔ Assign customers to P2P link
+
+Link Status Colors:
+
+🟢 Stable
+🟡 Congested
+🔴 Down
+
+3️⃣ FTTH OLT & GPON Splitter Map
+
+Visualizes GPON hierarchy in map-based format.
+
+Each OLT Node Displays:
+
+OLT Name
+
+Location
+
+IP Address
+
+Total PON Ports
+
+Used Ports
+
+Available Ports
+
+PON Structure Visualization:
+
+OLT
+→ PON Port
+→ GPON Splitter
+→ Distribution Fiber
+→ ONU / ONT
+→ Customer
+
+GPON Splitter Features:
+
+✔ Add Splitter (1:2, 1:4, 1:8, 1:16, 1:32, 1:64)
+✔ Assign to OLT Port
+✔ Show Port Utilization
+✔ Display Connected ONTs
+✔ Mark Physical Location
+
+Splitter Details:
+
+Split Ratio
+
+Used Ports
+
+Available Ports
+
+Fiber Link Reference
+
+Color Indicators:
+
+🟢 Available
+🟡 High Utilization
+🔴 Full
+
+4️⃣ ONU / ONT Device Mapping
+
+Each customer ONU/ONT is mapped on the FTTH route.
+
+Device Node Displays:
+
+Customer Name
+
+Serial Number
+
+MAC Address
+
+Service Plan
+
+Optical Power Level
+
+Status (Online / Offline)
+
+Status Colors:
+
+🟢 Online
+🟡 Low Signal
+🔴 Offline
+⚫ Suspended
+
+Clicking ONU/ONT Opens:
+
+✔ Customer Profile
+✔ Billing Status
+✔ Signal History
+✔ Activation Date
+✔ IP Assignment
+
+Supports:
+
+✔ Drag to adjust location
+✔ Reassign to different splitter port
+✔ Replace device
+✔ Mark device faulty
+
+5️⃣ IPAM Overlay & Address Visualization
+
+Integrated IP Address Management on map.
+
+Displays:
+
+✔ Public IP Allocation
+✔ Private Subnets
+✔ VLAN Mapping
+✔ PPPoE Pool
+✔ IP Conflict Alerts
+
+Per Customer:
+
+Assigned IP
+
+Subnet
+
+Gateway
+
+Router Model
+
+Visual overlay shows subnet coverage zones.
+
+🔄 Editable Network Design Tools
+
+Advanced editing capabilities:
+
+✔ Drag & Drop Infrastructure
+✔ Auto Nearest Splitter Suggestion
+✔ Fiber Path Optimization
+✔ Distance-Based Planning
+✔ Bulk Import Network Data
+✔ Network Layer Toggle
+
+Supports GIS export/import for large-scale deployment.
+
+📡 Live Monitoring Integration (Optional)
+
+Supports integration with:
+
+✔ OLT API
+✔ SNMP Monitoring
+✔ Network Monitoring Server
+✔ Bandwidth Usage Overlay
+✔ Outage Detection
+
+Allows:
+
+✔ Highlight outage zones
+✔ Identify overloaded PON ports
+✔ Detect fiber congestion
+
+🔐 Role-Based Permissions
+
+Admin:
+Full network editing control
+
+Network Engineer:
+Route & topology management
+
+NOC Team:
+Monitoring access
+
+Branch Manager:
+Branch-specific view
+
+Support:
+Customer endpoint view only
+
+Finance:
+View-only customer location
+
+Customers:
+No access
+
+🔗 System Integration
+
+Fully integrated with:
+
+✔ Customer Management
+✔ Billing Module
+✔ Asset Module (OLT, ONU Inventory)
+✔ Inventory Module
+✔ IPAM System
+✔ Ticketing System
+✔ Activity Log
+
+All changes recorded in Activity Log.
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Complete network visibility
+✔ Faster fault isolation
+✔ Better fiber capacity planning
+✔ Optimized P2P backhaul management
+✔ Accurate ONU mapping
+✔ Reduced installation time
+
+For your ISP operations, this becomes:
+
+🔥 Live Network Control Room
+🔥 Fiber Infrastructure Planner
+🔥 GPON Capacity Monitor
+🔥 Wireless Backhaul Visualizer
+🔥 Customer Network Locator
+
+When opening this page, it should feel like:
+
+“This is our entire network on one screen.”
+“We can see every fiber and every ONU.”
+“Network planning and monitoring are fully controlled.”

@@ -1,0 +1,272 @@
+CUSTOMERS Module – CIR & Corporate Customers
+Project: NetSphere ISP Billing & ERP
+________________________________________
+🎯 Objective
+Enhance the existing CUSTOMERS module by adding a structured submenu:
+CUSTOMERS
+→ CIR Customers
+→ Corporate Customers
+Each type must have its own:
+•	Dedicated management page
+•	Separate billing logic
+•	SLA tracking
+•	Bandwidth configuration
+•	Vendor mapping
+•	Static IP management
+•	Contract handling
+•	Advanced reporting
+The UI must feel enterprise-grade, designed for high-value ISP clients.
+________________________________________
+🎨 Enterprise Theme
+Style:
+Telecom Enterprise ERP
+Primary Gradient:
+Deep Navy → Royal Blue (#002B5B → #005EFF)
+Accent Colors:
+•	Teal → Active Service
+•	Green → Paid
+•	Orange → Pending
+•	Red → Suspended
+•	Purple → Corporate
+Background:
+Light Gray (#F4F6F9)
+White content cards
+Soft shadow
+14px rounded corners
+Typography:
+Inter / Poppins
+Bold company names
+Right-aligned financial values
+________________________________________
+🧩 SUBMENU STRUCTURE
+CUSTOMERS
+├── CIR Customers
+└── Corporate Customers
+________________________________________
+🏢 PAGE 1: CIR Customers Page Description
+________________________________________
+🎯 Purpose of CIR Customers
+CIR (Committed Information Rate) customers are:
+•	Dedicated bandwidth clients
+•	SLA-based connections
+•	Fixed speed guaranteed
+•	Linked directly with Bandwidth Vendor
+•	Usually businesses or institutions
+This page must manage:
+✔ Dedicated bandwidth
+✔ Vendor mapping
+✔ Static IP
+✔ Contract
+✔ SLA
+✔ Billing cycle
+✔ Monitoring
+________________________________________
+📊 CIR Customers Dashboard
+Top Summary Cards:
+•	Total CIR Customers
+•	Total Active CIR Bandwidth (Mbps/Gbps)
+•	Monthly CIR Revenue
+•	Suspended CIR Clients
+•	Expiring Contracts
+________________________________________
+➕ Add CIR Customer Button
+________________________________________
+🧾 Add CIR Customer Form
+Professional multi-section layout.
+________________________________________
+Section A – Company Information
+•	Company Name
+•	Contact Person
+•	CNIC / NTN
+•	Email
+•	Phone
+•	Address
+•	City
+•	Branch
+________________________________________
+Section B – Bandwidth Configuration
+•	Vendor (Bandwidth Vendor Dropdown)
+•	Linked Vendor Port
+•	Committed Bandwidth (e.g., 20 Mbps / 1 Gbps)
+•	Burst Bandwidth (Optional)
+•	Upload Speed
+•	Download Speed
+•	Contention Ratio
+•	VLAN ID
+•	ONU / Device Info
+________________________________________
+Section C – IP Configuration
+•	Static IP (Single / Block)
+•	Subnet Mask
+•	Gateway
+•	DNS
+•	Public IP Block (Optional)
+________________________________________
+Section D – Contract & SLA
+•	Contract Start Date
+•	Contract End Date
+•	SLA Level (% Uptime)
+•	SLA Penalty Clause
+•	Auto Renewal (Yes/No)
+________________________________________
+Section E – Billing Configuration
+•	Monthly Charges
+•	Installation Charges
+•	Security Deposit
+•	Billing Cycle
+•	Invoice Type (Tax / Non-Tax)
+•	Late Fee Policy
+________________________________________
+Section F – Monitoring & Radius
+•	Link to AAA Radius Profile
+•	Bandwidth Profile Name
+•	Monitoring Enabled (Yes/No)
+•	SNMP Monitoring
+•	Traffic Alerts
+________________________________________
+📋 CIR Customer Table
+Columns:
+•	Company Name
+•	Bandwidth
+•	Vendor
+•	Static IP
+•	Monthly Charges
+•	Contract Expiry
+•	Status
+•	Action
+Filters:
+•	By Vendor
+•	By Bandwidth Range
+•	By Contract Expiry
+•	By Status
+________________________________________
+📈 CIR Analytics
+Include:
+•	Bandwidth Usage Graph
+•	Revenue Trend
+•	SLA Compliance %
+•	Vendor-wise CIR Distribution
+________________________________________
+🏢 PAGE 2: Corporate Customers Page Description
+________________________________________
+🎯 Purpose of Corporate Customers
+Corporate Customers are:
+•	Large businesses
+•	Multi-branch companies
+•	Multiple connections under one account
+•	Special billing agreements
+•	Custom packages
+They may have:
+✔ Multiple sites
+✔ Multiple bandwidth types
+✔ Hybrid services (CIR + Shared)
+✔ Centralized billing
+________________________________________
+📊 Corporate Dashboard
+Top Cards:
+•	Total Corporate Clients
+•	Total Active Connections
+•	Corporate Monthly Revenue
+•	Overdue Corporate Accounts
+•	Multi-Branch Clients
+________________________________________
+➕ Add Corporate Customer Button
+________________________________________
+🧾 Add Corporate Customer Form
+________________________________________
+Section A – Company Profile
+•	Company Name
+•	Registration Number
+•	NTN
+•	Industry Type
+•	Head Office Address
+•	Billing Address
+•	Account Manager
+________________________________________
+Section B – Connection Structure
+Allow multiple connections inside one corporate account.
+Add Connection:
+•	Branch Name
+•	Location
+•	Package Type (CIR / Shared / Hybrid)
+•	Bandwidth
+•	Static IP
+•	Installation Date
+________________________________________
+Section C – Billing Configuration
+•	Centralized Billing (Yes/No)
+•	Per-Branch Billing (Yes/No)
+•	Custom Invoice Format
+•	Payment Terms (Net 15 / Net 30)
+•	Credit Limit
+•	Security Deposit
+________________________________________
+Section D – Contract & Agreement
+•	Contract Duration
+•	Custom SLA
+•	Dedicated Account Manager
+•	Custom Pricing Agreement
+________________________________________
+Section E – Additional Services
+•	Managed Router
+•	Firewall
+•	Load Balancer
+•	Dedicated Support
+•	Backup Link
+•	Monitoring SLA
+________________________________________
+📋 Corporate Customer Table
+Columns:
+•	Company Name
+•	Total Connections
+•	Total Bandwidth
+•	Monthly Billing
+•	Payment Terms
+•	Credit Limit
+•	Status
+•	Action
+________________________________________
+📊 Corporate Analytics
+•	Revenue per Corporate Client
+•	Multi-Branch Distribution
+•	Outstanding Amount
+•	Payment Compliance %
+•	Connection Growth Chart
+________________________________________
+🔗 System Integration
+CIR & Corporate must integrate with:
+✔ Vendor Module
+✔ Bandwidth Vendor Mapping
+✔ Radius Server
+✔ Accounting
+✔ SLA Monitoring
+✔ Ticketing System
+✔ Reseller (Optional)
+________________________________________
+🔐 Advanced Enterprise Features
+✔ Contract Expiry Alerts
+✔ Bandwidth Overuse Alerts
+✔ SLA Penalty Calculation
+✔ Dedicated Account Manager Assignment
+✔ Auto invoice generation
+✔ Multi-location support
+✔ Corporate document upload
+✔ Service suspension workflow
+✔ Payment approval workflow
+________________________________________
+💎 UI Enhancements
+•	Tabs for sections
+•	Expandable company view
+•	Bandwidth visual meter
+•	Contract expiry badge
+•	Revenue highlight animations
+•	Corporate premium icon indicator
+________________________________________
+🎯 Emotional Impact Goal
+When you open CIR page:
+“These are my premium dedicated clients.”
+When you open Corporate page:
+“These are my enterprise business accounts.”
+When investor sees it:
+“This ISP system is structured for high-value clients.”
+

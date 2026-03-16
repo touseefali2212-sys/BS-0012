@@ -1,0 +1,372 @@
+HR & Payroll – Bonus & Commission Management Page
+
+Project: NetSphere ISP Billing SaaS
+
+🎯 Objective
+
+Design and build a professional, attractive, enterprise-grade Bonus & Commission Management page.
+
+This page must allow:
+
+Define bonus structures
+
+Configure commission rules
+
+Assign performance-based incentives
+
+Link commission to sales / collections / reseller performance
+
+Auto-calculate commission
+
+Integrate with Payroll processing
+
+Provide approval workflow
+
+Maintain audit logs
+
+The system must support:
+
+✔ Fixed bonus
+✔ Performance-based bonus
+✔ Sales commission
+✔ Collection commission
+✔ Reseller commission sharing
+✔ Department-based commission rules
+
+🎨 Professional Theme Design
+
+Style:
+Corporate HR + Fintech ERP
+
+Primary:
+Deep Blue Gradient (#0047AB → #007BFF)
+
+Accent Colors:
+
+Purple → Bonus
+
+Teal → Commission
+
+Green → Approved
+
+Orange → Pending
+
+Red → Rejected / Cancelled
+
+Background:
+Light Gray (#F4F6F9)
+White cards with soft shadow
+14px rounded corners
+
+Typography:
+Inter / Poppins
+Bold currency values
+Right-aligned financial columns
+
+📋 Page Structure
+1️⃣ Top Summary Dashboard
+
+Display 4–5 cards:
+
+Total Bonus This Month
+
+Total Commission This Month
+
+Pending Approvals
+
+Top Performing Employee
+
+Commission Expense (YTD)
+
+Each card includes:
+
+Icon
+
+Large financial value
+
+Percentage change indicator
+
+Soft hover animation
+
+➕ 2️⃣ Add Bonus / Commission Button
+
+Primary Gradient Button:
+“+ Add Bonus / Commission”
+
+Opens modal form.
+
+🧾 Bonus & Commission Form
+
+Two-column professional layout.
+
+Section A – Employee Info
+
+Employee Name (Dropdown)
+
+Employee ID (Auto-fetch)
+
+Department
+
+Role
+
+Branch
+
+Section B – Incentive Type
+
+Dropdown:
+
+Fixed Bonus
+
+Performance Bonus
+
+Sales Commission
+
+Collection Commission
+
+Custom Incentive
+
+Section C – Calculation Method
+
+If Fixed Bonus:
+
+Bonus Amount
+
+Bonus Reason
+
+If Performance Bonus:
+
+Target Value
+
+Achieved Value
+
+Bonus Formula
+
+Calculated Amount (Auto)
+
+If Sales Commission:
+
+Linked Sales Invoices
+
+Commission Percentage
+
+Total Sales Amount (Auto Fetch)
+
+Commission Amount (Auto Calculate)
+
+If Collection Commission:
+
+Linked Payment Collection
+
+Collection Amount
+
+Commission Rate
+
+Auto calculation
+
+Section D – Payroll Integration
+
+Include in Current Payroll (Yes/No)
+
+Include in Next Payroll
+
+Payment Date
+
+Approval Required (Toggle)
+
+Section E – Approval Workflow
+
+Requested By
+
+Approved By
+
+Status:
+
+Draft
+
+Pending
+
+Approved
+
+Rejected
+
+Paid
+
+Buttons:
+
+Save Draft
+
+Submit for Approval
+
+Approve
+
+Mark as Paid
+
+📊 Bonus & Commission Table
+
+Professional data table.
+
+Columns:
+
+Employee Name
+
+Type
+
+Linked Source (Sales / Collection)
+
+Amount
+
+Month
+
+Status
+
+Approved By
+
+Action (View / Edit / Delete)
+
+Features:
+
+Search bar
+
+Filter by Department
+
+Filter by Type
+
+Filter by Month
+
+Filter by Status
+
+Export Excel / PDF
+
+Pagination
+
+Status badges:
+Green = Paid
+Blue = Approved
+Orange = Pending
+Red = Rejected
+
+🔄 Automation Logic (Important)
+
+System must support:
+
+✔ Auto commission generation based on:
+
+Sales invoices
+
+Payment collections
+
+Reseller performance
+
+✔ Commission formula engine:
+Commission = (Total Sales × %)
+
+✔ Duplicate prevention system
+
+✔ Auto link to payroll month
+
+✔ Accounting entry creation:
+
+Example:
+Dr: Commission Expense
+Cr: Employee Payable
+
+👁 Incentive Detail View Page
+
+When clicking View:
+
+Show full breakdown:
+
+Employee Information
+
+Incentive Type
+
+Linked Transactions
+
+Calculation Formula
+
+Approval Timeline
+
+Payment Status
+
+Accounting Reference ID
+
+Include:
+
+Print incentive slip
+
+Download PDF
+
+📈 Reports & Analytics Section
+
+Include small dashboard below table:
+
+Department-wise commission chart
+
+Top 5 employees by commission
+
+Monthly incentive expense trend
+
+Incentive distribution pie chart
+
+Charts must use smooth gradient lines and minimal grid.
+
+🔐 Role-Based Access
+
+Admin:
+
+Full control
+
+Approve & modify
+
+Configure rules
+
+HR:
+
+Create bonus entries
+
+Submit for approval
+
+Accountant:
+
+View financial records
+
+Mark as paid
+
+Employee (future portal):
+
+View own incentives only
+
+⚙ Advanced Professional Features (Add These)
+
+✔ Commission rule engine setup page
+✔ Auto recurring bonus setup
+✔ Performance KPI linking
+✔ Reseller commission split logic
+✔ Cap limit configuration
+✔ Commission slab structure
+✔ Multi-branch separation
+✔ Audit log for edits
+✔ Bonus reversal option
+✔ Incentive hold / freeze option
+
+💎 UI Enhancements
+
+Smooth fade-in transitions
+
+Animated number counters on summary cards
+
+Hover elevation on rows
+
+Clean modal transitions
+
+Financial amounts formatted with currency
+
+🎯 Emotional Impact Goal
+
+When ISP owner views this page:
+
+“This system tracks performance properly.”
+“My team motivation is automated.”
+“This looks like enterprise-level ERP.”
+
+It must feel powerful and transparent.

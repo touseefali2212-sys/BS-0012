@@ -1,0 +1,206 @@
+SETTINGS MODULE
+Notification Settings Page
+Project: NetSphere ISP Billing & Enterprise ERP
+________________________________________
+🎯 Objective
+Develop a centralized Notification Settings Management Page to configure, automate, and control all system-generated notifications across multiple communication channels.
+This page enables:
+✔ Channel-level configuration (App, Web, SMS, Email, Whatsapp Business)
+✔ Event-based automation
+✔ Priority control
+✔ Delivery timing rules
+✔ Retry & failure handling
+✔ Customer communication preferences
+It acts as the global notification governance center of the ERP.
+________________________________________
+🎨 UI / Theme Design
+Style:
+Modern Control Panel with segmented configuration tabs
+Primary Gradient:
+Indigo → Electric Blue (#4F46E5 → #2563EB)
+Status Indicators:
+🟢 Active
+🟡 Scheduled
+🔵 Default
+🟠 Limited
+🔴 Disabled
+Layout Structure:
+Left Panel: Notification Categories
+Right Panel: Channel Configuration + Automation Rules
+Tabs:
+• General Settings
+• Channel Configuration
+• Event Triggers
+• Delivery Rules
+• Customer Preferences
+• Logs & Monitoring
+________________________________________
+📊 Page Structure
+The page contains 6 structured sections:
+1️⃣ General Notification Settings
+2️⃣ Channel Configuration
+3️⃣ Event-Based Triggers
+4️⃣ Delivery & Retry Rules
+5️⃣ Customer Communication Preferences
+6️⃣ Monitoring & Logs
+________________________________________
+1️⃣ General Notification Settings
+Global configuration controls.
+Options:
+•	Enable/Disable Notifications System-wide
+•	Default Notification Priority
+•	Time Zone Synchronization
+•	Quiet Hours Configuration
+•	Default Language
+•	Multi-language Support
+Advanced:
+✔ Enable notification grouping
+✔ Enable notification history retention
+✔ Set notification expiry duration
+________________________________________
+2️⃣ Channel Configuration
+Control individual delivery channels.
+Channels Supported:
+✔ In-App Notification
+✔ Web Notification
+✔ SMS
+✔ Email
+✔ WhatsApp (Optional Integration)
+✔ Push Notifications
+Each Channel Configuration Includes:
+•	Enable / Disable
+•	API Status
+•	Delivery Timeout
+•	Retry Attempts
+•	Fallback Channel
+•	Template Mapping
+Example:
+If SMS fails → Send Email automatically.
+This ensures redundancy and reliability.
+________________________________________
+3️⃣ Event-Based Triggers
+Configure which system events trigger notifications.
+Common Triggers:
+• Invoice Generated
+• Payment Received
+• Payment Due Reminder
+• Service Suspension
+• Service Activation
+• Asset Assigned
+• Stock Low Alert
+• Purchase Order Approved
+• Customer Complaint Logged
+• Ticket Updated
+For each trigger:
+✔ Enable Channel Selection
+✔ Set Notification Priority
+✔ Define Message Template
+✔ Set Delay (Instant / Scheduled)
+Supports:
+✔ Role-based triggers
+✔ Customer group-specific triggers
+✔ Branch-specific triggers
+________________________________________
+4️⃣ Delivery & Retry Rules
+Controls how notifications behave during failures.
+Options:
+•	Max Retry Attempts
+•	Retry Interval (Minutes/Hours)
+•	Fallback Channel
+•	Escalation After Failure
+•	Auto-disable after repeated failures
+Example:
+If Email fails 3 times → Notify Admin.
+Advanced:
+✔ Delivery reporting
+✔ Bounce tracking
+✔ Spam detection threshold
+________________________________________
+5️⃣ Customer Communication Preferences
+Allow customers to control their communication preferences.
+Options:
+✔ Enable Customer Self-Control Panel
+✔ Allow Opt-in / Opt-out
+✔ Channel Preference Selection
+✔ Language Selection
+✔ Billing-only Mode
+Example:
+Customer chooses:
+• SMS for billing
+• Email for promotions
+• No push notifications
+Ensures:
+✔ GDPR-style compliance
+✔ Privacy protection
+✔ Better user experience
+________________________________________
+6️⃣ Monitoring & Logs
+Real-time notification tracking.
+Displays:
+•	Total Sent
+•	Delivered
+•	Failed
+•	Pending
+•	Channel-wise breakdown
+•	Error logs
+Includes:
+✔ Search by customer
+✔ Filter by date
+✔ Export logs
+✔ Failure analysis
+Admin can:
+✔ Re-send failed notification
+✔ View API response
+✔ Track delivery status
+________________________________________
+🔄 Automation Logic
+When event occurs:
+1.	System checks trigger configuration
+2.	Applies customer preference
+3.	Applies priority rules
+4.	Sends via selected channel
+5.	If failed → Executes fallback
+6.	Logs final status
+This ensures:
+✔ Zero manual notification handling
+✔ Smart automated communication
+✔ Reliable delivery flow
+________________________________________
+🔐 Role-Based Permissions
+Admin:
+Full configuration control
+Operations Manager:
+Manage triggers
+Finance:
+Control billing-related notifications
+HR:
+Control HR notifications
+Customer:
+Manage personal preferences only
+________________________________________
+🔗 System Integration
+This page integrates with:
+✔ Billing Module
+✔ Sales Module
+✔ Inventory Module
+✔ Assets Module
+✔ CRM Module
+✔ Support/Ticketing Module
+✔ Push Notification API
+✔ SMS Gateway
+✔ Email SMTP Server
+It acts as the master communication switchboard of the system.
+________________________________________
+📈 Business Impact
+This page ensures:
+✔ Automated communication
+✔ Reduced manual follow-ups
+✔ Timely payment reminders
+✔ Improved customer engagement
+✔ Reduced service disputes
+✔ Increased collection rate
+When opening this page, it should feel like:
+“We control every message.”
+“Nothing important is missed.”
+“Communication is automated and intelligent.”
+

@@ -1,0 +1,298 @@
+NETWORK & IPAM MODULE
+Bandwidth Usage Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a real-time and historical Bandwidth Usage Monitoring Page to track, analyze, and manage network traffic across customers, routers, VLANs, and POPs.
+
+This page enables:
+
+✔ Real-time traffic visibility
+✔ Per-user bandwidth tracking
+✔ POP-level usage analysis
+✔ Peak hour monitoring
+✔ Fair Usage Policy enforcement
+✔ Capacity planning insights
+✔ Revenue-based traffic analysis
+
+This is your ISP performance control center.
+
+🎨 UI / Theme Design
+
+Style:
+Modern NOC Analytics Dashboard
+
+Primary Gradient:
+Electric Blue → Indigo (#2563EB → #4F46E5)
+
+Background:
+Dark Gray (#111827) with light data cards
+
+Traffic Indicators:
+
+🟢 Normal Usage
+🟡 High Usage
+🔴 Critical / Congested
+🔵 Throttled
+🟣 FUP Triggered
+
+Typography:
+Inter (UI)
+Monospace (for Mbps / Gbps display)
+
+Live indicators should animate smoothly for real-time effect.
+
+📊 Page Layout Structure
+
+The page contains 6 core sections:
+
+1️⃣ Global Bandwidth Overview
+2️⃣ POP / Router-Level Usage
+3️⃣ Customer-Level Usage
+4️⃣ VLAN / Service-Level Analytics
+5️⃣ Historical Trends & Reports
+6️⃣ Alerts & Fair Usage Monitoring
+
+1️⃣ Global Bandwidth Overview
+
+Top KPI Cards:
+
+Total Current Traffic (Mbps / Gbps)
+
+Peak Traffic Today
+
+Average Daily Usage
+
+Total Data Consumed (Today)
+
+Active Online Users
+
+Congested Devices
+
+Live Traffic Chart:
+
+📈 Real-Time Upload / Download Graph
+📊 Peak Hour Timeline
+
+Display:
+
+✔ Current throughput
+✔ 5-min average
+✔ 95th percentile usage
+
+2️⃣ POP / Router-Level Usage
+
+Monitor traffic by:
+
+POP Location
+
+Router Name
+
+Interface
+
+Total Upload
+
+Total Download
+
+Capacity
+
+Utilization %
+
+Features:
+
+✔ Drill-down per router
+✔ Interface-level monitoring
+✔ Identify congestion points
+✔ Capacity vs usage comparison
+
+Color Coding:
+
+🟢 < 60% utilization
+🟡 60–80%
+🔴 > 80% (High Risk)
+
+3️⃣ Customer-Level Usage
+
+Track per subscriber bandwidth usage:
+
+Columns:
+
+Username
+
+Customer Name
+
+Package Speed
+
+Current Speed (Up/Down)
+
+Session Time
+
+Data Used (Today / Month)
+
+FUP Status
+
+Throttling Status
+
+Features:
+
+✔ Real-time refresh
+✔ Filter by router
+✔ Filter by package
+✔ Filter by heavy users
+✔ Disconnect user
+✔ Apply temporary throttle
+
+Include:
+
+📊 Individual usage graph
+📈 Monthly consumption chart
+
+4️⃣ VLAN / Service-Level Analytics
+
+Track traffic per VLAN or service type:
+
+Internet VLAN
+
+IPTV VLAN
+
+VoIP VLAN
+
+Corporate VLAN
+
+Management VLAN
+
+Metrics:
+
+Total Usage
+
+Peak Usage
+
+Packet Loss
+
+Latency
+
+Utilization %
+
+Helps identify:
+
+✔ Overloaded VLAN
+✔ IPTV congestion
+✔ Corporate link overuse
+
+5️⃣ Historical Trends & Reports
+
+Professional reporting tools:
+
+Reports:
+
+✔ Daily usage report
+✔ Weekly traffic trend
+✔ Monthly consumption
+✔ Peak hour analysis
+✔ 95th percentile billing report
+
+Charts:
+
+📈 Traffic Growth Trend
+📊 Customer Consumption Ranking
+📊 POP Traffic Comparison
+
+Export Options:
+
+✔ CSV
+✔ Excel
+✔ PDF
+✔ Automated scheduled reports
+
+6️⃣ Alerts & Fair Usage Monitoring
+
+Automated monitoring system:
+
+Alerts when:
+
+✔ Router utilization > 80%
+✔ Customer exceeds FUP limit
+✔ Abnormal traffic spike
+✔ Possible DDoS activity
+✔ Interface down
+
+Fair Usage Logic:
+
+When customer exceeds data limit:
+
+✔ Apply speed throttle
+✔ Notify customer via SMS/Email
+✔ Log FUP action
+✔ Allow manual override
+
+Escalation:
+
+✔ Notify NOC team
+✔ Create automatic task in Task Module
+
+🔄 Automation Logic
+
+When customer connects:
+
+✔ Start session tracking
+✔ Log upload/download
+
+When traffic exceeds threshold:
+
+✔ Trigger alert
+✔ Log abnormal event
+
+When monthly reset date reached:
+
+✔ Reset usage counter
+✔ Remove throttle (if applied)
+
+When package upgraded:
+
+✔ Update bandwidth monitoring profile
+
+🔐 Role-Based Access
+
+Admin:
+Full control & analytics
+
+Network Engineer:
+Router & interface monitoring
+
+Billing Manager:
+View usage & FUP control
+
+Support Team:
+View user usage & disconnect
+
+Viewer:
+Read-only
+
+🔗 Integration Required
+
+✔ MikroTik / BRAS Integration
+✔ RADIUS Accounting
+✔ IPAM Module
+✔ Customer Module
+✔ Billing & Package Module
+✔ Notification System
+✔ Task Management (for congestion tasks)
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Better network stability
+✔ Reduced congestion
+✔ Data-driven capacity planning
+✔ Fair bandwidth distribution
+✔ Increased customer satisfaction
+✔ Improved profitability
+
+When you open this page, it should feel like:
+
+“I can see every Mbps in my network.”
+“I know where congestion will happen before it happens.”
+“My bandwidth is fully under control.”

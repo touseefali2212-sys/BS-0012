@@ -1,0 +1,322 @@
+TRANSACTIONS MODULE
+Transactions List Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Build a comprehensive Transactions List Page that:
+
+Displays all financial transactions across modules
+
+Shows debit/credit impact
+
+Links to related modules
+
+Supports deep filtering & search
+
+Provides drill-down ledger view
+
+Enables financial audit tracking
+
+This page must act as the central financial registry.
+
+🎨 Professional UI Theme
+
+Style:
+Enterprise Financial Control Dashboard
+
+Primary Gradient:
+Deep Navy → Royal Blue (#002B5B → #0066FF)
+
+Color Indicators:
+
+🟢 Income
+🔴 Expense
+🔵 Transfer
+🟣 Adjustment
+🟡 Refund
+⚫ System Generated
+
+Background:
+Light Gray (#F4F6F9)
+White data grid cards
+Soft shadow
+14px rounded corners
+
+Typography:
+Inter / Poppins
+Clear financial alignment
+
+📊 Page Layout Structure
+
+The page contains:
+
+1️⃣ Transaction Summary Dashboard
+2️⃣ Advanced Filter Panel
+3️⃣ Transactions Data Grid
+4️⃣ Drill-Down Detail Drawer
+5️⃣ Bulk Actions & Export Tools
+
+1️⃣ Transaction Summary Dashboard
+
+Top financial cards:
+
+Total Transactions (Today)
+
+Total Debit Amount
+
+Total Credit Amount
+
+Total Income
+
+Total Expense
+
+Net Cash Flow
+
+Add mini trend graph:
+
+Daily transaction trend
+
+Add indicator:
+
+Financial Balance Check (Debit vs Credit match)
+
+2️⃣ Advanced Filter Panel
+
+Professional filter section:
+
+Filters:
+
+Date Range
+
+Transaction Type
+
+Category (Income / Expense / Transfer / Adjustment)
+
+Account
+
+Customer
+
+Vendor
+
+Employee
+
+Branch
+
+Amount Range
+
+Status
+
+Payment Method
+
+Created By
+
+Quick Filters:
+
+✔ Today
+✔ This Week
+✔ This Month
+✔ Financial Year
+
+Include Reset button.
+
+3️⃣ Transactions Data Grid
+
+Professional enterprise-level table.
+
+Columns:
+
+Transaction ID
+
+Date
+
+Reference No
+
+Transaction Type
+
+Module Source
+
+Customer / Vendor
+
+Debit Account
+
+Credit Account
+
+Amount
+
+Branch
+
+Status
+
+Posted By
+
+Approval Status
+
+Action
+
+Status Indicators
+
+🟢 Posted
+🟡 Pending Approval
+🔴 Reversed
+🔵 Draft
+⚫ Locked Period
+
+Table Features
+
+✔ Sticky header
+✔ Pagination
+✔ Column sorting
+✔ Column hide/show
+✔ Search bar
+✔ Export to Excel
+✔ Print
+✔ Multi-select
+✔ Bulk export
+✔ Responsive layout
+
+4️⃣ Transaction Detail Drawer (Drill-Down View)
+
+When clicking a transaction:
+
+Open side drawer showing:
+
+Full voucher details
+
+Journal entry preview
+
+Debit/Credit breakdown
+
+Linked module reference
+
+Linked invoice / payment / credit note
+
+Tax breakdown
+
+Attachments
+
+Approval history
+
+Audit trail
+
+System logs
+
+Buttons:
+
+✔ Edit (if allowed)
+✔ Reverse
+✔ Print Voucher
+✔ View Ledger
+✔ Download PDF
+
+🔄 System Logic
+
+When a transaction is created from any module:
+
+✔ It must appear here automatically
+✔ Debit & Credit must balance
+✔ Must show module source
+✔ Must update dashboard instantly
+✔ Must link to journal entry
+✔ Must respect period lock rules
+
+If reversed:
+
+✔ Create reversing journal entry
+✔ Maintain audit history
+✔ Change status to Reversed
+
+📊 Source Modules Integration
+
+Transactions can originate from:
+
+✔ Income Entry
+✔ Expense Entry
+✔ Payment Gateway
+✔ Credit Notes
+✔ Payroll
+✔ Vendor Payments
+✔ Reseller Wallet
+✔ Bank Transfers
+✔ Billing Automation
+
+Each must show Module Source tag.
+
+📈 Financial Controls
+
+Add validation:
+
+✔ Prevent unbalanced entries
+✔ Prevent editing after financial close
+✔ Approval workflow for large amounts
+✔ Threshold alert system
+✔ Duplicate reference warning
+
+🔐 Permissions
+
+Admin:
+Full access
+
+Finance Manager:
+Approve / Reverse
+
+Accountant:
+Create / View
+
+Viewer:
+View only
+
+Auditor:
+View + export only
+
+💎 Advanced Enterprise Features
+
+Add:
+
+✔ Real-time debit vs credit validation meter
+✔ AI anomaly detection flag (future-ready)
+✔ Large transaction alert
+✔ Cross-branch transaction filter
+✔ Cost center tagging
+✔ Profit center tagging
+✔ Transaction aging view
+✔ Transaction tagging system
+✔ Batch posting capability
+
+📊 ISP-Specific Use Cases
+
+Example 1:
+Customer Payment → Shows Debit Bank / Credit AR
+
+Example 2:
+Vendor Bandwidth Payment → Debit Expense / Credit Bank
+
+Example 3:
+Reseller Wallet Top-up → Debit Bank / Credit Wallet Liability
+
+Example 4:
+Internal Branch Transfer → Debit Branch A / Credit Branch B
+
+📈 KPI Section
+
+Add financial metrics:
+
+Average Daily Transactions
+
+Largest Transaction This Month
+
+Expense Ratio
+
+Revenue Ratio
+
+Transaction Growth %
+
+🎯 Emotional Impact Goal
+
+When you open this page:
+
+“I can see everything.”
+“No hidden transactions.”
+“This is audit-ready.”
+“This ERP is serious.”

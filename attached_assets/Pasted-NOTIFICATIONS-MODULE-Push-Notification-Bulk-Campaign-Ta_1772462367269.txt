@@ -1,0 +1,321 @@
+NOTIFICATIONS MODULE
+Push Notification – Bulk & Campaign Tab Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a dedicated Bulk & Campaign Management Tab under Push Notifications to create, schedule, manage, and analyze large-scale push notification campaigns.
+
+This page ensures:
+
+✔ Mass communication control
+✔ Targeted campaign delivery
+✔ Customer segmentation
+✔ Scheduled broadcast alerts
+✔ Engagement tracking
+✔ Performance analytics
+
+It transforms push notifications into a structured marketing and operational broadcast system.
+
+🎨 UI / Theme Design
+
+Style:
+Enterprise Campaign & Broadcast Dashboard
+
+Primary Gradient:
+Indigo → Emerald (#4F46E5 → #059669)
+
+Background:
+Light Neutral (#F8FAFC)
+
+Campaign Status Indicators:
+
+🟢 Active
+🟡 Scheduled
+🔵 Draft
+🟣 Processing
+🟠 Paused
+🔴 Completed
+⚫ Cancelled
+
+Typography:
+Inter / Poppins
+Bold headers for campaign names
+
+Layout:
+Campaign Overview KPIs + Campaign Builder Panel + Campaign List + Engagement Analytics
+
+📊 Page Layout Structure
+
+The tab contains 4 structured sections:
+
+1️⃣ Campaign Overview Dashboard
+2️⃣ Create Bulk Campaign
+3️⃣ Campaign Management Table
+4️⃣ Campaign Performance & Engagement Analytics
+
+1️⃣ Campaign Overview Dashboard
+
+KPI Cards:
+
+Total Campaigns
+
+Active Campaigns
+
+Scheduled Campaigns
+
+Total Recipients
+
+Total Delivered
+
+Click-Through Rate (CTR)
+
+Engagement Rate
+
+Charts:
+
+📊 Campaigns by Module
+📈 Delivery Trend Over Time
+📊 Audience Segmentation Breakdown
+📉 Failure Rate Monitoring
+
+Provides executive-level communication visibility.
+
+2️⃣ Create Bulk Campaign Panel
+
+Advanced campaign builder.
+
+Basic Information:
+
+Campaign Name
+
+Campaign Type (Operational / Marketing / Alert / Announcement)
+
+Priority Level
+
+Module Source
+
+Message Content:
+
+Title
+
+Message Body
+
+Banner Image (Optional)
+
+Icon
+
+Deep Link (Redirect to module page)
+
+Audience Targeting Options:
+
+✔ All Users
+✔ All Customers
+✔ Role-Based (Admin, Sales, Inventory Manager)
+✔ Warehouse-Based
+✔ Region-Based
+✔ Customer Package-Based
+✔ Payment Status-Based (e.g., overdue users)
+✔ Custom Segment (Dynamic filters)
+✔ CSV Upload (Manual audience import)
+
+Scheduling Options:
+
+✔ Send Immediately
+✔ Schedule Date & Time
+✔ Recurring Campaign
+✔ Time Zone Selection
+
+Advanced Options:
+
+Expiry Time
+
+Require Acknowledgment
+
+Frequency Cap (Limit notifications per user)
+
+A/B Testing (Optional future enhancement)
+
+Preview Mode:
+
+Live preview for Web & Mobile.
+
+3️⃣ Campaign Management Table
+
+Master table listing all campaigns.
+
+Columns:
+
+Campaign Name
+
+Campaign Type
+
+Target Audience
+
+Scheduled Date
+
+Total Targeted
+
+Delivered
+
+Clicked
+
+CTR
+
+Status
+
+Created By
+
+Actions
+
+Actions:
+
+• View Details
+• Edit (if Draft/Scheduled)
+• Pause
+• Resume
+• Duplicate
+• Cancel
+• View Analytics
+• Delete (Admin Only)
+
+Advanced Filters:
+
+✔ Status
+✔ Date Range
+✔ Campaign Type
+✔ Audience Type
+✔ Delivery Rate
+
+4️⃣ Campaign Performance & Engagement Analytics
+
+Detailed engagement tracking per campaign.
+
+Metrics:
+
+Total Recipients
+
+Delivered
+
+Failed
+
+Opened
+
+Clicked
+
+Acknowledged
+
+Conversion Rate (if linked to action)
+
+Device Breakdown:
+
+• Web
+• Android
+• iOS
+
+Engagement Insights:
+
+📊 Click Heatmap
+📈 Engagement Time Analysis
+📊 Response by Region
+📉 Drop-off Rate
+
+Failure Reasons:
+
+• Device Offline
+• Token Invalid
+• Permission Denied
+• Server Error
+
+System auto-removes invalid tokens for future campaigns.
+
+🔄 Automation & Smart Logic
+
+Campaign triggers can also be linked to system events:
+
+Examples:
+
+• Send maintenance announcement to specific city
+• Notify overdue customers about payment
+• Announce new internet packages
+• Broadcast service outage alerts
+• Internal policy updates to staff
+
+Escalation:
+
+If critical campaign not acknowledged → escalate to supervisor.
+
+Rate Limiting:
+
+Prevents spam by limiting notification frequency per user.
+
+Queue-Based Delivery:
+
+Ensures high-volume campaigns process without system overload.
+
+🔐 Role-Based Permissions
+
+Admin:
+Full campaign control
+
+Marketing Manager:
+Create & manage marketing campaigns
+
+Operations Manager:
+Send operational alerts
+
+HR Manager:
+Internal announcements
+
+Users:
+Receive only
+
+Only Admin can delete completed campaigns.
+
+🌐 Technical Capabilities
+
+✔ Mass Push Broadcasting
+✔ High-Volume Queue System
+✔ Segmentation Engine
+✔ Firebase / Web Push Integration
+✔ Token Validation
+✔ Delivery Retry System
+✔ Scalable Infrastructure
+
+Supports:
+
+✔ Thousands to millions of notifications
+✔ Real-time delivery monitoring
+✔ Campaign scheduling automation
+
+🔗 Integration
+
+This page integrates with:
+
+✔ Notification Type Page
+✔ CRM Module
+✔ Sales Module
+✔ Billing Module
+✔ Inventory Module
+✔ Service Outages Module
+✔ User Management
+
+It serves as a communication bridge across the entire ERP.
+
+📈 Business Impact
+
+This page enables:
+
+✔ Professional broadcast communication
+✔ Targeted customer engagement
+✔ Improved payment collection
+✔ Operational transparency
+✔ Marketing announcements
+✔ Reduced manual communication effort
+
+When opening this tab, it should feel like:
+
+“I can communicate with everyone instantly.”
+“I can target exactly who I want.”
+“I can measure how they respond.”

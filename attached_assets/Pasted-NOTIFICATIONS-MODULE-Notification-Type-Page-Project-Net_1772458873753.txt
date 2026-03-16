@@ -1,0 +1,274 @@
+NOTIFICATIONS MODULE
+Notification Type Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized Notification Type Management Page to define, configure, categorize, and control all system-generated notifications across modules.
+
+This page ensures:
+
+✔ Standardized alert structure
+✔ Controlled notification triggers
+✔ Multi-channel delivery (Email, SMS, In-App, WhatsApp, Push)
+✔ Role-based notification rules
+✔ Event-driven automation
+✔ Reduced communication gaps
+
+It acts as the master control panel for system communication behavior.
+
+🎨 UI / Theme Design
+
+Style:
+Modern Alert & Automation Dashboard
+
+Primary Gradient:
+Royal Blue → Amber (#1D4ED8 → #F59E0B)
+
+Background:
+Soft Neutral (#F8FAFC)
+
+Notification Status Indicators:
+
+🟢 Active
+🟡 Draft
+🔵 Scheduled
+🟣 Conditional
+🔴 Disabled
+⚫ Archived
+
+Typography:
+Inter / Poppins
+
+Layout:
+Notification Overview KPIs + Notification Type Table + Configuration Drawer
+
+📊 Page Layout Structure
+
+The page contains 4 structured sections:
+
+1️⃣ Notification Overview Dashboard
+2️⃣ Notification Type Master Table
+3️⃣ Notification Configuration Panel
+4️⃣ Channel & Trigger Logic Settings
+
+1️⃣ Notification Overview Dashboard
+
+KPI Cards:
+
+Total Notification Types
+
+Active Notifications
+
+Disabled Notifications
+
+Event-Based Notifications
+
+Scheduled Notifications
+
+Failed Deliveries (Last 7 Days)
+
+Analytics:
+
+📊 Notifications by Module
+📈 Delivery Success Rate
+📊 Channel Distribution (Email/SMS/In-App)
+📉 Failed Notification Trends
+
+Provides real-time visibility of communication health.
+
+2️⃣ Notification Type Master Table
+
+Structured list of all defined notification types.
+
+Columns:
+
+Notification Name
+
+Module Source (Inventory, Sales, CRM, Assets, etc.)
+
+Event Trigger
+
+Delivery Channels
+
+Priority Level
+
+Audience (Role / Customer / Vendor)
+
+Status
+
+Last Modified
+
+Actions
+
+Examples of Notification Types:
+
+• Low Stock Alert
+• Purchase Order Approved
+• Sales Invoice Generated
+• Payment Overdue Reminder
+• Asset Assigned to Customer
+• Service Outage Alert
+• Warranty Expiry Reminder
+• User Login Alert
+• Approval Request
+
+Actions:
+
+• Edit
+• Duplicate
+• Enable / Disable
+• View Trigger Logic
+• Preview Template
+• Delete (Admin Only)
+
+3️⃣ Notification Configuration Panel
+
+When creating or editing a notification type:
+
+General Settings:
+
+Notification Name
+
+Module
+
+Event Trigger
+
+Priority (Low / Medium / High / Critical)
+
+Status
+
+Audience Settings:
+
+Specific User Roles
+
+Specific Users
+
+Customer Segment
+
+Supplier
+
+All Users
+
+Delivery Channels:
+
+✔ Email
+✔ SMS
+✔ In-App
+✔ WhatsApp
+✔ Push Notification
+
+Channel-specific configuration:
+
+Email Template
+SMS Template
+In-App Message
+Push Title & Body
+
+Supports dynamic variables:
+
+{{Customer_Name}}
+{{Invoice_Number}}
+{{Amount}}
+{{Due_Date}}
+{{Product_Name}}
+
+Preview Mode available before activation.
+
+4️⃣ Trigger & Automation Logic
+
+Event-Based Triggers:
+
+• On Create
+• On Update
+• On Delete
+• On Status Change
+• On Approval
+• On Threshold Breach
+• On Date-Based Event
+
+Examples:
+
+If stock < reorder level → Trigger Low Stock Alert
+If invoice overdue by 3 days → Send reminder
+If asset assigned → Notify customer
+If service outage created → Notify affected customers
+
+Conditional Rules:
+
+IF condition met
+AND status = Active
+THEN send notification
+
+Advanced logic supports:
+
+✔ Multi-condition triggers
+✔ Delay scheduling
+✔ Escalation rules
+✔ Repeat reminders
+
+🔄 Escalation & Priority System
+
+Critical Alerts:
+
+Service outage
+Security breach
+Server down
+High-value payment overdue
+
+Escalation Logic:
+
+Level 1 → Assigned staff
+Level 2 → Manager
+Level 3 → Admin
+
+Automatic escalation if no action taken within defined time.
+
+🔐 Role-Based Permissions
+
+Admin:
+Full control
+
+System Manager:
+Manage notification types
+
+Module Managers:
+Manage notifications within their module
+
+Users:
+Receive only
+
+Only Admin can delete core system notifications.
+
+🔗 Integration
+
+This page integrates with:
+
+✔ Inventory Module
+✔ Sales Module
+✔ Assets Module
+✔ Service Outages Module
+✔ CRM Module
+✔ HR Module
+✔ Finance Module
+✔ User Management Module
+
+It acts as the backbone of system communication.
+
+📈 Business Impact
+
+This page ensures:
+
+✔ No missed alerts
+✔ Automated communication
+✔ Reduced manual follow-ups
+✔ Strong internal coordination
+✔ Improved customer experience
+✔ Faster issue resolution
+
+When opening this page, it should feel like:
+
+“The system speaks automatically.”
+“Every event triggers the right message.”
+“No alert goes unnoticed.”

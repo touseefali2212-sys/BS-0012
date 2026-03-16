@@ -1,0 +1,211 @@
+Reseller Management
+Reseller List Page
+Project: NetSphere ISP Billing & Enterprise ERP
+________________________________________
+🎯 Objective
+Build a professional, enterprise-grade Reseller List Management Page inside:
+Panel → Reseller Management → Reseller List
+This page must allow Admin to:
+•	View all resellers
+•	Monitor reseller performance
+•	Track credit balance
+•	Monitor revenue & commission
+•	Manage reseller status
+•	Control panel access
+•	Handle profit margin structure
+This page must integrate with:
+
+✔ Vendor Module
+✔ Panel Vendor
+✔ Accounting
+✔ Commission System
+✔ Area Allocation
+________________________________________
+🎨 Enterprise UI Theme
+Style:
+Telecom Business Dashboard
+Primary Gradient:
+Deep Blue → Royal Blue (#002B5B → #0066FF)
+Accent Colors:
+•	Green → Active Reseller
+•	Orange → Credit Limit Warning
+•	Red → Suspended
+•	Purple → Corporate Reseller
+•	Teal → Profit / Commission
+Background:
+Light Gray (#F4F6F9)
+White premium cards
+Soft shadow
+14px rounded corners
+Typography:
+Inter / Poppins
+Bold revenue numbers
+Right-aligned financial columns
+________________________________________
+📊 Page Layout Structure
+________________________________________
+1️⃣ Top Reseller Summary Dashboard
+Display professional KPI cards:
+•	Total Resellers
+•	Active Resellers
+•	Suspended Resellers
+•	Total Monthly Revenue from Resellers
+•	Outstanding Balance
+•	Total Commission 
+Each card:
+•	Icon
+•	Big value
+•	Growth indicator
+•	Smooth counter animation
+________________________________________
+2️⃣ Advanced Filter & Search Panel
+Include:
+Search by:
+•	Reseller Name
+•	Company Name
+•	Phone
+•	Username
+Filter by:
+•	Status (Active / Suspended / Blocked)
+•	Branch
+•	Area
+•	Credit Status
+•	Vendor Type (Radius / Panel Vendor)
+•	Commission Type
+Quick Filter Buttons:
+•	Expiring Agreement
+•	Credit Limit Exceeded
+•	No Activity (30 Days)
+________________________________________
+3️⃣ Reseller List Data Table
+Professional, detailed table.
+Columns:
+•	Reseller Name
+•	Company Name
+•	Contact Number
+•	Area / Zone
+•	Vendor Type (Own Radius / Panel Vendor)
+•	Monthly Revenue
+•	Profit Margin %
+•	Credit Balance
+•	Credit Limit
+•	Commission Type
+•	Status
+•	Last Activity
+•	Action
+________________________________________
+📌 Status Badge
+Green = Active
+Red = Suspended
+Orange = Credit Limit Exceeded
+Gray = Inactive
+Purple = Corporate Reseller
+________________________________________
+⚙ Action Dropdown
+Each reseller row must include:
+•	View Details
+•	Edit Reseller
+•	Adjust Credit
+•	View Transactions
+•	View Commission
+•	Suspend / Activate
+•	Reset Panel Login
+•	Assign Area
+•	Assign Account Manager
+•	Delete (Soft Delete Only)
+________________________________________
+📂 4️⃣ Reseller Detail Slide Panel (On Click View)
+When clicking “View”:
+Open side panel with tabs:
+🏢 Profile
+•	Company Info
+•	Agreement Date
+•	Vendor Mapping
+•	Assigned Area
+•	Account Manager
+👥 Sub-Customers
+•	Total Active
+•	Suspended
+•	Revenue
+•	Quick link to customer list
+💰 Financial
+•	Credit Balance
+•	Total Recharge
+•	Total Deductions
+•	Commission Earned
+•	Outstanding
+📊 Performance
+•	Monthly Revenue Graph
+•	Collection Efficiency
+🔐 Panel Access
+•	Username
+•	Last Login
+•	Login Status
+•	Device Info
+________________________________________
+💰 Credit Management Logic
+Support two models:
+1️⃣ Prepaid Model
+•	Recharge first
+2️⃣ Postpaid Model
+•	Monthly invoice
+•	Credit limit control
+•	Auto suspend on limit exceed
+If credit < 0:
+→ Show warning badge
+→ Option to auto suspend reseller
+________________________________________
+📈 Analytics Section (Below Table)
+Include charts:
+•	Top 10 Resellers by Revenue
+•	Revenue Distribution Pie Chart
+•	Commission Payout Trend
+•	Customer Growth Trend
+•	Vendor-wise Reseller Distribution
+________________________________________
+🔄 Automation Logic
+System must:
+✔ Auto calculate reseller profit margin
+✔ Auto calculate commission
+✔ Auto suspend if credit exhausted
+✔ Auto notify low balance
+✔ Link reseller packages to vendor packages
+✔ Prevent over-allocation
+________________________________________
+🔐 Security & Access
+Admin:
+•	Full access
+Finance:
+•	View financial only
+Account Manager:
+•	View assigned resellers only
+Reseller:
+•	Access via separate reseller panel
+________________________________________
+🧠 Advanced Enterprise Features
+Add:
+✔ Multi-level reseller system (Master Reseller → Sub Reseller)
+✔ Commission slab engine
+✔ Area-based reseller mapping
+✔ Reseller performance score
+✔ SLA for reseller
+✔ Agreement expiry alerts
+✔ Auto commission settlement
+✔ Reseller target tracking
+✔ Document upload (Agreement, CNIC, NTN)
+________________________________________
+💎 UI Enhancements
+•	Hover row highlight
+•	Expandable financial summary
+•	Smooth tab transitions
+•	Animated KPI cards
+•	Real-time revenue refresh
+•	Color-coded credit balance
+________________________________________
+🎯 Emotional Impact Goal
+When you open this page:
+“These are my distribution partners.”
+“I can see who is performing.”
+“I control their credit & revenue.”
+“This looks like enterprise telecom software.
+

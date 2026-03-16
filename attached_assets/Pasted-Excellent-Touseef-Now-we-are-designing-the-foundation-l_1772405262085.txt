@@ -1,0 +1,318 @@
+Excellent, Touseef 👌
+
+Now we are designing the foundation layer of your entire inventory system —
+
+The Inventory Module – Product Type Page.
+
+This page defines what your business sells, installs, stores, tracks, and depreciates.
+
+Everything in Inventory, Assets, Billing, and Procurement depends on this structure.
+
+Below is your complete professional enterprise-level description 👇
+
+📦 INVENTORY MODULE
+Product Type Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a structured Product Type Page to define and categorize all products, devices, materials, and inventory items used within the organization.
+
+This page serves as the master classification system for:
+
+✔ Network Devices (ONU, OLT, Router, Switch)
+✔ Customer Equipment (CPE, Modem, WiFi Router)
+✔ Fiber Materials (Cable, Splitter, Patch Cord)
+✔ Tools & Equipment
+✔ Spare Parts
+✔ Accessories
+✔ Saleable Items
+✔ Rental Devices
+
+This ensures standardized inventory control, reporting accuracy, and financial classification.
+
+🎨 UI / Theme Design
+
+Style:
+Enterprise Master Data Management Interface
+
+Primary Gradient:
+Slate Blue → Emerald (#334155 → #059669)
+
+Background:
+Light Neutral (#F8FAFC)
+
+Category Indicators:
+
+🔵 Network Equipment
+🟢 Customer Devices
+🟡 Fiber Materials
+🟣 Tools
+🟠 Spare Parts
+🔴 High-Value Assets
+
+Typography:
+Inter / Poppins
+Structured table layout with expandable categories
+
+📊 Page Layout Structure
+
+The page contains 4 main sections:
+
+1️⃣ Product Type Overview Dashboard
+2️⃣ Create / Edit Product Type
+3️⃣ Product Type Classification Table
+4️⃣ Category & Attribute Management
+
+1️⃣ Product Type Overview Dashboard
+
+Summary Cards:
+
+Total Product Types
+
+Asset-Type Products
+
+Consumable Products
+
+Saleable Products
+
+Rental Products
+
+Active vs Inactive Types
+
+Charts:
+
+📊 Product Types by Category
+📈 Monthly Additions
+📊 High-Value Product Types
+📉 Low-Stock Risk Categories
+
+2️⃣ Create / Edit Product Type
+
+Professional master data form.
+
+Fields:
+
+Product Type ID (Auto-generated)
+
+Product Type Name
+
+Category
+
+Sub-Category
+
+Product Nature:
+
+Asset
+
+Consumable
+
+Saleable
+
+Rental
+
+Service-Linked
+
+Brand (Optional)
+
+Model
+
+SKU Code
+
+Default Unit (Piece, Meter, Box, etc.)
+
+Default Purchase Cost
+
+Default Sale Price
+
+Tax Category
+
+Depreciation Applicable (Yes/No)
+
+Warranty Period (Months)
+
+Track Serial Number (Yes/No)
+
+Track MAC Address (Yes/No)
+
+Require IP Allocation (Yes/No)
+
+Reorder Level
+
+Minimum Stock Level
+
+Description
+
+Options:
+
+✔ Active / Inactive
+✔ Visible in POS
+✔ Allow Discount
+✔ Allow Bulk Import
+
+Validation Rules:
+
+❌ SKU must be unique
+❌ Cannot delete if linked to transactions
+❌ Asset-type must enable serial tracking
+
+3️⃣ Product Type Classification Table
+
+Structured master table:
+
+Columns:
+
+Product Type ID
+
+Name
+
+Category
+
+Nature
+
+SKU
+
+Default Cost
+
+Default Sale Price
+
+Serial Tracking
+
+Depreciation
+
+Warranty
+
+Status
+
+Actions
+
+Actions:
+
+• Edit
+• Deactivate
+• View Linked Products
+• View Stock Levels
+• Duplicate Type
+• Archive
+
+Advanced Filters:
+
+✔ By category
+✔ By nature
+✔ By depreciation enabled
+✔ By serial tracking
+✔ By active/inactive
+
+4️⃣ Category & Attribute Management
+
+Hierarchical classification system.
+
+Example Structure:
+
+Network Equipment
+├── OLT
+├── ONU
+├── Router
+├── Switch
+
+Fiber Materials
+├── Cable
+├── Splitter
+├── Patch Cord
+
+Dynamic Attributes per Category:
+
+For ONU:
+
+GPON Type
+
+Supported Speed
+
+WiFi Band
+
+For Fiber Cable:
+
+Core Count
+
+Length
+
+Material Type
+
+Admin can:
+
+✔ Create new categories
+✔ Add custom attributes
+✔ Set mandatory fields
+✔ Define depreciation rules per category
+
+🔄 Automation Logic
+
+When Product Type created:
+
+✔ Available in Inventory Module
+✔ Available in Purchase Module
+✔ Available in Sales Module
+✔ Available in Assets Module (if Asset type)
+
+If “Track Serial” enabled:
+
+✔ Serial mandatory during stock entry
+
+If “Depreciation Applicable” enabled:
+
+✔ Auto-link to Asset Depreciation Module
+
+If “Require IP Allocation” enabled:
+
+✔ Auto-link to IPAM during assignment
+
+🔐 Role-Based Access
+
+Admin:
+Full control
+
+Inventory Manager:
+Create & edit types
+
+Finance Manager:
+Define cost & depreciation
+
+Procurement Officer:
+View & use
+
+Sales Manager:
+Use in POS
+
+Viewer:
+Read-only
+
+Only Admin can permanently delete product types.
+
+🔗 Integration Required
+
+✔ Inventory Stock Module
+✔ Assets Module
+✔ Purchase Orders
+✔ Sales & POS
+✔ Billing Module
+✔ Depreciation Module
+✔ Warehouse Management
+✔ IP Address / VLAN Module
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Clean master data
+✔ Structured inventory reporting
+✔ Accurate financial classification
+✔ Consistent pricing
+✔ Controlled asset tracking
+✔ Scalable ERP structure
+
+When you open this page, it should feel like:
+
+“This is the blueprint of everything we store.”
+“This defines our entire infrastructure catalog.”
+“Inventory chaos cannot happen.”

@@ -1,0 +1,323 @@
+NOTIFICATIONS MODULE
+SMS & Email API Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized SMS & Email API Configuration Page to securely integrate, manage, monitor, and control third-party messaging gateways for transactional and campaign-based communications.
+
+This page ensures:
+
+✔ Secure API integration
+✔ Multi-provider configuration
+✔ High delivery reliability
+✔ Automated fallback routing
+✔ Usage & cost monitoring
+✔ Delivery tracking & logging
+
+It acts as the communication gateway control center of the ERP system.
+
+🎨 UI / Theme Design
+
+Style:
+Enterprise Integration & API Control Panel
+
+Primary Gradient:
+Deep Blue → Cyan (#1E3A8A → #06B6D4)
+
+Background:
+Light Neutral (#F8FAFC)
+
+Integration Status Indicators:
+
+🟢 Connected
+🟡 Testing
+🔵 Configured
+🟣 Rate Limited
+🔴 Disconnected
+⚫ Disabled
+
+Typography:
+Inter / Poppins
+Monospace for API Keys (masked by default)
+
+Layout:
+Gateway Overview + SMS Provider Config + Email Provider Config + Logs & Usage Panel
+
+📊 Page Layout Structure
+
+The page contains 4 main sections:
+
+1️⃣ Gateway Overview Dashboard
+2️⃣ SMS Provider Configuration
+3️⃣ Email Provider Configuration
+4️⃣ Delivery Logs & Usage Monitoring
+
+1️⃣ Gateway Overview Dashboard
+
+KPI Cards:
+
+Active SMS Providers
+
+Active Email Providers
+
+Messages Sent Today
+
+Delivery Success Rate
+
+Failed Messages
+
+API Health Status
+
+Estimated Monthly Cost
+
+System Health Indicators:
+
+✔ API Response Time
+✔ Authentication Status
+✔ Rate Limit Status
+✔ Last Sync Time
+
+This gives real-time visibility into gateway performance.
+
+2️⃣ SMS Provider Configuration
+
+Supports multiple SMS gateway integrations.
+
+Examples of Supported Providers:
+
+• Local Telecom SMS Gateways
+• HTTP/REST SMS APIs
+• SMPP Gateways
+
+Configuration Fields:
+
+Provider Name
+
+API Base URL
+
+API Key
+
+Secret Key
+
+Sender ID
+
+Route Type (Transactional / Promotional)
+
+Country Code Default
+
+Encoding (GSM / Unicode)
+
+Rate Limit Settings
+
+Security Features:
+
+✔ Encrypted API Key Storage
+✔ Masked Secret Display
+✔ IP Whitelisting Option
+✔ Test Message Button
+
+Advanced Settings:
+
+Fallback Provider (Auto-switch if primary fails)
+
+Retry Attempts
+
+Timeout Duration
+
+Delivery Report Callback URL
+
+Test Mode:
+
+Send sample SMS before activation.
+
+3️⃣ Email Provider Configuration
+
+Supports SMTP and API-based email services.
+
+Supported Types:
+
+• SMTP
+• REST Email API
+• Cloud Email Services
+
+Configuration Fields:
+
+Provider Name
+
+SMTP Host
+
+Port
+
+Encryption Type (TLS / SSL)
+
+Username
+
+Password (Encrypted)
+
+From Email Address
+
+From Name
+
+OR (API Based):
+
+API Endpoint
+
+API Key
+
+Domain
+
+Webhook URL
+
+Advanced Features:
+
+✔ DKIM & SPF Status Check
+✔ Bounce Handling
+✔ Spam Score Monitoring
+✔ Email Throttling Control
+✔ Bulk Email Rate Control
+
+Test Email Option available before activation.
+
+4️⃣ Delivery Logs & Usage Monitoring
+
+Comprehensive tracking system.
+
+Log Table Columns:
+
+Message ID
+
+Type (SMS / Email)
+
+Provider
+
+Recipient
+
+Module Source
+
+Delivery Status
+
+Sent Date
+
+Delivered Date
+
+Failure Reason
+
+Cost (if available)
+
+Filters:
+
+✔ Date Range
+✔ Provider
+✔ Status
+✔ Module
+✔ Campaign
+
+Analytics:
+
+📊 Success vs Failure Rate
+📈 Daily Usage Trend
+📊 Cost by Provider
+📉 Error Type Breakdown
+
+Failure Reasons:
+
+• Invalid Number
+• Blocked Recipient
+• Authentication Error
+• Rate Limit Exceeded
+• Network Timeout
+
+🔄 Automation & Smart Routing
+
+System supports:
+
+✔ Primary + Backup Provider
+✔ Auto Failover Switching
+✔ Load Distribution
+✔ Rate Limiting Protection
+✔ Scheduled Delivery Queue
+
+Example Flow:
+
+If Primary SMS API fails →
+Auto route to Secondary Provider →
+Log event →
+Notify Admin
+
+Ensures high availability.
+
+🔐 Role-Based Access
+
+Admin:
+Full configuration control
+
+System Manager:
+Manage provider settings
+
+Finance:
+View cost & usage
+
+IT Team:
+Monitor API health
+
+Users:
+No direct access
+
+Only Admin can delete provider configuration.
+
+🌐 Technical Capabilities
+
+✔ REST API Integration
+✔ SMPP Support
+✔ Webhook Listener
+✔ Delivery Report Handling
+✔ Message Queue System
+✔ Token Refresh Handling
+✔ Secure Credential Encryption
+✔ Multi-Region Support
+
+Scalable for:
+
+✔ Thousands of messages per minute
+✔ Campaign-level broadcasting
+✔ Transactional alerts
+
+🔗 Integration
+
+This page connects with:
+
+✔ Notification Type Page
+✔ Push & Campaign Page
+✔ Billing Module
+✔ CRM Module
+✔ Sales Module
+✔ Service Outages Module
+✔ Authentication Module (OTP)
+
+It serves as the backbone for:
+
+• Payment reminders
+• OTP verification
+• Invoice emails
+• Service alerts
+• Marketing campaigns
+• System notifications
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Reliable communication delivery
+✔ Reduced message failure
+✔ Operational transparency
+✔ Controlled messaging costs
+✔ Professional customer engagement
+✔ Secure credential management
+
+When opening this page, it should feel like:
+
+“Our communication system is stable.”
+“We control every gateway.”
+“We can monitor delivery and cost in real time.”

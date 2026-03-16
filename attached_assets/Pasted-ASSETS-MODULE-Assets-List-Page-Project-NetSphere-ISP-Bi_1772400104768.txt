@@ -1,0 +1,340 @@
+ASSETS MODULE
+Assets List Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized Assets List Page to manage, monitor, and track all physical and logical assets across the organization from procurement to retirement.
+
+This page ensures:
+
+✔ Real-time inventory visibility
+✔ Deployment tracking
+✔ Serial & MAC tracking
+✔ Location monitoring
+✔ Asset lifecycle management
+✔ Financial depreciation tracking
+✔ Maintenance scheduling control
+
+This is your complete infrastructure asset monitoring system.
+
+🎨 UI / Theme Design
+
+Style:
+Enterprise Inventory & Infrastructure Dashboard
+
+Primary Gradient:
+Slate Blue → Teal (#334155 → #0D9488)
+
+Background:
+Light Neutral Gray (#F1F5F9)
+
+Status Indicators:
+
+🟢 Active / Deployed
+🟡 In Stock
+🔵 Under Maintenance
+🟣 Reserved
+🔴 Faulty / Damaged
+⚫ Retired
+
+Typography:
+Inter / Poppins
+Monospace for Serial / MAC
+
+Clean structured layout with professional data grids.
+
+📊 Page Layout Structure
+
+The page contains 6 main sections:
+
+1️⃣ Asset Overview Dashboard
+2️⃣ Asset List Grid
+3️⃣ Quick Actions Panel
+4️⃣ Asset Details Drawer
+5️⃣ Lifecycle & Maintenance Tracking
+6️⃣ Export & Reporting Tools
+
+1️⃣ Asset Overview Dashboard
+
+Top KPI Cards:
+
+Total Assets
+
+Network Devices
+
+In Stock Assets
+
+Deployed Assets
+
+Under Maintenance
+
+Retired Assets
+
+Critical Infrastructure Devices
+
+Charts:
+
+📊 Assets by Category
+📈 Deployment by POP
+📊 Asset Age Distribution
+📉 Fault Rate by Type
+
+2️⃣ Asset List Grid
+
+Professional structured inventory table.
+
+Columns:
+
+Asset ID
+
+Asset Name
+
+Asset Type
+
+Category
+
+Serial Number
+
+MAC Address
+
+Model
+
+Vendor
+
+Purchase Date
+
+Warranty Expiry
+
+Location (POP / Warehouse / Office)
+
+Assigned To (Customer / Staff / POP)
+
+Status
+
+Book Value
+
+Action Menu
+
+Advanced Features:
+
+✔ Search by serial / MAC
+✔ Filter by asset type
+✔ Filter by location
+✔ Filter by status
+✔ Filter by warranty expiry
+✔ Sort by age
+✔ Bulk update status
+✔ Bulk assign location
+✔ Export to Excel / CSV
+
+Protection:
+
+✔ No permanent deletion
+✔ Only archive allowed
+✔ Audit log tracking
+
+3️⃣ Quick Actions Panel
+
+Buttons:
+
+➕ Add New Asset
+📦 Bulk Import Assets
+🔄 Change Status
+📍 Transfer Location
+🛠 Mark Under Maintenance
+🗑 Retire Asset
+📊 Generate Report
+
+4️⃣ Asset Details Drawer
+
+When clicking an asset:
+
+Display full information:
+
+General Info:
+
+Asset ID
+
+Type
+
+Serial Number
+
+MAC Address
+
+Purchase Price
+
+Vendor
+
+Invoice Reference
+
+Deployment Info:
+
+Current Location
+
+Assigned POP
+
+Assigned Customer
+
+Installed By
+
+Installation Date
+
+Financial Info:
+
+Depreciation Method
+
+Depreciation Rate
+
+Current Book Value
+
+Remaining Life
+
+Technical Info (for network devices):
+
+Linked Router / OLT
+
+IP Address
+
+VLAN
+
+Firmware Version
+
+Maintenance Info:
+
+Last Maintenance Date
+
+Next Scheduled Maintenance
+
+Maintenance History
+
+5️⃣ Lifecycle & Maintenance Tracking
+
+Asset lifecycle stages:
+
+Purchased
+
+In Stock
+
+Deployed
+
+Under Maintenance
+
+Faulty
+
+Retired
+
+Disposed
+
+Automation:
+
+✔ When deployed → Update location
+✔ When faulty → Create maintenance task
+✔ When warranty near expiry → Generate alert
+✔ When retired → Stop depreciation
+
+Maintenance Tools:
+
+✔ Schedule preventive maintenance
+✔ Assign technician
+✔ Track repair cost
+✔ Log issue details
+
+6️⃣ Export & Reporting Tools
+
+Generate reports:
+
+✔ Asset Register Report
+✔ Depreciation Summary
+✔ Warranty Expiry Report
+✔ Maintenance Cost Report
+✔ Deployment by POP
+✔ Asset Movement History
+
+Export formats:
+
+✔ Excel
+✔ CSV
+✔ PDF
+
+Optional:
+
+✔ Scheduled monthly report
+
+🔄 Automation Logic
+
+When new asset added:
+
+✔ Assign unique Asset ID
+✔ Apply asset type rules
+✔ Link depreciation method
+
+When assigned to POP:
+
+✔ Update location
+✔ Link to network device
+
+When assigned to customer:
+
+✔ Link with customer profile
+✔ Mark deployed
+
+When warranty < 30 days:
+
+✔ Send alert
+✔ Notify admin
+
+When retired:
+
+✔ Stop depreciation
+✔ Update financial records
+
+🔐 Role-Based Access
+
+Admin:
+Full control
+
+Inventory Manager:
+Manage stock & movement
+
+Network Engineer:
+Manage network device assets
+
+Finance Manager:
+View depreciation & value
+
+Field Technician:
+Update status only
+
+Viewer:
+Read-only
+
+Only Admin can retire or archive assets.
+
+🔗 Integration Required
+
+✔ Asset Type Page
+✔ Accounting Module
+✔ Task Management (Maintenance Tasks)
+✔ Network & IPAM Module
+✔ Purchase Module
+✔ Warehouse Management
+✔ Customer Module
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Full infrastructure visibility
+✔ Reduced equipment loss
+✔ Controlled depreciation
+✔ Organized warehouse stock
+✔ Better maintenance planning
+✔ Professional audit compliance
+
+When you open this page, it should feel like:
+
+“I know where every device is.”
+“I know what is deployed and what is in stock.”
+“My infrastructure is fully under control.”

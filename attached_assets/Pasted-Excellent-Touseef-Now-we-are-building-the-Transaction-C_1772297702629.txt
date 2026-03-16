@@ -1,0 +1,333 @@
+Excellent Touseef 👌🔥
+
+Now we are building the Transaction Classification Engine of your ERP.
+
+If Income/Expense records money movement,
+Transaction Type defines WHAT KIND of movement it is.
+
+This page is very important because it:
+
+✔ Standardizes financial entries
+✔ Controls automation logic
+✔ Links modules with accounting
+✔ Improves reporting clarity
+✔ Enables filtering & analytics
+✔ Makes your ERP structured & scalable
+
+Below is a professional, enterprise-grade Replit build description for:
+
+📊 TRANSACTIONS MODULE
+Transaction Type Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Build a professional Transaction Type Management Page that allows Admin/Finance to:
+
+Create and manage transaction categories
+
+Define transaction behavior (Debit/Credit logic)
+
+Map transaction types to accounting accounts
+
+Link transaction types to ERP modules
+
+Control automation rules
+
+Improve financial reporting
+
+This page will serve as the foundation for all transaction classification across the system.
+
+🎨 Professional UI Theme
+
+Style:
+Modern ERP Configuration Dashboard
+
+Primary Gradient:
+Deep Navy → Royal Blue (#002B5B → #0066FF)
+
+Category Color Indicators:
+
+🟢 Income
+🔴 Expense
+🔵 Transfer
+🟣 Adjustment
+🟡 Refund
+⚫ System Generated
+
+Background:
+Light Gray (#F4F6F9)
+White structured cards
+Soft shadow
+14px rounded corners
+
+Typography:
+Inter / Poppins
+
+📊 Page Layout Structure
+
+The page contains:
+
+1️⃣ Transaction Type Overview Dashboard
+2️⃣ Add New Transaction Type
+3️⃣ Transaction Type List Table
+4️⃣ Transaction Logic Mapping Section
+
+1️⃣ Transaction Type Overview Dashboard
+
+Top summary cards:
+
+Total Transaction Types
+
+Income Types
+
+Expense Types
+
+Transfer Types
+
+Adjustment Types
+
+System Auto Types
+
+Add small analytics chart:
+
+Transaction distribution by type (pie chart)
+
+➕ 2️⃣ Add New Transaction Type
+
+Professional configuration form.
+
+Section A – Basic Information
+
+Transaction Type Name
+(Example: Customer Payment, Vendor Payment, Salary Payment, Commission Payout, Internal Transfer)
+
+Short Code (Auto-generated or manual)
+
+Description
+
+Transaction Category:
+
+Income
+
+Expense
+
+Transfer
+
+Adjustment
+
+Refund
+
+Write-Off
+
+System
+
+Section B – Accounting Behavior
+
+Define financial logic:
+
+Default Debit Account
+
+Default Credit Account
+
+Normal Balance Type:
+
+Debit
+
+Credit
+
+Allow Manual Override (Toggle)
+
+Auto Journal Entry:
+
+Yes / No
+
+Section C – Module Mapping
+
+Link transaction type with system modules:
+
+☐ Customer Module
+☐ CIR & Corporate
+☐ Vendor Module
+☐ Payroll
+☐ Reseller Wallet
+☐ Expense Entry
+☐ Income Entry
+☐ Payment Gateway
+☐ Credit Notes
+☐ Bank Reconciliation
+
+This allows automated account selection during transactions.
+
+Section D – Automation Rules
+
+☐ Auto Post to Ledger
+☐ Require Approval
+☐ Allow Editing After Posting
+☐ Lock After Financial Period Close
+☐ Recurring Allowed
+☐ Tax Applicable
+
+Section E – Status
+
+Active
+
+Inactive
+
+System Default (Locked)
+
+📑 3️⃣ Transaction Type List Table
+
+Professional structured table.
+
+Columns:
+
+Type Name
+
+Code
+
+Category
+
+Default Debit Account
+
+Default Credit Account
+
+Linked Modules
+
+Status
+
+Created Date
+
+Action
+
+Features:
+
+✔ Search
+✔ Filter by Category
+✔ Filter by Status
+✔ Export
+✔ Enable/Disable toggle
+✔ Clone transaction type
+
+🔄 4️⃣ System Logic
+
+When a transaction is created:
+
+✔ System detects transaction type
+✔ Auto applies correct debit/credit mapping
+✔ Creates journal entry automatically
+✔ Applies tax logic if enabled
+✔ Links transaction to module
+✔ Updates reports
+
+If transaction type = Transfer:
+
+✔ Debit receiving account
+✔ Credit sending account
+
+If transaction type = Refund:
+
+✔ Reverse revenue
+✔ Adjust AR
+
+📊 ISP Use Case Examples
+
+Income Types:
+
+Customer Monthly Payment
+
+Installation Fee
+
+Corporate CIR Revenue
+
+Late Fee
+
+Expense Types:
+
+Vendor Bandwidth Payment
+
+Salary Expense
+
+Commission Expense
+
+Office Rent
+
+Transfer Types:
+
+Bank to Cash
+
+Branch to Branch
+
+Wallet to Bank
+
+Adjustment Types:
+
+Write-off
+
+Credit Adjustment
+
+Refund
+
+🔐 Permissions
+
+Admin:
+Full control
+
+Finance Manager:
+Create / Edit
+
+Accountant:
+View & Use
+
+Viewer:
+View only
+
+💎 Advanced Enterprise Features
+
+Add:
+
+✔ Category-based reporting
+✔ Color-coded transaction tags
+✔ Financial year locking
+✔ Approval workflow
+✔ Bulk import transaction types
+✔ Hierarchical transaction grouping
+✔ KPI mapping
+✔ AI-based transaction classification (future-ready)
+
+🔗 Integration Points
+
+Must integrate with:
+
+✔ Accounting Module
+✔ Income Entry
+✔ Expense Entry
+✔ Payment Gateway
+✔ Credit Notes
+✔ Budget Allocation
+✔ General Ledger
+✔ Financial Reports
+
+📈 Reporting Benefits
+
+Using Transaction Types improves:
+
+Clean Profit & Loss categorization
+
+Clear cash flow reporting
+
+Expense classification
+
+Revenue segmentation
+
+Department-wise analytics
+
+🎯 Emotional Impact Goal
+
+When you open this page:
+
+“This system is structured.”
+“Transactions are controlled.”
+“This ERP is enterprise-level.”
+“I can scale without chaos.”

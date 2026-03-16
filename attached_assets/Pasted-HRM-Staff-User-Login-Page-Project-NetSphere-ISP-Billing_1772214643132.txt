@@ -1,0 +1,269 @@
+HRM – Staff User Login Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Design and build a professional, secure, modern Staff User Login page for HRM system.
+
+The login system must:
+
+Support Office & Field staff
+
+Be role-based
+
+Be secure (OTP / device tracking)
+
+Support multi-branch login
+
+Support mobile & desktop responsive UI
+
+Log login history
+
+Restrict access based on Role & Area
+
+This page must feel premium and enterprise-level.
+
+🎨 UI Theme Design (Enterprise Look)
+
+Style:
+Modern Corporate SaaS
+
+Primary Gradient:
+Deep Blue → Royal Blue (#002B5B → #007BFF)
+
+Background:
+Soft gradient with subtle pattern
+
+Login Card:
+
+White glass effect
+
+16px rounded corners
+
+Soft shadow
+
+Centered layout
+
+Accent Colors:
+
+Green → Successful Login
+
+Red → Error
+
+Orange → Warning
+
+Teal → Field Mode
+
+Typography:
+Inter / Poppins
+Bold heading
+Clean input labels
+
+🖥 Page Layout Structure
+🔷 Left Side (Branding Panel)
+
+Include:
+
+Company Logo
+
+Company Name
+
+Tagline: “Enterprise ISP & HR Management System”
+
+Sub-text:
+“Secure. Structured. Smart.”
+
+Optional:
+
+Animated background wave
+
+Subtle network-themed pattern
+
+🔷 Right Side (Login Form Card)
+
+Clean centered login card.
+
+🔐 Login Form Fields
+
+1️⃣ Username / Employee ID
+2️⃣ Password
+3️⃣ Select Login Mode (Dropdown)
+
+Options:
+
+Office Mode
+
+Field Mode
+
+Recovery Mode
+
+Technician Mode
+
+Admin Mode
+
+4️⃣ Branch Selection (If multi-branch enabled)
+
+5️⃣ Remember Me Checkbox
+
+6️⃣ Login Button (Gradient)
+
+🔒 Advanced Security Features
+
+Must include:
+
+✔ Role-based access control
+✔ Account status check (Active / Suspended)
+✔ App access allowed check
+✔ Device binding option
+✔ IP logging
+✔ Login time logging
+✔ Failed attempt counter
+✔ Auto lock after 5 failed attempts
+✔ OTP verification (Optional toggle)
+✔ 2FA (Future ready)
+
+🔄 System Login Logic
+
+When user logs in:
+
+System must:
+
+1️⃣ Validate credentials
+2️⃣ Check Role
+3️⃣ Check App Access Permission
+4️⃣ Check Area Assignment (if field user)
+5️⃣ Load permitted modules only
+6️⃣ Apply branch filtering
+7️⃣ Record login session
+
+If Recovery Officer:
+→ Redirect to Recovery Dashboard
+
+If HR:
+→ Redirect to HR Dashboard
+
+If Admin:
+→ Redirect to Admin Panel
+
+If Technician:
+→ Redirect to Ticket Dashboard
+
+📱 Mobile Responsive Version
+
+For mobile:
+
+Full screen card
+
+Large input fields
+
+Biometric login support (future)
+
+GPS verification for field users (optional)
+
+⚠ Error Handling UI
+
+Show professional alerts:
+
+Invalid Credentials
+
+Account Suspended
+
+Access Denied
+
+Device Not Authorized
+
+Area Not Assigned
+
+Session Expired
+
+Use smooth toast notifications.
+
+🧾 Forgot Password Flow
+
+Include:
+
+Forgot Password link
+
+Reset via Email / SMS
+
+OTP verification
+
+Password strength validation
+
+Reset confirmation
+
+🛡 Login Activity Log Panel (Admin View)
+
+Separate admin page showing:
+
+Employee Name
+
+Role
+
+Login Time
+
+Logout Time
+
+IP Address
+
+Device Type
+
+Location (if enabled)
+
+Status (Success / Failed)
+
+Filters:
+
+Date
+
+Role
+
+Branch
+
+Status
+
+🎛 Optional Professional Enhancements
+
+✔ Dark Mode toggle
+✔ Language selection (English / Urdu)
+✔ Captcha after failed attempts
+✔ Session timeout configuration
+✔ Force password change after X days
+✔ Last login info display
+✔ Account expiry date option
+
+💎 UI Micro-Interactions
+
+Smooth button hover animation
+
+Loading spinner on login
+
+Subtle shake animation on wrong password
+
+Fade-in card animation
+
+Animated gradient login button
+
+🎯 Emotional Impact Goal
+
+When staff opens login page:
+
+“This system is secure.”
+“This looks professional.”
+“This is enterprise ERP.”
+
+When you open it:
+
+“My data is protected.”
+“My staff access is controlled.”
+“This is scalable.”
+
+🔗 Integration With
+
+✔ HRM Role & Type
+✔ App Access Configuration
+✔ Area Allocation
+✔ Payroll
+✔ Vendor & Reseller Modules
+✔ Attendance System

@@ -1,0 +1,313 @@
+HRM – Employee App Login Control & Area Allocation Module
+
+Project: NetSphere ISP Billing & ERP
+
+🎯 Objective
+
+Build two powerful HRM modules integrated with HRM Role & Type:
+
+1️⃣ Employee / Staff App Login Configuration
+2️⃣ Area Allocation & Territory Management
+
+The system must allow administrators to:
+
+Control which employee types can log into the mobile app
+
+Configure app features based on Role & Type
+
+Assign operational areas to field staff
+
+Restrict actions based on territory
+
+Enable geo-based performance tracking
+
+Manage recovery officers’ assigned recovery zones
+
+This must work dynamically with:
+
+✔ HRM Role & Type
+✔ Attendance
+✔ Collection
+✔ Customer Management
+✔ Payroll (for performance-based commission)
+
+🎨 Enterprise Theme
+
+Primary Gradient:
+Deep Blue → Royal Blue (#002B5B → #007BFF)
+
+Accent Colors:
+
+Green → Active App Access
+
+Orange → Recovery Officer
+
+Purple → Office Staff
+
+Teal → Technician
+
+Red → Restricted Access
+
+Clean white cards
+Modern toggle switches
+Soft shadows
+14px rounded edges
+
+🔐 MODULE 1: Employee / Staff App Login Configuration
+
+This module will be controlled from:
+
+HRM → Role & Type → App Access Settings
+
+📱 App Login Control Section
+
+Inside Role Configuration, add:
+
+App Access Configuration Panel
+
+Fields:
+
+Allow App Login (Toggle Yes/No)
+
+App Login Type:
+
+Office Mode
+
+Field Mode
+
+Recovery Mode
+
+Sales Mode
+
+Technician Mode
+
+Device Restriction:
+
+Single Device Only
+
+Multiple Devices
+
+Device Binding Required
+
+GPS Tracking Required (Yes/No)
+
+Live Location Required (Yes/No)
+
+🧩 App Feature Permission Builder
+
+Checkbox-based feature configuration per Role.
+
+Example:
+
+For Office Staff:
+☐ View Customers
+☐ Edit Customers
+☐ View Billing
+☐ Approve Payments
+☐ View Reports
+☐ HR Access
+
+For Recovery Officer:
+☐ View Assigned Customers Only
+☐ Collect Payment
+☐ Generate Receipt
+☐ Update Payment Status
+☐ Mark Promise to Pay
+☐ View Defaulter List
+☐ Call Customer
+☐ GPS Check-in Required
+
+For Technician:
+☐ View Assigned Tickets
+☐ Update Ticket Status
+☐ Upload Installation Photo
+☐ Close Ticket
+☐ View Network Map
+
+For Sales Staff:
+☐ Add New Customer
+☐ View Packages
+☐ Create Lead
+☐ Convert Lead
+☐ View Commission
+
+Each feature must be toggle-based and saved per Role.
+
+🔄 System Logic
+
+When employee is assigned Role:
+
+App automatically enables allowed features
+
+Menu shows only permitted modules
+
+Restricted features hidden completely
+
+Area-based filtering applies automatically
+
+🌍 MODULE 2: Area Allocation & Territory Management
+
+This module is critical for:
+
+✔ Recovery Officers
+✔ Field Technicians
+✔ Sales Team
+✔ Area Managers
+
+📍 Area Master Setup
+
+Create Area Management Section:
+
+Fields:
+
+Area Name
+
+Area Code
+
+City
+
+Zone
+
+Branch
+
+Pincode Range (Optional)
+
+Customer Count (Auto Calculate)
+
+Status:
+
+Active / Inactive
+
+👥 Area Assignment to Employees
+
+Inside Employee Profile OR Role Page:
+
+Assigned Area Section
+
+Select Employee
+
+Assign One or Multiple Areas
+
+Assign Primary Area
+
+Assign Secondary Area
+
+Effective From Date
+
+Effective To Date
+
+🔐 Area-Based Access Control Logic
+
+If employee has assigned areas:
+
+System must:
+
+✔ Show only customers from assigned areas
+✔ Allow payment collection only in assigned areas
+✔ Restrict customer modification outside area
+✔ Track collection performance per area
+✔ Show route optimization (future feature)
+
+Example:
+
+Recovery Officer A → Area 101
+He cannot see Area 102 customers.
+
+📊 Area Performance Dashboard
+
+For Admin & Managers:
+
+Show:
+
+Collection by Area
+
+Recovery Performance %
+
+Outstanding Amount per Area
+
+Field Visits per Area
+
+Payment vs Target
+
+💰 Payroll & Commission Integration
+
+Area-based performance can trigger:
+
+Area Collection Commission
+
+Recovery Incentive
+
+Target Bonus
+
+Area Growth Bonus
+
+Example:
+
+If Area recovery > 90%
+→ Bonus auto applied in Payroll
+
+🛡 Advanced Security Features
+
+✔ Geo-fencing (Optional future feature)
+✔ Mandatory GPS check-in before collection
+✔ Time-based access restriction
+✔ IP/device logging
+✔ App login audit logs
+✔ Area reassignment history tracking
+
+📋 Admin Control Panel View
+
+In HRM Role & Type page add tabs:
+
+General Settings
+
+Permission Settings
+
+App Access Settings
+
+Area Access Settings
+
+Approval Matrix
+
+Everything centralized.
+
+💎 UI Enhancements
+
+Toggle switches with gradient animation
+
+Drag & drop area assignment
+
+Map preview for assigned areas
+
+Badge showing number of assigned customers
+
+Clean tab navigation
+
+🎯 Emotional Impact Goal
+
+When you configure Recovery Officer:
+
+“I control what he sees.”
+“He cannot misuse system.”
+“Collections are area restricted.”
+“This is professional enterprise control.”
+
+When configuring Office Staff:
+
+“Only office features allowed.”
+“No field collection access.”
+
+🏆 Final Result
+
+After adding:
+
+✔ HRM Role & Type
+✔ App Feature Control
+✔ Area Allocation
+✔ Payroll Integration
+
+Your system becomes:
+
+Enterprise-Level ISP ERP
+With Field Force Automation
+And Secure App-Based Operations

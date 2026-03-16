@@ -1,0 +1,316 @@
+ACCOUNTING MODULE
+Add New Account & Account List Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Build a professional “Add New Account” page and “Account List” management page inside the Accounting module.
+
+This page must allow Finance/Admin to:
+
+Create individual ledger accounts
+
+Assign them under Account Types
+
+Manage financial balances
+
+Link accounts to system modules
+
+Control posting permissions
+
+View account balances in real-time
+
+This is the Chart of Accounts (Operational Level).
+
+🎨 Professional UI Theme
+
+Style:
+Modern Fintech ERP Interface
+
+Primary Gradient:
+Deep Navy → Royal Blue (#002B5B → #0066FF)
+
+Accent Colors by Category:
+
+🟢 Asset → Green
+
+🔴 Liability → Red
+
+🟣 Equity → Purple
+
+🔵 Revenue → Teal
+
+🟠 Expense → Orange
+
+Background:
+Light Gray (#F4F6F9)
+White cards
+Soft shadow
+14px border radius
+
+Typography:
+Inter / Poppins
+Clear financial hierarchy
+Bold account names
+
+📊 Page Structure
+
+The module contains TWO major sections:
+
+1️⃣ Add New Account Page
+2️⃣ Account List Page
+
+🧾 1️⃣ ADD NEW ACCOUNT PAGE
+
+Professional 2-column layout form.
+
+Section A – Basic Account Information
+
+Account Name
+(Example: HBL Bank Main, JazzCash Wallet, Customer Receivables – Corporate)
+
+Account Code (Auto or Manual)
+
+Account Type (Dropdown linked to Account Type Page)
+
+Parent Account (Optional – For sub-accounts)
+
+Description
+
+Section B – Financial Settings
+
+Normal Balance (Auto from Account Type – Editable)
+
+Debit
+
+Credit
+
+Opening Balance
+
+Opening Balance Date
+
+Currency (Default PKR – Multi-currency support ready)
+
+Status
+
+Active
+
+Inactive
+
+Section C – System Integration Mapping
+
+Very important for ERP automation.
+
+Options:
+
+☐ Link to Customer Module
+☐ Link to Vendor Module
+☐ Link to Payroll
+☐ Link to Reseller Wallet
+☐ Link to Commission
+☐ Link to Expense Module
+☐ Link to Bank Reconciliation
+
+Section D – Posting Control
+
+☐ Allow Direct Journal Posting
+☐ System Generated Only
+☐ Lock Editing After Transactions
+☐ Tax Applicable
+
+Section E – Advanced Options
+
+Branch Assignment (Multi-branch)
+
+Financial Year Mapping
+
+Reporting Group
+
+Account Category Tag
+
+🔄 System Logic
+
+When account is created:
+
+✔ It becomes available in Journal Entry
+✔ It appears in Trial Balance
+✔ It affects P&L or Balance Sheet based on type
+✔ Opening balance auto-creates journal entry
+✔ Cannot delete if transactions exist
+
+📋 2️⃣ ACCOUNT LIST PAGE
+
+This is the full Chart of Accounts list.
+
+📊 Top Summary Dashboard
+
+Show:
+
+Total Accounts
+
+Active Accounts
+
+Total Assets Value
+
+Total Liabilities
+
+Revenue Accounts Count
+
+Expense Accounts Count
+
+With animated financial cards.
+
+📑 Account Table Layout
+
+Columns:
+
+Account Code
+
+Account Name
+
+Account Type
+
+Parent
+
+Current Balance
+
+Currency
+
+Status
+
+Linked Module
+
+Created Date
+
+Action
+
+Status Indicators
+
+Green → Active
+Gray → Inactive
+Orange → System Linked
+Red → Locked
+
+Features
+
+✔ Search by name/code
+✔ Filter by Account Type
+✔ Filter by Category
+✔ Filter by Status
+✔ Export to Excel
+✔ Tree View toggle
+✔ Sort by balance
+✔ View ledger button
+
+🔎 Account Detail View (Popup or Side Drawer)
+
+When clicking an account:
+
+Show:
+
+Full Account Information
+
+Opening Balance
+
+Current Balance
+
+Total Debit
+
+Total Credit
+
+Recent Transactions
+
+Linked Modules
+
+Button:
+
+✔ View Full Ledger
+✔ Edit
+✔ Deactivate
+
+🏦 Example Accounts for ISP ERP
+
+ASSETS:
+
+Cash in Hand
+
+HBL Bank
+
+Meezan Bank
+
+Accounts Receivable – CIR
+
+Accounts Receivable – Corporate
+
+Reseller Advance Deposit
+
+LIABILITIES:
+
+Vendor Payable – PTCL
+
+Vendor Payable – Upstream Provider
+
+Tax Payable
+
+Reseller Wallet Liability
+
+REVENUE:
+
+Internet Monthly Revenue
+
+CIR Revenue
+
+Corporate Internet Revenue
+
+Installation Charges
+
+EXPENSE:
+
+Bandwidth Expense
+
+Salary Expense
+
+Commission Expense
+
+Maintenance Expense
+
+🔐 Permissions
+
+Admin:
+
+Full control
+
+Finance Manager:
+
+Add / Edit / View
+
+Accountant:
+
+Add & View (No Delete)
+
+Viewer:
+
+View only
+
+💎 Enterprise Enhancements
+
+Add:
+
+✔ Real-time balance calculation
+✔ Drag & Drop hierarchy builder
+✔ Auto account code sequencing
+✔ Prevent duplicate account names
+✔ Bulk import accounts
+✔ Default system accounts locked
+✔ Multi-currency ready
+✔ API ready
+
+🎯 Emotional Impact Goal
+
+When someone opens this page:
+
+“This is real accounting.”
+“This is enterprise-level.”
+“This ERP is serious.”
+“This can scale nationwide.”

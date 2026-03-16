@@ -1,0 +1,315 @@
+INVENTORY MODULE
+Suppliers Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized Suppliers Page to manage all vendor relationships, procurement details, payment terms, supply history, and performance tracking.
+
+This page ensures:
+
+✔ Structured vendor database
+✔ Purchase tracking per supplier
+✔ Payment & credit control
+✔ Cost comparison
+✔ Performance monitoring
+✔ Procurement transparency
+
+This is the foundation of controlled purchasing and cost optimization.
+
+🎨 UI / Theme Design
+
+Style:
+Enterprise Procurement & Vendor Management Dashboard
+
+Primary Gradient:
+Charcoal → Emerald (#1F2937 → #059669)
+
+Background:
+Light Neutral (#F9FAFB)
+
+Supplier Status Indicators:
+
+🟢 Active
+🟡 Pending Verification
+🔵 Preferred Vendor
+🟣 Credit Hold
+🔴 Blacklisted
+⚫ Inactive
+
+Typography:
+Inter / Poppins
+
+Layout:
+Dashboard + Supplier Master Table + Performance Panel
+
+📊 Page Layout Structure
+
+The page contains 5 main sections:
+
+1️⃣ Supplier Overview Dashboard
+2️⃣ Add / Edit Supplier Form
+3️⃣ Suppliers Master List
+4️⃣ Supplier Financial & Purchase Summary
+5️⃣ Supplier Performance & Evaluation Panel
+
+1️⃣ Supplier Overview Dashboard
+
+KPI Summary Cards:
+
+Total Suppliers
+
+Active Suppliers
+
+Preferred Vendors
+
+Suppliers on Credit
+
+Outstanding Payables
+
+Monthly Purchase Volume
+
+Analytics:
+
+📊 Purchases by Supplier
+📈 Monthly Procurement Trend
+📊 Top 10 Suppliers by Value
+📉 Late Delivery Rate
+
+2️⃣ Add / Edit Supplier Form
+
+Professional supplier onboarding form.
+
+Fields:
+
+Supplier ID (Auto-generated)
+
+Company Name
+
+Contact Person
+
+Phone Number
+
+Email Address
+
+Office Address
+
+City / Country
+
+Tax Registration Number
+
+Bank Details
+
+Payment Terms (Cash / 15 Days / 30 Days / 60 Days)
+
+Credit Limit
+
+Preferred Currency
+
+Product Categories Supplied
+
+Default Delivery Time
+
+Supplier Rating (Internal)
+
+Notes
+
+Options:
+
+✔ Mark as Preferred Vendor
+✔ Enable Credit Purchases
+✔ Require PO Approval
+✔ Active / Inactive Status
+
+Validation Rules:
+
+❌ Cannot delete supplier linked to transactions
+❌ Credit purchases require credit limit
+❌ Duplicate tax number not allowed
+
+3️⃣ Suppliers Master List
+
+Structured vendor table:
+
+Columns:
+
+Supplier ID
+
+Company Name
+
+Contact Person
+
+Phone
+
+Product Categories
+
+Payment Terms
+
+Credit Limit
+
+Outstanding Balance
+
+Status
+
+Rating
+
+Actions
+
+Actions:
+
+• View Profile
+• Edit
+• View Purchase Orders
+• View Payments
+• Suspend
+• Mark Preferred
+• Blacklist
+
+Advanced Filters:
+
+✔ By status
+✔ By payment terms
+✔ By outstanding balance
+✔ By rating
+✔ By category supplied
+
+4️⃣ Supplier Financial & Purchase Summary
+
+Detailed supplier profile view includes:
+
+Financial Data:
+
+Total Purchases
+
+Total Payments
+
+Outstanding Payables
+
+Credit Utilization %
+
+Last Payment Date
+
+Average Invoice Value
+
+Procurement Data:
+
+Products Supplied
+
+Average Unit Cost
+
+Price Variance History
+
+Last Purchase Date
+
+Delivery Time Average
+
+Linked Documents:
+
+✔ Purchase Orders
+✔ Goods Receipt Notes
+✔ Supplier Invoices
+✔ Payment Vouchers
+
+5️⃣ Supplier Performance & Evaluation Panel
+
+Performance Metrics:
+
+📊 On-Time Delivery %
+📊 Order Fulfillment Rate
+📉 Price Stability Index
+📈 Quality Issue Rate
+📊 Return Rate
+
+Rating System:
+
+⭐ 1 to 5 Star Internal Rating
+
+Evaluation Criteria:
+
+Pricing competitiveness
+
+Delivery reliability
+
+Product quality
+
+Communication
+
+Credit flexibility
+
+System Flags:
+
+⚠ Exceeded Credit Limit
+⚠ Repeated Late Deliveries
+⚠ High Defect Rate
+
+🔄 Automation Logic
+
+When Purchase Order created:
+
+✔ Linked to selected supplier
+✔ Updates supplier purchase history
+
+When invoice approved:
+
+✔ Updates outstanding payable
+
+When payment recorded:
+
+✔ Reduces supplier balance
+
+If credit limit exceeded:
+
+✔ Block new PO creation
+✔ Notify finance
+
+If supplier marked inactive:
+
+✔ Prevent new transactions
+
+🔐 Role-Based Access
+
+Admin:
+Full supplier control
+
+Procurement Manager:
+Add/edit suppliers
+
+Finance Manager:
+Manage credit & payments
+
+Inventory Manager:
+Create purchase orders
+
+Viewer:
+Read-only
+
+Only Admin can permanently blacklist supplier.
+
+🔗 Integration Required
+
+✔ Purchase Order Module
+✔ Goods Receipt (GRN)
+✔ Inventory Stock Module
+✔ Accounts Payable
+✔ Financial Reports
+✔ Product Type Page
+✔ Warehouse Module
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Controlled procurement process
+✔ Reduced purchasing cost
+✔ Better vendor negotiation
+✔ Strong credit management
+✔ Supplier accountability
+✔ Clean financial reporting
+
+When you open this page, it should feel like:
+
+“I know who we buy from.”
+“I know how much we owe.”
+“I know which supplier performs best.”
+“Procurement is fully controlled.”

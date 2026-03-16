@@ -1,0 +1,358 @@
+ACCOUNTING MODULE
+Income Entry & Expense Entry Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Build two professional financial transaction pages inside the Accounting module:
+
+1️⃣ Income Entry Page
+2️⃣ Expense Entry Page
+
+These pages must:
+
+Record financial transactions
+
+Auto-generate double-entry journal records
+
+Update account balances in real time
+
+Integrate with Customers, Vendors, Payroll & Reseller modules
+
+Be audit-ready and report-ready
+
+🎨 Professional Fintech UI Theme
+
+Style:
+Modern Financial ERP Dashboard
+
+Primary Gradient:
+Deep Navy → Royal Blue (#002B5B → #0066FF)
+
+Color Indicators:
+
+🟢 Income → Green Theme
+🔴 Expense → Red Theme
+
+Background:
+Light Grey (#F4F6F9)
+White financial cards
+Soft shadow
+14px rounded corners
+
+Typography:
+Inter / Poppins
+Clean structured layout
+
+🟢 1️⃣ INCOME ENTRY PAGE
+
+This page records:
+
+Customer payments
+
+Other income
+
+Installation income
+
+CIR revenue collection
+
+Corporate client payments
+
+Miscellaneous income
+
+📊 Page Header Summary
+
+Show:
+
+Today’s Total Income
+
+This Month Income
+
+Total Outstanding Receivable
+
+Payment Method Breakdown (Cash / Bank / Online)
+
+🧾 Income Entry Form
+
+Two-column professional layout.
+
+Section A – Basic Information
+
+Income Date
+
+Reference Number (Auto-generated)
+
+Income Type (Dropdown)
+
+Customer Payment
+
+Installation Fee
+
+Other Income
+
+Manual Revenue Entry
+
+Customer (If linked)
+
+Description
+
+Section B – Financial Details
+
+Debit Account (Where money received)
+
+Cash
+
+Bank
+
+JazzCash / Wallet
+
+Credit Account (Revenue Account)
+
+Internet Revenue
+
+CIR Revenue
+
+Corporate Revenue
+
+Other Income
+
+Amount
+
+Tax (Optional)
+
+Discount (Optional)
+
+Section C – Payment Details
+
+Payment Method
+
+Cash
+
+Bank Transfer
+
+Cheque
+
+Online
+
+Transaction ID
+
+Attachment Upload (Receipt / Slip)
+
+Section D – Advanced Options
+
+☐ Auto adjust against customer receivable
+☐ Allow partial payment
+☐ Send receipt notification
+☐ Multi-branch entry
+☐ Lock after save
+
+🔄 System Logic (Income Entry)
+
+When income is saved:
+
+✔ Auto create journal entry
+✔ Debit Cash/Bank
+✔ Credit Revenue Account
+✔ Reduce customer receivable (if linked)
+✔ Update dashboard
+✔ Reflect in Trial Balance
+✔ Update P&L
+
+🔴 2️⃣ EXPENSE ENTRY PAGE
+
+This page records:
+
+Vendor payments
+
+Salary payments
+
+Bandwidth payments
+
+Office expenses
+
+Commission payouts
+
+Maintenance costs
+
+📊 Page Header Summary
+
+Show:
+
+Today’s Total Expense
+
+This Month Expense
+
+Vendor Payable Outstanding
+
+Expense Category Breakdown
+
+🧾 Expense Entry Form
+Section A – Basic Information
+
+Expense Date
+
+Reference Number (Auto-generated)
+
+Expense Category (Dropdown)
+
+Vendor Payment
+
+Salary
+
+Commission
+
+Utility
+
+Maintenance
+
+Other Expense
+
+Vendor / Employee (Optional link)
+
+Description
+
+Section B – Financial Details
+
+Debit Account (Expense Account)
+
+Salary Expense
+
+Bandwidth Expense
+
+Commission Expense
+
+Operational Expense
+
+Credit Account (Payment Source)
+
+Cash
+
+Bank
+
+Wallet
+
+Amount
+
+Tax
+
+Discount
+
+Section C – Payment Details
+
+Payment Method
+
+Transaction ID
+
+Cheque Number (if applicable)
+
+Attachment Upload
+
+Section D – Advanced Controls
+
+☐ Auto adjust vendor payable
+☐ Mark as recurring
+☐ Lock editing after posting
+☐ Multi-branch allocation
+☐ Require approval workflow
+
+🔄 System Logic (Expense Entry)
+
+When expense is saved:
+
+✔ Debit Expense Account
+✔ Credit Cash/Bank
+✔ Increase expense in P&L
+✔ Reduce bank balance
+✔ Adjust vendor payable (if linked)
+✔ Reflect in Trial Balance
+✔ Update dashboard charts
+
+📑 Transaction List View
+
+Both Income & Expense pages should include:
+
+Search
+
+Filter by Date
+
+Filter by Account
+
+Filter by Customer/Vendor
+
+Export Excel
+
+Print voucher
+
+Edit / Void option
+
+🧾 Voucher View (Printable)
+
+Include:
+
+Company logo
+
+Voucher number
+
+Date
+
+Debit & Credit accounts
+
+Amount in words
+
+Signature section
+
+Approval section
+
+Professional invoice-style layout.
+
+🔐 Permission System
+
+Admin:
+Full access
+
+Finance Manager:
+Add / Edit / Approve
+
+Accountant:
+Add & View
+
+Viewer:
+View only
+
+💎 Advanced Enterprise Features
+
+Add:
+
+✔ Recurring income/expense scheduler
+✔ Approval workflow system
+✔ Multi-currency support
+✔ Cost center tagging
+✔ Profit center tagging
+✔ Branch-wise reporting
+✔ Real-time financial dashboard update
+✔ Prevent negative cash balance warning
+✔ Audit log tracking
+
+🔗 ERP Integration
+
+These pages must connect with:
+
+✔ Customer Module
+✔ CIR & Corporate Module
+✔ Vendor Module
+✔ Payroll
+✔ Reseller Wallet
+✔ Chart of Accounts
+✔ Journal Entry
+✔ Trial Balance
+✔ P&L
+✔ Balance Sheet
+
+🎯 Emotional Impact Goal
+
+When Finance team uses this:
+
+“This is structured.”
+“This feels like real accounting software.”
+“This is not basic billing – this is ERP.”

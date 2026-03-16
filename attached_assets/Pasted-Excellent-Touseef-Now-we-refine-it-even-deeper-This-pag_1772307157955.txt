@@ -1,0 +1,340 @@
+Excellent Touseef 👌🔥
+
+Now we refine it even deeper.
+
+This page is not just CIR Collections —
+It is specifically CIR Customer Collections, meaning:
+
+👉 Focused on individual CIR clients
+👉 Invoice-level tracking
+👉 Customer-level recovery
+👉 High-value dedicated bandwidth accounts
+
+Below is your enterprise-ready professional description:
+
+💼 TRANSACTIONS MODULE
+CIR Customer Collections Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a dedicated CIR Customer Collections Page to manage and control collections from customers subscribed to Committed Information Rate (CIR) services.
+
+This page ensures:
+
+✔ Accurate tracking of dedicated bandwidth payments
+✔ Invoice-level settlement control
+✔ Contract-based financial monitoring
+✔ High-value customer recovery management
+✔ Automated accounting entries
+✔ SLA & late payment enforcement
+
+CIR customers are premium clients and require strict financial discipline.
+
+🎨 UI / Theme Design
+
+Style:
+Corporate Financial Control Panel
+
+Primary Colors:
+Deep Navy → Royal Blue Gradient (#0B1F3A → #1D4ED8)
+
+Status Indicators:
+
+🟢 Paid
+🟡 Partial
+🔴 Overdue
+🔵 Under Collection
+⚫ Suspended
+
+Background:
+Light Gray (#F4F6F9)
+White cards
+Soft shadow
+14px border radius
+
+Typography:
+Inter / Poppins
+
+📊 Page Structure
+
+The page contains:
+
+1️⃣ CIR Customer Collections Dashboard
+2️⃣ Customer Outstanding & Aging
+3️⃣ Record CIR Collection Form
+4️⃣ CIR Customer Collection List
+5️⃣ Recovery & Risk Monitoring
+
+1️⃣ CIR Customer Collections Dashboard
+
+Top KPI Cards:
+
+Total CIR Customer Outstanding
+
+Total Collected Today
+
+Total Collected This Month
+
+Overdue Amount
+
+Active CIR Customers
+
+Collection Efficiency %
+
+Add:
+
+📈 Monthly Collection Trend Chart
+📊 Top 5 Overdue CIR Customers
+
+2️⃣ Customer Outstanding & Aging
+
+For selected CIR customer display:
+
+Customer Name
+
+Contract ID
+
+Committed Bandwidth
+
+Monthly Recurring Charges
+
+Grace Period
+
+Security Deposit
+
+Total Outstanding
+
+Current Invoice
+
+Past Due Amount
+
+Aging Buckets:
+
+0–30 Days
+
+31–60 Days
+
+61–90 Days
+
+90+ Days
+
+Clickable aging filter for invoice view.
+
+➕ 3️⃣ Record CIR Customer Collection Form
+
+Professional structured financial form.
+
+Section A – Customer & Contract
+
+Customer Name (Auto-search CIR only)
+
+Contract ID
+
+Branch
+
+Account Manager
+
+Recovery Officer
+
+Display:
+
+Total Outstanding
+
+Selected Invoice Balance
+
+Section B – Payment Details
+
+Collection Date
+
+Payment Method:
+
+Bank Transfer
+
+RTGS
+
+Cheque
+
+Online Gateway
+
+Corporate Wallet
+
+Amount Received
+
+Transaction Reference
+
+Bank Name
+
+Attachment Upload
+
+Options:
+
+☐ Apply to specific invoice
+☐ Auto-adjust oldest invoice
+☐ Apply to security deposit
+
+Section C – Adjustment Controls
+
+Late Fee
+
+SLA Downtime Compensation
+
+Discount Adjustment
+
+Credit Note Apply
+
+System should auto-calculate:
+
+Late Fee after grace period.
+
+Section D – Accounting Posting
+
+Auto Journal Entry:
+
+Debit:
+
+Bank / Cash
+
+Credit:
+
+Accounts Receivable – CIR
+
+If penalty applied:
+
+Credit:
+
+Late Fee Income
+
+If SLA credit:
+
+Debit:
+
+SLA Compensation Expense
+
+📑 4️⃣ CIR Customer Collection List
+
+Professional transaction grid.
+
+Columns:
+
+Collection ID
+
+Date
+
+Customer Name
+
+Contract ID
+
+Invoice No
+
+Payment Method
+
+Amount
+
+Adjustment
+
+Outstanding After
+
+Status
+
+Recovery Officer
+
+Action
+
+Features:
+
+✔ Search
+✔ Filter by Customer
+✔ Filter by Contract
+✔ Filter by Status
+✔ Date Range Filter
+✔ Export to Excel
+✔ Print Receipt
+✔ Reverse Entry (Admin only)
+
+👤 5️⃣ Recovery & Risk Monitoring
+
+Track:
+
+Average Payment Days
+
+On-Time Payment %
+
+Risk Score
+
+Overdue Trend
+
+Recovery Officer Performance
+
+Add:
+
+Promise-to-Pay tracking
+Follow-up notes
+Reminder scheduler
+
+🔄 System Logic
+
+When payment is recorded:
+
+✔ Reduce invoice balance
+✔ Update contract outstanding
+✔ Update AR aging
+✔ Create journal entry
+✔ Update dashboard KPIs
+✔ Remove suspension if fully paid
+
+If fully unpaid beyond threshold:
+
+✔ Trigger service suspension alert
+✔ Notify account manager
+
+🔐 Role-Based Access
+
+Admin:
+Full access
+
+Finance Manager:
+Approve / Reverse
+
+Recovery Officer:
+Record collections
+
+Account Manager:
+View status
+
+Viewer:
+Read only
+
+🔗 Integration Required With
+
+✔ Invoice Module
+✔ CIR Contract Module
+✔ Accounts Receivable
+✔ Credit Notes
+✔ Income Entry
+✔ Financial Reports
+✔ Dashboard
+✔ Payment Gateway
+
+📊 Financial Intelligence KPIs
+
+Include:
+
+Collection Efficiency Ratio
+
+Days Sales Outstanding (DSO)
+
+Corporate Revenue Concentration
+
+Overdue Percentage
+
+Top Revenue CIR Customers
+
+🎯 Emotional Impact Goal
+
+When Finance opens this page:
+
+“We control our dedicated bandwidth revenue.”
+“Every premium customer is monitored.”
+“Our corporate cash flow is secure.”

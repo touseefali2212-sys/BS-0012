@@ -1,0 +1,325 @@
+TRANSACTIONS MODULE
+Reseller Collections Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a dedicated Reseller Collections Management Page to manage wallet top-ups, credit settlements, and payment collections from resellers.
+
+This page ensures:
+
+✔ Controlled reseller wallet funding
+✔ Credit recovery tracking
+✔ Commission adjustments
+✔ Real-time wallet balance updates
+✔ Accounting integration
+✔ Risk & exposure monitoring
+
+This is a revenue control center for your reseller network.
+
+🎨 UI / Theme Design
+
+Style:
+Distributor Finance Dashboard
+
+Primary Gradient:
+Deep Purple → Royal Blue (#3B0764 → #1D4ED8)
+
+Status Indicators:
+
+🟢 Active
+🟡 Low Balance
+🔴 Overdue / Negative
+🔵 Under Review
+⚫ Suspended
+
+Background:
+Light Gray (#F4F6F9)
+White cards
+Soft shadows
+14px rounded corners
+
+Typography:
+Inter / Poppins
+
+📊 Page Structure
+
+The page contains:
+
+1️⃣ Reseller Collections Overview
+2️⃣ Wallet & Credit Summary
+3️⃣ Record Reseller Collection Form
+4️⃣ Reseller Collections List
+5️⃣ Risk & Performance Monitoring
+
+1️⃣ Reseller Collections Overview
+
+Top KPI Cards:
+
+Total Reseller Outstanding
+
+Total Wallet Balance (All Resellers)
+
+Total Collected Today
+
+Total Collected This Month
+
+Resellers on Credit
+
+Overdue Resellers Count
+
+Add:
+
+📈 Monthly Reseller Collection Trend
+📊 Top 10 Resellers by Outstanding
+
+2️⃣ Wallet & Credit Summary
+
+For selected reseller display:
+
+Reseller Name
+
+Branch
+
+Current Wallet Balance
+
+Credit Limit
+
+Credit Used
+
+Available Credit
+
+Total Outstanding
+
+Commission Balance
+
+Security Deposit
+
+Status auto-calculated:
+
+• If wallet < threshold → Low Balance
+• If outstanding > credit limit → Alert
+• If negative wallet → Overdue
+
+➕ 3️⃣ Record Reseller Collection Form
+
+Professional financial entry form.
+
+Section A – Reseller Details
+
+Reseller Name (Auto-search active only)
+
+Branch
+
+Account Manager
+
+Collection Officer
+
+Display:
+
+Current Wallet Balance
+
+Credit Used
+
+Outstanding Amount
+
+Section B – Collection Type
+
+Dropdown:
+
+Wallet Top-up
+
+Credit Settlement
+
+Commission Adjustment
+
+Security Deposit Payment
+
+Penalty Recovery
+
+Section C – Payment Details
+
+Collection Date
+
+Payment Method:
+
+Cash
+
+Bank Transfer
+
+Online Gateway
+
+Cheque
+
+Amount Received
+
+Transaction Reference
+
+Attachment Upload
+
+Options:
+
+☐ Add to Wallet
+☐ Adjust Against Credit
+☐ Split Between Wallet & Credit
+
+Section D – Accounting Posting
+
+Automatic Journal Entry:
+
+Debit:
+
+Cash / Bank
+
+Credit:
+
+Reseller Wallet Liability (if top-up)
+OR
+
+Accounts Receivable – Reseller (if credit settlement)
+
+If commission deduction:
+
+Debit:
+
+Commission Expense
+Credit:
+
+Reseller Wallet
+
+📑 4️⃣ Reseller Collections List
+
+Professional transaction grid.
+
+Columns:
+
+Collection ID
+
+Date
+
+Reseller Name
+
+Collection Type
+
+Payment Method
+
+Amount
+
+Wallet Before
+
+Wallet After
+
+Credit Before
+
+Credit After
+
+Status
+
+Officer
+
+Action
+
+Features:
+
+✔ Advanced Search
+✔ Filter by Branch
+✔ Filter by Collection Type
+✔ Filter by Status
+✔ Date Range Filter
+✔ Export to Excel
+✔ Print Receipt
+✔ Reverse Entry (Admin only)
+
+👤 5️⃣ Risk & Performance Monitoring
+
+Track:
+
+Credit Utilization %
+
+Average Settlement Time
+
+Negative Wallet Trend
+
+Top Performing Resellers
+
+Commission Payout Tracking
+
+Recovery Target vs Achieved
+
+Add:
+
+✔ Low wallet auto alert
+✔ Auto suspension if credit exceeds limit
+✔ Reminder notifications
+✔ Reseller risk scoring
+
+🔄 System Logic
+
+When collection recorded:
+
+✔ Update wallet balance
+✔ Adjust credit outstanding
+✔ Update reseller dashboard
+✔ Generate accounting entry
+✔ Update financial reports
+✔ Remove suspension if cleared
+
+If wallet becomes positive:
+
+✔ Restore active status
+
+If credit exceeds limit:
+
+✔ Trigger warning alert
+
+🔐 Role-Based Access
+
+Admin:
+Full control
+
+Finance Manager:
+Approve / Reverse
+
+Collection Officer:
+Record collections
+
+Reseller Manager:
+View & monitor
+
+Viewer:
+Read-only
+
+🔗 Integration Required With
+
+✔ Reseller Management Module
+✔ Wallet & Transactions Page
+✔ Commission Module
+✔ Accounts Receivable
+✔ Accounting Module
+✔ Payment Gateway
+✔ Financial Reports
+✔ Dashboard
+
+📊 Financial Intelligence KPIs
+
+Include:
+
+Collection Efficiency Ratio
+
+Credit Risk Ratio
+
+Wallet Liquidity Index
+
+Commission Margin Analysis
+
+Reseller Revenue Contribution %
+
+🎯 Emotional Impact Goal
+
+When you open this page:
+
+“I know every reseller’s financial position.”
+“No reseller can misuse credit.”
+“Wallet funding is controlled.”
+“My distributor network is financially secure.”

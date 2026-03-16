@@ -1,0 +1,269 @@
+SETTINGS MODULE
+Activity Log Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized Activity Log & Audit Trail Page to record, monitor, and analyze every significant action performed within the system.
+
+This page ensures:
+
+✔ Complete operational transparency
+✔ User accountability
+✔ Security monitoring
+✔ Fraud prevention
+✔ Compliance tracking
+✔ Historical traceability
+
+It acts as the digital surveillance and compliance layer of the ERP.
+
+🎨 UI / Theme Design
+
+Style:
+Professional Audit & Monitoring Dashboard
+
+Primary Gradient:
+Charcoal → Deep Blue (#1F2937 → #1E40AF)
+
+Status Indicators:
+
+🟢 Success
+🟡 Modified
+🔵 Viewed
+🟠 Warning
+🔴 Failed
+⚫ Deleted
+
+Layout Structure:
+
+Top: Summary Analytics Cards
+Center: Advanced Filter Panel
+Bottom: Detailed Activity Log Table
+
+Tabs:
+
+• User Activities
+• Module Activities
+• Security Events
+• System Logs
+• Export & Archive
+
+📊 Page Structure
+
+The page contains 5 structured sections:
+
+1️⃣ Activity Overview Dashboard
+2️⃣ Advanced Filtering & Search
+3️⃣ Detailed Activity Log Table
+4️⃣ Security & Critical Events
+5️⃣ Export & Archival Controls
+
+1️⃣ Activity Overview Dashboard
+
+Real-time system summary.
+
+Displays:
+
+Total Activities Today
+
+Failed Login Attempts
+
+Critical Changes
+
+Deleted Records
+
+Payment Modifications
+
+Configuration Changes
+
+Charts:
+
+✔ Activity by Module
+✔ Activity by User
+✔ Time-based activity graph
+
+Gives instant operational visibility.
+
+2️⃣ Advanced Filtering & Search
+
+Powerful search capabilities.
+
+Filters:
+
+✔ Date Range
+✔ User Name
+✔ Role
+✔ Module
+✔ Action Type (Create / Update / Delete / View / Approve)
+✔ IP Address
+✔ Device Type
+✔ Branch
+✔ Status
+
+Search Bar:
+
+✔ Search by Customer ID
+✔ Invoice Number
+✔ Asset ID
+✔ Transaction ID
+
+Allows quick investigation.
+
+3️⃣ Detailed Activity Log Table
+
+Displays complete action records.
+
+Columns:
+
+Timestamp
+
+User Name
+
+Role
+
+Module
+
+Action Type
+
+Description
+
+Affected Record
+
+IP Address
+
+Device Info
+
+Status
+
+Each log entry includes:
+
+✔ Before & After Data Snapshot
+✔ Change Summary
+✔ Related Transaction Link
+
+Example Entry:
+
+“User FinanceManager edited Invoice #INV-2034 — Amount changed from 5,000 to 4,500.”
+
+Ensures complete traceability.
+
+4️⃣ Security & Critical Events
+
+Monitors high-risk activities.
+
+Includes:
+
+✔ Multiple Failed Logins
+✔ Role Permission Changes
+✔ Payment Reversals
+✔ Refund Actions
+✔ Gateway Configuration Changes
+✔ Data Export Attempts
+✔ Record Deletions
+
+Auto Alerts:
+
+✔ Notify Admin on critical activity
+✔ Flag suspicious behavior
+✔ Trigger security review
+
+Supports compliance-grade auditing.
+
+5️⃣ Export & Archival Controls
+
+Data retention & reporting.
+
+Options:
+
+✔ Export logs to CSV / Excel / PDF
+✔ Schedule automated log backup
+✔ Archive old logs
+✔ Retention period configuration (30 / 90 / 365 days)
+✔ Permanent delete control (Admin only)
+
+Ensures legal and regulatory compliance.
+
+🔄 Automation Logic
+
+Every time a user:
+
+• Creates record
+• Edits record
+• Deletes record
+• Approves request
+• Changes settings
+• Processes payment
+• Logs in / Logs out
+
+The system automatically:
+
+Captures user identity
+
+Records timestamp
+
+Logs IP address
+
+Saves action details
+
+Stores change snapshot
+
+This happens in real-time and cannot be bypassed.
+
+🔐 Role-Based Permissions
+
+Admin:
+Full access to all logs
+
+Security Officer:
+Access to security events
+
+Finance Manager:
+Access to finance-related logs
+
+Branch Manager:
+View branch-specific logs
+
+Standard Users:
+No access
+
+Only Admin can delete archived logs.
+
+🔗 System Integration
+
+This page integrates with:
+
+✔ Billing Module
+✔ Payment Gateway Module
+✔ Inventory Module
+✔ Assets Module
+✔ HRM & Rights Setup
+✔ Customer Management
+✔ Notification System
+✔ WhatsApp Business Integration
+
+It monitors all modules system-wide.
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Complete operational transparency
+✔ Reduced internal fraud
+✔ Faster issue investigation
+✔ Accountability for every action
+✔ Secure financial management
+✔ Compliance-ready audit records
+
+For ISP business like yours, this is critical for:
+
+🔥 Tracking billing edits
+🔥 Monitoring payment reversals
+🔥 Watching staff activities
+🔥 Preventing data misuse
+
+When opening this page, it should feel like:
+
+“Nothing happens without a record.”
+“Every action is traceable.”
+“The system is secure and accountable.”

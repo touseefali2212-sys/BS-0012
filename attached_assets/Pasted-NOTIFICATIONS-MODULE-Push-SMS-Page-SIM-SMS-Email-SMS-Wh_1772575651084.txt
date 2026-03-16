@@ -1,0 +1,301 @@
+NOTIFICATIONS MODULE
+Push SMS Page
+
+(SIM SMS | Email SMS | WhatsApp Messaging)
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized Push Messaging Console to send real-time, direct notifications to customers or internal users using:
+
+✔ SIM-Based SMS (Device GSM)
+✔ Email-to-SMS Gateway
+✔ WhatsApp Messaging API
+
+This page enables:
+
+✔ Instant manual message dispatch
+✔ Multi-channel broadcasting
+✔ Customer-group targeting
+✔ Delivery tracking
+✔ Emergency communication
+
+It acts as the rapid response communication engine of the ERP.
+
+🎨 UI / Theme Design
+
+Style:
+Modern Broadcast Control Panel
+
+Primary Gradient:
+Midnight Blue → Emerald (#1E3A8A → #059669)
+
+Channel Indicators:
+
+🟢 Connected
+🟡 Sending
+🔵 Delivered
+🟠 Pending
+🔴 Failed
+
+Layout Structure:
+
+Top: Channel Selection
+Center: Recipient Selection
+Right: Message Composer
+Bottom: Delivery Logs
+
+Tabs:
+
+• SIM SMS
+• Email SMS
+• WhatsApp Messaging
+• Bulk Upload
+• Logs & Reports
+
+📊 Page Structure
+
+The page contains 5 structured sections:
+
+1️⃣ Channel Selection & Status
+2️⃣ Recipient Targeting
+3️⃣ Message Composer
+4️⃣ Send & Scheduling Controls
+5️⃣ Delivery Monitoring & Logs
+
+1️⃣ Channel Selection & Status
+
+Select communication channel:
+
+✔ SIM-Based SMS
+
+Send SMS using GSM modem or SIM device connected to system.
+
+Fields:
+
+SIM Device Name
+
+Connected Port
+
+Signal Strength
+
+SIM Balance Status
+
+Daily Limit
+
+Features:
+
+✔ Auto SIM Detection
+✔ Multi-SIM Rotation
+✔ Failover SIM
+
+✔ Email-to-SMS Gateway
+
+Send SMS through email-based telecom gateway.
+
+Fields:
+
+SMTP Server
+
+Email Account
+
+Gateway Domain
+
+Sender Name
+
+Supports international format.
+
+✔ WhatsApp Messaging
+
+Official API-based messaging via WhatsApp Business Platform
+
+Fields:
+
+Template Selection
+
+Media Attachment
+
+CTA Button
+
+Auto Personalization Variables
+
+Supports approved templates only.
+
+2️⃣ Recipient Targeting
+
+Flexible targeting system.
+
+Options:
+
+✔ Select Individual Customer
+✔ Select Customer Group
+✔ Filter by City / Branch
+✔ Filter by Plan Type
+✔ Filter by Payment Status
+✔ Select Staff Users
+✔ Manual Number Entry
+✔ Bulk Upload (CSV)
+
+Advanced:
+
+✔ Exclude suspended customers
+✔ Exclude unpaid customers
+✔ Select by last payment date
+
+3️⃣ Message Composer
+
+Rich message creation interface.
+
+Features:
+
+✔ Character Counter
+✔ Personalization Variables
+
+{Customer Name}
+
+{Invoice Number}
+
+{Due Date}
+
+{Outstanding Amount}
+✔ Add Payment Link
+✔ Add Attachment (PDF / Image)
+✔ Add CTA Button (WhatsApp only)
+✔ Emoji Support (WhatsApp only)
+
+SMS Mode:
+
+✔ GSM character count
+✔ Auto split long messages
+
+4️⃣ Send & Scheduling Controls
+
+Delivery Options:
+
+✔ Send Instantly
+✔ Schedule Date & Time
+✔ Recurring Broadcast
+✔ Set Expiry Time
+✔ Test Send Option
+
+Advanced Controls:
+
+✔ Sending Speed Limit
+✔ Channel Priority Order
+✔ Fallback Channel
+✔ Send in Batches
+
+Example:
+
+Send reminder at 9:00 AM →
+If SMS fails → Send WhatsApp →
+If WhatsApp fails → Send Email
+
+5️⃣ Delivery Monitoring & Logs
+
+Real-time tracking panel.
+
+Displays:
+
+Recipient Name
+
+Channel Used
+
+Status
+
+Sent Time
+
+Delivery Time
+
+Error Message
+
+Filters:
+
+✔ Date Range
+✔ Channel
+✔ Status
+✔ Campaign Name
+
+Admin Actions:
+
+✔ Retry Failed
+✔ Cancel Pending
+✔ Export Report
+✔ View Full API Response
+
+🔄 Automation Flow
+
+When message sent:
+
+System validates recipients
+
+Applies personalization variables
+
+Checks channel availability
+
+Sends message
+
+Logs status
+
+Applies fallback if failed
+
+All activities recorded in Activity Log.
+
+🔐 Role-Based Permissions
+
+Admin:
+Full control
+
+Operations Manager:
+Send & schedule
+
+Finance:
+Billing reminders only
+
+Marketing:
+Campaign sending
+
+Support:
+Individual messaging
+
+Customers:
+Receive only
+
+🔗 System Integration
+
+Integrates with:
+
+✔ Billing Module
+✔ Customer Database
+✔ Payment Gateway
+✔ WhatsApp Integration
+✔ Email Server
+✔ Activity Log
+✔ Campaign Manager
+
+Acts as execution layer of communication strategy.
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Instant billing reminders
+✔ Emergency outage communication
+✔ Faster payment recovery
+✔ Reduced call center load
+✔ Multi-channel reach
+✔ Operational control
+
+For your ISP business, this becomes:
+
+🔥 Mass billing reminder tool
+🔥 Service suspension alert system
+🔥 Promotion broadcasting engine
+🔥 Emergency maintenance notifier
+
+When opening this page, it should feel like:
+
+“We can reach every customer instantly.”
+“No delay in communication.”
+“Every message is tracked and controlled.”

@@ -1,0 +1,282 @@
+ASSETS MODULE
+Assets Type Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a structured Assets Type Management Page to define and manage standardized asset categories used across the organization.
+
+This page ensures:
+
+✔ Proper asset classification
+✔ Structured inventory management
+✔ Depreciation mapping
+✔ Lifecycle tracking rules
+✔ Better financial reporting
+✔ Scalable infrastructure organization
+
+This is the foundation of professional asset governance.
+
+🎨 UI / Theme Design
+
+Style:
+Enterprise Inventory & Infrastructure Interface
+
+Primary Gradient:
+Steel Blue → Teal (#1E40AF → #0D9488)
+
+Background:
+Light Gray (#F3F4F6)
+
+Status Indicators:
+
+🟢 Active Type
+🟡 Limited Use
+🔴 Deprecated
+🔵 Under Review
+⚫ Archived
+
+Typography:
+Inter / Poppins
+
+Clean, structured, professional layout.
+
+📊 Page Layout Structure
+
+The page contains 4 main sections:
+
+1️⃣ Asset Type Overview Dashboard
+2️⃣ Add / Edit Asset Type Form
+3️⃣ Asset Type List Grid
+4️⃣ Lifecycle & Financial Mapping
+
+1️⃣ Asset Type Overview Dashboard
+
+Top KPI Cards:
+
+Total Asset Types
+
+Network Equipment Types
+
+Infrastructure Types
+
+Office Equipment Types
+
+Active Types
+
+Archived Types
+
+Charts:
+
+📊 Asset Type Distribution
+📈 Type Usage Frequency
+📊 Depreciation Category Breakdown
+
+2️⃣ Add / Edit Asset Type Form
+
+Professional classification form.
+
+Fields:
+
+Asset Type Name
+
+Category:
+
+Network Equipment
+
+OLT
+
+Router
+
+Switch
+
+ONU
+
+Fiber Infrastructure
+
+Power Equipment
+
+Office Equipment
+
+Tools
+
+Vehicles
+
+IT Hardware
+
+Subcategory
+
+Description
+
+Asset Code Prefix (Auto-ID logic, e.g., OLT-0001)
+
+Default Location Type (POP / Warehouse / Office)
+
+Warranty Default Period
+
+Expected Lifespan (Years)
+
+Depreciation Method:
+
+Straight Line
+
+Reducing Balance
+
+Manual
+
+Depreciation Rate (%)
+
+Maintenance Required (Yes/No)
+
+Critical Asset Indicator (Yes/No)
+
+Options:
+
+✔ Allow Serial Number Tracking
+✔ Allow MAC Address Tracking
+✔ Enable Stock Quantity Tracking
+✔ Enable Asset Assignment Tracking
+
+3️⃣ Asset Type List Grid
+
+Structured table showing:
+
+Type ID
+
+Asset Type Name
+
+Category
+
+Depreciation Method
+
+Lifespan
+
+Maintenance Required
+
+Total Assets Under This Type
+
+Status
+
+Created Date
+
+Action Menu
+
+Features:
+
+✔ Search by name
+✔ Filter by category
+✔ Filter by status
+✔ Sort by usage
+✔ Export list
+✔ Quick activate / deactivate
+
+Protection:
+
+✔ Cannot delete if assets exist under this type
+✔ Archive instead of permanent delete
+
+4️⃣ Lifecycle & Financial Mapping
+
+Define asset lifecycle rules per type:
+
+Lifecycle Stages:
+
+Purchased
+
+In Stock
+
+Deployed
+
+Under Maintenance
+
+Retired
+
+Disposed
+
+Financial Mapping:
+
+✔ Link to Accounting Module
+✔ Map Expense Account
+✔ Map Depreciation Account
+✔ Map Asset Account
+
+Automation:
+
+When asset created under this type:
+
+✔ Auto-assign depreciation rule
+✔ Auto-apply lifespan
+✔ Enable maintenance scheduling
+
+When asset retired:
+
+✔ Trigger accounting adjustment
+✔ Stop depreciation
+✔ Update asset status
+
+🔄 System Logic
+
+When new asset type created:
+
+✔ Assign unique Type ID
+✔ Apply classification rules
+✔ Enable asset creation under this type
+
+When depreciation enabled:
+
+✔ Sync with Accounting Module
+✔ Calculate monthly depreciation
+
+When maintenance required:
+
+✔ Auto-create recurring maintenance task
+
+When type marked critical:
+
+✔ Show in Infrastructure Dashboard
+✔ Enable priority alerting
+
+🔐 Role-Based Access
+
+Admin:
+Full control
+
+Inventory Manager:
+Create & edit types
+
+Finance Manager:
+Edit depreciation rules
+
+Network Manager:
+View & manage network-related types
+
+Viewer:
+Read-only
+
+Only Admin can archive types.
+
+🔗 Integration Required
+
+✔ Assets Inventory Page
+✔ Accounting Module
+✔ Task Management (Maintenance Tasks)
+✔ Network Module (Device Tracking)
+✔ Warehouse Management
+✔ Purchase Module
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Standardized asset classification
+✔ Accurate financial tracking
+✔ Controlled depreciation
+✔ Organized infrastructure inventory
+✔ Scalable operations
+
+When you open this page, it should feel like:
+
+“My infrastructure is structured.”
+“Every device belongs to a category.”
+“My financial reporting is clean and automated.”

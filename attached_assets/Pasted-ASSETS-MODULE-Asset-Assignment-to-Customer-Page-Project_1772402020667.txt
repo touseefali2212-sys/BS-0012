@@ -1,0 +1,302 @@
+ASSETS MODULE
+Asset Assignment to Customer Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized Asset Assignment to Customer Page to manage the allocation of physical and network assets (ONU, Router, CPE, Modem, IP Address, etc.) to customers.
+
+This page ensures:
+
+✔ Proper device allocation
+✔ Real-time asset tracking
+✔ Service-to-device linkage
+✔ Prevention of duplicate assignment
+✔ Revenue-linked asset tracking
+✔ Clear customer-device ownership history
+
+This page bridges Infrastructure with Billing & CRM.
+
+🎨 UI / Theme Design
+
+Style:
+Enterprise ISP Operations Dashboard
+
+Primary Gradient:
+Deep Blue → Teal (#1E3A8A → #0D9488)
+
+Background:
+Light Gray (#F9FAFB)
+
+Status Colors:
+
+🟢 Active
+🟡 Pending Activation
+🔵 Provisioning
+🟣 Suspended
+🔴 Returned
+⚫ Faulty
+
+Typography:
+Inter / Poppins
+Monospace for Serial / MAC / IP
+
+Layout:
+Clean two-panel layout (Customer Info + Assigned Assets)
+
+📊 Page Layout Structure
+
+The page contains 5 main sections:
+
+1️⃣ Customer Profile Overview
+2️⃣ Assign New Asset Form
+3️⃣ Assigned Assets List
+4️⃣ Assignment History Timeline
+5️⃣ Device Status & Service Linkage Panel
+
+1️⃣ Customer Profile Overview
+
+Top Summary Cards:
+
+Customer Name
+
+Customer ID
+
+Service Plan
+
+Connection Type (FTTH / Wireless / PPPoE / Static IP)
+
+Installation Date
+
+Account Status
+
+Current Assigned Assets Count
+
+Quick indicators:
+
+✔ Active Service
+✔ Suspended Service
+✔ Outstanding Balance
+✔ Service Location (Linked to MAP)
+
+2️⃣ Assign New Asset Form
+
+Professional controlled assignment system.
+
+Fields:
+
+Assignment ID (Auto-generated)
+
+Customer ID
+
+Service ID
+
+Asset Type (ONU / Router / CPE / Switch / Static IP)
+
+Asset Serial Number (Searchable from inventory)
+
+MAC Address (Auto-fetch)
+
+IP Address (Auto-allocate from IPAM)
+
+VLAN (Auto-assign if required)
+
+Installation Date
+
+Assigned Technician
+
+Security Deposit Amount
+
+Rental or One-Time Sale
+
+Device Condition (New / Used / Refurbished)
+
+Notes
+
+Options:
+
+✔ Auto-Provision via MikroTik / BRAS
+✔ Send Configuration to Device
+✔ Notify Customer
+✔ Generate Installation Invoice
+
+Validation Rules:
+
+❌ Cannot assign already assigned asset
+❌ Cannot assign inactive inventory
+❌ Must link to active service
+
+3️⃣ Assigned Assets List
+
+Grid layout showing:
+
+Columns:
+
+Assignment ID
+
+Asset Type
+
+Serial Number
+
+MAC Address
+
+IP Address
+
+VLAN
+
+Assigned Date
+
+Technician
+
+Deposit Status
+
+Status
+
+Actions
+
+Actions Menu:
+
+• Suspend Device
+• Replace Device
+• Mark Faulty
+• Return to Inventory
+• Generate Return Slip
+• View Logs
+
+4️⃣ Assignment History Timeline
+
+Complete lifecycle per customer:
+
+Example:
+
+🟢 12 Jan – ONU SN12345 Assigned
+🔵 12 Jan – IP 103.45.22.10 Allocated
+🟡 18 Feb – Device Suspended (Non-Payment)
+🔴 25 Feb – Device Returned
+🟢 26 Feb – New ONU SN54321 Installed
+
+Each log contains:
+
+Date & Time
+
+Asset ID
+
+IP Address
+
+Technician
+
+Reason
+
+Billing impact
+
+Location update
+
+This log is permanent and audit-protected.
+
+5️⃣ Device Status & Service Linkage Panel
+
+Real-time sync with:
+
+✔ Network & IPAM Module
+✔ MikroTik / BRAS Integration
+✔ Billing Module
+✔ Customer MAP
+✔ Service Outage Module
+
+Live Device Data:
+
+Online / Offline
+
+Signal Strength (for FTTH)
+
+Bandwidth Usage
+
+Last Seen
+
+Authentication Status
+
+PPPoE Username
+
+If service suspended:
+
+✔ Auto-block via MikroTik
+✔ Update device status
+✔ Log suspension reason
+
+🔄 Automation Logic
+
+When asset assigned:
+
+✔ Change inventory status to “Assigned”
+✔ Update asset location to Customer
+✔ Link IP & VLAN
+✔ Trigger provisioning
+✔ Generate invoice (if required)
+
+When service suspended:
+
+✔ Auto disable device
+✔ Update assignment status
+
+When device returned:
+
+✔ Remove IP allocation
+✔ Clear VLAN mapping
+✔ Mark inventory as “Available”
+✔ Log condition
+
+If device marked faulty:
+
+✔ Auto-create maintenance ticket
+✔ Move to Repair Queue
+
+🔐 Role-Based Access
+
+Admin:
+Full control
+
+Network Manager:
+Assign / replace device
+
+Technician:
+Assign during installation
+
+Finance Manager:
+View deposit & billing impact
+
+Support Agent:
+View & suspend
+
+Viewer:
+Read-only
+
+Only Admin can force-assign duplicate override.
+
+🔗 Integration Required
+
+✔ Assets List Page
+✔ IP Address / VLAN Module
+✔ MikroTik / BRAS Integration
+✔ Billing & Invoicing
+✔ Task Management
+✔ Customer CRM
+✔ Outage Module
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Zero device loss
+✔ Proper deposit tracking
+✔ Clean IP management
+✔ Accurate provisioning
+✔ Controlled suspension
+✔ Professional service lifecycle
+
+When you open this page, you should feel:
+
+“I know which customer has which device.”
+“I know which IP is allocated.”
+“I know who installed it.”
+“No device can disappear.”

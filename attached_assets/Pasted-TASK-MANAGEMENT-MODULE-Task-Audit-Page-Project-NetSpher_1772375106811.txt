@@ -1,0 +1,243 @@
+TASK MANAGEMENT MODULE
+Task Audit Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a comprehensive Task Audit Page that records, monitors, and tracks every activity performed on tasks across the system.
+
+This page ensures:
+
+✔ Full activity transparency
+✔ Accountability of team members
+✔ Change tracking history
+✔ Investigation capability
+✔ Compliance & governance control
+✔ Protection against data manipulation
+
+This is your internal operational audit system.
+
+🎨 UI / Theme Design
+
+Style:
+Enterprise Compliance Dashboard
+
+Primary Gradient:
+Dark Blue → Slate (#1E3A8A → #334155)
+
+Background:
+Light Gray (#F4F6F9)
+
+Cards:
+White with soft shadow
+Rounded corners (14px)
+
+Audit Indicators:
+
+🟢 Created
+🔵 Updated
+🟡 Status Changed
+🟣 Reassigned
+🔴 Deleted (Admin only)
+⚫ Overdue Triggered
+
+Typography:
+Inter / Poppins
+
+📊 Page Layout Structure
+
+The page contains 4 main sections:
+
+1️⃣ Audit Summary Overview
+2️⃣ Task Activity Log Table
+3️⃣ Detailed Task History Viewer
+4️⃣ System Alerts & Suspicious Activity Monitor
+
+1️⃣ Audit Summary Overview
+
+Top KPI Cards:
+
+Total Task Activities Logged
+
+Tasks Modified Today
+
+Status Changes Count
+
+Reassignments Count
+
+Overdue Adjustments
+
+Deleted Tasks (Admin Only)
+
+Charts:
+
+📊 Activity Trend (Daily / Weekly)
+📈 Most Modified Projects
+📊 Most Active Users
+
+This gives a snapshot of operational changes.
+
+2️⃣ Task Activity Log Table
+
+Professional structured audit grid.
+
+Columns:
+
+Log ID
+
+Task ID
+
+Task Title
+
+Project
+
+Action Type
+
+Old Value
+
+New Value
+
+Performed By
+
+Role
+
+IP Address
+
+Date & Time
+
+Device / Platform
+
+Action
+
+Action Types:
+
+✔ Task Created
+✔ Task Edited
+✔ Status Updated
+✔ Priority Changed
+✔ Due Date Modified
+✔ Reassigned
+✔ Progress Updated
+✔ Attachment Added
+✔ Comment Added
+✔ Task Deleted (Admin only)
+
+Features:
+
+✔ Advanced Search
+✔ Filter by User
+✔ Filter by Project
+✔ Filter by Date Range
+✔ Filter by Action Type
+✔ Export Audit Logs (CSV / PDF)
+✔ View Full Change History
+
+3️⃣ Detailed Task History Viewer
+
+When clicking a task:
+
+Display full chronological timeline:
+
+Example:
+
+🟢 Task Created – 10:15 AM – By Ali
+🔵 Assigned to Ahmed – 10:20 AM
+🟡 Status Changed: Assigned → In Progress – 11:45 AM
+🔵 Due Date Changed: 25 Jan → 28 Jan
+🟣 Reassigned to Usman – 2:10 PM
+🔴 Marked Overdue – 29 Jan
+
+Include:
+
+✔ Before & After comparison
+✔ Change reason (mandatory for critical changes)
+✔ Attachment history
+✔ Comment history
+
+4️⃣ System Alerts & Suspicious Activity Monitor
+
+Detect unusual behavior:
+
+✔ Multiple status changes in short time
+✔ Frequent due date extensions
+✔ Repeated reassignments
+✔ Unauthorized access attempts
+✔ Task deletion attempts
+
+Flag system:
+
+⚠ High Risk
+⚠ Medium Risk
+⚠ Low Risk
+
+Admins can:
+
+✔ Investigate
+✔ Lock task
+✔ Freeze editing
+✔ Generate compliance report
+
+🔄 System Logic
+
+Every task action triggers:
+
+✔ Automatic log entry
+✔ Timestamp record
+✔ User ID record
+✔ IP logging
+✔ Old vs New value comparison
+
+Critical changes (like due date, reassignment, deletion):
+
+✔ Require reason input
+✔ Notify supervisor
+✔ Mark in audit as “Critical Change”
+
+Audit logs:
+
+✔ Cannot be edited
+✔ Cannot be deleted
+✔ Encrypted storage
+
+🔐 Role-Based Access
+
+Admin:
+Full audit visibility
+
+Compliance Officer:
+View & export audit logs
+
+Project Manager:
+View audit logs for their projects
+
+Supervisor:
+View department-level logs
+
+Employee:
+Cannot access audit logs
+
+🔗 Integration Required
+
+✔ Task Module
+✔ Project Module
+✔ HR Module
+✔ Role & Permission System
+✔ Notification System
+✔ Security Monitoring
+
+📈 Business Impact
+
+This page ensures:
+
+✔ No manipulation of task data
+✔ Full accountability
+✔ Legal & compliance support
+✔ Transparent team operations
+✔ Strong internal governance
+
+When you open this page, it should feel like:
+
+“Nothing can be hidden.”
+“Every action is traceable.”
+“I have full operational control.”

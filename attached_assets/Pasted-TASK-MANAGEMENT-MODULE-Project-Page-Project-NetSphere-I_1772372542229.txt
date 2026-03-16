@@ -1,0 +1,313 @@
+TASK MANAGEMENT MODULE
+Project Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a structured Project Management Page to create, manage, and monitor projects across departments including:
+
+✔ Network Deployment
+✔ Corporate Installations
+✔ Fiber Rollout
+✔ Technical Operations
+✔ Software Development
+✔ Maintenance Campaigns
+
+This page ensures:
+
+• Clear project visibility
+• Task accountability
+• Budget tracking
+• Timeline monitoring
+• Resource allocation
+• Performance measurement
+
+🎨 UI / Theme Design
+
+Style:
+Modern Operations Dashboard
+
+Primary Gradient:
+Indigo → Royal Blue (#4338CA → #1D4ED8)
+
+Status Indicators:
+
+🟢 Active
+🟡 On Hold
+🔴 Delayed
+🔵 Planning
+⚫ Completed
+
+Background:
+Light Gray (#F4F6F9)
+White project cards
+Soft shadow
+14px rounded corners
+
+Typography:
+Inter / Poppins
+
+📊 Page Structure
+
+The page contains:
+
+1️⃣ Project Overview Dashboard
+2️⃣ Create / Edit Project Form
+3️⃣ Project List Grid
+4️⃣ Project Timeline & Progress Tracker
+5️⃣ Budget & Resource Monitoring
+
+1️⃣ Project Overview Dashboard
+
+Top KPI Cards:
+
+Total Active Projects
+
+Completed Projects
+
+Delayed Projects
+
+Projects Near Deadline
+
+Total Project Budget
+
+Budget Utilization %
+
+Add:
+
+📈 Monthly Project Completion Trend
+📊 Projects by Department
+📊 Resource Allocation Overview
+
+➕ 2️⃣ Create / Edit Project Form
+
+Professional structured project creation form.
+
+Section A – Basic Information
+
+Project Name
+
+Project Code (Auto-generated)
+
+Department
+
+Branch
+
+Project Type:
+
+Fiber Deployment
+
+Corporate Installation
+
+Network Expansion
+
+Maintenance
+
+Software Development
+
+Internal Operations
+
+Description
+
+Section B – Timeline
+
+Start Date
+
+End Date
+
+Estimated Duration
+
+Milestones
+
+System should calculate:
+
+✔ Days Remaining
+✔ Delay Indicator
+
+Section C – Budget
+
+Estimated Budget
+
+Approved Budget
+
+Budget Source
+
+Linked Expense Account
+
+Budget Category
+
+Integration:
+
+✔ Accounting Module
+✔ Budget Allocation Page
+
+System must track:
+
+• Budget Used
+• Remaining Budget
+• Over-budget alerts
+
+Section D – Team & Responsibility
+
+Project Manager
+
+Assigned Team Members
+
+External Vendor (if any)
+
+Priority Level:
+
+High
+
+Medium
+
+Low
+
+📑 3️⃣ Project List Grid
+
+Professional project tracking grid.
+
+Columns:
+
+Project Code
+
+Project Name
+
+Department
+
+Branch
+
+Start Date
+
+End Date
+
+Budget
+
+Used Budget
+
+Progress %
+
+Status
+
+Project Manager
+
+Action
+
+Features:
+
+✔ Search
+✔ Filter by Department
+✔ Filter by Status
+✔ Filter by Branch
+✔ Date Range Filter
+✔ Export to Excel
+✔ View Detailed Report
+
+📊 4️⃣ Project Timeline & Progress Tracker
+
+Visual tools:
+
+✔ Gantt Chart
+✔ Milestone Tracker
+✔ Task Completion %
+✔ Delay Alert Indicator
+
+Progress Auto-Calculation:
+
+Progress % = Completed Tasks / Total Tasks
+
+If overdue:
+
+✔ Mark project as Delayed
+✔ Send notification
+
+💰 5️⃣ Budget & Resource Monitoring
+
+Display:
+
+Approved Budget
+
+Actual Expenses
+
+Variance %
+
+Resource Allocation
+
+Expense Breakdown
+
+Alerts:
+
+✔ Over-budget warning
+✔ Milestone delay warning
+✔ Resource overload alert
+
+🔄 System Logic
+
+When project created:
+
+✔ Assign unique project ID
+✔ Link to department
+✔ Enable task creation under project
+✔ Allocate budget
+
+When expense recorded:
+
+✔ Deduct from project budget
+✔ Update accounting
+✔ Update dashboard KPIs
+
+When all tasks completed:
+
+✔ Auto-mark project Completed
+✔ Generate completion report
+
+🔐 Role-Based Access
+
+Admin:
+Full control
+
+Project Manager:
+Create / Edit / Assign
+
+Team Member:
+View & update tasks
+
+Finance:
+View budget
+
+Viewer:
+Read-only
+
+📊 Performance KPIs
+
+Include:
+
+Project Completion Rate
+
+Average Project Duration
+
+Budget Variance %
+
+Delay Rate %
+
+Resource Efficiency Index
+
+🔗 Integration Required With
+
+✔ Task Management Module
+✔ Accounting Module
+✔ Budget Allocation
+✔ Expense Tracking
+✔ HR Module (for staff assignment)
+✔ Notification System
+✔ Dashboard
+
+🎯 Emotional Impact Goal
+
+When you open this page:
+
+“I know every project status.”
+“No budget is uncontrolled.”
+“No task is forgotten.”
+“Our operations are organized.”

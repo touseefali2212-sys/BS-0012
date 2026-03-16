@@ -1,0 +1,338 @@
+INVENTORY MODULE
+Purchase Order Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a structured Purchase Order (PO) Page to manage, approve, and track all procurement activities from suppliers.
+
+This page ensures:
+
+✔ Controlled purchasing process
+✔ Cost transparency
+✔ Supplier accountability
+✔ Approval governance
+✔ Accurate stock planning
+✔ Financial integration
+
+It serves as the bridge between Procurement, Inventory, and Accounts Payable.
+
+🎨 UI / Theme Design
+
+Style:
+Enterprise Procurement Workflow Dashboard
+
+Primary Gradient:
+Slate Gray → Emerald (#334155 → #059669)
+
+Background:
+Light Neutral (#F8FAFC)
+
+PO Status Indicators:
+
+🔵 Draft
+🟡 Pending Approval
+🟣 Approved
+🟢 Partially Received
+🟢 Fully Received
+🔴 Rejected
+⚫ Cancelled
+
+Typography:
+Inter / Poppins
+Monospace for PO Number
+
+Layout:
+Dashboard + PO Entry Form + PO Tracking Table
+
+📊 Page Layout Structure
+
+The page contains 5 core sections:
+
+1️⃣ Purchase Order Overview Dashboard
+2️⃣ Create / Edit Purchase Order
+3️⃣ Purchase Order Master List
+4️⃣ PO Details & Receiving Panel
+5️⃣ Financial & Payment Tracking Panel
+
+1️⃣ Purchase Order Overview Dashboard
+
+KPI Cards:
+
+Total POs (This Month)
+
+Pending Approvals
+
+Approved POs
+
+Partially Received
+
+Fully Received
+
+Total Purchase Value
+
+Outstanding PO Value
+
+Analytics:
+
+📊 Purchases by Supplier
+📈 Monthly Procurement Trend
+📊 Purchases by Product Category
+📉 Price Variation Trend
+
+2️⃣ Create / Edit Purchase Order
+
+Professional structured PO form.
+
+Header Section:
+
+PO Number (Auto-generated)
+
+Supplier (Linked to Suppliers Page)
+
+Warehouse Destination
+
+PO Date
+
+Expected Delivery Date
+
+Payment Terms
+
+Currency
+
+Linked Allocation / Request ID (if any)
+
+Priority Level
+
+Approval Required (Yes/No)
+
+Line Item Section:
+
+For each product:
+
+Product (Linked to Brands & Products)
+
+Description
+
+Quantity
+
+Unit Price
+
+Discount (%)
+
+Tax (%)
+
+Subtotal
+
+Total
+
+System auto-calculates:
+
+✔ Line totals
+✔ Tax amount
+✔ Grand total
+✔ Estimated inventory value
+
+Footer Section:
+
+Shipping Cost
+
+Additional Charges
+
+Notes
+
+Attachments (Quotation, Contract)
+
+Validation Rules:
+
+❌ Cannot exceed supplier credit limit
+❌ Cannot create PO for inactive supplier
+❌ Unit price variance alert if exceeds previous average
+
+3️⃣ Purchase Order Master List
+
+Structured PO grid:
+
+Columns:
+
+PO Number
+
+Supplier
+
+Warehouse
+
+PO Date
+
+Delivery Date
+
+Total Amount
+
+Received Amount
+
+Payment Status
+
+Approval Status
+
+Status
+
+Actions
+
+Actions:
+
+• View
+• Edit (if Draft)
+• Approve
+• Reject
+• Cancel
+• Convert to GRN
+• Print PO
+• Export PDF
+
+Advanced Filters:
+
+✔ By supplier
+✔ By status
+✔ By warehouse
+✔ By payment status
+✔ By date range
+
+4️⃣ PO Details & Receiving Panel
+
+Once goods arrive:
+
+Receiving Workflow:
+
+Approved PO →
+Create Goods Receipt Note (GRN) →
+Verify quantities →
+Update stock
+
+Receiving Data:
+
+Received Quantity
+
+Damaged Quantity
+
+Short Quantity
+
+Serial Numbers (if applicable)
+
+Warehouse Location
+
+Received By
+
+Inspection Status
+
+System Updates:
+
+✔ Stock increases
+✔ Reserved stock converted
+✔ Asset serials registered
+✔ Update PO status (Partial / Full)
+
+5️⃣ Financial & Payment Tracking Panel
+
+Integrated with Accounts Payable.
+
+Displays:
+
+Total PO Value
+
+Invoice Value
+
+Amount Paid
+
+Outstanding Balance
+
+Payment Due Date
+
+Payment Status (Unpaid / Partial / Paid)
+
+Automation:
+
+If payment recorded:
+
+✔ Update supplier balance
+✔ Update payable ledger
+
+If credit limit exceeded:
+
+✔ Block further POs
+✔ Notify finance
+
+🔄 Automation Logic
+
+When PO approved:
+
+✔ Reserve expected stock
+✔ Notify warehouse
+
+When GRN created:
+
+✔ Update inventory levels
+✔ Register serial numbers
+✔ Link asset records (if applicable)
+
+When fully received:
+
+✔ Change status to Completed
+
+If cancelled:
+
+✔ Release reserved allocation
+
+If price deviation > threshold:
+
+✔ Alert procurement manager
+
+🔐 Role-Based Access
+
+Admin:
+Full control
+
+Procurement Manager:
+Create & approve PO
+
+Inventory Manager:
+Receive goods
+
+Finance Manager:
+Manage payments
+
+Department Manager:
+Submit PO request
+
+Viewer:
+Read-only
+
+Only Admin can override approval hierarchy.
+
+🔗 Integration Required
+
+✔ Suppliers Page
+✔ Brands & Products Page
+✔ Product Type Page
+✔ Goods Receipt Module
+✔ Inventory Stock Module
+✔ Accounts Payable
+✔ Allocation Module
+✔ Request & Approval Module
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Structured procurement workflow
+✔ Cost control & negotiation power
+✔ Accurate stock forecasting
+✔ Reduced purchasing errors
+✔ Strong financial accountability
+✔ Clean audit trail
+
+When you open this page, it should feel like:
+
+“I control what we buy.”
+“I know how much we spend.”
+“I know what is pending.”
+“Procurement is fully governed.”

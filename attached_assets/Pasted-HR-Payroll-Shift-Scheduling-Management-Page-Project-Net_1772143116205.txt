@@ -1,0 +1,388 @@
+HR & Payroll – Shift & Scheduling Management Page
+
+Project: NetSphere ISP Billing & ERP
+
+🎯 Objective
+
+Design and build a professional, attractive, enterprise-grade Shift & Scheduling Management page.
+
+The system must allow:
+
+Create multiple shift types
+
+Assign shifts to employees
+
+Create weekly / monthly schedules
+
+Handle rotating shifts
+
+Configure overtime rules
+
+Define grace periods
+
+Auto-link with attendance system
+
+Integrate with payroll calculations
+
+Support multi-branch shift management
+
+This module must fully integrate with:
+
+✔ Attendance
+✔ Payroll
+✔ Overtime
+✔ Leave
+✔ Employee Roles
+
+🎨 Enterprise Theme Design
+
+Style:
+Corporate HR + Operations Control Panel
+
+Primary Gradient:
+Deep Blue → Royal Blue (#003366 → #0066FF)
+
+Accent Colors:
+
+Green → Active Shift
+
+Purple → Night Shift
+
+Orange → Rotational Shift
+
+Red → Overtime
+
+Gray → Off Day
+
+Background:
+Light neutral gray (#F4F6F9)
+White cards
+Soft shadows
+14px rounded corners
+
+Typography:
+Inter / Poppins
+Clear time formatting
+Bold shift names
+
+📊 Page Layout Structure
+1️⃣ Top Summary Dashboard
+
+Show 5 professional cards:
+
+Total Shift Types
+
+Employees Assigned Today
+
+Night Shift Employees
+
+Overtime Scheduled
+
+Upcoming Rotations
+
+Each card includes:
+
+Icon
+
+Count
+
+Small description
+
+Smooth counter animation
+
+🕒 Section A – Shift Types Management
+➕ Add Shift Button
+
+Opens modal form.
+
+Shift Creation Form
+
+Professional 2-column layout.
+
+Basic Info:
+
+Shift Name (Morning, Evening, Night, NOC 24/7, Field Ops)
+
+Shift Code (MOR-01, NOC-N)
+
+Branch
+
+Department (Optional)
+
+Timing Configuration:
+
+Start Time
+
+End Time
+
+Total Working Hours (Auto Calculate)
+
+Break Time (Minutes)
+
+Paid Break (Yes/No)
+
+Overtime Settings:
+
+Overtime Allowed (Yes/No)
+
+Overtime After (Hours)
+
+Overtime Rate Multiplier (1.5x / 2x)
+
+Grace Period:
+
+Late Grace (Minutes)
+
+Early Exit Grace (Minutes)
+
+Shift Type:
+
+Fixed
+
+Rotational
+
+Flexible
+
+Split Shift
+
+Status:
+
+Active / Inactive
+
+Buttons:
+Save / Update / Cancel
+
+👥 Section B – Shift Assignment
+
+Two modes:
+
+1️⃣ Individual Assignment
+
+Select Employee
+
+Select Shift
+
+Effective From Date
+
+Effective To Date
+
+Assign
+
+2️⃣ Bulk Assignment
+
+Select Department
+
+Select Role
+
+Select Branch
+
+Select Shift
+
+Apply to All
+
+📅 Section C – Scheduling Calendar View
+
+Professional Calendar Interface.
+
+Views:
+
+Daily
+
+Weekly
+
+Monthly
+
+Features:
+
+Drag & drop shift assignment
+
+Color-coded shifts
+
+Hover tooltip (Shift time + employee name)
+
+Off-day marking
+
+Leave integration indicator
+
+Overtime highlight
+
+Visual Indicators:
+
+Green = Morning
+Blue = Evening
+Purple = Night
+Gray = Off Day
+Red Border = Overtime
+
+🔄 Section D – Rotational Shift Engine
+
+Allow:
+
+Create rotation cycle (7 days / 14 days / 30 days)
+
+Define shift sequence:
+Example:
+Week 1 → Morning
+Week 2 → Evening
+Week 3 → Night
+
+Auto rotate employees
+
+Preview rotation calendar
+
+Auto apply to payroll month
+
+⏱ Section E – Attendance Integration Logic
+
+When attendance is marked:
+
+System must:
+
+✔ Compare punch-in time with shift start
+✔ Calculate late minutes
+✔ Apply grace logic
+✔ Detect early exit
+✔ Calculate overtime automatically
+✔ Mark absent if no attendance
+
+Auto generate:
+
+Overtime record
+
+Deduction record
+
+Late penalty (if configured)
+
+💰 Payroll Integration
+
+This module must:
+
+Auto send working hours to payroll
+
+Send overtime amount
+
+Send late deduction
+
+Send shift allowance (if applicable)
+
+Night shift allowance auto calculation
+
+Example:
+
+Night Shift Allowance = Fixed 200 PKR per shift
+Overtime = Hours × Hourly Rate × Multiplier
+
+📋 Shift Table View
+
+Professional data grid.
+
+Columns:
+
+Shift Name
+
+Start Time
+
+End Time
+
+Working Hours
+
+Overtime Rule
+
+Grace Period
+
+Type
+
+Status
+
+Action
+
+Features:
+
+Search
+
+Filter by Branch
+
+Filter by Department
+
+Filter by Shift Type
+
+Export Excel
+
+Bulk deactivate
+
+📈 Reports & Analytics
+
+Add small analytics dashboard:
+
+Shift Distribution Chart
+
+Overtime Trend Graph
+
+Late Arrival Statistics
+
+Attendance Compliance %
+
+Department Shift Coverage
+
+Charts should use soft gradient lines.
+
+🔐 Role-Based Access
+
+Admin:
+
+Full access
+
+HR:
+
+Create shifts
+
+Assign shifts
+
+View reports
+
+Manager:
+
+View department schedule
+
+Approve overtime
+
+Employee (Future Portal):
+
+View own schedule
+
+Request shift swap
+
+⚙ Advanced Enterprise Features
+
+Add:
+
+✔ Shift Swap Request System
+✔ Shift Change Approval Workflow
+✔ Geo-based attendance linking
+✔ Multi-location shift support
+✔ Weekend configuration
+✔ Public holiday integration
+✔ Auto shift template presets
+✔ Shift cost calculation (for accounting)
+✔ Emergency shift override
+
+💎 UI Enhancements
+
+Smooth drag animation
+
+Animated calendar transitions
+
+Time picker with modern UI
+
+Hover highlight on schedule blocks
+
+Dark mode support
+
+🎯 Emotional Impact Goal
+
+When you open this page, Touseef:
+
+“Now my staff is controlled.”
+“Overtime is accurate.”
+“Field team is properly scheduled.”
+“This is enterprise-level HR.”

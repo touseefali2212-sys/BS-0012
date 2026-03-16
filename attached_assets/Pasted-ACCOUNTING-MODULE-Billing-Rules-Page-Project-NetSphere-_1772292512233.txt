@@ -1,0 +1,362 @@
+ACCOUNTING MODULE
+Billing Rules Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Build a powerful Billing Rules Configuration Page that allows Admin/Finance to:
+
+Define automated billing logic
+
+Configure recurring billing cycles
+
+Set tax rules
+
+Configure proration logic
+
+Define late fee policies
+
+Apply discounts & penalties
+
+Control billing for CIR & Corporate customers
+
+Integrate with Invoicing & Revenue accounts
+
+This page must act as the central billing automation engine.
+
+🎨 Professional UI Theme
+
+Style:
+Modern SaaS Billing Configuration Interface
+
+Primary Gradient:
+Deep Navy → Royal Blue (#002B5B → #0066FF)
+
+Color Indicators:
+
+🟢 Active Rule
+🟡 Scheduled
+🔴 Disabled
+🔵 System Default
+
+Background:
+Light Gray (#F4F6F9)
+White cards
+Soft shadow
+14px rounded corners
+
+Typography:
+Inter / Poppins
+
+📊 Page Structure
+
+The page contains:
+
+1️⃣ Billing Rules Overview Dashboard
+2️⃣ Create New Billing Rule
+3️⃣ Billing Rules List Table
+4️⃣ Rule Testing & Simulation Section
+
+1️⃣ Billing Rules Overview Dashboard
+
+Top summary cards:
+
+Total Active Rules
+
+Scheduled Rules
+
+Auto-Generated Invoices (This Month)
+
+Late Fee Rules Active
+
+Tax Rules Configured
+
+Add:
+
+Monthly Billing Performance Chart
+Invoices Generated vs Collected
+
+➕ 2️⃣ Create New Billing Rule
+
+Professional multi-section form.
+
+Section A – Rule Information
+
+Rule Name
+(Example: Corporate Monthly Billing – 1st of Month)
+
+Rule Type:
+
+Recurring Billing
+
+One-Time Billing
+
+Proration Rule
+
+Late Fee Rule
+
+Discount Rule
+
+Tax Rule
+
+Applicable Customer Type:
+
+CIR
+
+Corporate
+
+Reseller
+
+All Customers
+
+Branch (Multi-branch support)
+
+Status:
+
+Draft
+
+Active
+
+Disabled
+
+Section B – Billing Cycle Configuration
+
+Billing Frequency:
+
+Monthly
+
+Quarterly
+
+Yearly
+
+Custom
+
+Invoice Generation Date
+
+Due Date Offset (e.g., 7 days after invoice)
+
+Grace Period (Days)
+
+Auto Invoice Generation Toggle
+
+Section C – Pricing & Calculation Logic
+
+Options:
+
+☐ Fixed Amount
+☐ Plan-Based Amount
+☐ Usage-Based Billing
+☐ Custom Formula
+
+Fields:
+
+Base Amount
+
+Tax %
+
+Discount %
+
+Late Fee %
+
+Proration Calculation Method
+
+Proration Options:
+
+Daily-based
+
+Fixed monthly division
+
+30-day standard
+
+Actual month days
+
+Section D – Account Mapping
+
+Financial Mapping:
+
+Debit Account:
+Accounts Receivable
+
+Credit Account:
+Revenue Account
+
+Tax Payable Account
+
+Late Fee Revenue Account
+
+This ensures automatic journal creation.
+
+Section E – Automation Settings
+
+☐ Auto email invoice
+☐ Auto apply credit notes
+☐ Auto suspend service on non-payment
+☐ Auto apply late fee
+☐ Auto recurring generation
+☐ Allow manual override
+
+🔄 System Logic
+
+When rule is active:
+
+✔ Automatically generate invoices
+✔ Apply correct pricing
+✔ Apply tax
+✔ Apply proration
+✔ Post journal entry
+✔ Update Accounts Receivable
+✔ Update Revenue
+✔ Trigger notifications
+
+If overdue:
+
+✔ Apply late fee rule
+✔ Update invoice balance
+✔ Reflect in AR aging
+
+📑 3️⃣ Billing Rules List Table
+
+Columns:
+
+Rule Name
+
+Rule Type
+
+Customer Type
+
+Frequency
+
+Invoice Date
+
+Status
+
+Branch
+
+Last Execution Date
+
+Next Execution Date
+
+Action
+
+Features:
+
+✔ Search
+✔ Filter by Rule Type
+✔ Filter by Customer Type
+✔ Filter by Status
+✔ Enable/Disable toggle
+✔ Clone rule
+✔ Export
+
+🧪 4️⃣ Rule Testing & Simulation
+
+Add simulation section:
+
+Admin can:
+
+Select customer
+
+Select plan
+
+Select billing period
+
+Run simulation
+
+System shows:
+
+Calculated amount
+
+Tax
+
+Discount
+
+Late fee (if applicable)
+
+Final invoice preview
+
+Journal entry preview
+
+This ensures no billing mistakes.
+
+📊 ISP Use Case Examples
+
+Example 1:
+Corporate client billed on 1st of every month
+Due in 7 days
+Late fee after 5 days
+Tax 15%
+
+Example 2:
+CIR customer activated mid-month
+System auto-prorates
+
+Example 3:
+Reseller gets 5% automatic discount
+
+🔐 Permissions
+
+Admin:
+Full control
+
+Finance Manager:
+Create / Activate / Edit
+
+Billing Officer:
+View & Execute
+
+Viewer:
+View only
+
+💎 Advanced Enterprise Features
+
+Add:
+
+✔ Bulk billing execution
+✔ Multi-currency support
+✔ Tiered pricing logic
+✔ Dynamic pricing formulas
+✔ Usage-based bandwidth billing
+✔ Automatic invoice numbering
+✔ Billing calendar view
+✔ Approval workflow before generation
+✔ Integration with CRM & Service Suspension
+✔ Lock past billing periods
+
+🔗 Integration Points
+
+Must integrate with:
+
+✔ Customer Module (CIR & Corporate)
+✔ Invoice Module
+✔ Credit Notes
+✔ Chart of Accounts
+✔ Income Entry
+✔ AR Aging
+✔ Financial Reports
+✔ Dashboard
+
+📈 Financial Intelligence
+
+Add KPI metrics:
+
+Monthly Recurring Revenue (MRR)
+
+Average Revenue per Customer (ARPU)
+
+Billing Success Rate
+
+Collection Efficiency
+
+Overdue Ratio
+
+These make your ERP investor-ready.
+
+🎯 Emotional Impact Goal
+
+When you open this page:
+
+“Billing is automated.”
+“No manual mistakes.”
+“This system can handle thousands of customers.”
+“This is enterprise-grade SaaS billing.”

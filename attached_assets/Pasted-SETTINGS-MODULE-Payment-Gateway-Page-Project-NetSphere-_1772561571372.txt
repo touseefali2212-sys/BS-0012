@@ -1,0 +1,309 @@
+SETTINGS MODULE
+Payment Gateway Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized Payment Gateway Management Page to securely configure, manage, and monitor all online payment integrations within the ERP system.
+
+This page enables:
+
+✔ Integration with multiple payment providers
+✔ Secure API credential management
+✔ Real-time transaction verification
+✔ Automated invoice reconciliation
+✔ Webhook management
+✔ Multi-currency support
+
+It acts as the financial transaction bridge between customers and your billing system.
+
+🎨 UI / Theme Design
+
+Style:
+Modern FinTech Control Dashboard
+
+Primary Gradient:
+Deep Blue → Teal (#1E3A8A → #0D9488)
+
+Status Indicators:
+
+🟢 Active
+🟡 Sandbox Mode
+🔵 Pending Verification
+🟠 Limited
+🔴 Disconnected
+
+Layout Structure:
+
+Left Panel: Gateway List
+Right Panel: Configuration & Monitoring
+
+Tabs:
+
+• Gateway Configuration
+• API Credentials
+• Transaction Rules
+• Webhooks
+• Settlement & Fees
+• Logs & Reports
+
+📊 Page Structure
+
+The page contains 6 structured sections:
+
+1️⃣ Gateway Configuration
+2️⃣ API & Security Settings
+3️⃣ Payment Processing Rules
+4️⃣ Webhook & Callback Management
+5️⃣ Settlement & Fee Configuration
+6️⃣ Transaction Logs & Monitoring
+
+1️⃣ Gateway Configuration
+
+Manage multiple payment gateways.
+
+Supported Types:
+
+• Bank Payment Gateway
+• Credit/Debit Card Processor
+• Mobile Wallet
+• Direct Bank Transfer
+• Local PSP Integration
+
+Fields:
+
+Gateway Name
+
+Provider
+
+Environment (Sandbox / Live)
+
+Supported Currency
+
+Status
+
+Default Gateway Selection
+
+Features:
+
+✔ Enable / Disable Gateway
+✔ Priority Order Setting
+✔ Assign by Branch
+✔ Assign by Customer Group
+
+Supports multiple gateways simultaneously.
+
+2️⃣ API & Security Settings
+
+Secure credential management.
+
+Fields:
+
+API Key
+
+Secret Key
+
+Merchant ID
+
+Public Key
+
+Encryption Method
+
+Callback URL
+
+Security Features:
+
+✔ Encrypted key storage
+✔ IP whitelist option
+✔ Token validation
+✔ API test connection
+✔ Two-factor authentication
+
+Compliance:
+
+✔ PCI-style secure configuration
+✔ SSL verification
+
+3️⃣ Payment Processing Rules
+
+Controls how payments behave in the system.
+
+Options:
+
+✔ Auto-generate payment receipt
+✔ Auto-mark invoice as paid
+✔ Partial payment support
+✔ Overpayment handling
+✔ Late fee automation
+✔ Refund support
+✔ Retry failed transaction
+
+Advanced Controls:
+
+✔ Minimum & Maximum payment limit
+✔ Currency conversion rate
+✔ Transaction timeout duration
+✔ Auto-cancel unpaid transaction
+
+4️⃣ Webhook & Callback Management
+
+Handles real-time payment confirmation.
+
+Features:
+
+✔ Webhook URL configuration
+✔ Real-time payment status sync
+✔ Retry webhook delivery
+✔ Failure notification to admin
+✔ Event logging
+
+Webhook Events:
+
+• Payment Success
+• Payment Failed
+• Refund Processed
+• Chargeback
+• Settlement Completed
+
+Ensures instant invoice reconciliation.
+
+5️⃣ Settlement & Fee Configuration
+
+Manage financial breakdown.
+
+Fields:
+
+Transaction Fee (%)
+
+Fixed Fee
+
+Settlement Cycle (Daily / Weekly / Monthly)
+
+Auto-fee deduction
+
+Tax on transaction
+
+Reports Include:
+
+✔ Net received amount
+✔ Gateway fee
+✔ Tax
+✔ Settlement amount
+
+Supports financial transparency and accounting integration.
+
+6️⃣ Transaction Logs & Monitoring
+
+Real-time transaction tracking dashboard.
+
+Displays:
+
+Transaction ID
+
+Customer Name
+
+Invoice Number
+
+Payment Method
+
+Amount
+
+Status
+
+Date & Time
+
+Filters:
+
+✔ Date Range
+✔ Gateway
+✔ Status
+✔ Customer
+
+Admin Actions:
+
+✔ Retry Failed
+✔ Issue Refund
+✔ Export Report
+✔ View Full API Response
+
+🔄 Automation Flow
+
+When customer clicks “Pay Now”:
+
+System selects assigned gateway
+
+Redirects securely to payment page
+
+Gateway processes transaction
+
+Webhook confirms payment
+
+Invoice auto-marked as paid
+
+Receipt sent via Email / WhatsApp / App
+
+Transaction logged
+
+If failed:
+
+→ Retry option
+→ Alternative gateway fallback
+→ Notify customer
+
+🔐 Role-Based Permissions
+
+Admin:
+Full gateway configuration
+
+Finance Manager:
+View & manage transactions
+
+Branch Manager:
+View branch-specific transactions
+
+Support:
+View status only
+
+Customers:
+Access payment page only
+
+Only Admin can edit API credentials.
+
+🔗 System Integration
+
+This page integrates with:
+
+✔ Billing Module
+✔ Invoice Module
+✔ Customer Portal
+✔ Notification Module
+✔ WhatsApp Integration
+✔ Accounting Module
+✔ Reports Dashboard
+
+Acts as the core digital payment engine.
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Faster payment collection
+✔ Reduced manual reconciliation
+✔ Secure financial transactions
+✔ Real-time invoice updates
+✔ Transparent reporting
+✔ Lower payment disputes
+
+For ISP business like yours, this means:
+
+🔥 Instant bill payments
+🔥 Automatic service reactivation
+🔥 Reduced cash handling
+🔥 Better cash flow management
+
+When opening this page, it should feel like:
+
+“We control all online payments.”
+“Transactions are secure and automated.”
+“Revenue flow is fully managed.”

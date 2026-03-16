@@ -1,0 +1,344 @@
+TRANSACTIONS MODULE
+Customer Collections Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Build a powerful Customer Collections Management Page that allows:
+
+Recording customer payments
+
+Monitoring outstanding balances
+
+Tracking overdue invoices
+
+Managing partial payments
+
+Assigning recovery officers
+
+Linking payments with invoices
+
+Automating accounting entries
+
+This page must integrate with:
+
+✔ Invoice Module
+✔ Payment Gateway
+✔ Accounts Receivable
+✔ Income Entry
+✔ Credit Notes
+✔ General Ledger
+
+🎨 Professional UI Theme
+
+Style:
+Modern Financial Recovery Dashboard
+
+Primary Gradient:
+Deep Navy → Royal Blue (#002B5B → #0066FF)
+
+Collection Indicators:
+
+🟢 Paid
+🟡 Partial
+🔴 Overdue
+🔵 Under Collection
+⚫ Suspended
+
+Background:
+Light Gray (#F4F6F9)
+White data cards
+Soft shadow
+14px rounded corners
+
+Typography:
+Inter / Poppins
+
+📊 Page Layout Structure
+
+The page contains:
+
+1️⃣ Collections Overview Dashboard
+2️⃣ Outstanding & Aging Summary
+3️⃣ Record Collection Form
+4️⃣ Customer Collections List
+5️⃣ Recovery Assignment Section
+
+1️⃣ Collections Overview Dashboard
+
+Top summary cards:
+
+Total Outstanding
+
+Total Collected Today
+
+Total Collected This Month
+
+Overdue Amount
+
+Collection Efficiency %
+
+Recovery Officer Performance
+
+Add line chart:
+
+Monthly Collection Trend
+
+Add KPI:
+
+Collection Ratio = Collected / Billed
+
+2️⃣ Outstanding & Aging Summary
+
+Display aging buckets:
+
+0–30 Days
+
+31–60 Days
+
+61–90 Days
+
+90+ Days
+
+Show:
+
+Amount
+
+% of total
+
+Customer count
+
+Clickable aging to filter customers.
+
+➕ 3️⃣ Record Collection Form
+
+Professional multi-section form.
+
+Section A – Customer Details
+
+Customer Name
+
+Customer Type (CIR / Corporate)
+
+Invoice Number (Optional – Auto-suggest unpaid invoices)
+
+Branch
+
+Recovery Officer
+
+Display:
+
+Total Outstanding
+
+Selected Invoice Balance
+
+Section B – Payment Information
+
+Collection Date
+
+Payment Method:
+
+Cash
+
+Bank Transfer
+
+Online Gateway
+
+Cheque
+
+Wallet
+
+Amount Received
+
+Partial Payment Allowed (Toggle)
+
+Transaction Reference
+
+Attachment Upload
+
+Section C – Financial Posting
+
+Account Mapping:
+
+Debit:
+
+Cash / Bank Account
+
+Credit:
+
+Accounts Receivable
+
+If Late Fee Applied:
+
+Late Fee Revenue Account
+
+Section D – Collection Controls
+
+☐ Auto adjust against oldest invoice
+☐ Manual invoice allocation
+☐ Apply credit balance
+☐ Auto generate receipt
+☐ Auto send SMS/Email
+☐ Mark service active if paid
+
+🔄 System Logic
+
+When collection is recorded:
+
+✔ Reduce customer outstanding
+✔ Update AR aging
+✔ Create journal entry
+✔ Update dashboard
+✔ Update collection performance
+✔ Close invoice if fully paid
+✔ Reflect in Trial Balance
+
+If partial:
+
+✔ Update invoice balance
+✔ Change status to Partial
+
+If overdue and paid:
+
+✔ Remove suspension flag
+
+📑 4️⃣ Customer Collections List
+
+Professional financial grid.
+
+Columns:
+
+Collection ID
+
+Date
+
+Customer
+
+Invoice No
+
+Recovery Officer
+
+Payment Method
+
+Amount
+
+Applied Amount
+
+Outstanding After
+
+Status
+
+Action
+
+Features:
+
+✔ Search
+✔ Filter by Date
+✔ Filter by Officer
+✔ Filter by Status
+✔ Export to Excel
+✔ Print Receipt
+✔ Reverse Collection
+
+👤 5️⃣ Recovery Assignment Section
+
+Allow:
+
+Assign customers to recovery officers
+
+Set collection targets
+
+Track performance
+
+Show metrics:
+
+Assigned Customers
+
+Total Recoverable
+
+Collected Amount
+
+Collection %
+
+Commission (if applicable)
+
+📊 ISP-Specific Use Cases
+
+Example 1:
+Corporate client overdue 200,000
+Recovery officer collects 100,000
+System marks Partial
+
+Example 2:
+Customer pays via gateway
+Auto reflect in collection list
+
+Example 3:
+Late fee auto applied after grace period
+
+🔐 Permissions
+
+Admin:
+Full control
+
+Finance Manager:
+Approve / Reverse
+
+Collection Officer:
+Record payments (limited access)
+
+Viewer:
+View only
+
+💎 Advanced Enterprise Features
+
+Add:
+
+✔ Auto service suspension if unpaid
+✔ SMS reminder automation
+✔ Collection target tracking
+✔ Commission calculation for recovery officers
+✔ Bad debt write-off option
+✔ Payment follow-up logs
+✔ Promise-to-pay tracking
+✔ Customer risk scoring
+✔ Bulk collection upload
+
+📈 Financial Intelligence KPIs
+
+Add:
+
+Collection Efficiency Ratio
+
+Average Collection Days
+
+Bad Debt Ratio
+
+Recovery Officer Ranking
+
+Overdue Trend %
+
+These make your ERP management-level.
+
+🔗 Integration Points
+
+Must integrate with:
+
+✔ Invoice Module
+✔ Credit Notes
+✔ Income Entry
+✔ Payment Gateway
+✔ Chart of Accounts
+✔ AR Aging
+✔ Financial Reports
+✔ Dashboard
+
+🎯 Emotional Impact Goal
+
+When you open this page:
+
+“I know who owes me.”
+“I know who is paying.”
+“My cash flow is under control.”
+“This is a serious revenue system.”

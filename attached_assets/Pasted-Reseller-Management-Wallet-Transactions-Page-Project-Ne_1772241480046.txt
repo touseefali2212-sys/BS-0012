@@ -1,0 +1,236 @@
+Reseller Management
+Wallet & Transactions Page
+Project: NetSphere ISP Billing & Enterprise ERP
+________________________________________
+🎯 Objective
+Build a professional Wallet & Transactions Management page for resellers.
+The system must allow:
+•	View reseller wallet balance
+•	Recharge wallet
+•	Deduct balance automatically
+•	Track all transactions
+•	Apply commission credits
+•	Monitor credit limits
+•	Generate financial reports
+•	Export statements
+•	Integrate with accounting
+This page must integrate with:
+✔ Reseller List
+✔ Package Sales
+✔ Commission System
+✔ Accounting Module
+✔ Vendor Billing
+________________________________________
+🎨 Enterprise UI Theme
+Style:
+Fintech + Telecom ERP
+Primary Gradient:
+Deep Blue → Royal Blue (#002B5B → #0066FF)
+Accent Colors:
+•	Green → Credit
+•	Red → Debit
+•	Orange → Adjustment
+•	Purple → Commission
+•	Teal → Recharge
+Background:
+Light Gray (#F4F6F9)
+White financial cards
+Soft shadows
+14px rounded corners
+Typography:
+Inter / Poppins
+Bold currency values
+Right-aligned financial columns
+________________________________________
+📊 Page Layout Structure
+________________________________________
+1️⃣ Top Wallet Summary Dashboard
+When selecting a reseller, show:
+•	Current Wallet Balance
+•	Credit Limit
+•	Available Credit
+•	Total Recharge (This Month)
+•	Total Deduction (This Month)
+•	Total Commission Earned
+•	Outstanding Payable
+Each card:
+•	Icon
+•	Large currency value
+•	Status indicator
+•	Smooth counter animation
+If balance is low:
+→ Show warning badge
+If credit limit exceeded:
+→ Show red alert banner
+________________________________________
+2️⃣ Reseller Selection Panel
+Top dropdown:
+Select Reseller
+Auto-load:
+•	Reseller Name
+•	Company
+•	Vendor Type
+•	Profit Margin %
+•	Credit Model (Prepaid / Postpaid)
+________________________________________
+3️⃣ Wallet Actions Section
+Professional action buttons:
+•	
+o	Add Recharge
+•	
+o	Manual Deduction
+•	
+o	Commission Credit
+•	
+o	Adjustment Entry
+•	Transfer Balance
+•	Freeze Wallet
+________________________________________
+🧾 Add Recharge Form
+Fields:
+•	Reseller Name
+•	Payment Method (Cash / Bank / Online)
+•	Reference Number
+•	Recharge Amount
+•	Transaction Date
+•	Remarks
+•	Attachment Upload (Receipt)
+On Save:
+✔ Increase Wallet Balance
+✔ Create Accounting Entry
+✔ Log transaction
+✔ Notify reseller (optional)
+________________________________________
+🧾 Manual Deduction Form
+Fields:
+•	Deduction Type:
+o	Package Activation
+o	Customer Renewal
+o	Bandwidth Purchase
+o	Penalty
+o	Adjustment
+•	Amount
+•	Description
+•	Linked Customer (Optional)
+•	Date
+On Save:
+✔ Deduct from wallet
+✔ Prevent negative balance (if prepaid)
+✔ Auto-suspend reseller if balance insufficient
+________________________________________
+📜 4️⃣ Transaction History Table
+Professional financial ledger-style table.
+Columns:
+•	Date
+•	Transaction ID
+•	Type (Credit / Debit)
+•	Category
+•	Reference
+•	Description
+•	Debit Amount
+•	Credit Amount
+•	Balance After
+•	Created By
+Color Code:
+Green = Credit
+Red = Debit
+Purple = Commission
+Orange = Adjustment
+________________________________________
+🔎 Filters & Search
+Filter by:
+•	Date Range
+•	Transaction Type
+•	Category
+•	Amount Range
+•	Reference Number
+•	Created By
+Export Options:
+•	Export Excel
+•	Download PDF Statement
+•	Print Statement
+________________________________________
+💰 Wallet Logic (Important)
+Support two models:
+________________________________________
+1️⃣ Prepaid Model
+•	Reseller must recharge first
+•	Wallet deducted when:
+o	Customer activated
+o	Customer renewed
+o	Package upgraded
+•	If balance insufficient:
+→ Block activation
+________________________________________
+2️⃣ Postpaid Model
+•	Allow negative balance up to credit limit
+•	Monthly invoice generated
+•	Auto alert when near credit limit
+•	Auto suspend if limit exceeded
+________________________________________
+🔄 Automation Logic
+System must:
+✔ Auto deduct when reseller creates customer
+✔ Auto deduct on package change
+✔ Auto credit commission monthly
+✔ Auto alert low balance
+✔ Track profit margin calculation
+✔ Prevent fraud transactions
+✔ Maintain audit trail
+________________________________________
+📈 Analytics Section
+Include financial insights:
+•	Monthly Recharge Trend
+•	Deduction Trend
+•	Commission Credit Graph
+•	Top 10 Resellers by Wallet Usage
+•	Revenue vs Commission Ratio
+________________________________________
+🔐 Security & Control
+Admin:
+•	Full control
+Finance:
+•	Can recharge & adjust
+Account Manager:
+•	View assigned reseller wallets only
+Reseller:
+•	View wallet only (read-only via reseller panel)
+________________________________________
+🛡 Advanced Enterprise Features
+Add:
+✔ Auto recurring recharge setup
+✔ Wallet freeze option
+✔ Minimum balance enforcement
+✔ Multi-currency support
+✔ Bank reconciliation
+✔ Double-entry accounting integration
+✔ Fraud detection flag
+✔ API support for online recharge
+✔ Wallet limit configuration per reseller
+________________________________________
+🔗 Accounting Integration
+Every transaction must create:
+Debit / Credit journal entry:
+Example:
+Recharge:
+Dr: Cash / Bank
+Cr: Reseller Wallet Liability
+Deduction:
+Dr: Reseller Wallet Liability
+Cr: Service Revenue
+________________________________________
+💎 UI Enhancements
+•	Sticky balance header
+•	Running balance display
+•	Expandable transaction row
+•	Animated number transitions
+•	Smooth filtering
+•	Financial summary hover tooltip
+________________________________________
+🎯 Emotional Impact Goal
+When you open Wallet page:
+“I know exactly how much each reseller owes.”
+“I control their balance.”
+“No hidden transactions.”
+“This is professional telecom billing.”
+

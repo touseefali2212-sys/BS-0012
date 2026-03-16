@@ -1,0 +1,333 @@
+TRANSACTIONS MODULE
+Refund & Credit Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a secure and controlled Refund & Credit Management Page to handle:
+
+✔ Customer refunds
+✔ Corporate refunds
+✔ Reseller refunds
+✔ Credit adjustments
+✔ Service downgrade credits
+✔ Billing error corrections
+✔ Overpayment settlements
+
+This page ensures:
+
+• Revenue protection
+• Proper accounting entries
+• Approval workflow
+• Audit compliance
+• Fraud prevention
+
+🎨 UI / Theme Design
+
+Style:
+Financial Adjustment Control Panel
+
+Primary Gradient:
+Crimson → Royal Blue (#7F1D1D → #1D4ED8)
+
+Status Indicators:
+
+🟢 Approved
+🟡 Pending Approval
+🔴 Rejected
+🔵 Processed
+⚫ Reversed
+
+Background:
+Light Gray (#F4F6F9)
+White cards
+Soft shadow
+14px rounded corners
+
+Typography:
+Inter / Poppins
+
+📊 Page Structure
+
+The page contains:
+
+1️⃣ Refund & Credit Overview Dashboard
+2️⃣ Create Refund / Credit Form
+3️⃣ Refund & Credit Transactions List
+4️⃣ Approval Workflow Panel
+5️⃣ Risk & Audit Monitoring
+
+1️⃣ Refund & Credit Overview Dashboard
+
+Top KPI Cards:
+
+Total Refunds This Month
+
+Total Credits Issued
+
+Pending Refund Requests
+
+Approved Refunds
+
+Rejected Requests
+
+Net Revenue Adjustment
+
+Add:
+
+📈 Monthly Refund Trend Chart
+📊 Top 10 Customers by Refund Amount
+
+2️⃣ Create Refund / Credit Form
+
+Structured and approval-based form.
+
+Section A – Entity Selection
+
+Select Type:
+
+Customer
+
+CIR Customer
+
+Corporate Customer
+
+Reseller
+
+Fields:
+
+Name
+
+Invoice Number (optional)
+
+Contract ID (if applicable)
+
+Branch
+
+Display:
+
+Invoice Amount
+
+Amount Paid
+
+Credit Balance
+
+Outstanding
+
+Section B – Refund / Credit Type
+
+Dropdown:
+
+Overpayment Refund
+
+Service Cancellation Refund
+
+SLA Compensation Credit
+
+Billing Error Correction
+
+Plan Downgrade Credit
+
+Manual Adjustment
+
+Security Deposit Refund
+
+Section C – Amount Details
+
+Refund Amount
+
+Credit Amount
+
+Tax Adjustment
+
+Reason (mandatory)
+
+Attachment Upload
+
+Options:
+
+☐ Refund to Bank
+☐ Refund to Wallet
+☐ Convert to Credit Note
+☐ Apply to Future Invoice
+
+Section D – Approval Workflow
+
+Requested By
+
+Reviewed By
+
+Approved By
+
+Approval Status
+
+Rules:
+
+• Amount above threshold → Requires Finance Manager approval
+• High-value refund → Requires Admin approval
+
+📑 3️⃣ Refund & Credit Transactions List
+
+Professional financial transaction grid.
+
+Columns:
+
+Refund ID
+
+Date
+
+Type (Refund / Credit)
+
+Entity Name
+
+Invoice No
+
+Amount
+
+Reason
+
+Status
+
+Approved By
+
+Processed Date
+
+Action
+
+Features:
+
+✔ Search
+✔ Filter by Type
+✔ Filter by Status
+✔ Filter by Branch
+✔ Date Range Filter
+✔ Export to Excel
+✔ Reverse Entry (Admin only)
+✔ Print Voucher
+
+🔄 System Logic
+
+When Refund is Approved:
+
+✔ Reduce revenue
+✔ Adjust invoice balance
+✔ Update customer wallet (if selected)
+✔ Create accounting journal entry
+✔ Update financial reports
+✔ Update dashboard KPIs
+
+If converted to credit:
+
+✔ Create Credit Note
+✔ Apply to future invoice
+✔ Update Accounts Receivable
+
+If refunded to bank:
+
+✔ Reduce bank balance
+✔ Record payment outflow
+
+💰 Accounting Integration
+
+Auto Journal Entries:
+
+If Refund to Bank:
+
+Debit:
+
+Sales Return / Refund Expense
+
+Credit:
+
+Bank / Cash
+
+If Credit Note:
+
+Debit:
+
+Sales Return
+
+Credit:
+
+Accounts Receivable
+
+If Wallet Credit:
+
+Debit:
+
+Sales Return
+
+Credit:
+
+Customer Wallet Liability
+
+All entries must reflect in:
+
+✔ General Ledger
+✔ Trial Balance
+✔ Income Statement
+✔ Cash Flow
+
+🔐 Role-Based Access
+
+Admin:
+Full control
+
+Finance Manager:
+Approve / Reject
+
+Accounts Officer:
+Create request
+
+Viewer:
+Read-only
+
+No direct refund without approval.
+
+👁 Audit & Risk Monitoring
+
+Add:
+
+✔ Refund threshold alert
+✔ Frequent refund detection
+✔ Suspicious activity flag
+✔ Refund trend monitoring
+✔ Approval history log
+✔ IP tracking for entry
+
+📊 Financial Intelligence KPIs
+
+Include:
+
+Refund Ratio %
+
+Credit Adjustment %
+
+Net Revenue Impact
+
+Refund per Customer
+
+Revenue Leakage Indicator
+
+🔗 Integration Required With
+
+✔ Invoice Module
+✔ Customer Module
+✔ CIR Module
+✔ Corporate Module
+✔ Reseller Module
+✔ Credit Notes
+✔ Accounting Module
+✔ Payment Gateway
+✔ Financial Reports
+✔ CEO Dashboard
+
+🎯 Emotional Impact Goal
+
+When finance opens this page:
+
+“Refunds are controlled.”
+“No revenue leakage.”
+“Every adjustment is approved.”
+“Our system is audit-proof.”

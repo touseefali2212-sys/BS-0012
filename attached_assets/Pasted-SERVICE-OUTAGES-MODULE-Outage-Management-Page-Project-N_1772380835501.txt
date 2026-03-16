@@ -1,0 +1,324 @@
+SERVICE OUTAGES MODULE
+Outage Management Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized Outage Management Page to detect, manage, track, and resolve network incidents affecting customers, POPs, routers, VLANs, or entire regions.
+
+This page enables:
+
+✔ Real-time outage detection
+✔ Impacted customer identification
+✔ Root cause tracking
+✔ SLA monitoring
+✔ Technician assignment
+✔ Resolution time tracking
+✔ Transparent communication
+
+This is your ISP emergency operations dashboard.
+
+🎨 UI / Theme Design
+
+Style:
+Network Operations Center (NOC) Emergency Interface
+
+Primary Gradient:
+Red → Deep Orange (#DC2626 → #EA580C)
+
+Background:
+Dark Slate (#0F172A)
+
+Status Indicators:
+
+🔴 Major Outage
+🟠 Partial Outage
+🟡 Degraded Performance
+🔵 Under Investigation
+🟢 Resolved
+⚫ Scheduled Maintenance
+
+Typography:
+Inter (UI)
+Monospace for technical logs
+
+The interface should feel urgent but structured.
+
+📊 Page Layout Structure
+
+The page contains 6 core sections:
+
+1️⃣ Outage Overview Dashboard
+2️⃣ Active Outages List
+3️⃣ Outage Creation & Incident Form
+4️⃣ Impact Analysis Panel
+5️⃣ SLA & Resolution Tracking
+6️⃣ Incident Timeline & Logs
+
+1️⃣ Outage Overview Dashboard
+
+Top KPI Cards:
+
+Active Outages
+
+Major Incidents
+
+Customers Affected
+
+POPs Affected
+
+Average Resolution Time
+
+SLA Breach Count
+
+Visual Charts:
+
+📊 Outages by Region
+📈 Monthly Incident Trend
+📊 Root Cause Distribution
+📊 Resolution Time Analysis
+
+This provides instant crisis visibility.
+
+2️⃣ Active Outages List
+
+Structured grid displaying:
+
+Outage ID
+
+Title
+
+Type (Fiber / Router / Power / VLAN / BRAS)
+
+Severity Level
+
+Affected POP
+
+Affected Device
+
+Customers Impacted
+
+Start Time
+
+Current Status
+
+Assigned Engineer
+
+ETA
+
+Action Menu
+
+Features:
+
+✔ Filter by Severity
+✔ Filter by POP
+✔ Filter by Status
+✔ Search by Device
+✔ Real-time refresh
+✔ Bulk notification
+
+3️⃣ Outage Creation & Incident Form
+
+Professional incident logging form.
+
+Fields:
+
+Incident Title
+
+Description
+
+Outage Type:
+
+Fiber Cut
+
+Router Down
+
+Power Failure
+
+VLAN Failure
+
+BRAS Issue
+
+OLT Down
+
+DDoS Attack
+
+Scheduled Maintenance
+
+Severity:
+
+Critical
+
+High
+
+Medium
+
+Low
+
+Affected POP
+
+Affected Router / OLT
+
+VLAN / IP Pool
+
+Estimated Customers Impacted
+
+Assign Technician / Team
+
+Estimated Resolution Time
+
+Options:
+
+✔ Notify customers automatically
+✔ Notify management
+✔ Create linked task
+
+4️⃣ Impact Analysis Panel
+
+Smart system automatically calculates:
+
+✔ Total affected customers
+✔ Corporate clients affected
+✔ Area impact (via Customer Map integration)
+✔ Revenue impact (hourly estimate)
+✔ Bandwidth disruption
+
+Visualizations:
+
+📍 Map view of affected customers
+📊 Impact by package type
+📈 Traffic drop comparison
+
+This enables smart prioritization.
+
+5️⃣ SLA & Resolution Tracking
+
+Track service-level agreements.
+
+Metrics:
+
+Outage Start Time
+
+Response Time
+
+Resolution Time
+
+SLA Limit
+
+Breach Indicator
+
+Color Logic:
+
+🟢 Within SLA
+🟡 Near SLA breach
+🔴 SLA breached
+
+Include:
+
+✔ Automatic SLA countdown timer
+✔ Escalation trigger
+✔ Escalation to manager after threshold
+
+6️⃣ Incident Timeline & Logs
+
+Detailed chronological record:
+
+Example:
+
+🔵 10:02 AM – Router unreachable
+🔴 10:05 AM – Outage declared
+🟡 10:15 AM – Technician assigned
+🟠 10:30 AM – Field investigation started
+🟢 11:40 AM – Issue resolved
+
+Logs include:
+
+Action
+
+User
+
+Timestamp
+
+Notes
+
+Status changes
+
+Attachments (photos from field)
+
+Audit trail must be permanent and tamper-proof.
+
+🔄 Automation Logic
+
+When device goes offline (via integration):
+
+✔ Auto-create outage
+✔ Calculate affected customers
+✔ Notify NOC team
+
+When outage declared:
+
+✔ Send SMS/Email to affected customers
+✔ Create Task in Task Module
+✔ Start SLA timer
+
+When resolved:
+
+✔ Mark resolved
+✔ Notify customers
+✔ Stop SLA timer
+✔ Log resolution time
+
+When SLA breached:
+
+✔ Escalate to management
+✔ Log breach record
+
+🔐 Role-Based Access
+
+Admin:
+Full control
+
+Network Engineer:
+Create & update outages
+
+NOC Team:
+Monitor & update status
+
+Operations Manager:
+View SLA & escalation
+
+Support Staff:
+View & communicate status
+
+Viewer:
+Read-only
+
+Only Admin can close major outages.
+
+🔗 Integration Required
+
+✔ MikroTik / BRAS Integration
+✔ OLT Monitoring
+✔ Customer MAP Page
+✔ Task Management
+✔ Notification System
+✔ SLA Monitoring System
+✔ Bandwidth Usage Module
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Faster incident response
+✔ Reduced downtime
+✔ Transparent communication
+✔ SLA protection
+✔ Professional crisis handling
+✔ Better customer trust
+
+When you open this page, it should feel like:
+
+“I know every incident instantly.”
+“I can see exactly who is affected.”
+“I control resolution speed.”

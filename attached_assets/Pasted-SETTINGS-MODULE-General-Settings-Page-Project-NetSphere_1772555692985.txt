@@ -1,0 +1,304 @@
+SETTINGS MODULE
+General Settings Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized General Settings Page to configure global system parameters, company identity, operational defaults, localization settings, and foundational preferences that apply across all modules.
+
+This page ensures:
+
+✔ Unified system configuration
+✔ Company identity management
+✔ Global operational consistency
+✔ Localization & timezone control
+✔ Default behavioral rules
+✔ System-wide branding
+
+It serves as the foundation layer of the ERP ecosystem.
+
+🎨 UI / Theme Design
+
+Style:
+Clean Enterprise Configuration Panel
+
+Primary Gradient:
+Deep Slate → Royal Blue (#334155 → #2563EB)
+
+Background:
+Soft Neutral (#F8FAFC)
+
+Setting Status Indicators:
+
+🟢 Configured
+🟡 Partially Configured
+🔵 Default
+🔴 Missing Required Setting
+⚫ Locked
+
+Typography:
+Inter / Poppins
+
+Layout:
+Tabbed Configuration Interface with collapsible sections
+
+📊 Page Layout Structure
+
+The page is structured into 6 core configuration sections:
+
+1️⃣ Company Profile
+2️⃣ Localization & Regional Settings
+3️⃣ System Defaults
+4️⃣ Financial Defaults
+5️⃣ Operational Preferences
+6️⃣ Branding & Interface Settings
+
+1️⃣ Company Profile Section
+
+Defines organization identity.
+
+Fields:
+
+Company Name
+
+Legal Name
+
+Registration Number
+
+Tax ID / NTN
+
+Industry Type
+
+Website
+
+Official Email
+
+Contact Number
+
+Head Office Address
+
+Logo Upload
+
+Favicon Upload
+
+Used across:
+
+✔ Invoices
+✔ Reports
+✔ Email Templates
+✔ Customer Portal
+✔ Legal Documents
+
+2️⃣ Localization & Regional Settings
+
+Controls system-wide localization behavior.
+
+Settings:
+
+Default Country
+
+Default Currency
+
+Currency Symbol
+
+Date Format (DD/MM/YYYY, MM/DD/YYYY, etc.)
+
+Time Format (12h / 24h)
+
+System Timezone
+
+Language
+
+Number Format (Comma / Decimal Style)
+
+Impacts:
+
+✔ Billing
+✔ Reporting
+✔ Scheduling
+✔ Logs
+✔ Notification Timestamps
+
+Supports multi-timezone operations.
+
+3️⃣ System Defaults
+
+Defines global system behavior.
+
+Options:
+
+Default Dashboard Page
+
+Default Landing Module
+
+Auto Logout Duration
+
+Session Timeout
+
+Password Policy Rules
+
+Two-Factor Authentication (Enable/Disable)
+
+File Upload Size Limit
+
+Default Pagination Limit
+
+System Maintenance Mode
+
+Maintenance Mode:
+
+✔ Display maintenance message
+✔ Restrict non-admin access
+
+4️⃣ Financial Defaults
+
+Defines global financial logic.
+
+Settings:
+
+Default Tax Rate
+
+Tax Calculation Method (Inclusive / Exclusive)
+
+Default Payment Terms
+
+Invoice Prefix
+
+Invoice Number Format
+
+Currency Precision
+
+Default Discount Type
+
+Rounding Rules
+
+Impacts:
+
+✔ Sales Module
+✔ Purchase Orders
+✔ Accounting Entries
+✔ Reports
+
+5️⃣ Operational Preferences
+
+Controls workflow behaviors across modules.
+
+Examples:
+
+Require Approval for Purchase Orders
+
+Require Approval for Asset Transfer
+
+Enable Serial Tracking by Default
+
+Enable Batch Tracking
+
+Auto-Generate SKU
+
+Enable Reorder Alerts
+
+Allow Negative Stock (Yes/No)
+
+Default Warehouse
+
+Workflow Options:
+
+✔ Multi-Level Approval
+✔ Auto Assignment Rules
+✔ Default Notification Triggers
+
+6️⃣ Branding & Interface Settings
+
+Controls UI personalization.
+
+Options:
+
+Primary Theme Color
+
+Secondary Accent Color
+
+Light / Dark Mode Default
+
+Sidebar Layout
+
+Compact View Option
+
+Custom Footer Text
+
+Login Page Background
+
+Portal Branding
+
+Allows ERP to reflect company identity.
+
+🔄 Automation & Dependency Logic
+
+Changes here affect multiple modules instantly.
+
+Examples:
+
+If currency changed →
+All reports update automatically
+
+If timezone changed →
+All timestamps adjust
+
+If tax method updated →
+New invoices follow updated rule
+
+If serial tracking enabled →
+Inventory module enforces serial entry
+
+System warns before applying critical changes.
+
+🔐 Role-Based Permissions
+
+Admin:
+Full access
+
+System Administrator:
+Modify system configuration
+
+Finance Manager:
+Modify financial defaults only
+
+Operations Manager:
+Modify operational settings
+
+Other users:
+Read-only or no access
+
+Critical changes require Admin confirmation.
+
+🔗 Integration
+
+This page connects with:
+
+✔ Inventory Module
+✔ Sales Module
+✔ Assets Module
+✔ Finance Module
+✔ Notification Module
+✔ User Management
+✔ Reporting Engine
+✔ Customer Portal
+
+It acts as the root configuration source.
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Consistent system behavior
+✔ Strong branding identity
+✔ Financial accuracy
+✔ Workflow standardization
+✔ Secure configuration management
+✔ Professional ERP control
+
+When opening this page, it should feel like:
+
+“This is the system foundation.”
+“Everything starts from here.”
+“One change here updates the entire platform.”

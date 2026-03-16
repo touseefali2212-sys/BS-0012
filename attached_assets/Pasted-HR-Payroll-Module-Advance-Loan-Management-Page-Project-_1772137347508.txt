@@ -1,0 +1,352 @@
+HR & Payroll Module – Advance & Loan Management Page
+
+Project: NetSphere ISP Billing SaaS
+
+🎯 Objective
+
+Create a professional, enterprise-grade Advance & Loan Management page under the HR & Payroll module.
+
+This page must allow the company to:
+
+Issue salary advances
+
+Provide employee loans
+
+Track repayment schedules
+
+Auto-deduct installments from payroll
+
+Manage approvals
+
+Maintain financial transparency
+
+Integrate with Accounting module
+
+The design must be clean, structured, attractive, and corporate.
+
+🎨 Professional Color Theme
+
+Theme Style: Corporate HR + Financial ERP
+
+Primary Color:
+
+Deep Blue Gradient (#0047AB → #007BFF)
+
+Secondary Accent:
+
+Soft Teal for approvals
+
+Orange for pending
+
+Red for overdue
+
+Background:
+
+Light gray (#F4F6F9)
+
+White cards
+
+Cards:
+
+Rounded corners (14px)
+
+Soft shadow
+
+Smooth hover elevation
+
+Typography:
+
+Inter or Poppins
+
+Bold section headers
+
+Clean financial alignment
+
+📋 Page Structure
+1️⃣ Top Summary Section (Dashboard Cards)
+
+Display 4 Financial Summary Cards:
+
+Total Active Loans
+
+Total Advance Issued This Month
+
+Total Outstanding Balance
+
+Overdue Installments
+
+Each card must include:
+
+Icon
+
+Large amount
+
+Small status indicator
+
+Color-coded badge
+
+2️⃣ Add Advance / Loan Button
+
+Primary Gradient Button:
+“+ Issue Advance / Loan”
+
+Click opens a structured modal form.
+
+🧾 Issue Advance / Loan Form
+
+Two-column professional layout.
+
+Section A – Employee Details
+
+Employee Name (Dropdown)
+
+Employee ID (Auto fetch)
+
+Department
+
+Designation
+
+Current Salary (Auto fetch)
+
+Section B – Loan/Advance Details
+
+Type (Advance / Loan)
+
+Requested Amount
+
+Reason / Notes
+
+Issue Date
+
+Repayment Type:
+
+One-Time Deduction
+
+Installment Based
+
+If Installment:
+
+Number of Installments
+
+Installment Start Month
+
+Auto calculate EMI amount
+
+Section C – Approval Workflow
+
+Requested By
+
+Approved By (Dropdown – HR/Admin)
+
+Approval Status:
+
+Pending
+
+Approved
+
+Rejected
+
+Buttons:
+
+Save as Draft
+
+Submit for Approval
+
+Approve & Activate (Admin only)
+
+📊 Advance & Loan List Table
+
+Professional data table with filters.
+
+Columns:
+
+Employee Name
+
+Type
+
+Amount
+
+Paid Amount
+
+Remaining Balance
+
+Installment Amount
+
+Status (Active / Completed / Overdue / Pending)
+
+Next Deduction Date
+
+Actions (View / Edit / Close)
+
+Include:
+
+Search bar
+
+Filter by Type
+
+Filter by Status
+
+Filter by Department
+
+Date range filter
+
+Status badges:
+Green = Completed
+Blue = Active
+Orange = Pending
+Red = Overdue
+
+📈 Loan Detail Page (On Click View)
+
+When clicking View:
+
+Display detailed loan breakdown:
+
+Top Card:
+
+Employee Info
+
+Total Loan Amount
+
+Total Paid
+
+Remaining Balance
+
+Loan Duration
+
+Installment Schedule Table:
+
+Columns:
+
+Installment No
+
+Due Date
+
+Installment Amount
+
+Paid Date
+
+Status
+
+Include:
+
+Mark as Paid button
+
+Auto-deduct toggle
+
+🔄 Payroll Integration Logic
+
+System must:
+
+Automatically deduct installment amount from monthly payroll.
+
+Update remaining balance.
+
+Log transaction in Accounting module.
+
+Generate journal entry automatically.
+
+Journal Entry Example:
+Dr: Employee Advance Account
+Cr: Cash/Bank Account
+
+💰 Accounting Integration
+
+Every advance/loan must:
+
+Create ledger entry
+
+Reflect in expense reporting
+
+Appear in financial reports
+
+Create separate chart of account:
+
+Employee Advance Account
+
+Employee Loan Account
+
+🔐 Role-Based Access
+
+Admin:
+
+Issue, approve, modify, close loan
+
+Adjust repayment
+
+HR:
+
+Create request
+
+View status
+
+Cannot approve final payment
+
+Accountant:
+
+View financial details
+
+Mark payments processed
+
+Employee (future portal):
+
+View loan status only
+
+✨ Advanced Features (Add Missing Smart Features)
+
+Add these professional features:
+
+✔ Auto EMI calculation
+✔ Auto overdue detection
+✔ Email / SMS notification to employee
+✔ Printable loan agreement
+✔ Export loan report
+✔ Installment reminder alerts
+✔ Early repayment option
+✔ Penalty fee configuration
+✔ Interest rate option (if needed)
+✔ Salary limit check (e.g., cannot exceed 50% salary)
+✔ Multi-branch support
+✔ Audit log tracking
+
+📊 Reports Section (Within Page)
+
+Add a small “Reports” tab:
+
+Monthly loan issued report
+
+Outstanding summary
+
+Department-wise advance
+
+Overdue report
+
+Include chart visualization.
+
+📱 UI & UX Enhancements
+
+Smooth page transitions
+
+Hover elevation on cards
+
+Clean spacing (8px grid system)
+
+Sticky table header
+
+Smooth modal animation
+
+Progress bar for repayment percentage
+
+🧠 Emotional Feel
+
+This page must feel:
+
+✔ Corporate
+✔ Financially secure
+✔ Transparent
+✔ Powerful HR system
+✔ Enterprise-level ERP
+
+When an ISP owner sees this page, they should feel:
+
+“This is not simple billing software. This is full ERP.”

@@ -1,0 +1,319 @@
+Accounting Module – Add Account Type Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Build a professional “Add Account Type” configuration page inside Accounting module.
+
+This page must allow Admin/Finance to:
+
+Create Account Types
+
+Define accounting classification
+
+Structure Chart of Accounts
+
+Map financial behavior
+
+Configure financial reporting grouping
+
+Link with sub-accounts
+
+This page will control:
+
+✔ Assets
+✔ Liabilities
+✔ Equity
+✔ Revenue
+✔ Expenses
+
+It must be flexible, scalable, and enterprise-ready.
+
+🎨 Enterprise UI Theme
+
+Style:
+Modern Fintech ERP
+
+Primary Gradient:
+Deep Navy → Royal Blue (#002B5B → #0066FF)
+
+Accent Colors:
+
+Green → Asset
+
+Red → Liability
+
+Purple → Equity
+
+Teal → Revenue
+
+Orange → Expense
+
+Background:
+Light Gray (#F4F6F9)
+White financial cards
+Soft shadow
+14px rounded corners
+
+Typography:
+Inter / Poppins
+Right-aligned financial terms
+Bold category names
+
+📊 Page Layout Structure
+1️⃣ Top Summary Dashboard
+
+Show accounting overview:
+
+Total Account Types
+
+Asset Categories
+
+Liability Categories
+
+Revenue Categories
+
+Expense Categories
+
+Each card:
+
+Icon
+
+Count
+
+Category color indicator
+
+Smooth animation
+
+2️⃣ Account Type List Table
+
+Professional grid showing:
+
+Columns:
+
+Account Type Name
+
+Category (Asset/Liability/Equity/Revenue/Expense)
+
+Parent Type (If any)
+
+Normal Balance (Debit/Credit)
+
+Description
+
+Status
+
+Created Date
+
+Action
+
+Status Badge:
+Green = Active
+Gray = Inactive
+
+Features:
+
+Search
+
+Filter by Category
+
+Filter by Status
+
+Export Excel
+
+Expand to view child types
+
+➕ 3️⃣ Add Account Type Button
+
+Opens modal form.
+
+🧾 Add Account Type Form
+
+Professional 2-column layout.
+
+Section A – Basic Information
+
+Account Type Name
+(Example: Current Assets, Bank Accounts, Customer Receivables, Vendor Payables)
+
+Account Code (Optional auto-generate)
+
+Description
+
+Section B – Financial Classification
+
+Dropdown: Category
+
+Asset
+
+Liability
+
+Equity
+
+Revenue
+
+Expense
+
+Section C – Normal Balance Type
+
+Auto-select based on category but editable:
+
+Asset → Debit
+Expense → Debit
+Liability → Credit
+Equity → Credit
+Revenue → Credit
+
+Section D – Parent Account Type (Optional)
+
+Allow hierarchical structure.
+
+Example:
+
+Assets
+→ Current Assets
+→ Cash
+→ Bank
+→ Accounts Receivable
+
+Section E – Reporting Configuration
+
+Options:
+
+☐ Include in Trial Balance
+☐ Include in Profit & Loss
+☐ Include in Balance Sheet
+☐ Allow Sub-Accounts
+☐ Allow Direct Posting
+
+Section F – Status
+
+Active / Inactive
+
+🔄 System Logic
+
+When Account Type is created:
+
+✔ Can create multiple sub-accounts under it
+✔ Can be mapped to system modules
+✔ Can be used in journal entries
+✔ Can be linked to:
+
+Reseller Wallet
+
+Payroll Expense
+
+Vendor Payable
+
+Customer Receivable
+
+Commission Expense
+
+Bank Accounts
+
+📚 Example Account Type Structure
+
+Asset
+
+Current Assets
+
+Fixed Assets
+
+Bank Accounts
+
+Accounts Receivable
+
+Liability
+
+Current Liabilities
+
+Vendor Payables
+
+Tax Payable
+
+Reseller Wallet Liability
+
+Revenue
+
+Internet Revenue
+
+CIR Revenue
+
+Corporate Revenue
+
+Installation Charges
+
+Expense
+
+Bandwidth Expense
+
+Salary Expense
+
+Commission Expense
+
+Operational Expense
+
+🔐 Permissions
+
+Admin:
+
+Full control
+
+Finance:
+
+Create & Edit
+
+Accountant:
+
+View only
+
+📈 Advanced Enterprise Features
+
+Add:
+
+✔ Auto account code generator
+✔ Drag & drop hierarchy builder
+✔ Lock system default types
+✔ Prevent deletion if used in transactions
+✔ Multi-branch account grouping
+✔ Multi-currency flag
+✔ Financial year mapping
+✔ Tax configuration linkage
+✔ Auto numbering structure
+
+🔗 Integration With ERP
+
+This page must integrate with:
+
+✔ Reseller Wallet
+✔ Vendor Payments
+✔ Customer Invoicing
+✔ Payroll
+✔ Commission
+✔ Expense Module
+✔ Bank Reconciliation
+✔ Journal Entry
+
+💎 UI Enhancements
+
+Expandable tree view
+
+Color-coded category labels
+
+Hover detail preview
+
+Smooth modal transitions
+
+Hierarchical indentation
+
+Financial tooltips
+
+🎯 Emotional Impact Goal
+
+When you open this page:
+
+“My accounting structure is professional.”
+“I can scale this company.”
+“This looks like real ERP.”
+“This is investor-ready.”

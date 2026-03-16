@@ -1,0 +1,294 @@
+ASSETS MODULE
+Assets Allocation Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a structured Assets Allocation Page to plan, reserve, and distribute assets across departments, POPs, technicians, and projects before actual deployment or assignment.
+
+This page ensures:
+
+✔ Smart inventory planning
+✔ Controlled stock reservation
+✔ Project-based asset distribution
+✔ Prevention of stock conflicts
+✔ Efficient resource utilization
+✔ Reduced emergency shortages
+
+This is your infrastructure planning command center.
+
+🎨 UI / Theme Design
+
+Style:
+Enterprise Resource Planning Dashboard
+
+Primary Gradient:
+Royal Blue → Emerald (#1D4ED8 → #059669)
+
+Background:
+Soft Neutral (#F1F5F9)
+
+Allocation Status Indicators:
+
+🔵 Reserved
+🟡 Pending Approval
+🟢 Allocated
+🟣 Partially Allocated
+🔴 Cancelled
+⚫ Expired
+
+Typography:
+Inter / Poppins
+Monospace for Asset Codes & Serial
+
+Layout:
+Dashboard + Allocation Planner + Inventory Matrix
+
+📊 Page Layout Structure
+
+The page contains 5 core sections:
+
+1️⃣ Allocation Overview Dashboard
+2️⃣ Create Allocation Plan
+3️⃣ Allocation Requests List
+4️⃣ Inventory Availability Matrix
+5️⃣ Allocation History & Adjustments
+
+1️⃣ Allocation Overview Dashboard
+
+KPI Cards:
+
+Total Allocations
+
+Reserved Stock
+
+Allocated to POPs
+
+Allocated to Technicians
+
+Pending Approvals
+
+Expiring Reservations
+
+Available Inventory
+
+Analytics:
+
+📊 Allocation by Asset Type
+📈 Allocation by Location
+📊 Allocation by Project
+📉 Shortage Forecast
+
+2️⃣ Create Allocation Plan
+
+Structured allocation planning form.
+
+Fields:
+
+Allocation ID (Auto-generated)
+
+Allocation Type:
+
+POP Allocation
+
+Technician Allocation
+
+Project Allocation
+
+Bulk Installation Allocation
+
+Emergency Stock Allocation
+
+Asset Type
+
+Quantity
+
+Warehouse Source
+
+Destination (POP / Technician / Project)
+
+Linked Project (optional)
+
+Expected Usage Date
+
+Priority Level
+
+Justification
+
+Approval Required (Yes / No)
+
+Options:
+
+✔ Reserve Specific Serial Numbers
+✔ Auto-Select from Available Stock
+✔ Notify Responsible Person
+✔ Set Expiry Date for Reservation
+
+Validation Rules:
+
+❌ Cannot allocate beyond available stock
+❌ Cannot allocate assets under maintenance
+❌ Cannot allocate already assigned devices
+
+3️⃣ Allocation Requests List
+
+Structured grid:
+
+Columns:
+
+Allocation ID
+
+Allocation Type
+
+Asset Type
+
+Quantity
+
+Source Warehouse
+
+Destination
+
+Linked Project
+
+Requested By
+
+Status
+
+Reservation Expiry
+
+Actions
+
+Actions:
+
+• Approve
+• Cancel
+• Convert to Transfer
+• Convert to Assignment
+• Extend Reservation
+• View Details
+
+Advanced Filters:
+
+✔ By location
+✔ By asset type
+✔ By status
+✔ By project
+✔ By date
+
+4️⃣ Inventory Availability Matrix
+
+Real-time stock visualization.
+
+Displays:
+
+| Asset Type | Warehouse A | Warehouse B | POP Sargodha | Reserved | Available |
+
+Color indicators:
+
+🟢 Sufficient Stock
+🟡 Low Stock
+🔴 Critical Shortage
+
+This matrix allows quick decision-making before approving allocations.
+
+5️⃣ Allocation History & Adjustments
+
+Full allocation lifecycle log.
+
+Example Timeline:
+
+🔵 10 Mar – 50 ONUs Reserved for POP Sargodha
+🟢 12 Mar – Approved by Inventory Manager
+🟡 15 Mar – 30 Converted to Transfer
+🔴 20 Mar – 20 Reservation Expired
+
+Each record logs:
+
+Date & Time
+
+User
+
+Action Taken
+
+Quantity Affected
+
+Related Transfer / Assignment ID
+
+Notes
+
+Immutable audit record.
+
+🔄 Automation Logic
+
+When allocation approved:
+
+✔ Reduce available stock
+✔ Mark assets as “Reserved”
+✔ Notify destination
+
+If converted to transfer:
+
+✔ Auto-create Transfer Request
+
+If converted to assignment:
+
+✔ Open Assignment Workflow
+
+If reservation expires:
+
+✔ Return stock to available pool
+✔ Notify requester
+
+If stock below threshold:
+
+✔ Trigger low-stock alert
+
+🔐 Role-Based Access
+
+Admin:
+Full allocation control
+
+Inventory Manager:
+Approve / adjust allocations
+
+Network Manager:
+Allocate to POPs
+
+Project Manager:
+Allocate to projects
+
+Technician Supervisor:
+Request allocation
+
+Viewer:
+Read-only
+
+Only Admin can override stock limits.
+
+🔗 Integration Required
+
+✔ Assets List Page
+✔ Asset Transfer & Movement
+✔ Asset Assignment to Customer
+✔ Request & Approvals
+✔ Warehouse Stock Module
+✔ Project Management Module
+✔ Inventory Alerts System
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Strategic inventory distribution
+✔ Reduced stock shortages
+✔ Better installation planning
+✔ Controlled bulk deployment
+✔ Project-based asset management
+✔ Improved operational efficiency
+
+When you open this page, it should feel like:
+
+“I can plan infrastructure before deployment.”
+“I control stock distribution.”
+“No project will face device shortages.”

@@ -1,0 +1,307 @@
+HRM – Staff User Login & Account Management Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Build a secure HRM module where Admin/HR can:
+
+Create Username & Password for Employees
+
+Assign login access based on Role
+
+Enable/Disable system access
+
+Configure login permissions
+
+Reset passwords
+
+Track login status
+
+Control App vs Web login
+
+This page must integrate with:
+
+✔ HRM Role & Type
+✔ App Access Module
+✔ Area Allocation
+✔ Payroll & Attendance
+✔ System Security
+
+🎨 Professional Enterprise UI Theme
+
+Style:
+Modern ERP Admin Panel
+
+Primary Gradient:
+Deep Blue → Royal Blue (#002B5B → #007BFF)
+
+Accent Colors:
+
+Green → Active User
+
+Orange → Temporary Password
+
+Red → Disabled / Locked
+
+Purple → Admin User
+
+Teal → Field Staff
+
+Layout:
+White card panels
+Soft shadows
+14px rounded corners
+Clean grid structure
+
+Typography:
+Inter / Poppins
+Clear labels
+Bold username display
+
+📋 Page Structure
+1️⃣ Top Summary Dashboard
+
+Display:
+
+Total Staff Accounts
+
+Active Users
+
+Locked Accounts
+
+Web Access Users
+
+App Access Users
+
+Each card:
+
+Icon
+
+Count
+
+Status indicator
+
+2️⃣ Staff User Account Table
+
+Professional data grid.
+
+Columns:
+
+Employee Name
+
+Employee ID
+
+Username
+
+Role
+
+Login Type (Web / App / Both)
+
+Account Status
+
+Last Login
+
+Action
+
+Features:
+
+Search
+
+Filter by Role
+
+Filter by Status
+
+Filter by Branch
+
+Reset Password (Quick Action)
+
+Enable / Disable Toggle
+
+Export Excel
+
+Status Badge:
+Green = Active
+Red = Disabled
+Orange = Locked
+Gray = Not Created
+
+3️⃣ ➕ Create Staff Login Button
+
+Opens professional modal form.
+
+🧾 Create Staff Login Form
+
+Two-column professional layout.
+
+Section A – Employee Selection
+
+Select Employee (Dropdown from HRM Employee List)
+
+Auto Fetch:
+
+Employee ID
+
+Role
+
+Department
+
+Branch
+
+Section B – Account Credentials
+
+Username (Manual or Auto-generate)
+
+Password (Manual or Auto-generate)
+
+Confirm Password
+
+Password Strength Indicator
+
+Options:
+
+☐ Force password change on first login
+☐ Generate Temporary Password
+
+Section C – Login Access Configuration
+
+Login Type:
+
+Web Only
+
+App Only
+
+Both
+
+Allow Login (Toggle Yes/No)
+
+Account Expiry Date (Optional)
+
+Max Login Attempts (Default 5)
+
+Two-Factor Authentication (Optional Toggle)
+
+Device Restriction:
+
+Single Device
+
+Multiple Devices
+
+Section D – Role-Based Permission Sync
+
+Display:
+
+Assigned Role
+
+Permission Template
+
+App Feature Access (Read-only preview from Role page)
+
+Option:
+☐ Override role permissions (Admin Only)
+
+🔐 System Logic
+
+When creating account:
+
+1️⃣ Verify employee status is Active
+2️⃣ Ensure unique username
+3️⃣ Encrypt password
+4️⃣ Link account with Employee ID
+5️⃣ Apply Role-based permissions
+6️⃣ Log account creation
+
+🔄 Password Management Features
+
+Admin can:
+
+Reset Password
+
+Force Logout
+
+Lock Account
+
+Unlock Account
+
+Disable Account
+
+View Login History
+
+Employee can:
+
+Change Password
+
+View Last Login Info
+
+📊 Account Activity Log Section
+
+Add sub-tab:
+
+Show:
+
+Login Date
+
+Login Time
+
+IP Address
+
+Device Type
+
+Login Status (Success/Failed)
+
+Logout Time
+
+Filters:
+
+Date range
+
+Role
+
+Status
+
+🔒 Security Features
+
+✔ Password Encryption (Hashing)
+✔ Strong password validation
+✔ Auto account lock after X failed attempts
+✔ Session timeout configuration
+✔ Device tracking
+✔ IP logging
+✔ Audit trail
+
+🔗 Integration Logic
+
+If account is disabled:
+
+→ Employee cannot log into system
+→ Cannot access App
+→ Cannot access Attendance
+
+If employee is terminated:
+
+→ Auto deactivate account
+
+If role changes:
+
+→ Auto update permissions
+
+💎 UI Enhancements
+
+Toggle switches with animation
+
+Password visibility icon
+
+Smooth modal animation
+
+Success notification toast
+
+Clean confirmation dialogs
+
+🎯 Emotional Impact Goal
+
+When you open this page:
+
+“I control who enters my system.”
+“Every employee access is structured.”
+“No unauthorized usage.”
+“This is professional ERP security.”

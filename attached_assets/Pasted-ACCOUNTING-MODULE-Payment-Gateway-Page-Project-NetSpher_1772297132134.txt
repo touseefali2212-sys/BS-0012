@@ -1,0 +1,243 @@
+ACCOUNTING MODULE
+Payment Gateway Page
+Project: NetSphere ISP Billing & Enterprise ERP
+________________________________________
+🎯 Objective
+Build a secure and scalable Payment Gateway Management Page inside the Accounting module that allows:
+•	Integration of multiple payment gateways
+•	Configure API credentials
+•	Map payment methods to accounts
+•	Automate invoice payment posting
+•	Track transaction status
+•	Manage reconciliation
+•	Control settlement accounts
+This page must integrate with:
+✔ Customer Invoices
+✔ Income Entry
+✔ Accounts Receivable
+✔ Bank Accounts
+✔ General Ledger
+________________________________________
+🎨 Professional UI Theme
+Style:
+Modern Fintech Integration Dashboard
+Primary Gradient:
+Deep Navy → Royal Blue (#002B5B → #0066FF)
+Accent Indicators:
+🟢 Active
+🟡 Testing Mode
+🔴 Disabled
+🔵 Settlement Pending
+Background:
+Light Gray (#F4F6F9)
+White integration cards
+Soft shadow
+14px rounded corners
+Typography:
+Inter / Poppins
+________________________________________
+📊 Page Layout Structure
+The page contains:
+1️⃣ Gateway Overview Dashboard
+2️⃣ Add / Configure Payment Gateway
+3️⃣ Gateway List Table
+4️⃣ Transaction Monitoring Section
+5️⃣ Settlement & Reconciliation Settings
+________________________________________
+1️⃣ Gateway Overview Dashboard
+Top summary cards:
+•	Total Active Gateways
+•	Online Payments Today
+•	This Month Collection
+•	Pending Settlements
+•	Failed Transactions
+Add chart:
+Daily Online Payment Trend
+________________________________________
+➕ 2️⃣ Add / Configure Payment Gateway
+Professional configuration form.
+________________________________________
+Section A – Basic Gateway Information
+•	Gateway Name
+•	Provider Type:
+o	Bank Integration
+o	Card Payment
+o	Wallet
+o	Online Gateway
+o	Manual Payment Link
+•	Environment:
+o	Sandbox
+o	Production
+•	Status:
+o	Active
+o	Testing
+o	Disabled
+________________________________________
+Section B – API Credentials
+Secure fields:
+•	Merchant ID
+•	API Key
+•	Secret Key
+•	Public Key
+•	Webhook URL
+•	Callback URL
+Add:
+☐ Encrypt credentials
+☐ Test Connection Button
+________________________________________
+Section C – Financial Mapping
+Account Mapping:
+•	Debit Account:
+Bank / Wallet Account
+•	Credit Account:
+Accounts Receivable
+•	Gateway Charges Expense Account
+•	Tax on Charges Account
+This ensures automatic double-entry posting.
+________________________________________
+Section D – Payment Behavior Settings
+☐ Auto mark invoice as paid
+☐ Partial payment allowed
+☐ Auto send receipt
+☐ Auto generate income entry
+☐ Apply late fee automatically
+☐ Auto adjust credit balance
+________________________________________
+Section E – Security & Fraud Controls
+•	Max transaction limit
+•	Daily transaction cap
+•	IP validation
+•	Duplicate transaction prevention
+•	Webhook verification toggle
+________________________________________
+📑 3️⃣ Payment Gateway List Table
+Columns:
+•	Gateway Name
+•	Type
+•	Mode (Sandbox / Live)
+•	Linked Account
+•	Status
+•	Last Transaction Date
+•	Total Collection (Month)
+•	Action
+Features:
+✔ Enable/Disable toggle
+✔ Test connection
+✔ View logs
+✔ Edit configuration
+✔ Delete (if no transactions)
+________________________________________
+💳 4️⃣ Transaction Monitoring Section
+Professional transaction table.
+Columns:
+•	Transaction ID
+•	Date
+•	Customer
+•	Invoice No
+•	Gateway
+•	Payment Method
+•	Amount
+•	Gateway Charges
+•	Net Amount
+•	Status
+•	Settlement Status
+•	Action
+Status Indicators:
+🟢 Successful
+🟡 Pending
+🔴 Failed
+🔵 Refunded
+Filters:
+•	Date
+•	Status
+•	Gateway
+•	Customer
+•	Amount range
+Export option available.
+________________________________________
+🏦 5️⃣ Settlement & Reconciliation Settings
+Add settlement tracking:
+•	Settlement Date
+•	Settlement Amount
+•	Bank Account
+•	Charges deducted
+•	Settlement Status
+System must:
+✔ Match gateway transaction with bank settlement
+✔ Auto post bank reconciliation entry
+✔ Show difference if mismatch
+________________________________________
+🔄 System Logic
+When customer pays online:
+✔ Gateway sends callback
+✔ System verifies transaction
+✔ Marks invoice as paid
+✔ Creates income journal entry
+✔ Debits Bank Account
+✔ Credits Accounts Receivable
+✔ Records gateway charges as expense
+✔ Updates dashboard
+If refund processed:
+✔ Reverse journal entry
+✔ Update invoice status
+✔ Adjust AR
+________________________________________
+📊 ISP Use Case Example
+Customer pays 15,000 PKR via online gateway.
+Gateway charges 2% (300 PKR).
+System auto posts:
+Debit: Bank 14,700
+Debit: Gateway Charges Expense 300
+Credit: Accounts Receivable 15,000
+Fully automated.
+________________________________________
+🔐 Permissions
+Admin:
+Full configuration
+Finance Manager:
+View / Reconcile
+Accountant:
+Monitor transactions
+Viewer:
+View only
+________________________________________
+💎 Advanced Enterprise Features
+Add:
+✔ Multi-gateway routing
+✔ Smart fallback gateway
+✔ Recurring auto debit
+✔ Subscription billing integration
+✔ Wallet auto top-up
+✔ Refund management system
+✔ Chargeback handling
+✔ Transaction dispute logs
+✔ Payment retry automation
+✔ Real-time webhook monitoring
+________________________________________
+🔗 Integration Points
+Must connect with:
+✔ Billing Rules
+✔ Invoice Module
+✔ Credit Notes
+✔ Income Entry
+✔ Chart of Accounts
+✔ Bank Reconciliation
+✔ AR Aging
+✔ Financial Reports
+________________________________________
+📈 Financial KPIs
+Add metrics:
+•	Online Collection Ratio
+•	Payment Success Rate
+•	Average Collection Time
+•	Failed Transaction %
+•	Gateway Fee % of Revenue
+These make it enterprise-level.
+________________________________________
+🎯 Emotional Impact Goal
+When you open this page:
+“Payments are automated.”
+“No manual tracking.”
+“Cash flow is under control.”
+“This ERP is ready for scale.”
+

@@ -1,0 +1,345 @@
+ACCOUNTING MODULE
+Credit Notes Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Build a professional Credit Notes Management Page inside the Accounting module that allows:
+
+Creating customer credit notes
+
+Adjusting against invoices
+
+Processing refunds
+
+Managing overpayments
+
+Reversing incorrect charges
+
+Auto-generating accounting journal entries
+
+This page must be audit-ready and fully integrated with:
+
+✔ Customer Module
+✔ CIR & Corporate Billing
+✔ Income Entry
+✔ Accounts Receivable
+✔ General Ledger
+
+🎨 Professional UI Theme
+
+Style:
+Modern Financial ERP – Adjustment Control Interface
+
+Primary Gradient:
+Deep Navy → Royal Blue (#002B5B → #0066FF)
+
+Color Indicators:
+
+🟢 Approved
+🟡 Pending
+🔴 Rejected
+🔵 Applied to Invoice
+
+Background:
+Light Gray (#F4F6F9)
+White financial cards
+Soft shadow
+14px rounded corners
+
+Typography:
+Inter / Poppins
+Structured financial layout
+
+📊 Page Layout Structure
+
+The page contains:
+
+1️⃣ Credit Notes Overview Dashboard
+2️⃣ Create New Credit Note
+3️⃣ Credit Notes List Table
+4️⃣ Credit Application & Adjustment Section
+
+1️⃣ Credit Notes Overview Dashboard
+
+Top summary cards:
+
+Total Credit Notes
+
+Pending Credit Notes
+
+Approved Credit Notes
+
+Total Credit Amount
+
+Applied Amount
+
+Unapplied Balance
+
+Add trend chart:
+
+Monthly Credit Notes Issued
+
+➕ 2️⃣ Create New Credit Note
+
+Professional multi-section form.
+
+Section A – Basic Information
+
+Credit Note Number (Auto-generated)
+
+Credit Note Date
+
+Customer (Dropdown – CIR / Corporate supported)
+
+Related Invoice (Optional)
+
+Branch
+
+Reason for Credit
+
+Reason dropdown:
+
+Overbilling
+
+Service Cancellation
+
+Refund
+
+Discount Adjustment
+
+Billing Error
+
+Goodwill Adjustment
+
+Other
+
+Section B – Credit Details
+
+Dynamic table:
+
+Columns:
+
+Description
+
+Quantity
+
+Unit Price
+
+Tax
+
+Total
+
+Auto-calculate:
+
+Subtotal
+Tax
+Grand Total
+
+Section C – Financial Posting
+
+Accounts Section:
+
+Debit Account:
+Revenue Account (Reversal of income)
+
+Credit Account:
+Accounts Receivable
+
+If Refund Mode:
+
+Credit:
+Cash / Bank
+
+Section D – Application Settings
+
+Options:
+
+☐ Apply to specific invoice
+☐ Keep as customer credit balance
+☐ Refund immediately
+☐ Partial application allowed
+
+Section E – Approval Workflow
+
+Status:
+
+Draft
+
+Pending Approval
+
+Approved
+
+Rejected
+
+Applied
+
+Add:
+
+Approval Notes
+Approved By
+Approval Date
+
+🔄 System Logic
+
+When Credit Note is Approved:
+
+✔ Reverse revenue (Debit Revenue)
+✔ Reduce customer receivable
+✔ Update AR aging
+✔ Reflect in Trial Balance
+✔ Update P&L
+✔ Update Customer Outstanding
+
+If Refund selected:
+
+✔ Credit Cash/Bank
+✔ Close credit note
+
+If Applied to Invoice:
+
+✔ Reduce invoice balance
+✔ Update customer ledger
+
+📑 3️⃣ Credit Notes List Table
+
+Professional financial grid.
+
+Columns:
+
+Credit Note No
+
+Date
+
+Customer
+
+Related Invoice
+
+Total Amount
+
+Applied Amount
+
+Remaining Balance
+
+Status
+
+Created By
+
+Action
+
+Features:
+
+✔ Search
+✔ Filter by Status
+✔ Filter by Date
+✔ Filter by Customer
+✔ Export to Excel
+✔ Print Credit Note
+✔ View Ledger
+
+🔍 4️⃣ Credit Note Detail View
+
+When clicking a record:
+
+Show:
+
+Complete credit breakdown
+
+Journal entry preview
+
+Linked invoice
+
+Adjustment history
+
+Payment/refund history
+
+Audit trail
+
+Buttons:
+
+✔ Edit (if Draft)
+✔ Approve
+✔ Reject
+✔ Apply to Invoice
+✔ Refund
+✔ Print
+
+📊 ISP Use Case Examples
+
+Example 1:
+
+Corporate client billed 500,000
+Actual should be 450,000
+Create Credit Note → 50,000
+Apply to Invoice
+
+Example 2:
+
+Customer paid double
+Create Credit Note
+Keep as advance balance
+
+Example 3:
+
+Service cancelled mid-month
+Create prorated credit
+
+🔐 Permissions
+
+Admin:
+Full access
+
+Finance Manager:
+Create / Approve
+
+Accountant:
+Create / View
+
+Viewer:
+View only
+
+💎 Advanced Enterprise Features
+
+Add:
+
+✔ Auto proration for mid-month cancellation
+✔ Tax adjustment integration
+✔ Multi-branch support
+✔ Partial credit application
+✔ Credit expiry tracking
+✔ Automatic AR aging update
+✔ Recurring billing correction support
+✔ Customer credit wallet view
+✔ Lock period control
+
+🔗 Integration Points
+
+Must connect with:
+
+✔ Customer Module
+✔ CIR & Corporate Customers
+✔ Invoice Module
+✔ Income Entry
+✔ Chart of Accounts
+✔ Journal Entry
+✔ Trial Balance
+✔ P&L
+✔ Balance Sheet
+
+📈 Financial Impact
+
+Credit Notes must:
+
+✔ Reduce revenue properly
+✔ Adjust receivables accurately
+✔ Maintain double-entry accounting
+✔ Keep audit trail secure
+
+🎯 Emotional Impact Goal
+
+When Finance team opens this:
+
+“This system handles adjustments professionally.”
+“No manual corrections needed.”
+“This is enterprise-grade billing.”

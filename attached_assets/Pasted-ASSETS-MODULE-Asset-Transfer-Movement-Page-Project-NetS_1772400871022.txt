@@ -1,0 +1,291 @@
+ASSETS MODULE
+Asset Transfer & Movement Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a structured Asset Transfer & Movement Page to track and control the movement of assets between warehouses, POPs, offices, technicians, and customers.
+
+This page ensures:
+
+✔ Full chain-of-custody tracking
+✔ Real-time location updates
+✔ Controlled asset transfers
+✔ Movement history audit trail
+✔ Reduced equipment loss
+✔ Accountability of staff
+
+This is your infrastructure logistics management center.
+
+🎨 UI / Theme Design
+
+Style:
+Enterprise Logistics & Infrastructure Dashboard
+
+Primary Gradient:
+Steel Blue → Emerald (#1E40AF → #059669)
+
+Background:
+Light Gray (#F3F4F6)
+
+Movement Status Indicators:
+
+🟢 Completed
+🟡 In Transit
+🔵 Pending Approval
+🟣 Assigned
+🔴 Rejected
+⚫ Cancelled
+
+Typography:
+Inter / Poppins
+Monospace for Asset ID / Serial
+
+Clean and structured layout with workflow clarity.
+
+📊 Page Layout Structure
+
+The page contains 5 core sections:
+
+1️⃣ Movement Overview Dashboard
+2️⃣ New Transfer Request Form
+3️⃣ Transfer Requests List
+4️⃣ Movement History Log
+5️⃣ Approval & Workflow Panel
+
+1️⃣ Movement Overview Dashboard
+
+Top KPI Cards:
+
+Total Transfers (This Month)
+
+Assets In Transit
+
+Pending Approvals
+
+Completed Transfers
+
+Returned Assets
+
+Faulty Transfers
+
+Charts:
+
+📊 Transfers by Location
+📈 Monthly Movement Trend
+📊 Most Transferred Asset Types
+📉 Loss / Damage Rate
+
+2️⃣ New Transfer Request Form
+
+Professional transfer initiation form.
+
+Fields:
+
+Transfer ID (Auto-generated)
+
+Asset ID (Search by Serial / MAC)
+
+Asset Type
+
+Current Location
+
+Transfer Type:
+
+Warehouse → POP
+
+POP → Warehouse
+
+POP → POP
+
+Warehouse → Technician
+
+Technician → Warehouse
+
+Customer → Warehouse
+
+Repair Center Transfer
+
+From Location
+
+To Location
+
+Assigned To (Technician / Staff)
+
+Reason for Transfer
+
+Expected Delivery Date
+
+Attach Supporting Documents
+
+Priority Level (High / Normal / Low)
+
+Options:
+
+✔ Require Approval
+✔ Mark as Urgent
+✔ Notify Receiving Party
+
+3️⃣ Transfer Requests List
+
+Structured grid:
+
+Columns:
+
+Transfer ID
+
+Asset ID
+
+Asset Name
+
+From Location
+
+To Location
+
+Transfer Type
+
+Requested By
+
+Approved By
+
+Status
+
+Dispatch Date
+
+Delivery Date
+
+Action Menu
+
+Features:
+
+✔ Filter by status
+✔ Filter by location
+✔ Filter by asset type
+✔ Date range filter
+✔ Bulk approval
+✔ Export to Excel
+
+4️⃣ Movement History Log
+
+Full audit trail per asset:
+
+Example Timeline:
+
+🟡 10 Jan – Moved from Warehouse → POP Sargodha
+🟢 10 Jan – Received by Engineer Ali
+🔵 22 Jan – Assigned to Customer #1023
+🔴 05 Feb – Returned as Faulty
+🟢 07 Feb – Sent to Repair Center
+
+Each record includes:
+
+Date & Time
+
+From Location
+
+To Location
+
+Responsible Person
+
+Condition Status
+
+Notes
+
+Attachment (if any)
+
+This log cannot be edited or deleted.
+
+5️⃣ Approval & Workflow Panel
+
+Role-based approval system.
+
+Workflow Example:
+
+Technician requests transfer →
+Inventory Manager approves →
+Dispatch logged →
+Receiving person confirms delivery →
+Status marked Completed
+
+Status Flow:
+
+Pending → Approved → In Transit → Received → Completed
+
+If rejected:
+
+✔ Reason required
+✔ Notification sent
+✔ Logged permanently
+
+🔄 Automation Logic
+
+When transfer approved:
+
+✔ Update asset status to “In Transit”
+✔ Reserve asset
+✔ Notify receiving location
+
+When received:
+
+✔ Update asset location
+✔ Change status to “Active”
+✔ Log receiver name & timestamp
+
+If delivery overdue:
+
+✔ Trigger alert
+✔ Notify admin
+
+If asset marked faulty:
+
+✔ Auto-create maintenance task
+✔ Update status
+
+🔐 Role-Based Access
+
+Admin:
+Full control
+
+Inventory Manager:
+Approve / manage transfers
+
+Network Manager:
+Initiate POP transfers
+
+Technician:
+Request / confirm receipt
+
+Finance Manager:
+View movement reports
+
+Viewer:
+Read-only
+
+Only Admin can cancel completed transfers.
+
+🔗 Integration Required
+
+✔ Assets List Page
+✔ Asset Type Module
+✔ Warehouse Management
+✔ Task Management (Repair Tasks)
+✔ Accounting Module (Asset valuation impact)
+✔ Audit Module
+
+📈 Business Impact
+
+This page ensures:
+
+✔ No asset loss
+✔ Full accountability
+✔ Transparent logistics
+✔ Faster equipment deployment
+✔ Controlled infrastructure movement
+✔ Clean audit compliance
+
+When you open this page, it should feel like:
+
+“I know where every device moved.”
+“I know who handled it.”
+“No equipment can disappear.”

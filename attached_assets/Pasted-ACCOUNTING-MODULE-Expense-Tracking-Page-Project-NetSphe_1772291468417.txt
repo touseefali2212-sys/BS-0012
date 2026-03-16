@@ -1,0 +1,304 @@
+ACCOUNTING MODULE
+Expense Tracking Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Build a powerful “Expense Tracking” page inside the Accounting module that allows:
+
+Real-time monitoring of all expense transactions
+
+Department-wise and branch-wise tracking
+
+Budget vs Actual comparison
+
+Vendor-wise expense analysis
+
+Category-wise expense breakdown
+
+Cost control alerts
+
+This page must be analytical, data-driven, and decision-focused.
+
+🎨 Professional UI Theme
+
+Style:
+Corporate Financial Analytics Dashboard
+
+Primary Gradient:
+Deep Navy → Royal Blue (#002B5B → #0066FF)
+
+Accent Indicators:
+
+🟢 Low Spend
+🟡 Moderate Spend
+🔴 High Spend
+⚫ Over Budget
+
+Background:
+Light Gray (#F4F6F9)
+White analytic cards
+Soft shadow
+14px rounded corners
+
+Typography:
+Inter / Poppins
+Clean structured financial tables
+
+📊 Page Layout Structure
+
+The page contains 5 major sections:
+
+1️⃣ Expense Summary Dashboard
+2️⃣ Advanced Filters Section
+3️⃣ Expense Analytics Charts
+4️⃣ Expense Tracking Table
+5️⃣ Drill-Down Detail View
+
+1️⃣ Expense Summary Dashboard
+
+Top financial cards:
+
+Today’s Total Expense
+
+This Month Expense
+
+Year-to-Date Expense
+
+Budget Allocated
+
+Budget Used %
+
+Remaining Budget
+
+Add dynamic progress bars.
+
+Add indicator badge:
+
+Under Budget / Near Limit / Over Budget
+
+2️⃣ Advanced Filters Section
+
+Professional filter panel:
+
+Date Range
+
+Branch
+
+Department
+
+Expense Category
+
+Vendor
+
+Account
+
+Payment Method
+
+Budget Period
+
+Amount Range
+
+Include:
+
+✔ Quick filter buttons (Today / This Month / This Quarter / This Year)
+✔ Reset Filter option
+
+3️⃣ Expense Analytics Charts
+
+Add visual analytics:
+
+📊 Pie Chart:
+Expense by Category
+(Salary, Bandwidth, Commission, Maintenance, Utility, Other)
+
+📈 Bar Chart:
+Monthly Expense Trend
+
+📊 Stacked Bar:
+Department-wise Expense
+
+📉 Line Graph:
+Budget vs Actual trend
+
+All charts should update dynamically based on filters.
+
+4️⃣ Expense Tracking Table
+
+Professional financial grid.
+
+Columns:
+
+Expense Date
+
+Voucher No
+
+Expense Category
+
+Vendor / Employee
+
+Department
+
+Branch
+
+Debit Account
+
+Credit Account
+
+Amount
+
+Budget Allocation
+
+Utilization %
+
+Status
+
+Action
+
+Status Indicators:
+
+Green → Within Budget
+Orange → Near Budget Limit
+Red → Over Budget
+Gray → Unallocated
+
+Features:
+
+✔ Search
+✔ Sort by amount
+✔ Export to Excel
+✔ Print report
+✔ Pagination
+✔ Sticky header
+✔ Bulk export
+
+5️⃣ Expense Detail Drill-Down View
+
+When clicking any expense:
+
+Show:
+
+Full Voucher Details
+
+Journal Entry View
+
+Linked Budget Allocation
+
+Payment Method
+
+Attachment (Invoice / Slip)
+
+Approval Status
+
+Audit Trail
+
+Buttons:
+
+✔ Edit (if allowed)
+✔ Void / Reverse
+✔ Print Voucher
+✔ View Ledger
+
+🔄 System Logic
+
+When expense is posted:
+
+✔ Automatically updates tracking page
+✔ Updates budget allocation
+✔ Recalculates utilization %
+✔ Updates dashboard summary
+✔ Reflects in P&L
+✔ Reflects in Trial Balance
+
+If expense exceeds budget:
+
+✔ Trigger alert
+✔ Show red indicator
+✔ Optional: Require approval
+
+📊 ISP-Specific Expense Categories Example
+
+Bandwidth Expense
+
+Salary Expense
+
+Commission Expense
+
+Fiber Maintenance
+
+Router & Equipment
+
+Office Rent
+
+Utility Bills
+
+Marketing Expense
+
+Installation Cost
+
+🔐 Permissions
+
+Admin:
+Full access
+
+Finance Manager:
+View / Filter / Export
+
+Accountant:
+View & Manage
+
+Department Head:
+View only assigned department
+
+💎 Advanced Enterprise Features
+
+Add:
+
+✔ Cost center tagging
+✔ Profit center tracking
+✔ Recurring expense monitoring
+✔ Expense trend forecasting
+✔ AI-based anomaly detection (future-ready)
+✔ Branch performance ranking
+✔ Expense ratio analytics
+✔ Comparative monthly growth %
+✔ Auto warning if expense growth > X%
+
+🔗 Integration
+
+Must integrate with:
+
+✔ Expense Entry Page
+✔ Budget Allocation
+✔ Payroll
+✔ Vendor Module
+✔ Chart of Accounts
+✔ Journal Entries
+✔ Financial Reports
+✔ CEO Dashboard
+
+📈 Financial Intelligence Section
+
+Add KPI metrics:
+
+Expense to Revenue Ratio
+
+Operating Cost %
+
+Salary % of Revenue
+
+Bandwidth % of Revenue
+
+Net Operational Margin
+
+These metrics make it investor-grade.
+
+🎯 Emotional Impact Goal
+
+When you open this page:
+
+“I know exactly where my money is going.”
+“I can control costs.”
+“This is a real ERP financial analytics system.”
+“I can scale confidently.”

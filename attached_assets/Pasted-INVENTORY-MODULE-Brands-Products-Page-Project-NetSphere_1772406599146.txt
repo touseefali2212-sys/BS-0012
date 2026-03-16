@@ -1,0 +1,348 @@
+INVENTORY MODULE
+Brands & Products Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized Brands & Products Page to manage all inventory items, linked brands, pricing, stock visibility, and operational attributes.
+
+This page controls:
+
+✔ Actual physical products
+✔ Brand-level classification
+✔ Model management
+✔ SKU tracking
+✔ Cost & sale pricing
+✔ Serial & MAC tracking
+✔ Product availability
+
+This page connects Inventory, Assets, Procurement, and Sales.
+
+🎨 UI / Theme Design
+
+Style:
+Enterprise Product & Catalog Management Interface
+
+Primary Gradient:
+Deep Navy → Emerald (#1E293B → #059669)
+
+Background:
+Light Neutral (#F8FAFC)
+
+Product Status Indicators:
+
+🟢 In Stock
+🟡 Low Stock
+🔵 Available for Sale
+🟣 Rental Product
+🔴 Out of Stock
+⚫ Discontinued
+
+Typography:
+Inter / Poppins
+Monospace for SKU / Serial / Model Code
+
+Layout:
+Catalog Grid + Detailed Product Panel + Brand Filter Sidebar
+
+📊 Page Layout Structure
+
+The page contains 5 core sections:
+
+1️⃣ Product Catalog Overview Dashboard
+2️⃣ Brand Management Panel
+3️⃣ Add / Edit Product Form
+4️⃣ Products Master Table
+5️⃣ Product Profile & Stock Insights
+
+1️⃣ Product Catalog Overview Dashboard
+
+KPI Summary Cards:
+
+Total Products
+
+Active Products
+
+Asset-Type Products
+
+Saleable Products
+
+Rental Products
+
+Low Stock Items
+
+Out of Stock Items
+
+Analytics:
+
+📊 Products by Brand
+📈 Monthly New Products Added
+📊 Products by Category
+📉 Stock Risk by Product
+
+2️⃣ Brand Management Panel
+
+Brand registry system.
+
+Fields:
+
+Brand ID (Auto-generated)
+
+Brand Name
+
+Country of Origin
+
+Official Distributor
+
+Warranty Policy
+
+Brand Status (Active / Inactive)
+
+Notes
+
+Options:
+
+✔ Preferred Brand
+✔ High Reliability Rating
+✔ Warranty Support Enabled
+
+Brand Summary:
+
+Total Products
+
+Total Purchase Value
+
+Total Sales Value
+
+Average Warranty Period
+
+3️⃣ Add / Edit Product Form
+
+Professional product creation form.
+
+Fields:
+
+Product ID (Auto-generated)
+
+Product Name
+
+Product Type (Linked to Product Type Page)
+
+Brand
+
+Model Number
+
+SKU Code (Unique)
+
+Barcode (Optional)
+
+Unit of Measure
+
+Default Purchase Cost
+
+Default Sale Price
+
+Tax Category
+
+Warranty Period
+
+Depreciation Applicable
+
+Track Serial Number (Yes/No)
+
+Track MAC Address (Yes/No)
+
+Allow Rental (Yes/No)
+
+Allow Discount (Yes/No)
+
+Minimum Stock Level
+
+Reorder Level
+
+Description
+
+Options:
+
+✔ Visible in POS
+✔ Visible in Asset Module
+✔ Active / Inactive
+✔ Discontinued
+
+Validation Rules:
+
+❌ SKU must be unique
+❌ Serial tracking mandatory for asset-type products
+❌ Cannot delete product linked to transactions
+
+4️⃣ Products Master Table
+
+Structured product grid:
+
+Columns:
+
+Product ID
+
+Product Name
+
+Brand
+
+Model
+
+Category
+
+SKU
+
+Purchase Cost
+
+Sale Price
+
+Current Stock
+
+Reserved Stock
+
+Available Stock
+
+Warranty
+
+Status
+
+Actions
+
+Actions:
+
+• View Profile
+• Edit
+• View Stock Movement
+• View Purchase History
+• View Sales History
+• Duplicate
+• Deactivate
+
+Advanced Filters:
+
+✔ By brand
+✔ By category
+✔ By stock level
+✔ By serial tracking
+✔ By depreciation-enabled
+✔ By rental-enabled
+
+5️⃣ Product Profile & Stock Insights
+
+Detailed product analytics panel:
+
+Stock Data:
+
+Total Stock
+
+Warehouse-wise Stock
+
+Reserved Quantity
+
+In Transit
+
+Assigned to Customers
+
+Under Maintenance
+
+Financial Data:
+
+Average Purchase Cost
+
+Total Purchase Value
+
+Total Sales Revenue
+
+Gross Margin
+
+Depreciation Value (if asset-type)
+
+Operational Data:
+
+Warranty Expiry Alerts
+
+Linked Assets
+
+Linked Purchase Orders
+
+Linked Sales Invoices
+
+🔄 Automation Logic
+
+When product created:
+
+✔ Available in Purchase Orders
+✔ Available in Sales Module
+✔ Available in Assets Module (if enabled)
+
+If serial tracking enabled:
+
+✔ Serial mandatory during GRN entry
+
+If rental enabled:
+
+✔ Available in Rental / Customer Assignment
+
+If stock falls below reorder level:
+
+✔ Trigger low-stock alert
+✔ Suggest reorder quantity
+
+If discontinued:
+
+✔ Block new purchase orders
+✔ Hide from POS
+
+🔐 Role-Based Access
+
+Admin:
+Full control
+
+Inventory Manager:
+Create & manage products
+
+Procurement Officer:
+View & use in PO
+
+Sales Manager:
+Manage sale price
+
+Finance Manager:
+View cost & margin
+
+Viewer:
+Read-only
+
+Only Admin can permanently delete product.
+
+🔗 Integration Required
+
+✔ Product Type Page
+✔ Suppliers Page
+✔ Purchase Order Module
+✔ Goods Receipt Module
+✔ Stock Management
+✔ Assets Module
+✔ Sales & POS
+✔ Depreciation Module
+✔ Warehouse Module
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Structured product catalog
+✔ Clean brand management
+✔ Accurate pricing
+✔ Real-time stock visibility
+✔ Integrated asset tracking
+✔ Strong profit monitoring
+
+When you open this page, it should feel like:
+
+“This is our entire product universe.”
+“I know what we stock.”
+“I know what we sell.”
+“I know what we earn.”

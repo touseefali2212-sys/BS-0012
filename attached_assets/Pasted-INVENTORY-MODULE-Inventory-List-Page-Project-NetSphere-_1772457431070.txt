@@ -1,0 +1,339 @@
+INVENTORY MODULE
+Inventory List Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized Inventory List Page that provides real-time visibility of all stock items across warehouses, with advanced filtering, valuation tracking, stock health monitoring, and actionable insights.
+
+This page ensures:
+
+✔ Complete stock visibility
+✔ Real-time quantity tracking
+✔ Warehouse-wise breakdown
+✔ Stock health monitoring
+✔ Valuation transparency
+✔ Reorder control
+
+It becomes the core operational stock command center.
+
+🎨 UI / Theme Design
+
+Style:
+Modern Enterprise Inventory Dashboard
+
+Primary Gradient:
+Deep Blue → Teal (#1E40AF → #0D9488)
+
+Background:
+Light Neutral (#F9FAFB)
+
+Stock Status Indicators:
+
+🟢 In Stock
+🟡 Low Stock
+🔵 Reserved
+🟣 Allocated
+🔴 Out of Stock
+⚫ Discontinued
+
+Typography:
+Inter / Poppins
+Monospace for SKU & Serial
+
+Layout:
+Top KPI Section + Advanced Filters + Inventory Table + Stock Insights Panel
+
+📊 Page Layout Structure
+
+The page includes 4 structured sections:
+
+1️⃣ Inventory Overview Dashboard
+2️⃣ Advanced Filter & Search Panel
+3️⃣ Inventory Master Table
+4️⃣ Stock Intelligence & Actions Panel
+
+1️⃣ Inventory Overview Dashboard
+
+KPI Cards:
+
+Total Products
+
+Total Stock Quantity
+
+Total Inventory Value
+
+Low Stock Items
+
+Out of Stock Items
+
+Reserved Quantity
+
+Allocated Quantity
+
+Analytics Widgets:
+
+📊 Stock Distribution by Warehouse
+📈 Inventory Growth Trend
+📊 Inventory by Product Category
+📉 Low Stock Risk Chart
+📊 Inventory Value by Brand
+
+This gives management a snapshot of stock health in seconds.
+
+2️⃣ Advanced Filter & Search Panel
+
+Powerful filtering system to manage large-scale inventory.
+
+Search Options:
+
+Product Name
+
+SKU
+
+Serial Number
+
+Brand
+
+Category
+
+Warehouse
+
+Supplier
+
+Product Type
+
+Stock Status
+
+Date Added
+
+Reorder Level
+
+Quick Filters:
+
+✔ Low Stock
+✔ Out of Stock
+✔ High Value Items
+✔ Slow Moving Items
+✔ Reserved Stock
+✔ Allocated Stock
+
+Export Options:
+
+• Export CSV
+• Export Excel
+• Print
+• Download PDF
+
+3️⃣ Inventory Master Table
+
+This is the main operational grid.
+
+Columns:
+
+SKU
+
+Product Name
+
+Brand
+
+Category
+
+Warehouse
+
+Available Quantity
+
+Reserved Quantity
+
+Allocated Quantity
+
+Reorder Level
+
+Unit Cost
+
+Total Stock Value
+
+Stock Status
+
+Last Updated
+
+Actions
+
+Live Calculations:
+
+✔ Available = Total – Reserved – Allocated
+✔ Total Value = Quantity × Cost
+
+Color Indicators:
+
+Low Stock → Yellow
+Out of Stock → Red
+High Value → Subtle Blue Highlight
+
+Actions:
+
+• View Details
+• Edit Stock
+• Transfer
+• Allocate
+• Adjust Quantity
+• View Stock Ledger
+• Archive Product
+
+Bulk Actions:
+
+• Bulk Transfer
+• Bulk Adjustment
+• Bulk Reorder
+• Export Selected
+
+4️⃣ Stock Intelligence & Actions Panel
+
+When clicking a product, show detailed stock profile:
+
+Product Stock Details:
+
+Product Image
+
+Full Description
+
+Supplier
+
+Product Type
+
+Warranty Period
+
+Serial/Batch Tracking
+
+Expiry (if applicable)
+
+Warehouse Breakdown:
+
+Table showing:
+
+Warehouse Name
+
+Quantity
+
+Reserved
+
+Allocated
+
+Available
+
+Stock Movement History:
+
+Chronological log:
+
+Purchases
+
+Sales
+
+Transfers
+
+Allocations
+
+Returns
+
+Adjustments
+
+Each movement shows:
+
+Reference ID
+
+Module Source (PO, Sale, Transfer)
+
+User
+
+Date & Time
+
+Quantity Change
+
+🔄 Automation & System Logic
+
+When Purchase Order is received:
+
+✔ Stock increases
+✔ Cost updated (based on costing method)
+✔ Inventory valuation recalculated
+
+When Sale Invoice is created:
+
+✔ Stock decreases
+✔ COGS recorded
+
+When Transfer occurs:
+
+✔ Decrease from source warehouse
+✔ Increase in destination warehouse
+
+When Allocation happens:
+
+✔ Move quantity from Available → Allocated
+
+If stock falls below reorder level:
+
+✔ Auto-generate reorder alert
+✔ Notify inventory manager
+
+Supports:
+
+✔ FIFO
+✔ Weighted Average Cost
+✔ Serial Tracking
+✔ Batch Tracking
+
+🔐 Role-Based Permissions
+
+Admin:
+Full control
+
+Inventory Manager:
+Manage stock & adjustments
+
+Warehouse Manager:
+Manage warehouse-specific stock
+
+Sales Team:
+View stock only
+
+Finance Team:
+View valuation
+
+Audit Role:
+Read-only with full movement history
+
+Only Admin can delete stock records.
+
+🔗 Integration
+
+This page connects with:
+
+✔ Brands & Products Page
+✔ Suppliers Page
+✔ Purchase Order Page
+✔ Sales Page
+✔ Stock Management Page
+✔ Assets Allocation Page
+✔ Accounting Module
+
+It acts as the central synchronization hub.
+
+📈 Business Impact
+
+This page ensures:
+
+✔ No hidden stock
+✔ No inventory mismatch
+✔ Clear valuation visibility
+✔ Reduced stock-outs
+✔ Controlled allocation
+✔ Strong operational transparency
+
+When you open this page, it should feel like:
+
+“I see every item.”
+“I know exactly where it is.”
+“I know how much it’s worth.”
+“I can control my entire stock operation from here.”

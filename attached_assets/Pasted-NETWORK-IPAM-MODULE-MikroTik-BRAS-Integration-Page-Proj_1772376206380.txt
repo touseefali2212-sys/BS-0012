@@ -1,0 +1,308 @@
+NETWORK & IPAM MODULE
+MikroTik / BRAS Integration Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a powerful MikroTik / BRAS Integration Page that enables seamless communication between the ERP system and network infrastructure devices for real-time subscriber management, authentication, bandwidth control, and automation.
+
+This page ensures:
+
+✔ Real-time user provisioning
+✔ Automated PPPoE / Hotspot account management
+✔ Dynamic bandwidth control
+✔ Online / Offline monitoring
+✔ IP address synchronization
+✔ RADIUS & BRAS authentication integration
+
+This is the technical backbone of your ISP operations.
+
+🎨 UI / Theme Design
+
+Style:
+Modern Network Operations Center (NOC) Dashboard
+
+Primary Gradient:
+Dark Cyan → Electric Blue (#0F766E → #1D4ED8)
+
+Background:
+Deep Gray (#111827) with light cards
+
+Status Indicators:
+
+🟢 Connected
+🔴 Disconnected
+🟡 Syncing
+🔵 Active Session
+🟣 RADIUS Linked
+⚫ Offline Device
+
+Typography:
+Inter / Poppins (Monospace for IP display)
+
+📊 Page Layout Structure
+
+The page contains 6 main sections:
+
+1️⃣ Device Connection Overview
+2️⃣ MikroTik Router Configuration
+3️⃣ BRAS / RADIUS Configuration
+4️⃣ User Synchronization Control
+5️⃣ Live Session Monitoring
+6️⃣ Logs & Automation Status
+
+1️⃣ Device Connection Overview
+
+Summary Cards:
+
+Total Integrated Devices
+
+Active Devices
+
+Offline Devices
+
+Total Online Users
+
+Active PPPoE Sessions
+
+API Response Time
+
+Each device shows:
+
+Device Name
+
+Location / POP
+
+Public IP
+
+Device Type (MikroTik / BRAS)
+
+Status
+
+Last Sync Time
+
+2️⃣ MikroTik Router Configuration
+
+Add / Edit Router Form:
+
+Router Name
+
+Router IP Address
+
+API Port
+
+Username
+
+Password (Encrypted)
+
+SSH Port
+
+Location / POP
+
+Bandwidth Profile Mapping
+
+IP Pool Mapping
+
+Connection Options:
+
+✔ Test Connection
+✔ Enable Auto Sync
+✔ Enable Auto Suspend / Unsuspend
+✔ Enable Traffic Monitoring
+
+Security:
+
+✔ Encrypted credentials
+✔ IP Whitelisting
+✔ Access permission control
+
+3️⃣ BRAS / RADIUS Configuration
+
+Integration settings for:
+
+✔ RADIUS Server IP
+✔ RADIUS Secret Key
+✔ Authentication Port
+✔ Accounting Port
+✔ NAS Identifier
+
+Features:
+
+✔ Dynamic User Authentication
+✔ Session Accounting
+✔ Interim Updates
+✔ CoA (Change of Authorization)
+✔ Session Termination
+
+Supports:
+
+• PPPoE
+• Hotspot
+• Static IP Users
+• DHCP Integration
+
+4️⃣ User Synchronization Control
+
+This section automates billing-network sync.
+
+Actions:
+
+✔ Create user on MikroTik automatically
+✔ Update bandwidth profile
+✔ Suspend user on non-payment
+✔ Reactivate after payment
+✔ Assign static IP from IPAM
+✔ Remove user on termination
+
+Sync Status Indicators:
+
+🟢 Synced
+🟡 Pending
+🔴 Failed
+🔵 Processing
+
+Manual Controls:
+
+✔ Force Sync
+✔ Reset Session
+✔ Disconnect User
+✔ Rebuild User Profile
+
+5️⃣ Live Session Monitoring
+
+Real-time user monitoring grid:
+
+Columns:
+
+Username
+
+Customer Name
+
+Router
+
+IP Address
+
+MAC Address
+
+Download Speed
+
+Upload Speed
+
+Session Time
+
+Data Usage
+
+Status
+
+Features:
+
+✔ Live refresh
+✔ Disconnect user
+✔ View traffic graph
+✔ Filter by router
+✔ Search by IP / Username
+
+Bandwidth Graph:
+
+📈 Real-time traffic chart
+📊 Daily usage stats
+
+6️⃣ Logs & Automation Status
+
+System logs include:
+
+✔ API Connection Logs
+✔ RADIUS Authentication Logs
+✔ Accounting Logs
+✔ Sync Failure Logs
+✔ Suspension Logs
+✔ Reactivation Logs
+
+Each log includes:
+
+Timestamp
+
+Device
+
+Action
+
+Status
+
+Response Code
+
+Error Details
+
+Export options:
+
+✔ CSV
+✔ PDF
+✔ Syslog forwarding
+
+🔄 System Automation Logic
+
+When customer created:
+
+✔ Automatically create PPPoE account
+✔ Assign profile
+✔ Assign IP from IPAM
+
+When invoice overdue:
+
+✔ Auto suspend from MikroTik
+✔ Terminate active session
+
+When payment received:
+
+✔ Auto re-enable user
+✔ Restore bandwidth
+✔ Log action
+
+When bandwidth upgraded:
+
+✔ Auto apply new profile
+✔ Trigger CoA request
+
+🔐 Role-Based Access
+
+Admin:
+Full integration control
+
+Network Engineer:
+Device configuration & monitoring
+
+Billing Manager:
+Suspend / Unsuspend control
+
+Support Staff:
+View sessions & disconnect only
+
+Viewer:
+Read-only access
+
+🔗 Integration Required
+
+✔ Customer Module
+✔ Billing Module
+✔ IPAM System
+✔ Invoice System
+✔ Payment Gateway
+✔ Notification System
+✔ SMS Alerts
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Zero manual provisioning
+✔ Faster activation
+✔ Automatic suspension
+✔ Reduced human error
+✔ Real-time network visibility
+✔ Scalable ISP infrastructure
+
+When you open this page, it should feel like:
+
+“I control my entire network from one screen.”
+“Billing and network are fully synchronized.”
+“No customer is active without payment.”

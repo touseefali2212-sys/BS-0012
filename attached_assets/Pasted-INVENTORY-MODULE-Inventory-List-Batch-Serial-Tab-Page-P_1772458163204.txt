@@ -1,0 +1,337 @@
+INVENTORY MODULE
+Inventory List – Batch & Serial Tab Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a dedicated Batch & Serial Management Tab within the Inventory List Page to enable precise tracking of serialized and batch-based products across warehouses, customers, and transactions.
+
+This page ensures:
+
+✔ Individual item traceability
+✔ Batch-level control
+✔ Warranty tracking
+✔ Expiry monitoring
+✔ Asset-customer linkage
+✔ Movement history visibility
+
+It transforms inventory into a fully traceable system.
+
+🎨 UI / Theme Design
+
+Style:
+Precision Tracking & Control Panel
+
+Primary Gradient:
+Indigo → Emerald (#4F46E5 → #059669)
+
+Background:
+Light Gray (#F8FAFC)
+
+Status Indicators:
+
+🟢 Available
+🟡 Reserved
+🔵 Allocated
+🟣 Assigned to Customer
+🔴 Sold
+⚫ Damaged
+🟠 Returned
+⚪ Expired
+
+Typography:
+Inter / Poppins
+Monospace for Serial / MAC Address
+
+Layout:
+Product Header Summary + Batch Table + Serial Table + Movement History Drawer
+
+📊 Page Layout Structure
+
+When opening a product from Inventory List → Batch & Serial Tab:
+
+The page includes:
+
+1️⃣ Product Summary Header
+2️⃣ Batch Management Section
+3️⃣ Serial Number Management Section
+4️⃣ Movement & Traceability Panel
+
+1️⃣ Product Summary Header
+
+Displays:
+
+Product Name
+
+SKU
+
+Brand
+
+Category
+
+Total Quantity
+
+Serialized / Non-Serialized Indicator
+
+Batch Controlled (Yes/No)
+
+Warranty Period
+
+Default Supplier
+
+Quick Stats:
+
+• Total Batches
+• Total Serials
+• Available Serials
+• Allocated Serials
+• Sold Serials
+• Expired Batches
+
+2️⃣ Batch Management Section
+
+Used for products tracked in batches (fiber cables, spools, bulk stock, etc.).
+
+Batch Table Columns:
+
+Batch Number
+
+Warehouse
+
+Quantity
+
+Available
+
+Reserved
+
+Allocated
+
+Unit Cost
+
+Manufacturing Date
+
+Expiry Date
+
+Status
+
+Created Date
+
+Actions
+
+System Capabilities:
+
+✔ Auto-create batch on Purchase Order
+✔ Expiry date tracking
+✔ Batch-level valuation
+✔ Batch-level stock transfer
+✔ Batch-level allocation
+
+Expiry Monitoring:
+
+If expiry near threshold:
+
+• Auto alert
+• Highlight in orange
+• Notify inventory manager
+
+Batch Actions:
+
+• View Serials (if serial within batch)
+• Transfer Batch
+• Adjust Quantity
+• Mark as Damaged
+• Archive Batch
+
+3️⃣ Serial Number Management Section
+
+Critical for ISP hardware tracking.
+
+Serial Table Columns:
+
+Serial Number
+
+MAC Address (if applicable)
+
+IMEI (if applicable)
+
+Batch Number
+
+Warehouse
+
+Status
+
+Assigned Customer
+
+Invoice Reference
+
+Warranty Expiry
+
+Last Movement Date
+
+Actions
+
+Serial Status Flow:
+
+Available → Reserved → Allocated → Assigned → Sold
+
+Additional States:
+
+Damaged
+Returned
+Under Warranty
+Repaired
+
+Capabilities:
+
+✔ Auto-import serials during PO receiving
+✔ Bulk serial upload (CSV)
+✔ Unique serial validation
+✔ Duplicate prevention
+✔ MAC address validation
+✔ Serial-to-customer linking
+✔ Warranty auto-calculation
+
+4️⃣ Movement & Traceability Panel
+
+Full traceability history for:
+
+• Batch
+• Individual serial
+
+Movement Log Displays:
+
+Reference Type (PO / Sale / Transfer / Allocation / Return)
+
+Reference ID
+
+Source Warehouse
+
+Destination Warehouse
+
+Customer (if assigned)
+
+User
+
+Date & Time
+
+Quantity / Serial
+
+Example Tracking:
+
+You can see:
+
+ONT Serial XYZ123
+Purchased → Stored → Transferred → Allocated → Assigned to Customer → Sold
+
+Complete audit trail.
+
+🔄 Automation & Business Logic
+
+When Purchase Order received:
+
+✔ Batch auto-created
+✔ Serials auto-registered
+✔ Warranty start date saved
+
+When Sales Invoice created:
+
+✔ Specific serial must be selected
+✔ Status changes to Sold
+✔ Assigned to customer
+
+When Asset assigned:
+
+✔ Serial linked to customer account
+✔ Allocation updated
+
+When Return processed:
+
+✔ Serial status updated
+✔ Re-enter stock (if approved)
+
+When Warranty expired:
+
+✔ Auto flag as out-of-warranty
+
+If serial already sold:
+
+❌ Cannot sell again
+❌ Cannot allocate
+❌ Locked for editing
+
+🔐 Role-Based Access
+
+Admin:
+Full batch & serial control
+
+Inventory Manager:
+Manage serial & batch movement
+
+Warehouse Manager:
+View & transfer
+
+Sales Team:
+Select serial during sale
+
+Customer Support:
+View serial & warranty
+
+Audit Role:
+Full movement history (read-only)
+
+Only Admin can delete serial records.
+
+📊 Advanced Features
+
+✔ Serial QR Code Generation
+✔ Barcode Support
+✔ MAC Address Lookup
+✔ Serial Search (Global Search Integration)
+✔ Bulk Warranty Extension
+✔ Bulk Status Update
+✔ Serial Export
+
+Optional AI Insight:
+
+Detect unusual serial movements
+Flag duplicate MAC entries
+Detect stock inconsistencies
+
+🔗 Integration
+
+This page integrates with:
+
+✔ Purchase Order Page
+✔ Sales Page
+✔ Assets Assignment Page
+✔ Customer Profile Page
+✔ Warehouse Module
+✔ Warranty Module
+✔ Inventory Ledger
+
+📈 Business Impact
+
+This page ensures:
+
+✔ 100% hardware traceability
+✔ Zero serial duplication
+✔ Full warranty control
+✔ Reduced theft & loss
+✔ Accurate customer-device mapping
+✔ Strong audit compliance
+
+For ISP operations especially:
+
+You can instantly answer:
+
+“Which customer has this ONT?”
+“Is this router under warranty?”
+“Where did this serial move?”
+“Was this batch part of a faulty shipment?”
+
+When opening this tab, it should feel like:
+
+“Every device is tracked.”
+“Nothing is untraceable.”
+“I control hardware lifecycle completely.”

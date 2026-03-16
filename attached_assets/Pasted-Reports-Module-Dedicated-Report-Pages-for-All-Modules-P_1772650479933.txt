@@ -1,0 +1,239 @@
+Reports Module – Dedicated Report Pages for All Modules
+Project Name:
+NetSphere ISP Billing & Enterprise ERP
+________________________________________
+🎯 Objective
+Develop a fully structured Reports Module that contains dedicated report pages for each system module including:
+•	Vendor Reports
+•	Customer Reports
+•	Billing & Invoice Reports
+•	Payment Reports
+•	Inventory Reports
+•	Asset Reports
+•	Network & IPAM Reports
+•	HRM Reports
+•	Notification Reports
+•	Activity Log Reports
+The Reports Module must provide:
+✔ Real-time analytics
+✔ Advanced filtering
+✔ Export functionality
+✔ Printable reports
+✔ Graphical charts
+✔ Role-based access control
+✔ Scheduled report generation
+This module acts as the business intelligence and analytics engine of the ERP.
+________________________________________
+🧩 Core Requirements
+1️⃣ Central Reports Dashboard
+Create a main Reports landing page with:
+•	Summary Cards (Revenue, Active Customers, Stock Value, Network Usage, etc.)
+•	Graphs (Line, Bar, Pie Charts)
+•	Quick Report Access Buttons
+•	Date Range Filter (Today, Weekly, Monthly, Custom)
+•	Branch Filter
+•	Export Dashboard as PDF
+________________________________________
+2️⃣ Dedicated Report Pages Per Module
+Each module must have a separate, structured report page with filters, tables, charts, and export options.
+________________________________________
+Vendor Reports Page
+Report Should Include:
+•	Active Vendors 
+•	Vendor Bandwidth
+•	Bandwidth Upgrade & Downgrade 
+•	Vendor Panel
+•	Panel Packages & Rates
+•	Wallet Balance
+•	Payment Transactions
+
+📁 Customer Reports Page
+Reports should include:
+•	Active vs Suspended Customers
+•	New Registrations
+•	Customer Growth Trend
+•	Customer by Area / Branch
+•	Plan-wise Distribution
+•	Churn Report
+•	Overdue Customers
+Filters:
+•	Date Range
+•	Branch
+•	Plan
+•	Status
+Export: PDF, Excel, CSV
+________________________________________
+💰 Billing & Invoice Reports Page
+Reports should include:
+•	Total Generated Invoices
+•	Paid vs Unpaid Invoices
+•	Revenue by Date
+•	Revenue by Branch
+•	Plan-wise Revenue
+•	Outstanding Summary
+•	Aging Report
+Charts Required:
+•	Revenue Line Graph
+•	Payment Status Pie Chart
+________________________________________
+💳 Payment Reports Page
+Reports should include:
+•	Payment Collection Summary
+•	Gateway-wise Collection
+•	Cash vs Online Payment
+•	Refund Report
+•	Failed Transactions
+•	Daily Collection Report
+Include:
+•	Payment Method Filter
+•	Branch Filter
+•	Status Filter
+________________________________________
+📦 Inventory Reports Page
+Reports should include:
+•	Stock Summary
+•	Low Stock Alert
+•	Product-wise Stock
+•	Brand-wise Stock
+•	Purchase Summary
+•	Sales Summary
+•	Stock Movement Report
+Include:
+•	Warehouse Filter
+•	Supplier Filter
+•	Date Filter
+________________________________________
+🛠 Asset Reports Page
+Reports should include:
+•	Asset Allocation Summary
+•	Asset Assigned to Customers
+•	Asset Movement History
+•	Faulty Assets
+•	Available Assets
+•	Asset Depreciation Report
+Include:
+•	Asset Type Filter
+•	Status Filter
+•	Branch Filter
+________________________________________
+🌐 Network & IPAM Reports Page
+Reports should include:
+•	OLT Utilization
+•	PON Port Usage
+•	Splitter Utilization
+•	ONU Online vs Offline
+•	IP Pool Usage
+•	Bandwidth Consumption
+•	P2P Link Status
+Charts Required:
+•	Port Utilization Graph
+•	Network Status Distribution
+________________________________________
+👥 HRM Reports Page
+Reports should include:
+•	Staff Attendance
+•	Salary Summary
+•	Role-wise Staff Distribution
+•	Leave Summary
+•	Performance Overview
+________________________________________
+🔔 Notification Reports Page
+Reports should include:
+•	SMS Sent vs Delivered
+•	WhatsApp Delivery Report
+•	Email Status Report
+•	Campaign Performance
+•	Failed Notifications
+Include:
+•	Channel Filter
+•	Campaign Filter
+•	Date Filter
+________________________________________
+🔐 Activity Log Reports Page
+Reports should include:
+•	User Activity Summary
+•	Module-wise Activity
+•	Critical Actions
+•	Failed Login Attempts
+•	Permission Changes
+Include:
+•	User Filter
+•	Role Filter
+•	Date Filter
+________________________________________
+🧠 Advanced Features Required
+📊 Data Visualization
+Use:
+•	Line Charts
+•	Bar Charts
+•	Pie Charts
+•	Area Graphs
+•	Table View with Sorting
+________________________________________
+📤 Export & Print
+Each report page must support:
+✔ Export as PDF
+✔ Export as Excel
+✔ Export as CSV
+✔ Print-Friendly View
+✔ Schedule Report via Email
+________________________________________
+🔄 Scheduled Reports
+Allow:
+•	Daily
+•	Weekly
+•	Monthly
+•	Custom Schedule
+Send scheduled reports via:
+•	Email
+•	WhatsApp (PDF attachment)
+________________________________________
+🔍 Advanced Filtering System
+Each report page must include:
+•	Date Range Picker
+•	Branch Selector
+•	Status Selector
+•	Multi-select Dropdown Filters
+•	Search Bar
+________________________________________
+🔐 Role-Based Access
+Admin:
+Full access
+Branch Manager:
+Branch-specific reports
+Finance:
+Billing & Payment reports only
+Network Engineer:
+Network reports only
+HR:
+HR reports only
+Sales:
+Customer reports only
+________________________________________
+🖥 Technical Requirements
+Frontend:
+•	Responsive UI
+•	Chart Library Integration
+•	Clean Dashboard Layout
+•	Dark/Light Mode Support
+Backend:
+•	Optimized queries
+•	Aggregated reporting tables
+•	Caching for heavy reports
+•	API endpoints per report page
+Database:
+•	Indexed reporting tables
+•	Summary table for fast analytics
+________________________________________
+📈 Expected Outcome
+The Reports Module must function as:
+✔ Business Intelligence Dashboard
+✔ Financial Analysis System
+✔ Network Performance Monitor
+✔ Inventory Control Analyzer
+✔ Operational Performance Tracker
+When opening Reports Module, it should feel like:
+“We understand our business performance instantly.”
+“Every department has measurable data.”
+“Decisions are data-driven.”
+

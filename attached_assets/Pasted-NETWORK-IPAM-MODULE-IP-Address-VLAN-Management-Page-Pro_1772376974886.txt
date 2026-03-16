@@ -1,0 +1,319 @@
+NETWORK & IPAM MODULE
+IP Address / VLAN Management Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a structured and automated IP Address & VLAN Management Page to manage, monitor, and allocate IP addresses, subnets, and VLANs efficiently across the ISP infrastructure.
+
+This page ensures:
+
+✔ Organized IP address planning
+✔ Efficient subnet allocation
+✔ VLAN segmentation control
+✔ Static IP management
+✔ Conflict prevention
+✔ Real-time usage visibility
+✔ Seamless integration with MikroTik, BRAS, and OLT systems
+
+This is the backbone of scalable ISP network architecture.
+
+🎨 UI / Theme Design
+
+Style:
+Modern NOC (Network Operations Center) Interface
+
+Primary Gradient:
+Deep Blue → Cyan (#1E3A8A → #06B6D4)
+
+Background:
+Dark Slate (#0F172A) with light data panels
+
+Indicators:
+
+🟢 Available
+🔵 Assigned
+🟡 Reserved
+🔴 Conflict
+⚫ Disabled
+
+Typography:
+Inter (UI)
+Monospace (for IP & VLAN display)
+
+📊 Page Layout Structure
+
+The page contains 5 main sections:
+
+1️⃣ IP Pool Overview Dashboard
+2️⃣ Subnet Management
+3️⃣ VLAN Configuration
+4️⃣ IP Allocation & Assignment
+5️⃣ Conflict Detection & Logs
+
+1️⃣ IP Pool Overview Dashboard
+
+Summary Cards:
+
+Total IP Pools
+
+Total Subnets
+
+Total IP Addresses
+
+Used IPs
+
+Available IPs
+
+Reserved IPs
+
+VLANs Configured
+
+Visual Charts:
+
+📊 IP Utilization %
+📈 Subnet Distribution by POP
+📊 VLAN Usage by Location
+
+Each pool displays:
+
+Pool Name
+
+IP Range
+
+Subnet Mask
+
+Gateway
+
+POP / Location
+
+Device Linked (MikroTik / OLT / BRAS)
+
+Utilization %
+
+2️⃣ Subnet Management
+
+Create / Edit Subnet Form:
+
+Subnet Name
+
+Network Address (e.g., 192.168.10.0/24)
+
+Subnet Mask
+
+Gateway IP
+
+DNS
+
+POP / Branch
+
+Associated Device
+
+IP Type:
+
+Public
+
+Private
+
+CGNAT
+
+Management
+
+System Auto-Calculates:
+
+✔ Total Hosts
+✔ Usable Hosts
+✔ Broadcast Address
+✔ Network Address
+
+Protection:
+
+✔ Prevent overlapping subnets
+✔ Prevent duplicate entries
+✔ Validate CIDR automatically
+
+3️⃣ VLAN Configuration
+
+Professional VLAN management system.
+
+Add VLAN Form:
+
+VLAN ID
+
+VLAN Name
+
+VLAN Type:
+
+Internet
+
+Management
+
+IPTV
+
+VoIP
+
+Corporate
+
+Backhaul
+
+Associated POP
+
+Linked Device (MikroTik / OLT / Switch)
+
+Subnet Assignment
+
+Status
+
+Features:
+
+✔ VLAN-to-Subnet mapping
+✔ Multi-POP VLAN structure
+✔ Device-level VLAN tagging
+✔ VLAN isolation tracking
+
+Color Coding:
+
+🟢 Active VLAN
+🔴 Disabled VLAN
+🟡 Maintenance Mode
+
+4️⃣ IP Allocation & Assignment
+
+This is where IPs are assigned to customers or devices.
+
+Columns:
+
+IP Address
+
+Subnet
+
+VLAN
+
+Assigned To (Customer / Device)
+
+Service Type (PPPoE / Static / DHCP)
+
+MAC Address
+
+Router / OLT
+
+Status
+
+Assigned Date
+
+Features:
+
+✔ Manual IP assignment
+✔ Auto IP assignment
+✔ Static IP linking to customer
+✔ Reserve IP
+✔ Release IP
+✔ Bulk Import / Export
+
+Automation:
+
+✔ When customer activated → Assign IP automatically
+✔ When customer terminated → Release IP
+✔ When suspended → Retain or restrict IP
+
+5️⃣ Conflict Detection & Logs
+
+Smart validation system detects:
+
+✔ Duplicate IP assignment
+✔ VLAN ID conflicts
+✔ Overlapping subnets
+✔ Invalid CIDR
+✔ IP exhaustion alerts
+
+Logs include:
+
+Action Type
+
+User
+
+IP Address
+
+Old Value
+
+New Value
+
+Timestamp
+
+Device Sync Status
+
+Admin Tools:
+
+✔ Freeze IP pool
+✔ Expand subnet (if available)
+✔ Generate utilization report
+✔ Trigger re-sync to device
+
+🔄 Automation Logic
+
+When new customer created:
+
+✔ Assign IP from selected pool
+✔ Link VLAN automatically
+✔ Sync with MikroTik / BRAS
+
+When IP pool utilization > 80%:
+
+✔ Generate alert
+✔ Notify Network Admin
+
+When subnet exhausted:
+
+✔ Mark as Full
+✔ Prevent further allocation
+
+When VLAN disabled:
+
+✔ Block new assignments
+✔ Notify network engineer
+
+🔐 Role-Based Access
+
+Admin:
+Full IP & VLAN control
+
+Network Engineer:
+Manage pools & VLANs
+
+Billing Staff:
+Assign static IP only
+
+Support Team:
+View-only access
+
+Viewer:
+Read-only
+
+Critical IP deletion requires admin approval.
+
+🔗 Integration Required
+
+✔ MikroTik / BRAS Integration
+✔ OLT Integration (Huawei / ZTE / VSOL)
+✔ Customer Module
+✔ Billing Module
+✔ Network Monitoring System
+✔ Task Management (for IP change requests)
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Clean IP structure
+✔ Zero address conflicts
+✔ Scalable subnet planning
+✔ Proper VLAN segmentation
+✔ Faster provisioning
+✔ Reduced network downtime
+
+When you open this page, it should feel like:
+
+“My network is structured.”
+“I know exactly where every IP is used.”
+“I can scale without chaos.”

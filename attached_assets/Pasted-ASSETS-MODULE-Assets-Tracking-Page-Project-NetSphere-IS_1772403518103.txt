@@ -1,0 +1,332 @@
+ASSETS MODULE
+Assets Tracking Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a real-time Assets Tracking Page that provides complete visibility into the location, status, ownership, condition, and lifecycle of all organizational assets.
+
+This page ensures:
+
+✔ Real-time asset location tracking
+✔ Chain-of-custody transparency
+✔ Customer-linked device visibility
+✔ Warehouse & POP inventory clarity
+✔ Technician accountability
+✔ Loss prevention & asset recovery
+
+This page acts as the operational command center for infrastructure monitoring.
+
+🎨 UI / Theme Design
+
+Style:
+Enterprise Monitoring Dashboard
+
+Primary Gradient:
+Midnight Blue → Cyan (#0F172A → #06B6D4)
+
+Background:
+Light Neutral Gray (#F8FAFC)
+
+Tracking Status Indicators:
+
+🟢 Active
+🟡 In Transit
+🔵 Assigned to Customer
+🟣 Under Maintenance
+🔴 Faulty
+⚫ Lost / Missing
+🟠 Reserved
+
+Typography:
+Inter / Poppins
+Monospace for Serial, MAC, IP
+
+Layout:
+Dashboard + Table + Live Map (Optional View Toggle)
+
+📊 Page Layout Structure
+
+The page contains 6 main sections:
+
+1️⃣ Tracking Overview Dashboard
+2️⃣ Global Asset Search
+3️⃣ Live Asset Tracking Table
+4️⃣ Location & Map View
+5️⃣ Asset Lifecycle Timeline
+6️⃣ Alerts & Exceptions Panel
+
+1️⃣ Tracking Overview Dashboard
+
+KPI Summary Cards:
+
+Total Assets
+
+Active Assets
+
+In Transit
+
+Assigned to Customers
+
+Under Maintenance
+
+Lost / Missing
+
+Assets by Location
+
+Assets by Type
+
+Charts:
+
+📊 Assets by Location (Warehouse / POP / Customer / Technician)
+📈 Asset Movement Trend
+📊 Asset Status Distribution
+📉 Fault Rate by Asset Type
+
+2️⃣ Global Asset Search
+
+Powerful universal search bar:
+
+Search by:
+
+Asset ID
+
+Serial Number
+
+MAC Address
+
+IP Address
+
+Customer Name
+
+Technician Name
+
+POP / Warehouse
+
+Asset Type
+
+Filters:
+
+✔ Status
+✔ Location
+✔ Assigned To
+✔ Purchase Date
+✔ Warranty Status
+✔ Value Range
+✔ Asset Condition
+
+Search results update in real-time.
+
+3️⃣ Live Asset Tracking Table
+
+Central structured grid:
+
+Columns:
+
+Asset ID
+
+Asset Name
+
+Type
+
+Serial Number
+
+Current Location
+
+Assigned To
+
+Customer (if applicable)
+
+IP Address
+
+VLAN
+
+Condition
+
+Warranty Status
+
+Book Value
+
+Status
+
+Last Movement Date
+
+Actions
+
+Actions:
+
+• View Details
+• View Timeline
+• Transfer
+• Assign
+• Mark Faulty
+• Suspend
+• View Network Status
+
+Table Features:
+
+✔ Sorting
+✔ Advanced filtering
+✔ Export (Excel / CSV)
+✔ Bulk actions
+✔ Real-time refresh
+
+4️⃣ Location & Map View
+
+Toggle to visual tracking mode.
+
+Map shows:
+
+• Warehouses
+• POPs
+• Customer clusters
+• Technician zones
+
+Assets displayed by category:
+
+🔵 Customer Devices
+🟢 Warehouse Stock
+🟡 In Transit
+🔴 Faulty
+
+Clicking an asset displays:
+
+Serial
+
+Assigned customer
+
+IP
+
+Technician
+
+Last activity
+
+Integration:
+
+✔ Customer MAP Module
+✔ Network & IPAM
+✔ Asset Transfer Module
+
+5️⃣ Asset Lifecycle Timeline
+
+Complete chain-of-custody history:
+
+Example:
+
+🟢 01 Jan – Purchased
+🟢 05 Jan – Added to Warehouse
+🟡 12 Jan – Transferred to POP
+🔵 13 Jan – Assigned to Customer #1045
+🟣 20 Feb – Marked Faulty
+🟢 25 Feb – Repaired & Reassigned
+
+Each event logs:
+
+Date & Time
+
+From / To Location
+
+Responsible Person
+
+Status Change
+
+Financial Impact (if any)
+
+Notes
+
+Immutable and audit-protected.
+
+6️⃣ Alerts & Exceptions Panel
+
+Automatic anomaly detection:
+
+⚠ Asset not updated for X days
+⚠ Device assigned but offline
+⚠ Asset marked In Transit but not received
+⚠ Warranty expiring soon
+⚠ Duplicate assignment attempt
+⚠ High-value asset unaccounted
+
+Admin receives notifications for exceptions.
+
+🔄 Automation Logic
+
+When asset transferred:
+
+✔ Location auto-updated
+✔ Status updated
+✔ Movement logged
+
+When assigned to customer:
+
+✔ Linked to service
+✔ IP allocated
+✔ Status updated
+
+When marked faulty:
+
+✔ Move to maintenance queue
+✔ Flag in dashboard
+
+When returned:
+
+✔ Clear assignment
+✔ Update location
+✔ Adjust condition
+
+If lost:
+
+✔ Lock status
+✔ Alert admin
+✔ Log investigation
+
+🔐 Role-Based Access
+
+Admin:
+Full visibility & override
+
+Inventory Manager:
+Track warehouse & transfers
+
+Network Manager:
+Track customer devices
+
+Technician:
+View assigned assets only
+
+Finance Manager:
+View asset value & depreciation
+
+Viewer:
+Read-only dashboard
+
+🔗 Integration Required
+
+✔ Assets List Page
+✔ Asset Transfer & Movement
+✔ Asset Assignment to Customer
+✔ Request & Approvals
+✔ Network & IPAM Module
+✔ Billing Module
+✔ Task Management
+✔ Service Outage Module
+✔ Audit Module
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Complete infrastructure visibility
+✔ Reduced asset loss
+✔ Faster troubleshooting
+✔ Strong accountability
+✔ Accurate financial tracking
+✔ Professional operational control
+
+When you open this page, it should feel like:
+
+“I can see every device.”
+“I know exactly where it is.”
+“I know who is responsible.”
+“No infrastructure is invisible.”

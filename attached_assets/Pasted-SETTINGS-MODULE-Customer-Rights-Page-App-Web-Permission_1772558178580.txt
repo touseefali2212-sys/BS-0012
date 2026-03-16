@@ -1,0 +1,290 @@
+SETTINGS MODULE
+Customer Rights Page
+
+(App & Web Permissions – Customer Portal Control)
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized Customer Rights Configuration Page to manage and control customer-level permissions across Web Portal and Mobile App platforms.
+
+This page ensures:
+
+✔ Secure billing visibility
+✔ Controlled payment access
+✔ Structured notification visibility
+✔ Service transparency
+✔ Customer self-service governance
+✔ Platform-specific access control
+
+It acts as the Customer Access Policy Engine of the ERP.
+
+🎨 UI / Theme Design
+
+Style:
+Modern Customer Access Control Dashboard
+
+Primary Gradient:
+Royal Blue → Teal (#1D4ED8 → #0D9488)
+
+Background:
+Soft Neutral (#F8FAFC)
+
+Permission Indicators:
+
+🟢 Enabled
+🟡 Conditional
+🔵 View Only
+🔴 Disabled
+⚫ Restricted
+
+Typography:
+Inter / Poppins
+
+Layout:
+Customer Group Selector + Permission Matrix + App vs Web Control Panel + Feature Toggles
+
+📊 Page Layout Structure
+
+The page contains 4 core sections:
+
+1️⃣ Customer Group Selection
+2️⃣ Billing & Financial Access Control
+3️⃣ Notification & Communication Access
+4️⃣ Additional Feature & Self-Service Controls
+
+1️⃣ Customer Group Selection
+
+Permission configuration can be set by:
+
+All Customers
+
+Package-Based Customers
+
+Corporate Customers
+
+Residential Customers
+
+Region-Based Customers
+
+VIP Customers
+
+Suspended Customers
+
+Displays:
+
+Total Customers in Group
+
+App Access Enabled
+
+Web Access Enabled
+
+Last Updated
+
+Active Restrictions
+
+Supports custom customer segmentation.
+
+2️⃣ Billing & Financial Access Control
+
+Controls customer visibility and actions related to billing.
+
+Billing Permissions:
+
+✔ View Current Bill
+✔ View Billing History
+✔ Download Invoice PDF
+✔ View Payment History
+✔ View Outstanding Balance
+✔ View Tax Breakdown
+✔ View Usage Details
+
+Payment Permissions:
+
+✔ Make Online Payment
+✔ Partial Payment Allowed
+✔ Enable Auto-Pay
+✔ Save Payment Method
+✔ View Refund Status
+✔ View Credit Notes
+
+Conditional Controls:
+
+• Hide billing if account suspended
+• Restrict payment if under investigation
+• Show overdue warning banner
+• Limit payment methods
+
+Example:
+
+Suspended Customer:
+✔ View Bill
+❌ Make Payment
+✔ View History
+
+VIP Customer:
+✔ All billing features enabled
+
+3️⃣ Notification & Communication Access
+
+Controls how customers interact with notifications.
+
+Notification Permissions:
+
+✔ View Push Notifications
+✔ View SMS History
+✔ View Email History
+✔ Enable/Disable Marketing Notifications
+✔ Receive Service Alerts
+✔ Receive Billing Reminders
+
+Customer Preferences:
+
+✔ Opt-in/Opt-out Marketing
+✔ Language Selection
+✔ Notification Channel Selection
+
+Advanced Controls:
+
+• Mandatory critical alerts cannot be disabled
+• Allow promotional campaigns toggle
+• Silence non-critical alerts
+
+Ensures compliance with communication policies.
+
+4️⃣ Additional Feature & Self-Service Controls
+
+Controls other portal and app features.
+
+Service & Account Permissions:
+
+✔ View Active Package
+✔ View Service Usage (Bandwidth Data)
+✔ Request Package Upgrade
+✔ Submit Support Ticket
+✔ Track Ticket Status
+✔ View Service Outages
+✔ Download Contract
+✔ View Assigned Assets (Router/ONT Serial)
+
+Advanced Self-Service Options:
+
+✔ Change Password
+✔ Update Profile Information
+✔ Update Contact Number
+✔ Request Relocation
+✔ Request Temporary Suspension
+✔ Schedule Technician Visit
+✔ Raise Complaint
+
+Restriction Controls:
+
+• Disable support access for unpaid accounts
+• Disable upgrade for locked contracts
+• Restrict asset visibility
+
+📱 App vs Web Permission Separation
+
+For each feature, define:
+
+✔ Web Portal Only
+✔ Mobile App Only
+✔ Both
+❌ Disabled
+
+Example:
+
+App:
+✔ View Bill
+✔ Push Notifications
+✔ Service Usage
+
+Web:
+✔ Download Invoice PDF
+✔ Detailed Billing History
+
+Supports UI-based feature visibility control.
+
+🔄 Conditional Logic & Automation
+
+Supports smart rules:
+
+IF Overdue > 30 days
+→ Restrict new upgrade request
+
+IF Account Suspended
+→ Disable service usage view
+
+IF Corporate Customer
+→ Enable bulk invoice download
+
+IF Prepaid Customer
+→ Hide postpaid billing section
+
+System updates permissions dynamically based on account status.
+
+🔐 Security & Compliance Controls
+
+✔ Mask sensitive financial data
+✔ OTP required for profile changes
+✔ Payment confirmation validation
+✔ Session timeout control
+✔ Access logs for customer actions
+
+Prevents:
+
+• Unauthorized billing access
+• Data manipulation
+• Financial misuse
+
+📊 Permission Summary & Validation
+
+Before saving:
+
+System displays:
+
+Total Features Enabled
+
+Financial Features Active
+
+Restricted Features
+
+App vs Web Distribution
+
+Warning shown if:
+
+• Financial visibility fully disabled
+• Critical notifications disabled
+• Payment access disabled unintentionally
+
+🔗 Integration
+
+This page integrates with:
+
+✔ Billing Module
+✔ Sales Module
+✔ Notification Module
+✔ Customer Portal
+✔ Mobile App
+✔ Service Outages Module
+✔ Assets Module
+
+It acts as the customer-level policy controller.
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Transparent billing access
+✔ Secure financial visibility
+✔ Controlled self-service
+✔ Reduced support workload
+✔ Professional customer portal experience
+✔ Strong data protection
+
+When opening this page, it should feel like:
+
+“We control exactly what customers see.”
+“Billing is transparent but secure.”
+“Self-service is structured and safe.”

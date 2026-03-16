@@ -1,0 +1,332 @@
+HR & Payroll – Salary Processing Page
+
+Project: NetSphere ISP Billing SaaS
+
+🎯 Objective
+
+Design and build a professional, attractive, enterprise-level Salary Processing page.
+
+This page must allow:
+
+Monthly salary generation
+
+Auto salary calculation
+
+Advance & loan deduction
+
+Attendance-based adjustments
+
+Bonus & commission inclusion
+
+Tax deduction handling
+
+Approval workflow
+
+Payroll finalization
+
+Accounting integration
+
+The page must feel:
+
+✔ Financially secure
+✔ Clean and structured
+✔ Corporate-grade
+✔ Executive-friendly
+
+🎨 Professional Color Theme
+
+Primary:
+Deep Blue Gradient (#0047AB → #007BFF)
+
+Accent:
+
+Green for Paid
+
+Orange for Pending
+
+Red for Deduction
+
+Purple for Bonus
+
+Teal for Commission
+
+Background:
+
+Light neutral gray (#F4F6F9)
+
+White cards
+
+Soft shadows
+
+14px rounded corners
+
+Typography:
+
+Inter / Poppins
+
+Bold financial figures
+
+Right-aligned currency columns
+
+📋 Page Layout Structure
+1️⃣ Top Payroll Control Panel
+
+Professional header section with:
+
+Select Payroll Month (Dropdown)
+
+Select Branch (if multi-branch)
+
+Process Payroll Button (Primary Gradient)
+
+Lock Payroll Button (After approval)
+
+Include Payroll Status Indicator:
+Draft | Processed | Approved | Paid
+
+2️⃣ Payroll Summary Cards (Top Dashboard)
+
+Display 5 summary cards:
+
+Total Employees
+
+Total Gross Salary
+
+Total Deductions
+
+Net Payable
+
+Payroll Status
+
+Each card includes:
+
+Icon
+
+Large amount
+
+Sub-label
+
+Soft hover elevation
+
+3️⃣ Salary Processing Table
+
+Main professional payroll grid.
+
+Columns:
+
+Employee ID
+
+Employee Name
+
+Department
+
+Base Salary
+
+Attendance Adjustment
+
+Overtime
+
+Bonus
+
+Commission
+
+Loan Deduction
+
+Tax
+
+Other Deductions
+
+Net Salary
+
+Status
+
+Action (View / Edit)
+
+Financial columns must be right-aligned.
+
+Color logic:
+
+Bonus → Purple
+
+Commission → Teal
+
+Deductions → Red
+
+Net Salary → Bold dark blue
+
+Table features:
+
+Sticky header
+
+Search bar
+
+Department filter
+
+Status filter
+
+Export Excel button
+
+Pagination
+
+🔄 Salary Calculation Logic (System Requirements)
+
+When “Process Payroll” is clicked:
+
+System must automatically:
+
+Fetch base salary
+
+Calculate attendance-based deduction
+
+Add overtime
+
+Add bonus & commission
+
+Deduct loan installments
+
+Apply tax rules
+
+Calculate net salary
+
+Create payroll entry
+
+Generate accounting journal entry
+
+Example Journal Entry:
+
+Dr: Salary Expense Account
+Cr: Employee Payable Account
+
+On salary payment:
+
+Dr: Employee Payable
+Cr: Bank / Cash
+
+👁 Employee Salary Detail View
+
+When clicking “View”:
+
+Open detailed modal/page showing:
+
+Employee Info:
+
+Name
+
+Designation
+
+Salary structure
+
+Breakdown:
+
+Base salary
+
+Attendance deduction
+
+Bonus
+
+Commission
+
+Advance deduction
+
+Loan installment
+
+Tax
+
+Final Net Pay
+
+Include:
+
+Printable Payslip button
+
+Download PDF option
+
+Payslip must look professional and branded.
+
+🔐 Approval Workflow
+
+Add 3-stage approval system:
+
+HR Processes Payroll
+
+Accountant Reviews
+
+Admin Approves & Locks
+
+After locking:
+
+No editing allowed
+
+Status becomes “Finalized”
+
+💳 Payment Status Management
+
+Add payment tracking:
+
+Mark as Paid
+
+Select Payment Method (Bank / Cash / Online)
+
+Add Transaction Reference
+
+Status badges:
+Blue = Processed
+Orange = Pending Approval
+Green = Paid
+Red = Rejected
+
+📊 Payroll Analytics Section
+
+Below table, include small analytics:
+
+Department-wise salary distribution (bar chart)
+
+Salary vs deduction trend (line chart)
+
+Total payroll cost graph (monthly)
+
+Charts must be clean, gradient blue, smooth animation.
+
+✨ UI & UX Enhancements
+
+Smooth fade-in animation
+
+Card hover elevation
+
+Soft glowing primary buttons
+
+Clean modal transitions
+
+Progress indicator for payroll processing
+
+Confirmation dialog before locking payroll
+
+📱 Responsive Design
+
+Desktop optimized
+
+Tablet grid adjustments
+
+Collapsible sidebar
+
+Scrollable table on smaller screens
+
+🧠 Advanced Professional Features (Add These)
+
+✔ Bulk salary adjustment option
+✔ Payroll recalculation button
+✔ Payroll audit log
+✔ Late attendance auto-deduction rule
+✔ Configurable tax slabs
+✔ Configurable overtime rules
+✔ Configurable commission rules
+✔ Salary template setup
+✔ Multi-branch payroll separation
+✔ Employee salary history timeline
+
+🎯 Emotional Impact
+
+When an ISP owner opens Salary Processing page, they should feel:
+
+“This is a complete ERP.”
+“This system handles my entire HR finance.”
+“This is professional and trustworthy.”

@@ -1,0 +1,328 @@
+ASSETS MODULE
+Request & Approvals Page
+
+Project: NetSphere ISP Billing & Enterprise ERP
+
+🎯 Objective
+
+Develop a centralized Request & Approvals Page to manage, review, and authorize all asset-related requests across the organization.
+
+This page governs:
+
+✔ Asset issuance
+✔ Asset transfer
+✔ Device replacement
+✔ Maintenance requests
+✔ Asset return
+✔ Asset write-off
+✔ Emergency equipment allocation
+
+The goal is to enforce:
+
+✔ Controlled asset flow
+✔ Role-based approval
+✔ Transparent accountability
+✔ Complete audit compliance
+
+🎨 UI / Theme Design
+
+Style:
+Enterprise Governance & Control Dashboard
+
+Primary Gradient:
+Dark Indigo → Emerald (#1E1B4B → #059669)
+
+Background:
+Soft Gray (#F3F4F6)
+
+Request Status Colors:
+
+🔵 Draft
+🟡 Pending Approval
+🟣 Under Review
+🟢 Approved
+🔴 Rejected
+⚫ Cancelled
+🟠 Escalated
+
+Typography:
+Inter / Poppins
+Monospace for Request ID & Asset Serial
+
+Layout:
+Three-panel approval workflow interface
+
+📊 Page Layout Structure
+
+The page contains 5 core sections:
+
+1️⃣ Request Overview Dashboard
+2️⃣ New Asset Request Form
+3️⃣ Pending Requests Queue
+4️⃣ Approval Workflow Panel
+5️⃣ Audit & Decision Log
+
+1️⃣ Request Overview Dashboard
+
+KPI Summary Cards:
+
+Total Requests (This Month)
+
+Pending Approvals
+
+Approved Requests
+
+Rejected Requests
+
+Escalated Requests
+
+Average Approval Time
+
+Analytics:
+
+📊 Requests by Type
+📈 Monthly Approval Trend
+📊 Requests by Department
+📉 Rejection Rate
+
+2️⃣ New Asset Request Form
+
+Centralized request submission form.
+
+Request Types:
+
+New Asset Issuance
+
+Asset Transfer
+
+Device Replacement
+
+Maintenance Request
+
+Asset Return
+
+Asset Write-Off
+
+Emergency Allocation
+
+Form Fields:
+
+Request ID (Auto-generated)
+
+Request Type
+
+Asset Type
+
+Asset ID (if applicable)
+
+From Location
+
+To Location
+
+Customer (if linked)
+
+Department
+
+Requested By
+
+Priority (Low / Normal / High / Critical)
+
+Business Justification
+
+Supporting Documents
+
+Estimated Value Impact
+
+Required By Date
+
+Options:
+
+✔ Require Multi-Level Approval
+✔ Mark as Emergency
+✔ Notify Department Head
+
+Validation:
+
+❌ Cannot request unavailable asset
+❌ Cannot bypass approval hierarchy
+❌ Must provide justification
+
+3️⃣ Pending Requests Queue
+
+Structured approval table:
+
+Columns:
+
+Request ID
+
+Request Type
+
+Asset
+
+Department
+
+Requested By
+
+Priority
+
+Date Submitted
+
+Current Approval Stage
+
+Status
+
+Actions
+
+Advanced Filters:
+
+✔ Filter by department
+✔ Filter by request type
+✔ Filter by priority
+✔ Filter by date range
+✔ Filter by approval stage
+
+Bulk actions available for managers.
+
+4️⃣ Approval Workflow Panel
+
+Multi-level approval system based on:
+
+• Asset value
+• Request type
+• Department
+• Financial impact
+
+Example Workflow:
+
+Technician →
+Inventory Manager →
+Network Manager →
+Finance Manager (if value threshold exceeded) →
+Admin Final Approval
+
+Approval Actions:
+
+✔ Approve
+✔ Reject (Reason Required)
+✔ Request More Information
+✔ Escalate
+✔ Reassign Approver
+
+Each approval step records:
+
+Approver Name
+
+Date & Time
+
+Decision
+
+Comments
+
+Status Flow:
+
+Draft → Pending → Under Review → Approved → Executed → Closed
+
+If rejected:
+
+✔ Mandatory rejection reason
+✔ Notification to requester
+✔ Permanent log entry
+
+5️⃣ Audit & Decision Log
+
+Immutable decision tracking.
+
+Timeline Example:
+
+🟡 10 Feb – Request Submitted
+🟣 10 Feb – Under Inventory Review
+🟢 11 Feb – Approved by Inventory Manager
+🟢 12 Feb – Approved by Finance
+🟢 12 Feb – Executed & Asset Assigned
+
+Audit Log Includes:
+
+IP address of approver
+
+Role at time of approval
+
+Timestamp
+
+Document attachments
+
+Policy reference (if applicable)
+
+This section cannot be edited or deleted.
+
+🔄 Automation Logic
+
+When request approved:
+
+✔ Trigger related workflow (transfer / assignment / maintenance)
+✔ Update asset status
+✔ Notify responsible parties
+✔ Create task (if required)
+✔ Log financial impact
+
+When request rejected:
+
+✔ Unlock reserved asset
+✔ Notify requester
+✔ Archive request
+
+If SLA exceeded:
+
+✔ Auto-escalate
+✔ Send alert to admin
+
+🔐 Role-Based Access
+
+Admin:
+Full approval authority
+
+Inventory Manager:
+Approve asset movement
+
+Network Manager:
+Approve device allocation
+
+Finance Manager:
+Approve high-value assets
+
+Department Head:
+Approve department-level requests
+
+Technician:
+Submit request only
+
+Viewer:
+Read-only
+
+Only Admin can override multi-level workflow.
+
+🔗 Integration Required
+
+✔ Assets List Page
+✔ Asset Transfer & Movement Page
+✔ Asset Assignment to Customer
+✔ Repair & RMA Module
+✔ Accounting / Depreciation Module
+✔ Task Management Module
+✔ Audit System
+
+📈 Business Impact
+
+This page ensures:
+
+✔ Zero unauthorized asset movement
+✔ Financial control over infrastructure
+✔ Reduced internal misuse
+✔ Strong compliance framework
+✔ Transparent operational governance
+✔ Faster structured approvals
+
+When you open this page, it should feel like:
+
+“No asset moves without approval.”
+“Every decision is documented.”
+“Infrastructure is fully controlled.”
