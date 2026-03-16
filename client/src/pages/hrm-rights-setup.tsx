@@ -119,6 +119,7 @@ export default function HrmRightsSetupPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/hrm-roles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/roles"] });
       toast({ title: "Default roles created", description: "8 system roles initialized successfully" });
     },
   });
@@ -130,6 +131,7 @@ export default function HrmRightsSetupPage() {
     },
     onSuccess: (role: HrmRole) => {
       queryClient.invalidateQueries({ queryKey: ["/api/hrm-roles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/roles"] });
       setSelectedRoleId(role.id);
       setShowCreateDialog(false);
       setNewRoleName("");
@@ -145,6 +147,7 @@ export default function HrmRightsSetupPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/hrm-roles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/roles"] });
       setShowEditDialog(false);
       toast({ title: "Role updated" });
     },
@@ -157,6 +160,7 @@ export default function HrmRightsSetupPage() {
     },
     onSuccess: (role: HrmRole) => {
       queryClient.invalidateQueries({ queryKey: ["/api/hrm-roles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/roles"] });
       setSelectedRoleId(role.id);
       toast({ title: "Role duplicated", description: `${role.name} created` });
     },
@@ -168,6 +172,7 @@ export default function HrmRightsSetupPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/hrm-roles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/roles"] });
       setSelectedRoleId(null);
       toast({ title: "Role archived" });
     },

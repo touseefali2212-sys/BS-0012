@@ -2023,15 +2023,41 @@ export async function registerRoutes(
     (id) => storage.deleteCommissionType(id),
   );
 
+  // Helper: find HRM role by name (case-insensitive)
+  async function findHrmRoleByName(name: string) {
+    const all = await storage.getHrmRoles();
+    return all.find(hr => hr.name.toLowerCase().trim() === name.toLowerCase().trim());
+  }
+
+  // Helper: ensure every org role has a linked HRM role (run at startup)
+  async function syncOrgRolesToHrmRoles() {
+    try {
+      const orgRoles = await storage.getRoles();
+      const hrmRoles = await storage.getHrmRoles();
+      const hrmNames = new Set(hrmRoles.map(hr => hr.name.toLowerCase().trim()));
+      for (const role of orgRoles) {
+        if (!hrmNames.has(role.name.toLowerCase().trim())) {
+          const counter = Date.now().toString(36).toUpperCase().slice(-6);
+          await storage.createHrmRole({
+            name: role.name,
+            description: (role as any).description || `HRM access role for ${role.name}`,
+            roleId: `ROLE-${counter}`,
+            isSystem: false,
+            createdAt: new Date().toISOString(),
+          } as any);
+        }
+      }
+    } catch (_) {}
+  }
+  syncOrgRolesToHrmRoles();
+
+  // POST /api/roles — create org role + auto-create HRM role
   app.post("/api/roles", requireAuth, async (req, res) => {
     try {
       const parsed = insertRoleSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
       const role = await storage.createRole(parsed.data);
-      const existingHrmRoles = await storage.getHrmRoles();
-      const alreadyLinked = existingHrmRoles.some(
-        (hr) => hr.name.toLowerCase().trim() === role.name.toLowerCase().trim()
-      );
+      const alreadyLinked = !!(await findHrmRoleByName(role.name));
       if (!alreadyLinked) {
         const counter = Date.now().toString(36).toUpperCase().slice(-6);
         await storage.createHrmRole({
@@ -2045,6 +2071,52 @@ export async function registerRoutes(
       res.status(201).json({ ...role, hrmRoleLinked: !alreadyLinked });
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to create role" });
+    }
+  });
+
+  // PATCH /api/roles/:id — update org role + cascade name change to HRM role
+  app.patch("/api/roles/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const existing = await storage.getRole(id);
+      if (!existing) return res.status(404).json({ message: "Role not found" });
+      const updated = await storage.updateRole(id, req.body);
+      const newName = req.body.name;
+      if (newName && newName !== existing.name) {
+        const hrmRole = await findHrmRoleByName(existing.name);
+        if (hrmRole) {
+          await storage.updateHrmRole(hrmRole.id, { name: newName });
+        } else {
+          const counter = Date.now().toString(36).toUpperCase().slice(-6);
+          await storage.createHrmRole({
+            name: newName,
+            description: req.body.description || `HRM access role for ${newName}`,
+            roleId: `ROLE-${counter}`,
+            isSystem: false,
+            createdAt: new Date().toISOString(),
+          } as any);
+        }
+      }
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to update role" });
+    }
+  });
+
+  // DELETE /api/roles/:id — delete org role + cascade delete matching HRM role
+  app.delete("/api/roles/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const existing = await storage.getRole(id);
+      if (!existing) return res.status(404).json({ message: "Role not found" });
+      const hrmRole = await findHrmRoleByName(existing.name);
+      if (hrmRole && !hrmRole.isSystem) {
+        await storage.deleteHrmRole(hrmRole.id);
+      }
+      await storage.deleteRole(id);
+      res.json({ message: "Deleted" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to delete role" });
     }
   });
 
@@ -4345,8 +4417,25 @@ export async function registerRoutes(
       const counter = Date.now().toString(36).toUpperCase().slice(-6);
       const roleId = `ROLE-${counter}`;
       const data = { ...req.body, roleId, createdAt: new Date().toISOString() };
-      const role = await storage.createHrmRole(data);
-      res.status(201).json(role);
+      const hrmRole = await storage.createHrmRole(data);
+      // Auto-create matching org role if not already existing
+      const existingOrgRoles = await storage.getRoles();
+      const orgExists = existingOrgRoles.some(
+        r => r.name.toLowerCase().trim() === hrmRole.name.toLowerCase().trim()
+      );
+      if (!orgExists) {
+        await storage.createRole({
+          name: hrmRole.name,
+          description: req.body.description || `Org role for ${hrmRole.name}`,
+          permissions: "",
+          isSystem: false,
+          status: "active",
+          roleLevel: "level_4",
+          commissionEligible: false,
+          incentiveTarget: false,
+        } as any);
+      }
+      res.status(201).json(hrmRole);
     } catch (error: any) { res.status(500).json({ message: error.message || "Failed to create role" }); }
   });
 

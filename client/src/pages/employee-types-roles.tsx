@@ -263,6 +263,7 @@ export default function EmployeeTypesRolesPage() {
     mutationFn: async ({ id, data }: { id: number; data: any }) => await apiRequest("PATCH", `/api/roles/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/roles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hrm-roles"] });
       toast({ title: "Updated", description: "Role updated" });
       setEditRoleDialog(false);
     },
@@ -273,6 +274,7 @@ export default function EmployeeTypesRolesPage() {
     mutationFn: async (id: number) => await apiRequest("DELETE", `/api/roles/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/roles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hrm-roles"] });
       toast({ title: "Deleted", description: "Role deleted" });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
