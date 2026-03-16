@@ -2657,13 +2657,19 @@ export async function registerRoutes(
     try {
       const parsed = insertAttendanceSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
-      res.status(201).json(await storage.createAttendance(parsed.data));
+      const data = parsed.data as any;
+      if (data.hoursWorked === "" || data.hoursWorked === undefined) data.hoursWorked = null;
+      if (data.overtime === "" || data.overtime === undefined) data.overtime = null;
+      res.status(201).json(await storage.createAttendance(data));
     } catch (error: any) { res.status(500).json({ message: error.message || "Failed to create attendance" }); }
   });
   app.patch("/api/attendance/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const updated = await storage.updateAttendance(id, req.body);
+      const body = req.body as any;
+      if (body.hoursWorked === "") body.hoursWorked = null;
+      if (body.overtime === "") body.overtime = null;
+      const updated = await storage.updateAttendance(id, body);
       if (!updated) return res.status(404).json({ message: "Not found" });
       res.json(updated);
     } catch (error: any) { res.status(500).json({ message: error.message }); }
