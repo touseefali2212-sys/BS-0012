@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   Clock,
@@ -190,6 +190,17 @@ export default function ShiftSchedulingPage() {
   const { data: employees = [] } = useQuery<any[]>({
     queryKey: ["/api/employees"],
   });
+
+  const { data: branches = [] } = useQuery<any[]>({
+    queryKey: ["/api/branches"],
+  });
+
+  useEffect(() => {
+    if (shiftDialog && !editShiftDialog) {
+      const code = shiftName.replace(/\s+/g, "").toUpperCase().slice(0, 3);
+      setShiftCode(code || "");
+    }
+  }, [shiftName, shiftDialog, editShiftDialog]);
 
   const createShiftMutation = useMutation({
     mutationFn: async (data: any) => await apiRequest("POST", "/api/shifts", data),
@@ -494,11 +505,26 @@ export default function ShiftSchedulingPage() {
         </div>
         <div>
           <label className="text-[12px] font-medium text-muted-foreground mb-1 block">Shift Code</label>
-          <Input value={shiftCode} onChange={e => setShiftCode(e.target.value)} className="h-9 text-[13px]" placeholder="e.g. MOR-01, NGT-01" data-testid="input-shift-code" />
+          <Input value={shiftCode} onChange={e => setShiftCode(e.target.value)} className="h-9 text-[13px]" placeholder="Auto-generated" data-testid="input-shift-code" />
+          {shiftDialog && !editShiftDialog && (
+            <p className="text-[10px] text-muted-foreground mt-1">Auto-generated from shift name. You can edit manually.</p>
+          )}
         </div>
         <div>
           <label className="text-[12px] font-medium text-muted-foreground mb-1 block">Branch</label>
-          <Input value={shiftBranch} onChange={e => setShiftBranch(e.target.value)} className="h-9 text-[13px]" placeholder="Main Office" data-testid="input-shift-branch" />
+          <Select value={shiftBranch} onValueChange={setShiftBranch}>
+            <SelectTrigger className="h-9 text-[13px]" data-testid="select-shift-branch">
+              <SelectValue placeholder="Select branch..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all_branches">All Branches</SelectItem>
+              {branches.filter((b: any) => b.status === "active").map((b: any) => (
+                <SelectItem key={b.id} value={b.name}>
+                  {b.name}{b.city ? ` — ${b.city}` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div>
           <label className="text-[12px] font-medium text-muted-foreground mb-1 block">Department</label>
