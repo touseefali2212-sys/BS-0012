@@ -25,6 +25,7 @@ import {
   Clock,
   Trash2,
   Pencil,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -813,6 +814,18 @@ export default function SalaryPage() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
+  const recalculateMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/payroll/recalculate", { month: selectedMonth }),
+    onSuccess: async (res: any) => {
+      const data = await res.json();
+      queryClient.invalidateQueries({ queryKey: [`/api/payroll?month=${selectedMonth}`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payroll/pending-summary"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/payroll/payments-summary", selectedMonth] });
+      toast({ title: "Payroll Recalculated", description: data.message || "Bonus, commission, and loan deductions synced from latest data" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => apiRequest("PATCH", `/api/payroll/${id}`, data),
     onSuccess: () => {
@@ -1099,6 +1112,23 @@ export default function SalaryPage() {
               </Badge>
             </div>
             <div className="flex-1" />
+            {all.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 text-[11px] text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                onClick={() => {
+                  if (confirm(`Recalculate payroll for ${monthLabel(selectedMonth)}?\n\nThis will sync Bonus & Commission and Advance & Loan deductions from the latest data for all unpaid entries.`)) {
+                    recalculateMutation.mutate();
+                  }
+                }}
+                disabled={recalculateMutation.isPending}
+                data-testid="button-recalculate-payroll"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${recalculateMutation.isPending ? "animate-spin" : ""}`} />
+                {recalculateMutation.isPending ? "Syncing..." : "Sync Bonus & Loans"}
+              </Button>
+            )}
             <Button
               size="sm"
               className="gap-1.5 text-[11px]"

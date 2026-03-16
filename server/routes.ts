@@ -1534,6 +1534,59 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/payroll/recalculate", requireAuth, async (req, res) => {
+    try {
+      const { month } = req.body;
+      if (!month) return res.status(400).json({ message: "Month is required" });
+      const existing = await storage.getPayrolls(month);
+      if (existing.length === 0) return res.json({ message: "No payroll entries found for this month", count: 0 });
+      const allLoans = await storage.getAdvanceLoans();
+      const monthBonusCommissions = await storage.getBonusCommissions(month);
+      const approvedBCs = monthBonusCommissions.filter(
+        (bc: any) => bc.status === "approved" && bc.includeInPayroll !== false
+      );
+      const bcByEmployee: Record<number, { bonus: number; commission: number }> = {};
+      for (const bc of approvedBCs) {
+        if (!bcByEmployee[bc.employeeId]) bcByEmployee[bc.employeeId] = { bonus: 0, commission: 0 };
+        if (bc.incentiveType === "commission") {
+          bcByEmployee[bc.employeeId].commission += Number(bc.amount) || 0;
+        } else {
+          bcByEmployee[bc.employeeId].bonus += Number(bc.amount) || 0;
+        }
+      }
+      let updated = 0;
+      for (const entry of existing) {
+        if (entry.status === "paid" || entry.status === "locked") continue;
+        const baseSalary = Number(entry.baseSalary) || 0;
+        const overtime = Number(entry.overtime) || 0;
+        const attendanceDeduction = Number(entry.attendanceDeduction) || 0;
+        const tax = Number(entry.tax) || 0;
+        const otherDeductions = Number(entry.otherDeductions) || 0;
+        const activeLoans = (allLoans as any[]).filter(
+          (l: any) => l.employeeId === entry.employeeId && l.status === "active" && l.repaymentType === "installment"
+        );
+        let loanDeduction = 0;
+        for (const loan of activeLoans) loanDeduction += Number(loan.installmentAmount) || 0;
+        const oneTimeLoans = (allLoans as any[]).filter(
+          (l: any) => l.employeeId === entry.employeeId && l.status === "active" && l.repaymentType === "one_time" && Number(l.paidAmount) < Number(l.amount)
+        );
+        for (const loan of oneTimeLoans) loanDeduction += Number(loan.amount) - Number(loan.paidAmount);
+        const empBC = bcByEmployee[entry.employeeId] || { bonus: 0, commission: 0 };
+        const netSalary = Math.max(0, baseSalary + overtime + empBC.bonus + empBC.commission - loanDeduction - attendanceDeduction - tax - otherDeductions);
+        await storage.updatePayroll(entry.id, {
+          bonus: empBC.bonus.toFixed(2),
+          commission: empBC.commission.toFixed(2),
+          loanDeduction: loanDeduction.toFixed(2),
+          netSalary: netSalary.toFixed(2),
+        });
+        updated++;
+      }
+      res.json({ message: `Recalculated ${updated} payroll entries`, count: updated });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to recalculate payroll" });
+    }
+  });
+
   app.post("/api/payroll", requireAuth, async (req, res) => {
     try {
       const { insertPayrollSchema } = await import("@shared/schema");
