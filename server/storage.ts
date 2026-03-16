@@ -401,7 +401,7 @@ export interface IStorage {
   updateSalaryPayment(id: number, data: Partial<InsertSalaryPayment>): Promise<SalaryPayment | undefined>;
   deleteSalaryPayment(id: number): Promise<void>;
 
-  getBonusCommissions(month?: string): Promise<(BonusCommission & { employeeName?: string; empCode?: string; department?: string; designation?: string })[]>;
+  getBonusCommissions(month?: string, employeeId?: number): Promise<(BonusCommission & { employeeName?: string; empCode?: string; department?: string; designation?: string })[]>;
   getBonusCommission(id: number): Promise<BonusCommission | undefined>;
   createBonusCommission(data: InsertBonusCommission): Promise<BonusCommission>;
   updateBonusCommission(id: number, data: Partial<InsertBonusCommission>): Promise<BonusCommission | undefined>;
@@ -3059,9 +3059,10 @@ export class DatabaseStorage implements IStorage {
     await db.delete(salaryPayments).where(eq(salaryPayments.id, id));
   }
 
-  async getBonusCommissions(month?: string): Promise<(BonusCommission & { employeeName?: string; empCode?: string; department?: string; designation?: string })[]> {
+  async getBonusCommissions(month?: string, employeeId?: number): Promise<(BonusCommission & { employeeName?: string; empCode?: string; department?: string; designation?: string })[]> {
     const conditions: any[] = [];
     if (month) conditions.push(eq(bonusCommissions.month, month));
+    if (employeeId) conditions.push(eq(bonusCommissions.employeeId, employeeId));
     const result = await db
       .select({
         ...bonusCommissions,

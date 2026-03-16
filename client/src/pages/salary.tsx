@@ -487,6 +487,12 @@ function PayDialogComponent({
     enabled: !!payDialog,
   });
 
+  const { data: empBonusCommissions = [] } = useQuery<any[]>({
+    queryKey: ["/api/bonus-commissions", "employee", payDialog?.employeeId],
+    queryFn: () => fetch(`/api/bonus-commissions?employeeId=${payDialog?.employeeId}`, { credentials: "include" }).then(r => r.json()),
+    enabled: !!payDialog?.employeeId,
+  });
+
   const paymentsFromRecords = (existingPayments || []).reduce((s, p) => s + Number(p.amount), 0);
   const netSalary = payDialog ? Number(payDialog.netSalary) : 0;
   const oldPendingAmount = (() => {
@@ -581,6 +587,41 @@ function PayDialogComponent({
                       ))}
                     </div>
                   )}
+                  {empBonusCommissions.length > 0 && (() => {
+                    const pending = empBonusCommissions.filter((bc: any) => bc.status === "pending" || bc.status === "approved" || bc.status === "draft");
+                    const paid = empBonusCommissions.filter((bc: any) => bc.status === "paid");
+                    const pendingTotal = pending.reduce((s: number, bc: any) => s + Number(bc.amount), 0);
+                    const paidTotal = paid.reduce((s: number, bc: any) => s + Number(bc.amount), 0);
+                    return (
+                      <div className="border border-border rounded-lg overflow-hidden mt-2" data-testid="section-bonus-commission-ledger">
+                        <div className="bg-muted/40 px-3 py-1.5 flex items-center justify-between border-b border-border">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Bonus & Commission Ledger</span>
+                          <div className="flex items-center gap-2">
+                            {pendingTotal > 0 && <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 tabular-nums">Pending: Rs. {pendingTotal.toLocaleString()}</span>}
+                            {paidTotal > 0 && <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 tabular-nums">Paid: Rs. {paidTotal.toLocaleString()}</span>}
+                          </div>
+                        </div>
+                        <div className="divide-y divide-border max-h-[140px] overflow-y-auto">
+                          {empBonusCommissions.slice(0, 8).map((bc: any) => (
+                            <div key={bc.id} className="flex items-center justify-between px-3 py-1.5" data-testid={`row-bc-${bc.id}`}>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${bc.status === "paid" ? "bg-emerald-500" : bc.status === "approved" ? "bg-blue-500" : bc.status === "rejected" ? "bg-red-400" : "bg-amber-400"}`} />
+                                <span className="text-[11px] text-foreground truncate max-w-[130px]">{bc.reason || bc.type}</span>
+                                <span className="text-[9px] text-muted-foreground">{fmtMonth(bc.month)}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 flex-shrink-0">
+                                <span className="text-[11px] font-semibold tabular-nums">Rs. {Number(bc.amount).toLocaleString()}</span>
+                                <span className={`text-[8px] font-semibold uppercase px-1 py-0.5 rounded ${bc.status === "paid" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" : bc.status === "approved" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" : bc.status === "rejected" ? "bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-300" : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"}`} data-testid={`badge-bc-status-${bc.id}`}>{bc.status}</span>
+                              </div>
+                            </div>
+                          ))}
+                          {empBonusCommissions.length > 8 && (
+                            <div className="px-3 py-1 text-[10px] text-muted-foreground text-center">+{empBonusCommissions.length - 8} more entries</div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </>
               );
             })()}

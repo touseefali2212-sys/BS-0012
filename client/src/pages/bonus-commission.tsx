@@ -903,7 +903,7 @@ export default function BonusCommissionPage() {
                             <Banknote className="h-3 w-3" />
                           </Button>
                         )}
-                        {(entry.status === "draft" || entry.status === "pending") && (
+                        {entry.status !== "paid" && (
                           <Button
                             variant="outline"
                             size="sm"

@@ -1860,7 +1860,8 @@ export async function registerRoutes(
   app.get("/api/bonus-commissions", requireAuth, async (req, res) => {
     try {
       const month = req.query.month as string | undefined;
-      const data = await storage.getBonusCommissions(month);
+      const employeeId = req.query.employeeId ? parseInt(req.query.employeeId as string) : undefined;
+      const data = await storage.getBonusCommissions(month, employeeId);
       res.json(data);
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to fetch bonus/commissions" });
