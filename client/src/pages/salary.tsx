@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
   DollarSign,
@@ -465,6 +465,19 @@ function PayDialogComponent({
   pendingSummary: Record<string, { count: number; totalAmount: number; months: string[]; entries: { month: string; status: string; netSalary: number; totalPaid: number; remaining: number }[] }> | undefined;
   paymentsSummary: Record<string, { totalPaid: number; paymentCount: number; remaining: number }> | undefined;
 }) {
+  const [payBankName, setPayBankName] = useState("");
+  const [payBankBranch, setPayBankBranch] = useState("");
+  const [payBankAccount, setPayBankAccount] = useState("");
+
+  useEffect(() => {
+    if (payDialog && employees) {
+      const emp = employees.find(e => e.id === payDialog.employeeId);
+      setPayBankName(emp?.bankName || "");
+      setPayBankBranch(emp?.bankBranch || "");
+      setPayBankAccount(emp?.bankAccount || "");
+    }
+  }, [payDialog?.id, employees]);
+
   const { data: existingPayments } = useQuery<SalaryPayment[]>({
     queryKey: ["/api/payroll", payDialog?.id, "payments"],
     queryFn: () => fetch(`/api/payroll/${payDialog?.id}/payments`, { credentials: "include" }).then(r => r.json()),
@@ -600,38 +613,41 @@ function PayDialogComponent({
                   </SelectContent>
                 </Select>
               </div>
-              {payMethod === "bank" && (() => {
-                const emp = employees?.find(e => e.id === payDialog.employeeId);
-                return (
-                  <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3" data-testid="section-bank-details">
-                    <p className="text-[11px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-2">Bank Account Details</p>
-                    {emp?.bankAccount || emp?.bankName ? (
-                      <div className="space-y-1.5 text-[12px]">
-                        {emp.bankName && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Bank Name</span>
-                            <span className="font-medium" data-testid="text-bank-name">{emp.bankName}</span>
-                          </div>
-                        )}
-                        {emp.bankBranch && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Branch</span>
-                            <span className="font-medium" data-testid="text-bank-branch">{emp.bankBranch}</span>
-                          </div>
-                        )}
-                        {emp.bankAccount && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground">Account No.</span>
-                            <span className="font-mono font-medium" data-testid="text-bank-account">{emp.bankAccount}</span>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-[11px] text-blue-500 dark:text-blue-400 italic">No bank details on file for this employee</p>
-                    )}
+              {payMethod === "bank" && (
+                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 space-y-2" data-testid="section-bank-details">
+                  <p className="text-[11px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">Bank Account Details</p>
+                  <div>
+                    <label className="text-[11px] text-muted-foreground mb-0.5 block">Bank Name</label>
+                    <Input
+                      value={payBankName}
+                      onChange={e => setPayBankName(e.target.value)}
+                      className="h-8 text-[12px] bg-white dark:bg-background"
+                      placeholder="e.g. HBL, MCB, UBL"
+                      data-testid="input-pay-bank-name"
+                    />
                   </div>
-                );
-              })()}
+                  <div>
+                    <label className="text-[11px] text-muted-foreground mb-0.5 block">Bank Branch</label>
+                    <Input
+                      value={payBankBranch}
+                      onChange={e => setPayBankBranch(e.target.value)}
+                      className="h-8 text-[12px] bg-white dark:bg-background"
+                      placeholder="Branch name or code"
+                      data-testid="input-pay-bank-branch"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-muted-foreground mb-0.5 block">Account No.</label>
+                    <Input
+                      value={payBankAccount}
+                      onChange={e => setPayBankAccount(e.target.value)}
+                      className="h-8 text-[12px] font-mono bg-white dark:bg-background"
+                      placeholder="Account number"
+                      data-testid="input-pay-bank-account"
+                    />
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Transaction Reference</label>
                 <Input
@@ -656,7 +672,7 @@ function PayDialogComponent({
             <DialogFooter>
               <Button variant="outline" onClick={() => setPayDialog(null)} data-testid="button-cancel-pay">Cancel</Button>
               <Button
-                onClick={() => markPaidMutation.mutate({ id: payDialog.id, method: payMethod, ref: payRef, remarks: payRemarks, amount: payAmount || String(defaultAmount) })}
+                onClick={() => markPaidMutation.mutate({ id: payDialog.id, method: payMethod, ref: payRef, remarks: payRemarks, amount: payAmount || String(defaultAmount), bankName: payBankName, bankBranch: payBankBranch, bankAccount: payBankAccount })}
                 disabled={markPaidMutation.isPending || (!payAmount && !defaultAmount) || Number(payAmount || defaultAmount) <= 0}
                 data-testid="button-confirm-pay"
               >
@@ -756,12 +772,15 @@ export default function SalaryPage() {
   });
 
   const markPaidMutation = useMutation({
-    mutationFn: ({ id, method, ref, remarks, amount }: { id: number; method: string; ref: string; remarks: string; amount: string }) =>
+    mutationFn: ({ id, method, ref, remarks, amount, bankName, bankBranch, bankAccount }: { id: number; method: string; ref: string; remarks: string; amount: string; bankName?: string; bankBranch?: string; bankAccount?: string }) =>
       apiRequest("POST", `/api/payroll/${id}/payments`, {
         amount,
         paymentMethod: method,
         paymentRef: ref,
         remarks: remarks || undefined,
+        bankName: bankName || undefined,
+        bankBranch: bankBranch || undefined,
+        bankAccount: bankAccount || undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/payroll?month=${selectedMonth}`] });

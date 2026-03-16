@@ -1714,7 +1714,7 @@ export async function registerRoutes(
       if (isNaN(payrollId)) return res.status(400).json({ message: "Invalid payroll ID" });
       const entry = await storage.getPayroll(payrollId);
       if (!entry) return res.status(404).json({ message: "Payroll entry not found" });
-      const { amount, paymentMethod, paymentRef, remarks } = req.body;
+      const { amount, paymentMethod, paymentRef, remarks, bankName, bankBranch, bankAccount } = req.body;
       const payAmount = Number(amount);
       if (!isFinite(payAmount) || payAmount <= 0) return res.status(400).json({ message: "Valid amount is required" });
       const validMethods = ["bank", "cash", "cheque", "online"];
@@ -1739,6 +1739,17 @@ export async function registerRoutes(
         paymentRef: paymentRef || "",
         paidDate: today,
       });
+
+      if (method === "bank" && entry.employeeId && (bankName || bankBranch || bankAccount)) {
+        const bankUpdate: Record<string, string> = {};
+        if (bankName !== undefined) bankUpdate.bankName = bankName;
+        if (bankBranch !== undefined) bankUpdate.bankBranch = bankBranch;
+        if (bankAccount !== undefined) bankUpdate.bankAccount = bankAccount;
+        if (Object.keys(bankUpdate).length > 0) {
+          await storage.updateEmployee(entry.employeeId, bankUpdate);
+        }
+      }
+
       res.json(payment);
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to create payment" });
