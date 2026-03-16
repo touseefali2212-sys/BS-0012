@@ -135,6 +135,9 @@ export default function AreasPage() {
   const { toast } = useToast();
   const [tab, changeTab] = useTab("list");
   const [search, setSearch] = useState("");
+  const [filterArea, setFilterArea] = useState("");
+  const [filterMainArea, setFilterMainArea] = useState("");
+  const [filterCity, setFilterCity] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingArea, setEditingArea] = useState<Area | null>(null);
@@ -287,10 +290,15 @@ export default function AreasPage() {
 
   const filtered = (areas || []).filter((a) => {
     const matchSearch =
+      !search ||
       a.name.toLowerCase().includes(search.toLowerCase()) ||
-      a.city.toLowerCase().includes(search.toLowerCase());
+      a.city.toLowerCase().includes(search.toLowerCase()) ||
+      (a.mainArea || "").toLowerCase().includes(search.toLowerCase());
+    const matchArea = !filterArea || a.name.toLowerCase().includes(filterArea.toLowerCase());
+    const matchMainArea = !filterMainArea || (a.mainArea || "").toLowerCase().includes(filterMainArea.toLowerCase());
+    const matchCity = !filterCity || a.city.toLowerCase().includes(filterCity.toLowerCase());
     const matchStatus = statusFilter === "all" || a.status === statusFilter;
-    return matchSearch && matchStatus;
+    return matchSearch && matchArea && matchMainArea && matchCity && matchStatus;
   });
 
   const statusColors: Record<string, string> = {
@@ -454,19 +462,40 @@ export default function AreasPage() {
           </div>
           <Card>
             <CardHeader className="pb-3">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                <div className="relative flex-1 w-full sm:max-w-xs">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative flex-1 min-w-[160px]">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by name or city..."
+                    placeholder="Search all..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 h-9"
                     data-testid="input-search-areas"
                   />
                 </div>
+                <Input
+                  placeholder="Filter by Area Name"
+                  value={filterArea}
+                  onChange={(e) => setFilterArea(e.target.value)}
+                  className="h-9 w-[170px]"
+                  data-testid="input-filter-area"
+                />
+                <Input
+                  placeholder="Filter by Main Area"
+                  value={filterMainArea}
+                  onChange={(e) => setFilterMainArea(e.target.value)}
+                  className="h-9 w-[170px]"
+                  data-testid="input-filter-main-area"
+                />
+                <Input
+                  placeholder="Filter by City"
+                  value={filterCity}
+                  onChange={(e) => setFilterCity(e.target.value)}
+                  className="h-9 w-[150px]"
+                  data-testid="input-filter-city"
+                />
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[140px]" data-testid="select-status-filter">
+                  <SelectTrigger className="w-[130px] h-9" data-testid="select-status-filter">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -475,6 +504,17 @@ export default function AreasPage() {
                     <SelectItem value="inactive">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
+                {(filterArea || filterMainArea || filterCity || statusFilter !== "all") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 px-3 text-muted-foreground"
+                    onClick={() => { setFilterArea(""); setFilterMainArea(""); setFilterCity(""); setStatusFilter("all"); setSearch(""); }}
+                    data-testid="button-clear-filters"
+                  >
+                    Clear
+                  </Button>
+                )}
               </div>
             </CardHeader>
             <CardContent className="p-0">
@@ -495,7 +535,8 @@ export default function AreasPage() {
                   <Table className="vendor-table-enterprise">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Name</TableHead>
+                        <TableHead>Area Name</TableHead>
+                        <TableHead>Main Area</TableHead>
                         <TableHead>City / Zone</TableHead>
                         <TableHead>Branch</TableHead>
                         <TableHead>Houses & Offices</TableHead>
@@ -524,6 +565,11 @@ export default function AreasPage() {
                               <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
                               {area.name}
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground" data-testid={`text-main-area-${area.id}`}>
+                              {area.mainArea || "—"}
+                            </span>
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col gap-0.5">
