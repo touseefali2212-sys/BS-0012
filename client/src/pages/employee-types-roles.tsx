@@ -203,6 +203,10 @@ export default function EmployeeTypesRolesPage() {
     queryKey: ["/api/employees"],
   });
 
+  const { data: hrmRoles = [] } = useQuery<any[]>({
+    queryKey: ["/api/hrm-roles"],
+  });
+
   const createTypeMutation = useMutation({
     mutationFn: async (data: any) => await apiRequest("POST", "/api/employee-types", data),
     onSuccess: () => {
@@ -234,10 +238,30 @@ export default function EmployeeTypesRolesPage() {
   });
 
   const createRoleMutation = useMutation({
-    mutationFn: async (data: any) => await apiRequest("POST", "/api/roles", data),
-    onSuccess: () => {
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/roles", data);
+      return res.json();
+    },
+    onSuccess: async (createdRole: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/roles"] });
-      toast({ title: "Created", description: "Role created successfully" });
+      const alreadyExists = hrmRoles.some(
+        (hr: any) => hr.name.toLowerCase().trim() === (createdRole.name || roleName).toLowerCase().trim()
+      );
+      if (!alreadyExists) {
+        try {
+          await apiRequest("POST", "/api/hrm-roles", {
+            name: createdRole.name || roleName,
+            description: createdRole.description || `HRM access role for ${createdRole.name || roleName}`,
+            isSystem: false,
+          });
+          queryClient.invalidateQueries({ queryKey: ["/api/hrm-roles"] });
+          toast({ title: "Role Created & Linked", description: `"${createdRole.name || roleName}" added to HRM Rights Setup automatically` });
+        } catch {
+          toast({ title: "Role Created", description: "Role saved. Link to HRM Rights Setup failed — please add manually." });
+        }
+      } else {
+        toast({ title: "Created", description: `"${createdRole.name || roleName}" created. A matching HRM rights role already exists.` });
+      }
       setRoleDialog(false);
       resetRoleForm();
     },
@@ -800,6 +824,7 @@ export default function EmployeeTypesRolesPage() {
                     <th className="text-left py-2.5 px-3 font-semibold">Reports To</th>
                     <th className="text-center py-2.5 px-3 font-semibold">Commission</th>
                     <th className="text-left py-2.5 px-3 font-semibold">Salary Grade</th>
+                    <th className="text-center py-2.5 px-3 font-semibold">HRM Rights</th>
                     <th className="text-center py-2.5 px-3 font-semibold">Status</th>
                     <th className="text-center py-2.5 px-3 font-semibold">Actions</th>
                   </tr>
@@ -807,7 +832,7 @@ export default function EmployeeTypesRolesPage() {
                 <tbody>
                   {filteredRoles.length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="text-center py-12 text-muted-foreground">
+                      <td colSpan={10} className="text-center py-12 text-muted-foreground">
                         <div className="flex flex-col items-center gap-2">
                           <Shield className="h-8 w-8 text-muted-foreground/40" />
                           <p className="text-[13px] font-medium">No roles configured</p>
@@ -838,6 +863,17 @@ export default function EmployeeTypesRolesPage() {
                         <td className="py-2 px-3 text-muted-foreground text-[11px]">{r.reportsTo || "—"}</td>
                         <td className="py-2 px-3 text-center">{r.commissionEligible ? <CheckCircle className="h-4 w-4 text-emerald-500 mx-auto" /> : <XCircle className="h-4 w-4 text-red-400 mx-auto" />}</td>
                         <td className="py-2 px-3 text-muted-foreground text-[11px]">{r.salaryGrade || "—"}</td>
+                        <td className="py-2 px-3 text-center" data-testid={`cell-hrm-rights-${r.id}`}>
+                          {hrmRoles.some((hr: any) => hr.name.toLowerCase().trim() === r.name.toLowerCase().trim()) ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 border border-emerald-300 dark:border-emerald-700 rounded px-1.5 py-0.5">
+                              <CheckCircle className="h-2.5 w-2.5" /> Linked
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded px-1.5 py-0.5">
+                              <XCircle className="h-2.5 w-2.5" /> Not Linked
+                            </span>
+                          )}
+                        </td>
                         <td className="py-2 px-3 text-center">
                           <Badge variant="secondary" className={`text-[10px] font-semibold border-0 capitalize ${statusColors[r.status]}`}>{r.status}</Badge>
                         </td>
