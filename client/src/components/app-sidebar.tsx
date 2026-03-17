@@ -1,5 +1,6 @@
-import { useState, useCallback, useSyncExternalStore } from "react";
+import { useState, useCallback, useSyncExternalStore, useMemo } from "react";
 import { useLocation, Link } from "wouter";
+import { usePermissions } from "@/hooks/use-permissions";
 import {
   LayoutDashboard,
   Users,
@@ -97,12 +98,14 @@ interface NavItem {
   icon: LucideIcon;
   url?: string;
   subItems?: SubItem[];
+  module?: string;
 }
 
 const dashboardNav: NavItem[] = [
   {
     title: "Dashboard",
     icon: LayoutDashboard,
+    module: "dashboard",
     subItems: [
       { title: "Overview", url: "/?tab=overview", icon: LayoutDashboard },
       { title: "Customers Dashboard", url: "/?tab=customers", icon: Users },
@@ -116,6 +119,7 @@ const managementNav: NavItem[] = [
   {
     title: "Company Profile",
     icon: Building2,
+    module: "management",
     subItems: [
       { title: "Company Profile", url: "/company?tab=profile", icon: Building2 },
       { title: "Branches & Department", url: "/company?tab=branches", icon: GitBranch },
@@ -124,6 +128,7 @@ const managementNav: NavItem[] = [
   {
     title: "Vendors",
     icon: Store,
+    module: "management",
     subItems: [
       { title: "Vendor Type", url: "/vendors?tab=types", icon: Layers },
       { title: "Add Vendor", url: "/vendors?tab=add", icon: UserPlus },
@@ -137,6 +142,7 @@ const managementNav: NavItem[] = [
   {
     title: "Packages",
     icon: Package,
+    module: "management",
     subItems: [
       { title: "Packages List", url: "/packages?tab=list", icon: List },
       { title: "Tax & Extra Fee", url: "/packages?tab=tax", icon: Receipt },
@@ -146,6 +152,7 @@ const managementNav: NavItem[] = [
   {
     title: "Area Management",
     icon: MapPin,
+    module: "management",
     subItems: [
       { title: "Add Area", url: "/areas?tab=add", icon: UserPlus },
       { title: "Area List", url: "/areas?tab=list", icon: List },
@@ -160,6 +167,7 @@ const hrmNav: NavItem[] = [
   {
     title: "HR & Payroll",
     icon: UserCog,
+    module: "hrm",
     subItems: [
       { title: "Add Employee", url: "/hr?tab=add", icon: UserPlus },
       { title: "Employee List", url: "/hr?tab=list", icon: List },
@@ -176,6 +184,7 @@ const hrmNav: NavItem[] = [
   {
     title: "HRM",
     icon: ShieldCheck,
+    module: "settings",
     subItems: [
       { title: "HRM Role & Type", url: "/access?tab=roles", icon: Shield },
       { title: "Staff User Login", url: "/access?tab=users", icon: KeyRound },
@@ -192,6 +201,7 @@ const customerNav: NavItem[] = [
   {
     title: "Customers",
     icon: Users,
+    module: "crm",
     subItems: [
       { title: "Customer Type", url: "/customers?tab=types", icon: Hash },
       { title: "Add New Customer", url: "/customers?tab=add", icon: UserPlus },
@@ -205,11 +215,13 @@ const customerNav: NavItem[] = [
   {
     title: "Customer Portal",
     icon: MonitorSmartphone,
+    module: "crm",
     url: "/customer-portal",
   },
   {
     title: "Reseller Management",
     icon: Handshake,
+    module: "crm",
     subItems: [
       { title: "Reseller Type & Role", url: "/resellers?tab=types", icon: Hash },
       { title: "Add New Reseller", url: "/resellers?tab=add", icon: UserPlus },
@@ -224,6 +236,7 @@ const billingNav: NavItem[] = [
   {
     title: "Support & Ticket",
     icon: LifeBuoy,
+    module: "crm",
     subItems: [
       { title: "Support Type", url: "/tickets?tab=types", icon: Hash },
       { title: "Open New Ticket", url: "/tickets?tab=new", icon: Plus },
@@ -234,6 +247,7 @@ const billingNav: NavItem[] = [
   {
     title: "Sale",
     icon: FileText,
+    module: "sales",
     subItems: [
       { title: "Invoice Type", url: "/invoices?tab=types", icon: Hash },
       { title: "Add New Invoice", url: "/invoices?tab=add", icon: UserPlus },
@@ -245,6 +259,7 @@ const billingNav: NavItem[] = [
   {
     title: "Accounting",
     icon: BookOpen,
+    module: "sales",
     subItems: [
       { title: "Account Types", url: "/accounting?tab=types", icon: Hash },
       { title: "Add New Account", url: "/accounting?tab=add", icon: UserPlus },
@@ -261,6 +276,7 @@ const billingNav: NavItem[] = [
   {
     title: "Transactions",
     icon: ArrowLeftRight,
+    module: "sales",
     subItems: [
       { title: "Transaction Type", url: "/transactions?tab=types", icon: Hash },
       { title: "Transactions List", url: "/transactions?tab=list", icon: List },
@@ -281,6 +297,7 @@ const operationsNav: NavItem[] = [
   {
     title: "Task Management",
     icon: ListTodo,
+    module: "tasks",
     subItems: [
       { title: "Projects", url: "/projects?tab=dashboard", icon: FolderOpen },
       { title: "Tasks", url: "/tasks?tab=list", icon: ListTodo },
@@ -292,6 +309,7 @@ const operationsNav: NavItem[] = [
   {
     title: "Network & IPAM",
     icon: Globe,
+    module: "network",
     subItems: [
       { title: "Network Monitoring", url: "/network-monitoring", icon: Gauge },
       { title: "MikroTik Integration", url: "/mikrotik", icon: Router },
@@ -305,6 +323,7 @@ const operationsNav: NavItem[] = [
   {
     title: "Service Outages",
     icon: Zap,
+    module: "outages",
     subItems: [
       { title: "Outage Management", url: "/outages", icon: Activity },
     ],
@@ -312,6 +331,7 @@ const operationsNav: NavItem[] = [
   {
     title: "Assets",
     icon: HardDrive,
+    module: "assets",
     subItems: [
       { title: "Assets Type", url: "/assets?tab=types", icon: Hash },
       { title: "Assets List", url: "/assets?tab=list", icon: List },
@@ -325,6 +345,7 @@ const operationsNav: NavItem[] = [
   {
     title: "Inventory",
     icon: Boxes,
+    module: "inventory",
     subItems: [
       { title: "Product Type", url: "/product-types", icon: Hash },
       { title: "Suppliers", url: "/suppliers", icon: Store },
@@ -344,6 +365,7 @@ const systemNav: NavItem[] = [
   {
     title: "Notifications",
     icon: Bell,
+    module: "notifications",
     subItems: [
       { title: "Notification Type", url: "/notification-types", icon: Hash },
       { title: "Alert & Templates", url: "/alert-templates", icon: FileText },
@@ -357,6 +379,7 @@ const systemNav: NavItem[] = [
   {
     title: "All Reports",
     icon: BarChart3,
+    module: "reports",
     subItems: [
       { title: "Reports Dashboard", url: "/reports", icon: BarChart3 },
       { title: "Customer Reports", url: "/reports/customers", icon: Users },
@@ -376,6 +399,7 @@ const systemNav: NavItem[] = [
   {
     title: "Settings",
     icon: Settings,
+    module: "settings",
     subItems: [
       { title: "General", url: "/general-settings", icon: Settings },
       { title: "Company", url: "/settings?tab=company", icon: Building2 },
@@ -511,6 +535,7 @@ function NavGroup({
   label: string;
   items: NavItem[];
 }) {
+  if (items.length === 0) return null;
   return (
     <SidebarGroup>
       <SidebarGroupLabel className="text-[10px] font-semibold uppercase tracking-[0.08em] text-blue-200/50 dark:text-blue-300/40 px-3 mb-0.5">
@@ -528,6 +553,27 @@ function NavGroup({
 }
 
 export function AppSidebar() {
+  const { isAdmin, canView, isLoading } = usePermissions();
+
+  const filterNav = useCallback(
+    (items: NavItem[]) => {
+      if (isLoading || isAdmin) return items;
+      return items.filter((item) => {
+        if (!item.module) return true;
+        return canView(item.module);
+      });
+    },
+    [isAdmin, canView, isLoading]
+  );
+
+  const filteredDashboard = useMemo(() => filterNav(dashboardNav), [filterNav]);
+  const filteredManagement = useMemo(() => filterNav(managementNav), [filterNav]);
+  const filteredHrm = useMemo(() => filterNav(hrmNav), [filterNav]);
+  const filteredCustomer = useMemo(() => filterNav(customerNav), [filterNav]);
+  const filteredBilling = useMemo(() => filterNav(billingNav), [filterNav]);
+  const filteredOperations = useMemo(() => filterNav(operationsNav), [filterNav]);
+  const filteredSystem = useMemo(() => filterNav(systemNav), [filterNav]);
+
   const handleLogout = async () => {
     try {
       await apiRequest("POST", "/api/auth/logout");
@@ -553,13 +599,13 @@ export function AppSidebar() {
       <div className="mx-3 h-px bg-white/8" />
       <SidebarContent>
         <ScrollArea className="flex-1 py-2">
-          <NavGroup label="Overview" items={dashboardNav} />
-          <NavGroup label="Management" items={managementNav} />
-          <NavGroup label="HR & People" items={hrmNav} />
-          <NavGroup label="Customers & Resellers" items={customerNav} />
-          <NavGroup label="Billing & Finance" items={billingNav} />
-          <NavGroup label="Operations" items={operationsNav} />
-          <NavGroup label="System" items={systemNav} />
+          <NavGroup label="Overview" items={filteredDashboard} />
+          <NavGroup label="Management" items={filteredManagement} />
+          <NavGroup label="HR & People" items={filteredHrm} />
+          <NavGroup label="Customers & Resellers" items={filteredCustomer} />
+          <NavGroup label="Billing & Finance" items={filteredBilling} />
+          <NavGroup label="Operations" items={filteredOperations} />
+          <NavGroup label="System" items={filteredSystem} />
         </ScrollArea>
       </SidebarContent>
       <div className="mx-3 h-px bg-white/8" />

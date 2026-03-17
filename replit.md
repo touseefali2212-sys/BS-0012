@@ -16,7 +16,7 @@ Multi-tenant SaaS ISP Billing & Operations Management System for Internet Servic
   - `client/src/components/ui/` - shadcn/ui components
   - `client/src/components/app-sidebar.tsx` - Navigation sidebar with collapsible submenus
   - `client/src/components/theme-provider.tsx` - Dark/light theme provider
-  - `client/src/hooks/` - Custom hooks (use-auth, use-tab, use-toast, use-mobile)
+  - `client/src/hooks/` - Custom hooks (use-auth, use-tab, use-toast, use-mobile, use-permissions)
   - `client/src/lib/` - Utilities (queryClient, utils)
   - `client/src/index.css` - Enterprise blue theme variables and elevation utilities
 - `server/` - Express backend

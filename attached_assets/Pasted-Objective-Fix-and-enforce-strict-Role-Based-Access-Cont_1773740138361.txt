@@ -1,0 +1,130 @@
+Objective
+Fix and enforce strict Role-Based Access Control (RBAC) in the HRM Module so that when an employee logs into the system, they can only view and access the modules, menus, and features explicitly assigned to their role.
+Currently, the system is incorrectly showing all modules to all users, even when restricted permissions are configured.
+________________________________________
+❗ Problem Statement
+When:
+1.	Admin creates an Employee App Login (e.g., Khurram Shahzad)
+2.	Assigns a role (e.g., Technician)
+3.	Configures HRM Rights Setup (allowing only selected modules/submenus)
+👉 After login, the user still sees ALL modules instead of restricted modules
+This indicates:
+❌ Role permissions are not being enforced on UI
+❌ Sidebar/menu rendering is not filtered by role
+❌ Backend authorization is missing or bypassed
+________________________________________
+✅ Required Solution
+Implement a complete RBAC system with both:
+1. Frontend Permission Control
+2. Backend Authorization Validation
+________________________________________
+🔐 1️⃣ Role & Permission System Structure
+Create a structured permission system:
+Role Table:
+•	role_id
+•	role_name (Admin, Technician, Recovery Officer, etc.)
+Permissions Table:
+•	permission_id
+•	module_name
+•	submenu_name
+•	action_type (view, create, edit, delete)
+Role_Permissions Mapping:
+•	role_id
+•	permission_id
+________________________________________
+🧩 2️⃣ HRM Rights Setup Integration
+When Admin configures permissions:
+✔ Selected modules and submenus must be saved in database
+✔ Each role must have a clear permission map
+Example (Technician Role):
+Allowed:
+•	Customers → View
+•	Support Tickets → View, Update
+•	Network Map → View
+Not Allowed:
+•	Accounting
+•	HRM
+•	Reports
+•	Settings
+________________________________________
+🖥 3️⃣ Sidebar / Menu Rendering Logic (Frontend Fix)
+Modify sidebar logic:
+✔ Fetch logged-in user role
+✔ Fetch role permissions
+✔ Render ONLY allowed modules
+Example Logic:
+IF role has permission for module
+→ Show module
+ELSE
+→ Hide module completely
+________________________________________
+🔒 4️⃣ Backend Authorization (Critical Security Fix)
+Even if UI is hidden, enforce backend validation:
+✔ Every API endpoint must check:
+•	User role
+•	Permission allowed
+Example:
+IF user.role != allowed_role
+→ Return "Unauthorized Access"
+This prevents:
+❌ Direct URL access
+❌ API bypass
+❌ Security breach
+________________________________________
+👤 5️⃣ User Login Flow
+When employee logs in:
+1.	Authenticate user
+2.	Fetch role_id
+3.	Fetch permissions
+4.	Store permissions in session / token
+5.	Apply permissions to:
+•	Sidebar
+•	Pages
+•	API calls
+________________________________________
+🎛 6️⃣ Permission Types
+Each module must support:
+✔ View
+✔ Create
+✔ Edit
+✔ Delete
+✔ Approve
+Example:
+Technician:
+✔ View Customers
+❌ Delete Customers
+________________________________________
+🧪 7️⃣ Testing Scenarios
+Test cases required:
+✔ Technician login → Only allowed modules visible
+✔ Admin login → Full access
+✔ Unauthorized API access → Blocked
+✔ Direct URL access → Blocked
+✔ Role update → Reflect instantly
+________________________________________
+⚠️ Important Rules
+✔ No module should be visible without permission
+✔ No API should execute without permission
+✔ Default role must have NO access unless assigned
+✔ Super Admin bypass allowed
+________________________________________
+📊 Expected Outcome
+After fix:
+✔ Khurram Shahzad (Technician) login shows ONLY assigned modules
+✔ Sidebar dynamically updates per role
+✔ System is secure and scalable
+✔ No unauthorized access possible
+________________________________________
+🧠 Technical Notes for Replit AI
+•	Use middleware for permission checking
+•	Use role-based filtering for UI rendering
+•	Store permissions in JWT/session
+•	Optimize queries for fast permission lookup
+•	Cache permissions if needed
+________________________________________
+📈 Business Impact
+✔ Improved system security
+✔ Proper employee access control
+✔ Reduced internal misuse
+✔ Professional enterprise-grade ERP behavior
+

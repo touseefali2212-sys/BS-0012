@@ -294,6 +294,37 @@ export async function registerRoutes(
     });
   });
 
+  app.get("/api/auth/permissions", async (req, res) => {
+    if (!req.session.userId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    try {
+      const user = await storage.getUser(req.session.userId);
+      if (!user) return res.status(401).json({ message: "User not found" });
+
+      const adminRoles = ["admin", "super_admin", "superadmin", "super admin"];
+      const isAdmin = adminRoles.includes((user.role || "").toLowerCase());
+
+      if (isAdmin) {
+        return res.json({ isAdmin: true, permissions: [] });
+      }
+
+      const allHrmRoles = await storage.getHrmRoles();
+      const matchedRole = allHrmRoles.find(
+        (r) => r.name.toLowerCase() === (user.role || "").toLowerCase()
+      );
+
+      if (!matchedRole) {
+        return res.json({ isAdmin: false, permissions: [], noRole: true });
+      }
+
+      const permissions = await storage.getHrmPermissions(matchedRole.id);
+      return res.json({ isAdmin: false, permissions });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch permissions" });
+    }
+  });
+
   app.get("/api/dashboard/stats", requireAuth, async (_req, res) => {
     try {
       const stats = await storage.getDashboardStats();

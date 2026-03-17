@@ -25,16 +25,18 @@ import {
 
 const MODULE_STRUCTURE: Record<string, { icon: any; label: string; submenus: string[] }> = {
   dashboard: { icon: LayoutGrid, label: "Dashboard", submenus: ["Overview", "Analytics", "Quick Actions", "Widgets"] },
-  inventory: { icon: Package, label: "Inventory", submenus: ["Product Types", "Suppliers", "Brands & Products", "Purchase Orders", "Stock Management", "Inventory List", "Batch & Serial", "Sales"] },
-  sales: { icon: ShoppingCart, label: "Sales", submenus: ["Invoices", "Quotations", "Credit Notes", "Customers", "Payment Collection", "Discounts"] },
-  purchase: { icon: CreditCard, label: "Purchase Orders", submenus: ["Create PO", "PO List", "PO Approvals", "Vendor Management", "Receiving"] },
+  management: { icon: Building2, label: "Management", submenus: ["Company Profile", "Branches & Departments", "Vendors", "Packages", "Area Management"] },
+  crm: { icon: Users, label: "CRM / Customers", submenus: ["Customers", "Leads", "Tickets", "Customer Portal", "Resellers", "Communication"] },
+  sales: { icon: ShoppingCart, label: "Sales & Finance", submenus: ["Invoices", "Daily Collection", "Accounting", "Transactions", "Credit Notes", "Payment Gateway"] },
+  hrm: { icon: UserCog, label: "HR & Payroll", submenus: ["Employees", "Attendance", "Leaves", "Payroll", "Advances", "Shifts", "Bonus & Commission"] },
+  inventory: { icon: Package, label: "Inventory", submenus: ["Product Types", "Suppliers", "Brands & Products", "Purchase Orders", "Stock Management", "Inventory List", "Batch & Serial"] },
   assets: { icon: Boxes, label: "Assets", submenus: ["Asset Register", "Asset Tracking", "Depreciation", "Asset Transfer", "Maintenance"] },
+  tasks: { icon: Wrench, label: "Task Management", submenus: ["Projects", "Tasks", "Team Management", "Progress Tracking", "Task Audit"] },
+  network: { icon: Globe, label: "Network & IPAM", submenus: ["Network Monitoring", "MikroTik", "IP Addresses", "RADIUS", "Bandwidth Usage", "Customer Map"] },
   outages: { icon: Wrench, label: "Service Outages", submenus: ["Active Outages", "Outage History", "SLA Tracking", "Escalation", "Resolution"] },
-  crm: { icon: Users, label: "CRM", submenus: ["Customers", "Leads", "Tickets", "Customer Portal", "Communication"] },
-  hrm: { icon: UserCog, label: "HRM", submenus: ["Employees", "Attendance", "Leaves", "Payroll", "Advances", "Departments", "Designations"] },
   notifications: { icon: Bell, label: "Notifications", submenus: ["Alert Templates", "Push Notifications", "Bulk Campaigns", "SMS & Email API"] },
   reports: { icon: BarChart3, label: "Reports", submenus: ["Financial Reports", "Inventory Reports", "Sales Reports", "HR Reports", "Custom Reports"] },
-  settings: { icon: Settings, label: "Settings", submenus: ["General", "Company", "Billing", "HRM Rights", "Customer Rights", "User Management"] },
+  settings: { icon: Settings, label: "Settings & HRM Admin", submenus: ["General", "Company", "Billing", "HRM Rights", "Customer Rights", "User Management", "Staff Accounts"] },
 };
 
 const PERMISSION_ACTIONS = [
