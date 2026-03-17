@@ -978,6 +978,34 @@ export default function AddCustomerPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Grand Total = Final Package Bill + Final Installation Charges */}
+                  {(() => {
+                    const pkg   = parseFloat(form.finalPackageBill)        || 0;
+                    const inst  = parseFloat(form.finalInstallationCharges) || 0;
+                    const grand = pkg + inst;
+                    return (
+                      <div className="mt-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 p-4 flex items-center justify-between gap-4 shadow-md">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-lg bg-white/20 flex items-center justify-center">
+                            <Calculator className="h-5 w-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-xs text-blue-100 font-medium">Grand Total (First Payment)</p>
+                            <p className="text-[11px] text-blue-200">
+                              Final Package Bill + Final Installation Charges
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <p className="text-xs text-blue-200">PKR {pkg.toFixed(2)} + PKR {inst.toFixed(2)}</p>
+                            <p className="text-2xl font-bold text-white">PKR {grand.toFixed(2)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 <Separator />
