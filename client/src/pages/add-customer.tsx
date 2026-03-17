@@ -331,11 +331,35 @@ export default function AddCustomerPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Compute which required fields are still missing — disables the save buttons
-  const missingFields: string[] = [];
-  if (!form.fullName || form.fullName.trim().length < 2) missingFields.push("Full Name");
-  if (!form.phone || form.phone.trim().length < 10)      missingFields.push("Phone Number");
-  const isFormReady = missingFields.length === 0;
+  // Compute which required fields are still missing across ALL tabs — disables save buttons
+  const missingByTab: Record<string, string[]> = {
+    "Basic Info":     [],
+    "Connection":     [],
+    "Documents":      [],
+  };
+  // Basic Info required fields
+  if (!form.fullName    || form.fullName.trim().length < 2)  missingByTab["Basic Info"].push("Customer Name");
+  if (!form.cnic        || form.cnic.trim().length < 1)      missingByTab["Basic Info"].push("CNIC / NID");
+  if (!form.phone       || form.phone.trim().length < 10)    missingByTab["Basic Info"].push("Mobile Number");
+  if (!form.email       || form.email.trim().length < 1)     missingByTab["Basic Info"].push("Email Address");
+  // Connection required fields
+  if (!form.connectedBy  || form.connectedBy.trim().length < 1)  missingByTab["Connection"].push("Installed By");
+  if (!form.usernameIp   || form.usernameIp.trim().length < 1)   missingByTab["Connection"].push("Username / PPPoE");
+  if (!form.vendorId     || form.vendorId.trim().length < 1)     missingByTab["Connection"].push("Vendor");
+  if (!form.packageId    || form.packageId.trim().length < 1)    missingByTab["Connection"].push("Package");
+  if (!form.joiningDate  || form.joiningDate.trim().length < 1)  missingByTab["Connection"].push("Joining Date");
+  // Documents required fields
+  if (!form.cnicFront || form.cnicFront.trim().length < 1)  missingByTab["Documents"].push("CNIC Front");
+  if (!form.cnicBack  || form.cnicBack.trim().length < 1)   missingByTab["Documents"].push("CNIC Back");
+
+  const allMissing = Object.entries(missingByTab).flatMap(([tab, fields]) =>
+    fields.map(f => `${f} (${tab})`)
+  );
+  const isFormReady = allMissing.length === 0;
+
+  // Summary hint shown in footer
+  const pendingTabCount = Object.values(missingByTab).filter(f => f.length > 0).length;
+  const totalMissingCount = allMissing.length;
 
   const saveMutation = useMutation({
     mutationFn: async (options: { activate?: boolean } = {}) => {
@@ -1412,9 +1436,15 @@ export default function AddCustomerPage() {
               <div className="flex items-center gap-2 flex-wrap justify-end">
                 {/* Required-fields hint */}
                 {!isFormReady && (
-                  <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md px-2.5 py-1" data-testid="hint-required-fields">
+                  <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md px-2.5 py-1.5" data-testid="hint-required-fields">
                     <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span>Required: {missingFields.join(", ")}</span>
+                    <span>
+                      {totalMissingCount} required field{totalMissingCount > 1 ? "s" : ""} missing in{" "}
+                      {Object.entries(missingByTab)
+                        .filter(([, fields]) => fields.length > 0)
+                        .map(([tab]) => tab)
+                        .join(", ")}
+                    </span>
                   </div>
                 )}
                 <Button
@@ -1423,7 +1453,7 @@ export default function AddCustomerPage() {
                   disabled={!isFormReady || saveMutation.isPending}
                   data-testid="button-save-add-another"
                   className="text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={!isFormReady ? `Please fill: ${missingFields.join(", ")}` : "Save & add another customer"}
+                  title={!isFormReady ? `${totalMissingCount} required field(s) missing — complete Basic Info, Connection & Documents tabs` : "Save & add another customer"}
                 >
                   Save & Add Another
                 </Button>
@@ -1433,7 +1463,7 @@ export default function AddCustomerPage() {
                   disabled={!isFormReady || saveMutation.isPending}
                   data-testid="button-save-activate"
                   className="text-sm border-green-500 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={!isFormReady ? `Please fill: ${missingFields.join(", ")}` : "Save and activate connection"}
+                  title={!isFormReady ? `${totalMissingCount} required field(s) missing — complete Basic Info, Connection & Documents tabs` : "Save and activate connection"}
                 >
                   <Zap className="h-3.5 w-3.5 mr-1.5" />
                   Save & Activate
@@ -1443,7 +1473,7 @@ export default function AddCustomerPage() {
                   disabled={!isFormReady || saveMutation.isPending}
                   data-testid="button-save-customer"
                   className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={!isFormReady ? `Please fill: ${missingFields.join(", ")}` : "Save customer"}
+                  title={!isFormReady ? `${totalMissingCount} required field(s) missing — complete Basic Info, Connection & Documents tabs` : "Save customer"}
                 >
                   {saveMutation.isPending ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
