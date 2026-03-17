@@ -1,0 +1,241 @@
+🎯 Objective
+
+Design and develop a professional, enterprise-grade “Add New Customer” page for an ISP Billing & CRM system.
+
+The page must be:
+
+✔ Clean, modern UI (Blue gradient enterprise theme)
+✔ Multi-section structured form
+✔ Fully dynamic with auto-calculations & validations
+✔ Optimized for fast data entry + field operations (App + Web)
+
+🧩 Page Layout Structure
+
+Use a tab-based or accordion-based layout with the following sections:
+
+🧾 1. Basic Information
+
+Capture customer identity details:
+
+Profile Photo (Upload with preview)
+
+Customer Name* (Required)
+
+Father Name
+
+CNIC / NID Number* (Validated format)
+
+Mobile Number* (OTP optional)
+
+Email Address* (Email validation)
+
+Features:
+
+✔ Image upload with preview
+✔ CNIC validation format (Pakistan standard)
+✔ Duplicate check (CNIC & Mobile)
+
+🌐 2. Connection Information
+
+This is the core billing + service configuration section.
+
+Fields:
+
+Connection Installed By* (Dropdown – Employee List)
+
+Username* (PPPoe/Hotspot)
+
+Password (Auto-generate option)
+
+Customer Type* (Normal / CIR / Corporate)
+
+Select Vendor* (Dynamic dropdown)
+
+Select Package* (Auto-fetch data)
+
+💰 Billing Automation Logic (IMPORTANT 🔥)
+
+When Package is selected:
+
+✔ Auto-fill Package Bill
+✔ Allow manual Discount on Package
+✔ Auto-calculate:
+
+👉 Final Package Bill = Package Bill – Discount
+
+Installation Charges:
+
+Installation Charges (Predefined from settings)
+
+Discount on Installation
+
+Final Installation Charges (Auto-calculated)
+
+📅 Date Logic:
+
+Joining Date* (Date Picker)
+
+Expire Date* (Auto-calculate based on package duration)
+
+📂 3. Documents Upload
+
+Secure KYC & verification:
+
+CNIC Front* (Upload)
+
+CNIC Back* (Upload)
+
+Registration Form No
+
+Registration Form Image
+
+Address Proof (Utility Bill / Other)
+
+Features:
+
+✔ File preview
+✔ File type validation (JPG, PNG, PDF)
+✔ Secure storage
+
+📍 4. Area Information
+
+Customer location details:
+
+Branch (Dropdown)
+
+CNIC Address
+
+Current Address
+
+Area (Linked with Area Management)
+
+City
+
+Map Latitude / Longitude
+
+Features:
+
+✔ Google Maps integration (Pin location)
+✔ Auto-fill lat/long
+✔ Area-based filtering
+
+🛰 5. Infrastructure Details
+
+Technical deployment info:
+
+Protocol Type (PPPoE / Static / DHCP)
+
+Connection Type (FTTH / Wireless / P2P)
+
+Device Type
+
+Device Model
+
+Device Serial No
+
+Device MAC Address
+
+Device Owned By (Company / Customer)
+
+Cable Required (Meters)
+
+Fiber Code
+
+Fiber Core Number
+
+Fiber Core Color
+
+Features:
+
+✔ MAC Address format validation
+✔ Device tracking integration
+✔ Fiber mapping compatibility
+
+🔔 6. Notifications Settings
+
+Customer communication preferences:
+
+Mobile SMS Notification (Toggle)
+
+WhatsApp Notification (Toggle)
+
+Email Notification (Toggle)
+
+In-App Notification (Toggle)
+
+Send SMS to Employee (Optional)
+
+Send Greeting SMS (Auto on signup)
+
+⚙️ Smart Features (MUST HAVE 💡)
+🔍 Auto Validation
+
+Required fields check
+
+Duplicate CNIC / Mobile warning
+
+Invalid format alerts
+
+⚡ Auto Generation
+
+Username suggestion
+
+Password generator
+
+Auto billing calculations
+
+🔄 Dynamic Data Fetching
+
+Vendors → Packages
+
+Area → Branch filtering
+
+Employee list for installer
+
+💾 Save Options
+
+Save Customer
+
+Save & Add Another
+
+Save & Activate Connection
+
+🔐 Security Features
+
+Role-based access (HRM Rights Setup)
+
+Sensitive data encryption (CNIC, Password)
+
+📱 App Optimization
+
+Mobile-friendly layout
+
+Quick dropdowns
+
+Camera upload for documents
+
+🎨 UI/UX Design Requirements
+
+Blue gradient enterprise theme
+
+Card-based sections
+
+Icons for each section
+
+Sticky Save button
+
+Smooth transitions
+
+🧪 Expected Output
+
+✔ Fast customer onboarding
+✔ Zero manual calculation errors
+✔ Clean structured data
+✔ Ready for billing + activation
+
+🚀 Business Impact
+
+✔ Faster customer onboarding
+✔ Professional CRM experience
+✔ Reduced human error
+✔ Better customer data management

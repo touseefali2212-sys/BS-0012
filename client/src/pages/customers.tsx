@@ -2023,19 +2023,31 @@ function CustomerListView({
         </Button>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm">
-          <span className="text-xs text-muted-foreground">SHOW</span>
-          <Select value={String(entriesCount)} onValueChange={v => setEntriesCount(Number(v))}>
-            <SelectTrigger className="w-[70px] h-8 text-xs" data-testid="select-list-entries"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="10">10</SelectItem>
-              <SelectItem value="25">25</SelectItem>
-              <SelectItem value="50">50</SelectItem>
-              <SelectItem value="100">100</SelectItem>
-            </SelectContent>
-          </Select>
-          <span className="text-xs text-muted-foreground">ENTRIES</span>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-xs text-muted-foreground">SHOW</span>
+            <Select value={String(entriesCount)} onValueChange={v => setEntriesCount(Number(v))}>
+              <SelectTrigger className="w-[70px] h-8 text-xs" data-testid="select-list-entries"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-xs text-muted-foreground">ENTRIES</span>
+          </div>
+          <Link href="/customers/add">
+            <Button
+              size="sm"
+              className="h-8 gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs shadow-md"
+              data-testid="button-add-new-customer-full"
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+              Add New Customer
+            </Button>
+          </Link>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">SEARCH:</span>
