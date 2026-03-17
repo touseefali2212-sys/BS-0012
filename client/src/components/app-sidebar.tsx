@@ -553,17 +553,26 @@ function NavGroup({
 }
 
 export function AppSidebar() {
-  const { isAdmin, canView, isLoading } = usePermissions();
+  const { isAdmin, canView, canViewSubmenu, isLoading } = usePermissions();
 
   const filterNav = useCallback(
     (items: NavItem[]) => {
       if (isLoading || isAdmin) return items;
-      return items.filter((item) => {
-        if (!item.module) return true;
-        return canView(item.module);
-      });
+      return items
+        .map((item) => {
+          if (!item.module || !item.subItems) return item;
+          const filteredSubs = item.subItems.filter((sub) =>
+            canViewSubmenu(item.module!, sub.title)
+          );
+          return { ...item, subItems: filteredSubs };
+        })
+        .filter((item) => {
+          if (!item.module) return true;
+          if (item.subItems && item.subItems.length === 0) return false;
+          return canView(item.module);
+        });
     },
-    [isAdmin, canView, isLoading]
+    [isAdmin, canView, canViewSubmenu, isLoading]
   );
 
   const filteredDashboard = useMemo(() => filterNav(dashboardNav), [filterNav]);

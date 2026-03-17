@@ -427,23 +427,37 @@ export default function HrmRightsSetupPage() {
   const handleSavePermissions = () => {
     if (!selectedRoleId) return;
     const allPerms: any[] = [];
-    Object.keys(localPermissions).forEach(mod => {
-      Object.keys(localPermissions[mod]).forEach(key => {
-        const p = localPermissions[mod][key];
+    Object.entries(MODULE_STRUCTURE).forEach(([modKey, mod]) => {
+      allPerms.push({
+        module: modKey,
+        submenu: null,
+        canView: getPermValue(modKey, null, "canView"),
+        canCreate: getPermValue(modKey, null, "canCreate"),
+        canEdit: getPermValue(modKey, null, "canEdit"),
+        canDelete: getPermValue(modKey, null, "canDelete"),
+        canApprove: getPermValue(modKey, null, "canApprove"),
+        canExport: getPermValue(modKey, null, "canExport"),
+        canPrint: getPermValue(modKey, null, "canPrint"),
+        webAccess: getPermValue(modKey, null, "webAccess"),
+        appAccess: getPermValue(modKey, null, "appAccess"),
+        dataScope: getDataScope(modKey, null),
+        conditions: null,
+      });
+      mod.submenus.forEach(sub => {
         allPerms.push({
-          module: mod,
-          submenu: key === "__module__" ? null : key,
-          canView: getPermValue(mod, key === "__module__" ? null : key, "canView"),
-          canCreate: getPermValue(mod, key === "__module__" ? null : key, "canCreate"),
-          canEdit: getPermValue(mod, key === "__module__" ? null : key, "canEdit"),
-          canDelete: getPermValue(mod, key === "__module__" ? null : key, "canDelete"),
-          canApprove: getPermValue(mod, key === "__module__" ? null : key, "canApprove"),
-          canExport: getPermValue(mod, key === "__module__" ? null : key, "canExport"),
-          canPrint: getPermValue(mod, key === "__module__" ? null : key, "canPrint"),
-          webAccess: getPermValue(mod, key === "__module__" ? null : key, "webAccess"),
-          appAccess: getPermValue(mod, key === "__module__" ? null : key, "appAccess"),
-          dataScope: (p as any)?.dataScope || getDataScope(mod, key === "__module__" ? null : key),
-          conditions: (p as any)?.conditions || null,
+          module: modKey,
+          submenu: sub,
+          canView: getPermValue(modKey, sub, "canView"),
+          canCreate: getPermValue(modKey, sub, "canCreate"),
+          canEdit: getPermValue(modKey, sub, "canEdit"),
+          canDelete: getPermValue(modKey, sub, "canDelete"),
+          canApprove: getPermValue(modKey, sub, "canApprove"),
+          canExport: getPermValue(modKey, sub, "canExport"),
+          canPrint: getPermValue(modKey, sub, "canPrint"),
+          webAccess: getPermValue(modKey, sub, "webAccess"),
+          appAccess: getPermValue(modKey, sub, "appAccess"),
+          dataScope: getDataScope(modKey, sub),
+          conditions: null,
         });
       });
     });

@@ -4518,6 +4518,7 @@ export async function registerRoutes(
       const roleId = parseInt(req.params.roleId);
       const { permissions } = req.body;
       if (!Array.isArray(permissions)) return res.status(400).json({ message: "permissions must be an array" });
+      await storage.deleteHrmPermissionsByRole(roleId);
       const results = await storage.bulkUpsertHrmPermissions(permissions.map((p: any) => ({ ...p, roleId })));
       const role = await storage.getHrmRole(roleId);
       if (role) {

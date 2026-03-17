@@ -44,6 +44,16 @@ export function usePermissions() {
     return entries.some((p) => p[action] === true);
   }
 
+  function canViewSubmenu(module: string, submenu: string): boolean {
+    if (isAdmin) return true;
+    const entries = permMap[module];
+    if (!entries || entries.length === 0) return false;
+    const subEntry = entries.find((p) => p.submenu === submenu);
+    if (subEntry) return subEntry.canView === true;
+    const moduleEntry = entries.find((p) => !p.submenu);
+    return moduleEntry?.canView === true;
+  }
+
   return {
     isAdmin,
     isLoading,
@@ -55,5 +65,6 @@ export function usePermissions() {
     canDelete: (module: string) => hasPermission(module, "canDelete"),
     canApprove: (module: string) => hasPermission(module, "canApprove"),
     canExport: (module: string) => hasPermission(module, "canExport"),
+    canViewSubmenu,
   };
 }
