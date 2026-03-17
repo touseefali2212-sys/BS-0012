@@ -5,7 +5,9 @@ import {
   User, Wifi, FileText, MapPin, Server, Bell,
   ChevronLeft, Upload, Check, Eye, EyeOff, RefreshCw,
   AlertCircle, Camera, Calculator, Phone, Mail, Shield,
-  Building2, Zap, Package, UserCheck, Image, X
+  Building2, Zap, Package, UserCheck, Image, X,
+  CheckCircle2, XCircle, Loader2, SkipForward, FileSpreadsheet,
+  ClipboardList, Send, Users, Radio, Sparkles, ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,10 +19,21 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Package as PackageType, Vendor, Area, Branch, Employee } from "@shared/schema";
+
+type AutoStep = { step: string; status: "pending" | "running" | "success" | "error" | "skipped"; message: string; data?: any };
+
+const AUTOMATION_STEPS: Array<{ key: string; label: string; icon: any; description: string }> = [
+  { key: "invoice",               label: "Auto Invoice Generation",     icon: FileSpreadsheet, description: "Generating first invoice for this customer" },
+  { key: "radius",                label: "Radius / PPPoE Provisioning", icon: Radio,           description: "Queueing network account provisioning" },
+  { key: "task",                  label: "Installation Task",           icon: ClipboardList,   description: "Creating technician installation task" },
+  { key: "notification_customer", label: "Customer Notification",       icon: Send,            description: "Sending welcome message to customer" },
+  { key: "notification_employee", label: "Employee Notification",       icon: Users,           description: "Notifying assigned employee" },
+];
 
 function generatePassword(length = 12) {
   const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
@@ -206,8 +219,14 @@ export default function AddCustomerPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("basic");
   const [showPassword, setShowPassword] = useState(false);
-
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Automation modal state
+  const [autoModalOpen, setAutoModalOpen] = useState(false);
+  const [autoSteps, setAutoSteps] = useState<AutoStep[]>([]);
+  const [autoComplete, setAutoComplete] = useState(false);
+  const [autoCustomerName, setAutoCustomerName] = useState("");
+  const [savedCustomerId, setSavedCustomerId] = useState<number | null>(null);
 
   const [form, setForm] = useState({
     fullName: "", fatherName: "", cnic: "", phone: "", email: "",
@@ -367,17 +386,60 @@ export default function AddCustomerPage() {
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
-      if (variables.activate) {
-        toast({ title: "Customer Saved & Activated", description: "Connection is now active." });
-      } else {
-        toast({ title: "Customer Saved", description: "New customer has been added successfully." });
-      }
-      setLocation("/customers");
+      setSavedCustomerId(data.id);
+      setAutoCustomerName(data.fullName || form.fullName);
+      const initialSteps: AutoStep[] = AUTOMATION_STEPS.map(s => ({ step: s.key, status: "pending", message: s.description }));
+      setAutoSteps(initialSteps);
+      setAutoComplete(false);
+      setAutoModalOpen(true);
+      runAutomation(data.id, initialSteps);
     },
     onError: (err: any) => {
       toast({ title: "Error", description: err.message || "Failed to save customer", variant: "destructive" });
     },
   });
+
+  const runAutomation = async (customerId: number, initialSteps: AutoStep[]) => {
+    const animate = (steps: AutoStep[]) => setAutoSteps([...steps]);
+    const steps = [...initialSteps];
+
+    // Mark first step as running
+    steps[0] = { ...steps[0], status: "running" };
+    animate(steps);
+
+    try {
+      const res = await apiRequest("POST", `/api/customers/${customerId}/automate`);
+      const result = await res.json();
+      const serverSteps: Array<{ step: string; status: string; message: string; data?: any }> = result.steps || [];
+
+      for (let i = 0; i < AUTOMATION_STEPS.length; i++) {
+        const key = AUTOMATION_STEPS[i].key;
+        const found = serverSteps.find(s => s.step === key);
+        if (i > 0) {
+          steps[i] = { ...steps[i], status: "running" };
+          animate(steps);
+          await new Promise(r => setTimeout(r, 500));
+        }
+        steps[i] = {
+          step: key,
+          status: (found?.status === "success" ? "success" : found?.status === "skipped" ? "skipped" : found?.status === "error" ? "error" : "success") as AutoStep["status"],
+          message: found?.message || steps[i].message,
+          data: found?.data,
+        };
+        animate(steps);
+        await new Promise(r => setTimeout(r, 400));
+      }
+    } catch (_) {
+      for (let i = 0; i < steps.length; i++) {
+        if (steps[i].status === "pending" || steps[i].status === "running") {
+          steps[i] = { ...steps[i], status: "error", message: "Automation step failed" };
+        }
+      }
+      animate(steps);
+    }
+
+    setAutoComplete(true);
+  };
 
   const handleSave = (options?: { activate?: boolean; addAnother?: boolean }) => {
     if (!validate()) return;
@@ -1379,6 +1441,128 @@ export default function AddCustomerPage() {
           </div>
         </div>
       </div>
+
+      {/* Automation Progress Modal */}
+      <Dialog open={autoModalOpen} onOpenChange={(open) => { if (!open && autoComplete) setAutoModalOpen(false); }}>
+        <DialogContent className="max-w-lg p-0 overflow-hidden" data-testid="modal-automation">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 px-6 py-5 text-white">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                <Sparkles className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">Smart Automation Running</h2>
+                <p className="text-sm text-blue-100">Setting up {autoCustomerName || "new customer"}…</p>
+              </div>
+              {autoComplete && (
+                <div className="ml-auto">
+                  <CheckCircle2 className="h-8 w-8 text-green-300" />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="px-6 py-5 space-y-3">
+            {AUTOMATION_STEPS.map((stepDef) => {
+              const step = autoSteps.find(s => s.step === stepDef.key);
+              const status = step?.status ?? "pending";
+              const Icon = stepDef.icon;
+              return (
+                <div key={stepDef.key}
+                  className={`flex items-start gap-3 p-3 rounded-lg border transition-all duration-300 ${
+                    status === "success" ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800" :
+                    status === "error"   ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800" :
+                    status === "skipped" ? "bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700" :
+                    status === "running" ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800" :
+                    "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800 opacity-50"
+                  }`}
+                  data-testid={`auto-step-${stepDef.key}`}
+                >
+                  <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    status === "success" ? "bg-green-100 dark:bg-green-900" :
+                    status === "error"   ? "bg-red-100 dark:bg-red-900" :
+                    status === "skipped" ? "bg-gray-100 dark:bg-gray-800" :
+                    status === "running" ? "bg-blue-100 dark:bg-blue-900 animate-pulse" :
+                    "bg-gray-100 dark:bg-gray-800"
+                  }`}>
+                    {status === "success" && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                    {status === "error"   && <XCircle className="h-4 w-4 text-red-600" />}
+                    {status === "skipped" && <SkipForward className="h-4 w-4 text-gray-400" />}
+                    {status === "running" && <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />}
+                    {status === "pending" && <Icon className="h-4 w-4 text-gray-400" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-sm font-semibold ${
+                        status === "success" ? "text-green-700 dark:text-green-300" :
+                        status === "error"   ? "text-red-700 dark:text-red-300" :
+                        status === "skipped" ? "text-gray-500 dark:text-gray-400" :
+                        status === "running" ? "text-blue-700 dark:text-blue-300" :
+                        "text-gray-500 dark:text-gray-400"
+                      }`}>{stepDef.label}</span>
+                      {status === "success" && <Badge className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 border-0">Done</Badge>}
+                      {status === "error"   && <Badge className="text-[10px] bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 border-0">Failed</Badge>}
+                      {status === "skipped" && <Badge className="text-[10px] bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border-0">Skipped</Badge>}
+                      {status === "running" && <Badge className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 border-0 animate-pulse">Running…</Badge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{step?.message || stepDef.description}</p>
+                    {step?.data && status === "success" && (
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {step.data.invoiceNumber && <span className="text-[10px] bg-white dark:bg-gray-800 border border-green-200 dark:border-green-700 rounded px-2 py-0.5 text-green-700 dark:text-green-300 font-mono">{step.data.invoiceNumber}</span>}
+                        {step.data.taskCode     && <span className="text-[10px] bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 rounded px-2 py-0.5 text-blue-700 dark:text-blue-300 font-mono">{step.data.taskCode}</span>}
+                        {step.data.username     && <span className="text-[10px] bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-700 rounded px-2 py-0.5 text-indigo-700 dark:text-indigo-300 font-mono">{step.data.username}</span>}
+                        {step.data.assignedTo   && <span className="text-[10px] bg-white dark:bg-gray-800 border border-purple-200 dark:border-purple-700 rounded px-2 py-0.5 text-purple-700 dark:text-purple-300">{step.data.assignedTo}</span>}
+                        {step.data.channel      && <span className="text-[10px] bg-white dark:bg-gray-800 border border-orange-200 dark:border-orange-700 rounded px-2 py-0.5 text-orange-700 dark:text-orange-300">{step.data.channel}</span>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Success Footer */}
+          {autoComplete && (
+            <div className="px-6 pb-6">
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-xl p-4 border border-green-200 dark:border-green-800 mb-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-bold text-green-700 dark:text-green-300">Automation Complete!</span>
+                </div>
+                <p className="text-xs text-green-600 dark:text-green-400">
+                  {autoSteps.filter(s => s.status === "success").length} of {AUTOMATION_STEPS.length} workflows executed successfully.{" "}
+                  {autoSteps.filter(s => s.status === "skipped").length > 0 && `${autoSteps.filter(s => s.status === "skipped").length} skipped.`}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setAutoModalOpen(false);
+                    setLocation("/customers");
+                  }}
+                  data-testid="button-auto-go-customers"
+                >
+                  View All Customers
+                </Button>
+                <Button
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white gap-1.5"
+                  onClick={() => {
+                    setAutoModalOpen(false);
+                    if (savedCustomerId) setLocation(`/customers`);
+                  }}
+                  data-testid="button-auto-view-customer"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  Done
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

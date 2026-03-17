@@ -1,0 +1,282 @@
+🚀 Customers Module – Advanced Automation System
+(Post Customer Creation Smart Workflow)
+🎯 Objective
+
+After clicking “Save Customer”, the system should automatically trigger multiple smart workflows:
+
+✔ Billing setup
+✔ Network provisioning
+✔ Task assignment
+✔ Notifications
+✔ Account activation
+
+👉 Goal: Zero manual work after customer creation
+
+🔄 1️⃣ Auto Workflow Trigger (Core Engine)
+
+When:
+
+👉 Admin/User clicks Save & Activate Customer
+
+System should trigger:
+
+Customer Created → Trigger Automation Pipeline
+🌐 2️⃣ Auto Radius / PPPoE Account Creation
+
+(For MikroTik / BRAS / AAA Integration)
+
+✔ Automatically create user in Radius / MikroTik
+✔ Use:
+
+Username
+
+Password
+
+Selected Package
+
+✔ Assign:
+
+Speed Profile
+
+Expiry Date
+
+IP Pool
+
+✔ Sync status back to system:
+
+Active / Pending / Failed
+
+🧾 3️⃣ Auto Invoice Generation
+
+Immediately after customer creation:
+
+✔ Generate first invoice:
+
+Package Charges
+
+Installation Charges
+
+Discounts
+
+✔ Invoice includes:
+
+Customer details
+
+Due date
+
+Billing cycle
+
+✔ Save in:
+
+👉 Billing / Invoice Module
+
+💰 4️⃣ Wallet / Ledger Entry
+
+✔ Create accounting entries:
+
+Debit → Customer Account
+
+Credit → Company Revenue
+
+✔ Link with:
+
+Accounting Module
+
+Transactions Module
+
+🛠 5️⃣ Auto Task Creation (Technician Workflow)
+
+If installation required:
+
+✔ Auto-create task:
+
+Task Type: Installation
+
+Assign to: Technician (selected in form)
+
+Include:
+
+Customer Name
+
+Address
+
+Package
+
+Contact
+
+✔ Status:
+
+Pending → In Progress → Completed
+
+📍 6️⃣ Map & Network Integration
+
+✔ Add customer to:
+
+Customer Map
+
+FTTH / P2P Map
+
+✔ Link:
+
+Device
+
+Fiber Core
+
+Location
+
+🔔 7️⃣ Smart Notifications System
+
+Send automated notifications:
+
+📱 Customer:
+
+Welcome SMS
+
+WhatsApp Message
+
+Email
+
+👨‍🔧 Employee:
+
+Installation assigned SMS
+
+Example Messages:
+
+✔ “Welcome to [Company Name], your connection is being processed.”
+✔ “Technician assigned: [Name], Contact: [Number]”
+
+💬 8️⃣ WhatsApp Business Integration (ADVANCED 🔥)
+
+Integrate with WhatsApp Business API:
+
+✔ Send:
+
+Welcome message
+
+Invoice copy
+
+Payment reminders
+
+✔ Templates:
+
+Predefined + Editable
+
+📅 9️⃣ Billing Cycle Automation
+
+✔ Auto set:
+
+Monthly billing cycle
+
+Expiry date
+
+Grace period
+
+✔ Auto-schedule:
+
+Invoice generation
+
+Payment reminders
+
+🚦 🔟 Status Management System
+
+Customer status should be:
+
+Pending Activation
+
+Active
+
+Suspended
+
+Expired
+
+✔ Sync with:
+
+Billing
+
+Network (Radius)
+
+🧠 1️⃣1️⃣ Smart Validations
+
+Before automation:
+
+✔ Check:
+
+Package selected
+
+Vendor assigned
+
+Required fields complete
+
+If failed:
+
+❌ Stop automation
+✔ Show error
+
+⚙️ 1️⃣2️⃣ Admin Controls
+
+Admin can configure:
+
+✔ Enable/Disable automation modules:
+
+Auto Radius
+
+Auto Invoice
+
+Auto Task
+
+Notifications
+
+📊 1️⃣3️⃣ Activity Logs
+
+Track everything:
+
+Customer created
+
+Invoice generated
+
+Task assigned
+
+Radius synced
+
+🧪 Expected Output
+
+After clicking Save & Activate:
+
+✔ Customer created
+✔ PPPoE user created
+✔ Invoice generated
+✔ Task assigned
+✔ SMS/WhatsApp sent
+✔ Customer visible on map
+
+👉 All within seconds ⚡
+
+💎 Next-Level Features (Optional but Powerful)
+🤖 AI Smart Suggestions
+
+Suggest best package
+
+Detect duplicate customers
+
+📍 Geo-Based Assignment
+
+Auto assign technician based on area
+
+⏱ Delayed Activation
+
+Activate on selected date
+
+💳 Auto Payment Link
+
+Send payment link in SMS/WhatsApp
+
+🎨 UI Enhancements
+
+Show Progress Loader (Step-by-step automation)
+
+Show success screen:
+
+✔ Customer Created
+✔ Invoice Generated
+✔ Technician Assigned
+✔ Notifications Sent

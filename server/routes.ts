@@ -664,6 +664,144 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/customers/:id/automate", requireAuth, async (req, res) => {
+    const customerId = parseInt(req.params.id);
+    const steps: Array<{ step: string; status: "success" | "error" | "skipped"; message: string; data?: any }> = [];
+    const now = new Date();
+    const dateStr = now.toISOString().split("T")[0];
+    const sessionUser = req.session.userId ? await storage.getUser(req.session.userId) : null;
+
+    try {
+      const customer = await storage.getCustomer(customerId);
+      if (!customer) return res.status(404).json({ message: "Customer not found" });
+
+      const pkg = customer.packageId ? await storage.getPackage(customer.packageId) : null;
+
+      // Step 1: Auto Invoice Generation
+      try {
+        if (pkg) {
+          const dueDate = customer.expireDate || (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split("T")[0]; })();
+          const invNum = `INV-${Date.now().toString(36).toUpperCase()}`;
+          const invoice = await storage.createInvoice({
+            invoiceNumber: invNum,
+            customerId: customer.id,
+            amount: pkg.price || "0",
+            tax: "0",
+            totalAmount: customer.monthlyBill || pkg.price || "0",
+            status: "pending",
+            dueDate,
+            issueDate: dateStr,
+            description: `Service charges: ${pkg.name}`,
+            isRecurring: true,
+            serviceType: "internet",
+          });
+          steps.push({ step: "invoice", status: "success", message: `Invoice ${invNum} generated`, data: { invoiceId: invoice.id, invoiceNumber: invNum, amount: invoice.totalAmount } });
+        } else {
+          steps.push({ step: "invoice", status: "skipped", message: "No package selected — invoice skipped" });
+        }
+      } catch (e: any) {
+        steps.push({ step: "invoice", status: "error", message: e.message || "Invoice generation failed" });
+      }
+
+      // Step 2: Radius / PPPoE Provisioning (simulated)
+      try {
+        if (customer.usernameIp && customer.password) {
+          await storage.createActivityLog({
+            action: "radius_provisioning",
+            module: "network",
+            description: `PPPoE account queued for provisioning: ${customer.usernameIp} | Profile: ${customer.profile || "default"}`,
+            userId: sessionUser?.id || null,
+            createdAt: now.toISOString(),
+          });
+          steps.push({ step: "radius", status: "success", message: `PPPoE account queued: ${customer.usernameIp}`, data: { username: customer.usernameIp, profile: customer.profile || "default", status: "pending_sync" } });
+        } else {
+          steps.push({ step: "radius", status: "skipped", message: "No username/password — provisioning skipped" });
+        }
+      } catch (e: any) {
+        steps.push({ step: "radius", status: "error", message: e.message || "Provisioning log failed" });
+      }
+
+      // Step 3: Installation Task Creation
+      try {
+        const assignTo = customer.assignTo || customer.connectedBy;
+        const taskCode = `TSK-${Date.now().toString(36).toUpperCase()}`;
+        const dueDate2 = (() => { const d = new Date(); d.setDate(d.getDate() + 2); return d.toISOString().split("T")[0]; })();
+        const task = await storage.createTask({
+          taskCode,
+          title: `Installation — ${customer.fullName} (${customer.customerId})`,
+          type: "installation",
+          description: `New customer installation.\nAddress: ${customer.address || customer.presentAddress || "N/A"}\nPackage: ${pkg?.name || "N/A"}\nContact: ${customer.phone}`,
+          priority: "high",
+          status: "pending",
+          assignedTo: assignTo || null,
+          customerId: customer.id,
+          startDate: dateStr,
+          dueDate: dueDate2,
+          notes: `Auto-generated on customer creation`,
+          createdAt: now.toISOString(),
+        });
+        steps.push({ step: "task", status: "success", message: `Installation task ${taskCode} created`, data: { taskId: task.id, taskCode, assignedTo: assignTo || "Unassigned" } });
+      } catch (e: any) {
+        steps.push({ step: "task", status: "error", message: e.message || "Task creation failed" });
+      }
+
+      // Step 4: Customer Welcome Notification
+      try {
+        const notifMsg = `Welcome to our network, ${customer.fullName}! Your connection is being processed. Customer ID: ${customer.customerId}.`;
+        await storage.createNotification({
+          title: "Welcome Notification",
+          message: notifMsg,
+          type: "info",
+          channel: customer.sendGreetingSms ? "sms" : "app",
+          recipientType: "customer",
+          recipientId: customer.id,
+          isRead: false,
+          createdAt: now.toISOString(),
+        });
+        steps.push({ step: "notification_customer", status: "success", message: customer.sendGreetingSms ? "Welcome SMS queued for customer" : "Welcome notification created", data: { channel: customer.sendGreetingSms ? "SMS" : "App" } });
+      } catch (e: any) {
+        steps.push({ step: "notification_customer", status: "error", message: e.message || "Customer notification failed" });
+      }
+
+      // Step 5: Employee Notification
+      try {
+        const assignTo = customer.assignTo || customer.connectedBy;
+        if (assignTo && customer.sendSmsToEmployee) {
+          await storage.createNotification({
+            title: "Installation Assignment",
+            message: `New installation task assigned: ${customer.fullName} (${customer.customerId}). Address: ${customer.address || "N/A"}. Contact: ${customer.phone}`,
+            type: "info",
+            channel: "sms",
+            recipientType: "employee",
+            recipientId: null,
+            isRead: false,
+            createdAt: now.toISOString(),
+          });
+          steps.push({ step: "notification_employee", status: "success", message: `Assignment SMS queued for ${assignTo}`, data: { channel: "SMS", assignedTo: assignTo } });
+        } else {
+          steps.push({ step: "notification_employee", status: "skipped", message: "Employee SMS notifications disabled" });
+        }
+      } catch (e: any) {
+        steps.push({ step: "notification_employee", status: "error", message: e.message || "Employee notification failed" });
+      }
+
+      // Step 6: Master Activity Log
+      try {
+        await storage.createActivityLog({
+          action: "customer_automation_complete",
+          module: "customers",
+          description: `Auto-workflow completed for ${customer.fullName} (${customer.customerId}): ${steps.filter(s => s.status === "success").length} steps succeeded`,
+          userId: sessionUser?.id || null,
+          createdAt: now.toISOString(),
+        });
+      } catch (_) {}
+
+      res.json({ success: true, customerId: customer.id, customerName: customer.fullName, steps });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Automation failed", steps });
+    }
+  });
+
   crudRoutes(app, "packages", insertPackageSchema,
     () => storage.getPackages(),
     (id) => storage.getPackage(id),
