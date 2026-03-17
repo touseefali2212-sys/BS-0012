@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link } from "wouter";
+import { Link, Redirect } from "wouter";
 import {
   Plus,
   Search,
@@ -2770,15 +2770,7 @@ export default function CustomersPage() {
           </Dialog>
         </div>)}
 
-        {tab === "add" && (
-          <AddCustomerForm
-            setTab={setTab}
-            packages={packages}
-            vendors={vendorsData}
-            employees={employeesData}
-            areas={areasData}
-          />
-        )}
+        {tab === "add" && <Redirect to="/customers/add" />}
 
         {tab === "list" && (<CustomerListView
           customers={customers}
