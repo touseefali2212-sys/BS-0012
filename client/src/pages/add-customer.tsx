@@ -336,6 +336,8 @@ export default function AddCustomerPage() {
     "Basic Info":     [],
     "Connection":     [],
     "Documents":      [],
+    "Area":           [],
+    "Infrastructure": [],
   };
   // Basic Info required fields
   if (!form.fullName    || form.fullName.trim().length < 2)  missingByTab["Basic Info"].push("Customer Name");
@@ -351,6 +353,16 @@ export default function AddCustomerPage() {
   // Documents required fields
   if (!form.cnicFront || form.cnicFront.trim().length < 1)  missingByTab["Documents"].push("CNIC Front");
   if (!form.cnicBack  || form.cnicBack.trim().length < 1)   missingByTab["Documents"].push("CNIC Back");
+  // Area required fields
+  if (!form.branch         || form.branch.trim().length < 1)         missingByTab["Area"].push("Branch");
+  if (!form.area           || form.area.trim().length < 1)           missingByTab["Area"].push("Area");
+  if (!form.city           || form.city.trim().length < 1)           missingByTab["Area"].push("City");
+  if (!form.presentAddress || form.presentAddress.trim().length < 1) missingByTab["Area"].push("Current Address");
+  // Infrastructure required fields
+  if (!form.protocolType   || form.protocolType.trim().length < 1)   missingByTab["Infrastructure"].push("Protocol Type");
+  if (!form.connectionType || form.connectionType.trim().length < 1) missingByTab["Infrastructure"].push("Connection Type");
+  if (!form.device         || form.device.trim().length < 1)         missingByTab["Infrastructure"].push("Device Type");
+  if (!form.deviceOwnedBy  || form.deviceOwnedBy.trim().length < 1)  missingByTab["Infrastructure"].push("Device Owned By");
 
   const allMissing = Object.entries(missingByTab).flatMap(([tab, fields]) =>
     fields.map(f => `${f} (${tab})`)
@@ -1043,7 +1055,7 @@ export default function AddCustomerPage() {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Branch</label>
+                    <label className="text-sm font-medium">Branch <span className="text-red-500">*</span></label>
                     <Select value={form.branch} onValueChange={v => update("branch", v)}>
                       <SelectTrigger data-testid="select-branch"><SelectValue placeholder="Select branch" /></SelectTrigger>
                       <SelectContent>
@@ -1055,7 +1067,7 @@ export default function AddCustomerPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Area</label>
+                    <label className="text-sm font-medium">Area <span className="text-red-500">*</span></label>
                     <Select value={form.area} onValueChange={v => update("area", v)}>
                       <SelectTrigger data-testid="select-area"><SelectValue placeholder="Select area" /></SelectTrigger>
                       <SelectContent>
@@ -1067,7 +1079,7 @@ export default function AddCustomerPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">City</label>
+                    <label className="text-sm font-medium">City <span className="text-red-500">*</span></label>
                     <Input
                       placeholder="City name"
                       value={form.city}
@@ -1111,7 +1123,7 @@ export default function AddCustomerPage() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Current Address</label>
+                    <label className="text-sm font-medium">Current Address <span className="text-red-500">*</span></label>
                     <Textarea
                       placeholder="Current residential address"
                       value={form.presentAddress}
@@ -1175,7 +1187,7 @@ export default function AddCustomerPage() {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Protocol Type</label>
+                    <label className="text-sm font-medium">Protocol Type <span className="text-red-500">*</span></label>
                     <Select value={form.protocolType} onValueChange={v => update("protocolType", v)}>
                       <SelectTrigger data-testid="select-protocol"><SelectValue placeholder="Select protocol" /></SelectTrigger>
                       <SelectContent>
@@ -1188,7 +1200,7 @@ export default function AddCustomerPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Connection Type</label>
+                    <label className="text-sm font-medium">Connection Type <span className="text-red-500">*</span></label>
                     <Select value={form.connectionType} onValueChange={v => update("connectionType", v)}>
                       <SelectTrigger data-testid="select-connection-type"><SelectValue placeholder="Select type" /></SelectTrigger>
                       <SelectContent>
@@ -1202,7 +1214,7 @@ export default function AddCustomerPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Device Type</label>
+                    <label className="text-sm font-medium">Device Type <span className="text-red-500">*</span></label>
                     <Select value={form.device} onValueChange={v => update("device", v)}>
                       <SelectTrigger data-testid="select-device-type"><SelectValue placeholder="Select device" /></SelectTrigger>
                       <SelectContent>
@@ -1257,7 +1269,7 @@ export default function AddCustomerPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Device Owned By</label>
+                    <label className="text-sm font-medium">Device Owned By <span className="text-red-500">*</span></label>
                     <Select value={form.deviceOwnedBy} onValueChange={v => update("deviceOwnedBy", v)}>
                       <SelectTrigger data-testid="select-device-owner"><SelectValue /></SelectTrigger>
                       <SelectContent>
