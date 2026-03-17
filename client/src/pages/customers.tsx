@@ -936,6 +936,52 @@ function DocUploadField({ value, onChange, testId }: { value: string; onChange: 
   );
 }
 
+const WIZARD_STEPS = [
+  { id: 1, label: "Basic Info", shortLabel: "Basic" },
+  { id: 2, label: "Connection Info", shortLabel: "Connection" },
+  { id: 3, label: "Documents", shortLabel: "Docs" },
+  { id: 4, label: "Area Info", shortLabel: "Area" },
+  { id: 5, label: "Infrastructure", shortLabel: "Infra" },
+  { id: 6, label: "Notifications", shortLabel: "Notify" },
+];
+
+function WizardStepBar({ currentStep, onStepClick }: { currentStep: number; onStepClick: (s: number) => void }) {
+  return (
+    <div className="flex w-full mb-6 overflow-x-auto">
+      {WIZARD_STEPS.map((step, idx) => {
+        const isActive = currentStep === step.id;
+        const isDone = currentStep > step.id;
+        return (
+          <button
+            key={step.id}
+            type="button"
+            onClick={() => isDone && onStepClick(step.id)}
+            className={`flex-1 relative flex items-center justify-center gap-2 py-3 px-3 text-xs font-semibold transition-all select-none
+              ${isActive ? "bg-[#1a3a5c] text-white" : isDone ? "bg-[#1a3a5c]/80 text-white cursor-pointer hover:bg-[#1a3a5c]" : "bg-gray-100 dark:bg-gray-800 text-muted-foreground cursor-default"}
+              ${idx === 0 ? "rounded-l-lg" : ""} ${idx === WIZARD_STEPS.length - 1 ? "rounded-r-lg" : ""}
+            `}
+            data-testid={`wizard-step-${step.id}`}
+          >
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shrink-0
+              ${isActive ? "bg-white text-[#1a3a5c]" : isDone ? "bg-green-400 text-white" : "bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300"}`}>
+              {isDone ? <Check className="h-3 w-3" /> : step.id}
+            </span>
+            <span className="hidden sm:inline">{step.label}</span>
+            <span className="sm:hidden">{step.shortLabel}</span>
+            {idx < WIZARD_STEPS.length - 1 && (
+              <span className="absolute -right-px top-0 bottom-0 w-3 flex items-center justify-center z-10 pointer-events-none">
+                <svg viewBox="0 0 12 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-full w-3">
+                  <path d="M0 0 L12 20 L0 40" fill={isActive || isDone ? "#1a3a5c" : "#e5e7eb"} className="dark:fill-gray-800" />
+                </svg>
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function AddCustomerForm({ setTab, packages, vendors, employees, areas }: {
   setTab: (v: string) => void;
   packages: Package[] | undefined;
@@ -944,6 +990,7 @@ function AddCustomerForm({ setTab, packages, vendors, employees, areas }: {
   areas: any[] | undefined;
 }) {
   const { toast } = useToast();
+  const [step, setStep] = useState(1);
   const [sameAddress, setSameAddress] = useState(false);
   const [formData, setFormData] = useState({
     profilePicture: "", fullName: "", occupation: "", remarks: "",
@@ -961,6 +1008,9 @@ function AddCustomerForm({ setTab, packages, vendors, employees, areas }: {
     monthlyBill: "", billingStartMonth: new Date().toLocaleDateString("en-US", { month: "2-digit", year: "numeric" }),
     expireDate: "", referenceBy: "", isVipClient: false, connectedBy: "", assignTo: "",
     affiliator: "", sendSmsToEmployee: false, sendGreetingSms: false,
+    cnicFront: "", cnicBack: "", addressProof: "",
+    notifyEmail: false, notifyMobile: false, notifyWhatsApp: false, notifyInApp: true,
+    activateWithExpiry: false,
   });
 
   const update = (field: string, value: string | number | boolean) => {
@@ -1008,475 +1058,566 @@ function AddCustomerForm({ setTab, packages, vendors, employees, areas }: {
     },
   });
 
+  const selectedPackage = (packages || []).find(p => p.id === formData.packageId);
+
+  const canNext = () => {
+    if (step === 1) return formData.fullName.trim().length >= 2 && formData.phone.trim().length >= 10;
+    return true;
+  };
+
   return (
-    <div className="mt-5 space-y-0">
+    <div className="mt-4 space-y-0">
+      <WizardStepBar currentStep={step} onStepClick={setStep} />
+
+      {/* Step progress text */}
+      <p className="text-xs text-muted-foreground mb-4">Step {step} of {WIZARD_STEPS.length} — {WIZARD_STEPS[step - 1].label}</p>
+
       <div>
         <SectionHeader
           icon={<User className="h-4 w-4" />}
-          title="Personal Information"
-          subtitle="Fill Up All Required( ) Field Data"
+          title={WIZARD_STEPS[step - 1].label}
+          subtitle="Fill in all required (*) fields before continuing"
         />
-        <div className="border border-t-0 rounded-b-lg p-5 space-y-4 bg-card">
-          <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_1fr] gap-5">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Profile Picture</label>
-              <ProfilePictureUpload value={formData.profilePicture} onChange={v => update("profilePicture", v)} testId="upload-add-profile" />
-            </div>
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold uppercase text-muted-foreground">Customer Name <span className="text-red-500">*</span></label>
-                <Input value={formData.fullName} onChange={e => update("fullName", e.target.value)} data-testid="input-add-name" />
+        <div className="border border-t-0 rounded-b-lg p-5 bg-card min-h-[340px]">
+
+          {/* ─── STEP 1: Basic Info ─── */}
+          {step === 1 && (
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_1fr] gap-5">
+                <div className="space-y-1 flex flex-col items-start">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Profile Picture</label>
+                  <ProfilePictureUpload value={formData.profilePicture} onChange={v => update("profilePicture", v)} testId="upload-add-profile" />
+                </div>
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Customer Name <span className="text-red-500">*</span></label>
+                    <Input placeholder="Full legal name" value={formData.fullName} onChange={e => update("fullName", e.target.value)} data-testid="input-add-name" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Occupation</label>
+                    <Input placeholder="e.g. Engineer, Businessman" value={formData.occupation} onChange={e => update("occupation", e.target.value)} data-testid="input-add-occupation" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Remarks / Special Note</label>
+                  <Textarea className="h-[88px] resize-none" placeholder="Any special note..." value={formData.remarks} onChange={e => update("remarks", e.target.value)} data-testid="input-add-remarks" />
+                </div>
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-semibold uppercase text-muted-foreground">Occupation</label>
-                <Input value={formData.occupation} onChange={e => update("occupation", e.target.value)} data-testid="input-add-occupation" />
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Mobile Number <span className="text-red-500">*</span></label>
+                  <Input placeholder="+92 300 0000000" value={formData.phone} onChange={e => update("phone", e.target.value)} data-testid="input-add-mobile" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Email Address</label>
+                  <Input type="email" placeholder="customer@email.com" value={formData.email} onChange={e => update("email", e.target.value)} data-testid="input-add-email" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">CNIC / NID Number</label>
+                  <Input placeholder="e.g. 35202-1234567-1" value={formData.nidNumber} onChange={e => update("nidNumber", e.target.value)} data-testid="input-add-nid" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Customer Type <span className="text-red-500">*</span></label>
+                  <Select value={formData.customerType} onValueChange={v => update("customerType", v)}>
+                    <SelectTrigger data-testid="select-add-client-type"><SelectValue placeholder="Select type" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="home">Home</SelectItem>
+                      <SelectItem value="business">Business</SelectItem>
+                      <SelectItem value="enterprise">Enterprise</SelectItem>
+                      <SelectItem value="corporate">Corporate</SelectItem>
+                      <SelectItem value="reseller">Reseller</SelectItem>
+                      <SelectItem value="hostel">Hostel</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Father Name</label>
+                  <Input placeholder="Father's full name" value={formData.fatherName} onChange={e => update("fatherName", e.target.value)} data-testid="input-add-father" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Mother Name</label>
+                  <Input placeholder="Mother's full name" value={formData.motherName} onChange={e => update("motherName", e.target.value)} data-testid="input-add-mother" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Gender</label>
+                  <Select value={formData.gender} onValueChange={v => update("gender", v)}>
+                    <SelectTrigger data-testid="select-add-gender"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Date of Birth</label>
+                  <Input type="date" value={formData.dateOfBirth} onChange={e => update("dateOfBirth", e.target.value)} data-testid="input-add-dob" />
+                </div>
               </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Remarks/Special Note</label>
-              <Textarea className="h-[88px]" value={formData.remarks} onChange={e => update("remarks", e.target.value)} data-testid="input-add-remarks" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">NID/Birth Certificate No <span className="text-red-500">*</span></label>
-              <Input value={formData.nidNumber} onChange={e => update("nidNumber", e.target.value)} data-testid="input-add-nid" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">NID/Birth Certificate Picture</label>
-              <DocUploadField value={formData.nidPicture} onChange={v => update("nidPicture", v)} testId="upload-add-nid-pic" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Registration Form No</label>
-              <Input value={formData.registrationFormNo} onChange={e => update("registrationFormNo", e.target.value)} data-testid="input-add-regform-no" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Registration Form Picture</label>
-              <DocUploadField value={formData.registrationFormPicture} onChange={v => update("registrationFormPicture", v)} testId="upload-add-regform-pic" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Gender</label>
-              <Select value={formData.gender} onValueChange={v => update("gender", v)}>
-                <SelectTrigger data-testid="select-add-gender"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Male">Male</SelectItem>
-                  <SelectItem value="Female">Female</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Date of Birth</label>
-              <Input type="date" value={formData.dateOfBirth} onChange={e => update("dateOfBirth", e.target.value)} data-testid="input-add-dob" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Father Name</label>
-              <Input value={formData.fatherName} onChange={e => update("fatherName", e.target.value)} data-testid="input-add-father" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Mother Name</label>
-              <Input value={formData.motherName} onChange={e => update("motherName", e.target.value)} data-testid="input-add-mother" />
-            </div>
-          </div>
-        </div>
-      </div>
+          )}
 
-      <div className="mt-6">
-        <SectionHeader
-          icon={<MapPin className="h-4 w-4" />}
-          title="Contact Information"
-          subtitle="Fill Up All Required( ) Field Data"
-        />
-        <div className="border border-t-0 rounded-b-lg p-5 space-y-4 bg-card">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Map Latitude</label>
-              <Input value={formData.mapLatitude} onChange={e => update("mapLatitude", e.target.value)} data-testid="input-add-lat" />
+          {/* ─── STEP 2: Connection Info ─── */}
+          {step === 2 && (
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Select Vendor</label>
+                  <Select value={formData.vendorId ? String(formData.vendorId) : ""} onValueChange={v => update("vendorId", Number(v))}>
+                    <SelectTrigger data-testid="select-add-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
+                    <SelectContent>
+                      {(vendors || []).map(v => <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Select Package <span className="text-red-500">*</span></label>
+                  <Select value={formData.packageId ? String(formData.packageId) : ""} onValueChange={v => {
+                    const pid = Number(v);
+                    update("packageId", pid);
+                    const pkg = (packages || []).find(p => p.id === pid);
+                    if (pkg) update("monthlyBill", String(pkg.price));
+                  }}>
+                    <SelectTrigger data-testid="select-add-package"><SelectValue placeholder="Select service package" /></SelectTrigger>
+                    <SelectContent>
+                      {(packages || []).filter(p => p.isActive).map(p => (
+                        <SelectItem key={p.id} value={String(p.id)}>{p.name} — Rs.{p.price}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Monthly Internet Bill <span className="text-red-500">*</span></label>
+                  <Input type="number" placeholder="Auto-filled from package or enter manually" value={formData.monthlyBill} onChange={e => update("monthlyBill", e.target.value)} data-testid="input-add-monthly-bill" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Username / IP <span className="text-red-500">*</span></label>
+                  <Input placeholder="PPPoE username or IP address" value={formData.usernameIp} onChange={e => update("usernameIp", e.target.value)} data-testid="input-add-username-ip" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Password <span className="text-red-500">*</span></label>
+                  <Input type="password" placeholder="Connection password" value={formData.password} onChange={e => update("password", e.target.value)} data-testid="input-add-password" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Profile</label>
+                  <Select value={formData.profile} onValueChange={v => update("profile", v)}>
+                    <SelectTrigger data-testid="select-add-profile-type"><SelectValue placeholder="Select profile" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Default">Default</SelectItem>
+                      <SelectItem value="Premium">Premium</SelectItem>
+                      <SelectItem value="Basic">Basic</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Client Code</label>
+                  <Input placeholder="Auto-generated if blank" value={formData.customerId} onChange={e => update("customerId", e.target.value)} data-testid="input-add-client-code" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Billing Status <span className="text-red-500">*</span></label>
+                  <Select value={formData.billingStatus} onValueChange={v => update("billingStatus", v)}>
+                    <SelectTrigger data-testid="select-add-billing-status"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Inactive">Inactive</SelectItem>
+                      <SelectItem value="Suspended">Suspended</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Joining Date</label>
+                  <Input type="date" value={formData.joiningDate} onChange={e => update("joiningDate", e.target.value)} data-testid="input-add-joining-date" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Expire Date</label>
+                  <Select value={formData.expireDate} onValueChange={v => update("expireDate", v)}>
+                    <SelectTrigger data-testid="select-add-expire"><SelectValue placeholder="Select duration" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1_month">1 Month</SelectItem>
+                      <SelectItem value="3_months">3 Months</SelectItem>
+                      <SelectItem value="6_months">6 Months</SelectItem>
+                      <SelectItem value="1_year">1 Year</SelectItem>
+                      <SelectItem value="unlimited">Unlimited</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Billing Start Month</label>
+                  <Input value={formData.billingStartMonth} onChange={e => update("billingStartMonth", e.target.value)} className="bg-[#1a3a5c]/10 font-medium" data-testid="input-add-billing-start" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Phone Number (Alternate)</label>
+                  <Input placeholder="Alternate contact number" value={formData.phoneNumber} onChange={e => update("phoneNumber", e.target.value)} data-testid="input-add-phone" />
+                </div>
+              </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Mobile Number <span className="text-red-500">*</span></label>
-              <Input value={formData.phone} onChange={e => update("phone", e.target.value)} data-testid="input-add-mobile" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">District</label>
-              <Select value={formData.district} onValueChange={v => update("district", v)}>
-                <SelectTrigger data-testid="select-add-district"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Dhaka">Dhaka</SelectItem>
-                  <SelectItem value="Chittagong">Chittagong</SelectItem>
-                  <SelectItem value="Rajshahi">Rajshahi</SelectItem>
-                  <SelectItem value="Khulna">Khulna</SelectItem>
-                  <SelectItem value="Sylhet">Sylhet</SelectItem>
-                  <SelectItem value="Barisal">Barisal</SelectItem>
-                  <SelectItem value="Rangpur">Rangpur</SelectItem>
-                  <SelectItem value="Mymensingh">Mymensingh</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1 row-span-2">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Present Address</label>
-              <Textarea className="h-[88px]" value={formData.presentAddress} onChange={e => update("presentAddress", e.target.value)} data-testid="input-add-present-address" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Map Longitude</label>
-              <Input value={formData.mapLongitude} onChange={e => update("mapLongitude", e.target.value)} data-testid="input-add-lng" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Phone Number</label>
-              <Input value={formData.phoneNumber} onChange={e => update("phoneNumber", e.target.value)} data-testid="input-add-phone" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Upazila/Thana</label>
-              <Select value={formData.upazilaThana} onValueChange={v => update("upazilaThana", v)}>
-                <SelectTrigger data-testid="select-add-upazila"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Rupganj">Rupganj</SelectItem>
-                  <SelectItem value="Sonargaon">Sonargaon</SelectItem>
-                  <SelectItem value="Narayanganj Sadar">Narayanganj Sadar</SelectItem>
-                  <SelectItem value="Araihazar">Araihazar</SelectItem>
-                  <SelectItem value="Bandar">Bandar</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Permanent Address</label>
-              <Textarea className="h-[88px]" value={formData.permanentAddress} onChange={e => update("permanentAddress", e.target.value)} data-testid="input-add-permanent-address" disabled={sameAddress} />
-              <label className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 cursor-pointer mt-1">
-                <input type="checkbox" checked={sameAddress} onChange={e => handleSameAddress(e.target.checked)} data-testid="checkbox-same-address" />
-                Same As Present Address?
-              </label>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Facebook URL</label>
-              <Input value={formData.facebookUrl} onChange={e => update("facebookUrl", e.target.value)} data-testid="input-add-facebook" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Email Address</label>
-              <Input type="email" value={formData.email} onChange={e => update("email", e.target.value)} data-testid="input-add-email" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Road Number</label>
-              <Input value={formData.roadNumber} onChange={e => update("roadNumber", e.target.value)} data-testid="input-add-road" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">LinkedIn URL</label>
-              <Input value={formData.linkedinUrl} onChange={e => update("linkedinUrl", e.target.value)} data-testid="input-add-linkedin" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Twitter URL</label>
-              <Input value={formData.twitterUrl} onChange={e => update("twitterUrl", e.target.value)} data-testid="input-add-twitter" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">House Number</label>
-              <Input value={formData.houseNumber} onChange={e => update("houseNumber", e.target.value)} data-testid="input-add-house" />
-            </div>
-          </div>
-        </div>
-      </div>
+          )}
 
-      <div className="mt-6">
-        <SectionHeader
-          icon={<Network className="h-4 w-4" />}
-          title="Network & Product Information"
-          subtitle="Fill Up All Required( ) Field Data"
-        />
-        <div className="border border-t-0 rounded-b-lg p-5 space-y-4 bg-card">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Server <span className="text-red-500">*</span></label>
-              <Select value={formData.server} onValueChange={v => update("server", v)}>
-                <SelectTrigger data-testid="select-add-server"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Server-1">Server-1</SelectItem>
-                  <SelectItem value="Server-2">Server-2</SelectItem>
-                  <SelectItem value="Server-3">Server-3</SelectItem>
-                  <SelectItem value="MikroTik">MikroTik</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* ─── STEP 3: Documents ─── */}
+          {step === 3 && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">CNIC / NID Front</label>
+                  <DocUploadField value={formData.cnicFront} onChange={v => update("cnicFront", v)} testId="upload-add-cnic-front" />
+                  <p className="text-xs text-muted-foreground text-center">Upload front side</p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">CNIC / NID Back</label>
+                  <DocUploadField value={formData.cnicBack} onChange={v => update("cnicBack", v)} testId="upload-add-cnic-back" />
+                  <p className="text-xs text-muted-foreground text-center">Upload back side</p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">NID / Birth Certificate Pic</label>
+                  <DocUploadField value={formData.nidPicture} onChange={v => update("nidPicture", v)} testId="upload-add-nid-pic" />
+                  <p className="text-xs text-muted-foreground text-center">Certificate scan</p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Address Proof</label>
+                  <DocUploadField value={formData.addressProof} onChange={v => update("addressProof", v)} testId="upload-add-address-proof" />
+                  <p className="text-xs text-muted-foreground text-center">Utility bill / letter</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Registration Form No</label>
+                  <Input placeholder="e.g. REG-20240001" value={formData.registrationFormNo} onChange={e => update("registrationFormNo", e.target.value)} data-testid="input-add-regform-no" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Registration Form Picture</label>
+                  <DocUploadField value={formData.registrationFormPicture} onChange={v => update("registrationFormPicture", v)} testId="upload-add-regform-pic" />
+                </div>
+                <div className="flex items-end pb-1">
+                  <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-xs text-blue-700 dark:text-blue-300 w-full">
+                    <p className="font-semibold mb-1">Accepted formats:</p>
+                    <p>JPG, PNG, PDF — max 5 MB each</p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Protocol Type <span className="text-red-500">*</span></label>
-              <Select value={formData.protocolType} onValueChange={v => update("protocolType", v)}>
-                <SelectTrigger data-testid="select-add-protocol"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PPPoE">PPPoE</SelectItem>
-                  <SelectItem value="Static">Static</SelectItem>
-                  <SelectItem value="DHCP">DHCP</SelectItem>
-                  <SelectItem value="Hotspot">Hotspot</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Zone <span className="text-red-500">*</span></label>
-              <Select value={formData.zone} onValueChange={v => update("zone", v)}>
-                <SelectTrigger data-testid="select-add-zone"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  {(areas || []).map(a => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}
-                  {(!areas || areas.length === 0) && <SelectItem value="Zone-1">Zone-1</SelectItem>}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Sub Zone</label>
-              <Select value={formData.subzone} onValueChange={v => update("subzone", v)}>
-                <SelectTrigger data-testid="select-add-subzone"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Subzone-1">Subzone-1</SelectItem>
-                  <SelectItem value="Subzone-2">Subzone-2</SelectItem>
-                  <SelectItem value="Subzone-3">Subzone-3</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Box</label>
-              <Select value={formData.box} onValueChange={v => update("box", v)}>
-                <SelectTrigger data-testid="select-add-box"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Box-1">Box-1</SelectItem>
-                  <SelectItem value="Box-2">Box-2</SelectItem>
-                  <SelectItem value="Box-3">Box-3</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Connection Type <span className="text-red-500">*</span></label>
-              <Select value={formData.connectionType} onValueChange={v => update("connectionType", v)}>
-                <SelectTrigger data-testid="select-add-conn-type"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Fiber">Fiber</SelectItem>
-                  <SelectItem value="Wireless">Wireless</SelectItem>
-                  <SelectItem value="DSL">DSL</SelectItem>
-                  <SelectItem value="Cable">Cable</SelectItem>
-                  <SelectItem value="Ethernet">Ethernet</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Cable Requirement in Metre</label>
-              <Input placeholder="Example: 100" value={formData.cableRequirement} onChange={e => update("cableRequirement", e.target.value)} data-testid="input-add-cable" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Fiber Code</label>
-              <Input placeholder="Example: 121" value={formData.fiberCode} onChange={e => update("fiberCode", e.target.value)} data-testid="input-add-fiber" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Number of Core</label>
-              <Input placeholder="Example: 2" value={formData.numberOfCore} onChange={e => update("numberOfCore", e.target.value)} data-testid="input-add-core" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Core Color</label>
-              <Input placeholder="Example: Red" value={formData.coreColor} onChange={e => update("coreColor", e.target.value)} data-testid="input-add-core-color" />
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Device</label>
-              <Select value={formData.device} onValueChange={v => update("device", v)}>
-                <SelectTrigger data-testid="select-add-device"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ONU">ONU</SelectItem>
-                  <SelectItem value="ONT">ONT</SelectItem>
-                  <SelectItem value="Router">Router</SelectItem>
-                  <SelectItem value="Switch">Switch</SelectItem>
-                  <SelectItem value="Media Converter">Media Converter</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Device MAC/Serial No</label>
-              <Input value={formData.deviceMacSerial} onChange={e => update("deviceMacSerial", e.target.value)} data-testid="input-add-device-mac" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Vendor</label>
-              <Select value={formData.vendorId ? String(formData.vendorId) : ""} onValueChange={v => update("vendorId", Number(v))}>
-                <SelectTrigger data-testid="select-add-vendor"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  {(vendors || []).map(v => <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Purchase Date</label>
-              <Input type="date" value={formData.purchaseDate} onChange={e => update("purchaseDate", e.target.value)} data-testid="input-add-purchase-date" />
-            </div>
-          </div>
-        </div>
-      </div>
+          )}
 
-      <div className="mt-6">
-        <SectionHeader
-          icon={<Server className="h-4 w-4" />}
-          title="Service Information"
-          subtitle="Fill Up All Required( ) Field Data"
-        />
-        <div className="border border-t-0 rounded-b-lg p-5 space-y-4 bg-card">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Client Code <span className="text-red-500">*</span></label>
-              <Input value={formData.customerId} onChange={e => update("customerId", e.target.value)} data-testid="input-add-client-code" />
+          {/* ─── STEP 4: Area Info ─── */}
+          {step === 4 && (
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Zone / Area <span className="text-red-500">*</span></label>
+                  <Select value={formData.zone} onValueChange={v => update("zone", v)}>
+                    <SelectTrigger data-testid="select-add-zone"><SelectValue placeholder="Select area" /></SelectTrigger>
+                    <SelectContent>
+                      {(areas || []).map((a: any) => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}
+                      {(!areas || areas.length === 0) && <SelectItem value="Zone-1">Zone-1</SelectItem>}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Sub Zone</label>
+                  <Select value={formData.subzone} onValueChange={v => update("subzone", v)}>
+                    <SelectTrigger data-testid="select-add-subzone"><SelectValue placeholder="Select sub-zone" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Subzone-1">Subzone-1</SelectItem>
+                      <SelectItem value="Subzone-2">Subzone-2</SelectItem>
+                      <SelectItem value="Subzone-3">Subzone-3</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Box</label>
+                  <Select value={formData.box} onValueChange={v => update("box", v)}>
+                    <SelectTrigger data-testid="select-add-box"><SelectValue placeholder="Select box" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Box-1">Box-1</SelectItem>
+                      <SelectItem value="Box-2">Box-2</SelectItem>
+                      <SelectItem value="Box-3">Box-3</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">District</label>
+                  <Select value={formData.district} onValueChange={v => update("district", v)}>
+                    <SelectTrigger data-testid="select-add-district"><SelectValue placeholder="Select district" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Dhaka">Dhaka</SelectItem>
+                      <SelectItem value="Chittagong">Chittagong</SelectItem>
+                      <SelectItem value="Rajshahi">Rajshahi</SelectItem>
+                      <SelectItem value="Khulna">Khulna</SelectItem>
+                      <SelectItem value="Sylhet">Sylhet</SelectItem>
+                      <SelectItem value="Barisal">Barisal</SelectItem>
+                      <SelectItem value="Rangpur">Rangpur</SelectItem>
+                      <SelectItem value="Mymensingh">Mymensingh</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Upazila / Thana</label>
+                  <Input placeholder="e.g. Rupganj" value={formData.upazilaThana} onChange={e => update("upazilaThana", e.target.value)} data-testid="input-add-upazila" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Road Number</label>
+                  <Input placeholder="e.g. Road 12" value={formData.roadNumber} onChange={e => update("roadNumber", e.target.value)} data-testid="input-add-road" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">House Number</label>
+                  <Input placeholder="e.g. House 5A" value={formData.houseNumber} onChange={e => update("houseNumber", e.target.value)} data-testid="input-add-house" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Map Latitude</label>
+                  <Input placeholder="e.g. 23.8103" value={formData.mapLatitude} onChange={e => update("mapLatitude", e.target.value)} data-testid="input-add-lat" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Present Address</label>
+                  <Textarea className="resize-none h-20" placeholder="Full installation address" value={formData.presentAddress} onChange={e => update("presentAddress", e.target.value)} data-testid="input-add-present-address" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Permanent Address</label>
+                  <Textarea className="resize-none h-20" placeholder="Permanent address" value={formData.permanentAddress} onChange={e => update("permanentAddress", e.target.value)} data-testid="input-add-permanent-address" disabled={sameAddress} />
+                  <label className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 cursor-pointer">
+                    <input type="checkbox" checked={sameAddress} onChange={e => handleSameAddress(e.target.checked)} data-testid="checkbox-same-address" />
+                    Same as Present Address
+                  </label>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Map Longitude</label>
+                  <Input placeholder="e.g. 90.4125" value={formData.mapLongitude} onChange={e => update("mapLongitude", e.target.value)} data-testid="input-add-lng" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Facebook URL</label>
+                  <Input placeholder="https://facebook.com/..." value={formData.facebookUrl} onChange={e => update("facebookUrl", e.target.value)} data-testid="input-add-facebook" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">LinkedIn URL</label>
+                  <Input placeholder="https://linkedin.com/in/..." value={formData.linkedinUrl} onChange={e => update("linkedinUrl", e.target.value)} data-testid="input-add-linkedin" />
+                </div>
+              </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Package <span className="text-red-500">*</span></label>
-              <Select value={formData.packageId ? String(formData.packageId) : ""} onValueChange={v => update("packageId", Number(v))}>
-                <SelectTrigger data-testid="select-add-package"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  {(packages || []).filter(p => p.isActive).map(p => (
-                    <SelectItem key={p.id} value={String(p.id)}>{p.name} - Rs.{p.price}</SelectItem>
+          )}
+
+          {/* ─── STEP 5: Infrastructure ─── */}
+          {step === 5 && (
+            <div className="space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Server</label>
+                  <Select value={formData.server} onValueChange={v => update("server", v)}>
+                    <SelectTrigger data-testid="select-add-server"><SelectValue placeholder="Select server" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Server-1">Server-1</SelectItem>
+                      <SelectItem value="Server-2">Server-2</SelectItem>
+                      <SelectItem value="Server-3">Server-3</SelectItem>
+                      <SelectItem value="MikroTik">MikroTik</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Protocol Type</label>
+                  <Select value={formData.protocolType} onValueChange={v => update("protocolType", v)}>
+                    <SelectTrigger data-testid="select-add-protocol"><SelectValue placeholder="Select protocol" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PPPoE">PPPoE</SelectItem>
+                      <SelectItem value="Static">Static</SelectItem>
+                      <SelectItem value="DHCP">DHCP</SelectItem>
+                      <SelectItem value="Hotspot">Hotspot</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Connection Type <span className="text-red-500">*</span></label>
+                  <Select value={formData.connectionType} onValueChange={v => update("connectionType", v)}>
+                    <SelectTrigger data-testid="select-add-conn-type"><SelectValue placeholder="Select connection" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Fiber">Fiber / FTTH</SelectItem>
+                      <SelectItem value="Wireless">Wireless</SelectItem>
+                      <SelectItem value="DSL">DSL / VDSL</SelectItem>
+                      <SelectItem value="Cable">Cable</SelectItem>
+                      <SelectItem value="Ethernet">Ethernet</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cable Req. (Metres)</label>
+                  <Input placeholder="e.g. 100" value={formData.cableRequirement} onChange={e => update("cableRequirement", e.target.value)} data-testid="input-add-cable" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Fiber Code</label>
+                  <Input placeholder="e.g. FC-121" value={formData.fiberCode} onChange={e => update("fiberCode", e.target.value)} data-testid="input-add-fiber" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Number of Cores</label>
+                  <Input placeholder="e.g. 2" value={formData.numberOfCore} onChange={e => update("numberOfCore", e.target.value)} data-testid="input-add-core" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Core Color</label>
+                  <Input placeholder="e.g. Red, Blue" value={formData.coreColor} onChange={e => update("coreColor", e.target.value)} data-testid="input-add-core-color" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Device</label>
+                  <Select value={formData.device} onValueChange={v => update("device", v)}>
+                    <SelectTrigger data-testid="select-add-device"><SelectValue placeholder="Select device" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ONU">ONU</SelectItem>
+                      <SelectItem value="ONT">ONT</SelectItem>
+                      <SelectItem value="Router">Router</SelectItem>
+                      <SelectItem value="Switch">Switch</SelectItem>
+                      <SelectItem value="Media Converter">Media Converter</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Device MAC / Serial</label>
+                  <Input placeholder="e.g. AA:BB:CC:DD:EE:FF" value={formData.deviceMacSerial} onChange={e => update("deviceMacSerial", e.target.value)} data-testid="input-add-device-mac" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Purchase Date</label>
+                  <Input type="date" value={formData.purchaseDate} onChange={e => update("purchaseDate", e.target.value)} data-testid="input-add-purchase-date" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Twitter / X URL</label>
+                  <Input placeholder="https://twitter.com/..." value={formData.twitterUrl} onChange={e => update("twitterUrl", e.target.value)} data-testid="input-add-twitter" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─── STEP 6: Notifications & Finalize ─── */}
+          {step === 6 && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-foreground border-b pb-2">Notification Channels</h3>
+                  {[
+                    { key: "notifyEmail", label: "Email Notifications", desc: "Send updates via email" },
+                    { key: "notifyMobile", label: "Mobile SMS Notifications", desc: "Send alerts via SMS" },
+                    { key: "notifyWhatsApp", label: "WhatsApp Notifications", desc: "Send via WhatsApp" },
+                    { key: "notifyInApp", label: "In-App Notifications", desc: "Show in platform notifications" },
+                    { key: "sendSmsToEmployee", label: "Send SMS to Employee", desc: "Notify assigned employee" },
+                    { key: "sendGreetingSms", label: "Send Greeting SMS", desc: "Send welcome/greeting message" },
+                  ].map(({ key, label, desc }) => (
+                    <div key={key} className="flex items-center justify-between p-3 rounded-lg bg-muted/40 hover:bg-muted/60 transition-colors">
+                      <div>
+                        <p className="text-sm font-medium">{label}</p>
+                        <p className="text-xs text-muted-foreground">{desc}</p>
+                      </div>
+                      <Switch
+                        checked={formData[key as keyof typeof formData] as boolean}
+                        onCheckedChange={v => update(key, v)}
+                        data-testid={`switch-${key}`}
+                      />
+                    </div>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold text-foreground border-b pb-2">Assignment & References</h3>
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Reference By</label>
+                      <Input placeholder="Referred by whom?" value={formData.referenceBy} onChange={e => update("referenceBy", e.target.value)} data-testid="input-add-reference" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Connected By</label>
+                      <Select value={formData.connectedBy} onValueChange={v => update("connectedBy", v)}>
+                        <SelectTrigger data-testid="select-add-connected-by"><SelectValue placeholder="Select employee" /></SelectTrigger>
+                        <SelectContent>
+                          {(employees || []).map((emp: any) => <SelectItem key={emp.id} value={emp.fullName}>{emp.fullName}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Assign To</label>
+                      <Select value={formData.assignTo} onValueChange={v => update("assignTo", v)}>
+                        <SelectTrigger data-testid="select-add-assign-to"><SelectValue placeholder="Select employee" /></SelectTrigger>
+                        <SelectContent>
+                          {(employees || []).map((emp: any) => <SelectItem key={emp.id} value={emp.fullName}>{emp.fullName}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Affiliator</label>
+                      <Select value={formData.affiliator} onValueChange={v => update("affiliator", v)}>
+                        <SelectTrigger data-testid="select-add-affiliator"><SelectValue placeholder="Select" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="None">None</SelectItem>
+                          <SelectItem value="Affiliate-1">Affiliate-1</SelectItem>
+                          <SelectItem value="Affiliate-2">Affiliate-2</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950">
+                      <input type="checkbox" id="vip-check" checked={formData.isVipClient} onChange={e => update("isVipClient", e.target.checked)} data-testid="checkbox-add-vip" className="h-4 w-4" />
+                      <label htmlFor="vip-check" className="text-sm font-semibold text-amber-600 dark:text-amber-400 cursor-pointer">Mark as VIP Client</label>
+                    </div>
+                    <div className="flex items-center gap-3 p-3 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950">
+                      <Switch checked={formData.activateWithExpiry} onCheckedChange={v => update("activateWithExpiry", v)} data-testid="switch-activate-expiry" />
+                      <label className="text-sm font-medium text-green-700 dark:text-green-300">Activate Account with Expiry</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Profile</label>
-              <Select value={formData.profile} onValueChange={v => update("profile", v)}>
-                <SelectTrigger data-testid="select-add-profile"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Default">Default</SelectItem>
-                  <SelectItem value="Premium">Premium</SelectItem>
-                  <SelectItem value="Basic">Basic</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Client Type <span className="text-red-500">*</span></label>
-              <Select value={formData.customerType} onValueChange={v => update("customerType", v)}>
-                <SelectTrigger data-testid="select-add-client-type"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="home">Home</SelectItem>
-                  <SelectItem value="corporate">Corporate</SelectItem>
-                  <SelectItem value="reseller">Reseller</SelectItem>
-                  <SelectItem value="hostel">Hostel</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Billing Status <span className="text-red-500">*</span></label>
-              <Select value={formData.billingStatus} onValueChange={v => update("billingStatus", v)}>
-                <SelectTrigger data-testid="select-add-billing-status"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
-                  <SelectItem value="Suspended">Suspended</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Username/IP <span className="text-red-500">*</span></label>
-              <Input value={formData.usernameIp} onChange={e => update("usernameIp", e.target.value)} data-testid="input-add-username-ip" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Password <span className="text-red-500">*</span></label>
-              <Input value={formData.password} onChange={e => update("password", e.target.value)} data-testid="input-add-password" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Joining Date (No Relation in Billing)</label>
-              <Input type="date" value={formData.joiningDate} onChange={e => update("joiningDate", e.target.value)} data-testid="input-add-joining-date" />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Monthly Bill <span className="text-red-500">*</span></label>
-              <Input type="number" placeholder="Provide client monthly bill amount." value={formData.monthlyBill} onChange={e => update("monthlyBill", e.target.value)} data-testid="input-add-monthly-bill" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Billing Start Month</label>
-              <Input value={formData.billingStartMonth} onChange={e => update("billingStartMonth", e.target.value)} className="bg-[#1a3a5c] text-white" data-testid="input-add-billing-start" readOnly />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Expire Date <span className="text-red-500">*</span></label>
-              <Select value={formData.expireDate} onValueChange={v => update("expireDate", v)}>
-                <SelectTrigger data-testid="select-add-expire"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1_month">1 Month</SelectItem>
-                  <SelectItem value="3_months">3 Months</SelectItem>
-                  <SelectItem value="6_months">6 Months</SelectItem>
-                  <SelectItem value="1_year">1 Year</SelectItem>
-                  <SelectItem value="unlimited">Unlimited</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Reference By</label>
-              <Input value={formData.referenceBy} onChange={e => update("referenceBy", e.target.value)} data-testid="input-add-reference" />
-            </div>
-            <div className="space-y-1 flex flex-col justify-end">
-              <label className="flex items-center gap-2 text-xs cursor-pointer">
-                <input type="checkbox" checked={formData.isVipClient} onChange={e => update("isVipClient", e.target.checked)} data-testid="checkbox-add-vip" />
-                <span className="text-amber-500 font-semibold">IS VIP CLIENT?</span>
-              </label>
-              <span className="text-xs text-muted-foreground">Click to Set</span>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Connected By</label>
-              <Select value={formData.connectedBy} onValueChange={v => update("connectedBy", v)}>
-                <SelectTrigger data-testid="select-add-connected-by"><SelectValue placeholder="Select Employee" /></SelectTrigger>
-                <SelectContent>
-                  {(employees || []).map(emp => <SelectItem key={emp.id} value={emp.fullName}>{emp.fullName}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Assign To <span className="text-red-500">*</span></label>
-              <Select value={formData.assignTo} onValueChange={v => update("assignTo", v)}>
-                <SelectTrigger data-testid="select-add-assign-to"><SelectValue placeholder="Select Employee" /></SelectTrigger>
-                <SelectContent>
-                  {(employees || []).map(emp => <SelectItem key={emp.id} value={emp.fullName}>{emp.fullName}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Affiliator</label>
-              <Select value={formData.affiliator} onValueChange={v => update("affiliator", v)}>
-                <SelectTrigger data-testid="select-add-affiliator"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="None">None</SelectItem>
-                  <SelectItem value="Affiliate-1">Affiliate-1</SelectItem>
-                  <SelectItem value="Affiliate-2">Affiliate-2</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex items-center gap-8 pt-2">
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" checked={formData.sendSmsToEmployee} onChange={e => update("sendSmsToEmployee", e.target.checked)} data-testid="checkbox-add-sms-employee" />
-              Send SMS To Employee?
-            </label>
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" checked={formData.sendGreetingSms} onChange={e => update("sendGreetingSms", e.target.checked)} data-testid="checkbox-add-greeting-sms" />
-              Send Greetings SMS?
-            </label>
-          </div>
+          )}
+
         </div>
       </div>
 
+      {/* Navigation Buttons */}
       <div className="flex items-center justify-between mt-6 pb-6">
-        <Button variant="outline" onClick={() => setTab("list")} className="bg-[#1a3a5c] text-white border-none" data-testid="button-go-to-list">
-          Go To List
-        </Button>
         <Button
-          onClick={() => createMutation.mutate()}
-          disabled={createMutation.isPending || !formData.fullName || !formData.phone}
-          className="bg-[#1a3a5c] text-white"
-          data-testid="button-save-exit"
+          variant="outline"
+          onClick={() => step > 1 ? setStep(step - 1) : setTab("list")}
+          className="flex items-center gap-2"
+          data-testid="button-prev-cancel"
         >
-          {createMutation.isPending ? "Saving..." : "Save & Exit"}
+          {step === 1 ? "Cancel" : <><ChevronLeft className="h-4 w-4" /> Previous</>}
         </Button>
+        <div className="flex items-center gap-3">
+          {step < 6 ? (
+            <Button
+              onClick={() => { if (canNext()) setStep(step + 1); }}
+              disabled={!canNext()}
+              className="bg-[#1a3a5c] text-white flex items-center gap-2"
+              data-testid="button-next-step"
+            >
+              Next <ChevronRight className="h-4 w-4" />
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => { createMutation.mutate(); }}
+                disabled={createMutation.isPending || !formData.fullName || !formData.phone}
+                data-testid="button-save-add-new"
+              >
+                {createMutation.isPending ? "Saving..." : "Save & Add New"}
+              </Button>
+              <Button
+                onClick={() => { createMutation.mutate(); }}
+                disabled={createMutation.isPending || !formData.fullName || !formData.phone}
+                className="bg-[#1a3a5c] text-white"
+                data-testid="button-save-exit"
+              >
+                {createMutation.isPending ? "Saving..." : "Save & Exit"}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
