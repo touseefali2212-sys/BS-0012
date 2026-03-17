@@ -1,0 +1,322 @@
+🛡️ HRM Rights Setup – Advanced RBAC System Description (For Replit AI)
+🎯 Objective
+
+Build a fully dynamic Role-Based Access Control (RBAC) system inside the HRM module that allows Admin to:
+
+✔ Assign permissions module-wise + submenu-wise
+✔ Control action-level access (View, Create, Edit, Delete, Approve, Export)
+✔ Restrict both Web + App access separately
+✔ Ensure users only see and access what is allowed
+
+🧩 Module Structure Integration
+
+The system must support ALL modules and submenus dynamically, including:
+
+Dashboard
+
+Company
+
+Vendors
+
+Packages
+
+Area Management
+
+HR & Payroll
+
+HRM
+
+Customers
+
+Customer Portal
+
+Reseller Management
+
+Support & Ticket
+
+Sale
+
+Accounting
+
+Transactions
+
+Task Management
+
+Network & IPAM
+
+Service Outages
+
+Assets
+
+Inventory
+
+Notifications
+
+Reports
+
+Settings
+
+👉 Each module must be expandable with its submenus (as provided)
+
+🧠 Core Features Required
+1️⃣ Dynamic Permission Matrix
+
+Create a Permission Matrix UI (like your current design):
+
+Each row = Submenu
+Each column = Permission Type:
+
+👁 View
+
+➕ Create
+
+✏️ Edit
+
+🗑 Delete
+
+✔ Approve
+
+📤 Export
+
+🖨 Print
+
+✔ Toggle-based system
+✔ “Select All” per module
+✔ “No Access” / “Full Access” quick buttons
+
+2️⃣ Module-Level Controls
+
+Each module should have:
+
+✅ Full Access Toggle
+
+❌ No Access Toggle
+
+🔽 Expand/Collapse Submenus
+
+If Full Access = ON
+→ All submenus + actions auto enabled
+
+If No Access = ON
+→ Everything disabled
+
+3️⃣ App vs Web Permissions
+
+Add separate toggles:
+
+🌐 Web Access
+
+📱 App Access
+
+Example:
+
+Technician:
+✔ App Access → ON
+❌ Web Access → OFF
+
+4️⃣ Predefined Role Templates (NEW – IMPORTANT 🔥)
+
+Add default smart configurations for roles:
+
+👑 Super Admin
+
+Full access to everything
+
+Cannot be restricted
+
+🧑‍💼 Admin
+
+Full system access except:
+
+Critical system settings (optional restriction)
+
+🏢 Branch Manager
+
+Access limited to:
+
+Customers
+
+Billing
+
+Reports (branch only)
+
+Staff management (limited)
+
+💰 Accountant
+
+Access only:
+
+Accounting
+
+Transactions
+
+Billing
+
+Reports
+
+🧾 Billing Staff
+
+Access:
+
+Invoice
+
+Customer billing
+
+Collections
+
+💸 Recovery Officer
+
+Access:
+
+Customer list
+
+Due payments
+
+Collection entry
+
+Limited reports
+
+🛠 Technician
+
+Access:
+
+Customers (View)
+
+Support Tickets
+
+Network & IPAM
+
+Customer Map
+
+NO Accounting / HR / Settings
+
+👉 When selecting a role → auto-fill permissions
+👉 Admin can still customize
+
+5️⃣ Backend Enforcement (CRITICAL 🚨)
+
+Implement strict validation:
+
+✔ Every API must check permissions
+✔ Unauthorized request → Blocked
+
+Example:
+
+IF user.role does NOT have "view_customers"
+→ RETURN 403 Unauthorized
+6️⃣ Sidebar Rendering Logic (FIX YOUR ISSUE 🔥)
+
+When user logs in:
+
+✔ Fetch role permissions
+✔ Filter sidebar dynamically
+
+RULE:
+
+👉 If NO permission → Module NOT visible
+👉 If partial permission → Show only allowed submenus
+
+7️⃣ Employee Login Integration
+
+When creating Staff Login:
+
+Assign Role
+
+Auto-attach permissions
+
+Store in session/JWT
+
+At login:
+
+✔ Load permissions
+✔ Apply everywhere (UI + API)
+
+8️⃣ Missing Features to Add (HIGH VALUE 💎)
+🔍 Permission Search
+
+Search module/submenu quickly
+
+📋 Role Comparison
+
+Compare 2 roles side-by-side
+
+📤 Import / Export Roles
+
+Export role permissions
+
+Import to another branch/system
+
+🧾 Permission Audit Log
+
+Track:
+
+Who changed permissions
+
+What changed
+
+When
+
+⚡ Quick Clone Role
+
+Duplicate existing role
+
+Modify quickly
+
+⏳ Temporary Access
+
+Give access for:
+
+1 day / 1 week
+
+Auto expire
+
+🚫 Conflict Protection
+
+Prevent dangerous combos:
+
+Example: Delete access without View
+
+9️⃣ UI/UX Enhancements
+
+Color Indicators:
+
+Green = Allowed
+
+Red = Denied
+
+Sticky headers for large tables
+
+Smooth toggle animations
+
+Role summary panel (Right side)
+
+🧪 Expected Behavior (Final Output)
+
+✔ Technician logs in → sees ONLY:
+
+Customers
+
+Support
+
+Network
+
+❌ Does NOT see:
+
+Accounting
+
+HR
+
+Settings
+
+✔ Direct URL access → Blocked
+✔ API access → Secured
+✔ Sidebar → Fully dynamic
+
+📈 Final Goal
+
+This HRM Rights Setup should behave like:
+
+🔥 Enterprise-grade permission system
+🔥 Secure like banking software
+🔥 Flexible for ISP operations
+🔥 Scalable for SaaS

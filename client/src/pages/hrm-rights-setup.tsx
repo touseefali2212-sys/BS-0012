@@ -20,7 +20,8 @@ import {
   Smartphone, Monitor, Globe, AlertTriangle, CheckCircle2, XCircle,
   Eye, FilePlus, FileEdit, Trash2, ThumbsUp, Download, Printer,
   LayoutGrid, Settings, Package, ShoppingCart, Building2, Wrench,
-  Bell, BarChart3, CreditCard, UserCog, Boxes, Loader2, Info
+  Bell, BarChart3, CreditCard, UserCog, Boxes, Loader2, Info,
+  Search, Upload, FileDown, GitCompare, Zap, TriangleAlert
 } from "lucide-react";
 
 const MODULE_STRUCTURE: Record<string, { icon: any; label: string; submenus: string[] }> = {
@@ -66,6 +67,82 @@ const DEFAULT_ROLES = [
   { name: "Technician", description: "Field operations and asset tracking", isSystem: true },
 ];
 
+type TemplatePerms = Record<string, Partial<{ canView: boolean; canCreate: boolean; canEdit: boolean; canDelete: boolean; canApprove: boolean; canExport: boolean; canPrint: boolean; webAccess: boolean; appAccess: boolean }>>;
+
+const ROLE_TEMPLATES: Record<string, { label: string; description: string; permissions: TemplatePerms }> = {
+  super_admin: {
+    label: "Super Admin",
+    description: "Full access to everything — cannot be restricted",
+    permissions: Object.fromEntries(Object.keys({ dashboard: 1, management: 1, crm: 1, sales: 1, hrm: 1, inventory: 1, assets: 1, tasks: 1, network: 1, outages: 1, notifications: 1, reports: 1, settings: 1 }).map(k => [k, { canView: true, canCreate: true, canEdit: true, canDelete: true, canApprove: true, canExport: true, canPrint: true, webAccess: true, appAccess: true }])),
+  },
+  admin: {
+    label: "Admin",
+    description: "Full system access except critical settings",
+    permissions: Object.fromEntries(Object.keys({ dashboard: 1, management: 1, crm: 1, sales: 1, hrm: 1, inventory: 1, assets: 1, tasks: 1, network: 1, outages: 1, notifications: 1, reports: 1 }).map(k => [k, { canView: true, canCreate: true, canEdit: true, canDelete: true, canApprove: true, canExport: true, canPrint: true, webAccess: true, appAccess: false }])),
+  },
+  branch_manager: {
+    label: "Branch Manager",
+    description: "Customers, billing, reports & limited staff management",
+    permissions: {
+      dashboard: { canView: true, webAccess: true },
+      crm: { canView: true, canCreate: true, canEdit: true, canExport: true, webAccess: true },
+      sales: { canView: true, canCreate: true, canApprove: true, canExport: true, canPrint: true, webAccess: true },
+      hrm: { canView: true, webAccess: true },
+      reports: { canView: true, canExport: true, canPrint: true, webAccess: true },
+    },
+  },
+  accountant: {
+    label: "Accountant",
+    description: "Accounting, transactions, billing and reports only",
+    permissions: {
+      dashboard: { canView: true, webAccess: true },
+      sales: { canView: true, canCreate: true, canEdit: true, canApprove: true, canExport: true, canPrint: true, webAccess: true },
+      reports: { canView: true, canExport: true, canPrint: true, webAccess: true },
+    },
+  },
+  billing_staff: {
+    label: "Billing Staff",
+    description: "Invoice, customer billing and collections",
+    permissions: {
+      dashboard: { canView: true, webAccess: true },
+      crm: { canView: true, webAccess: true },
+      sales: { canView: true, canCreate: true, canPrint: true, webAccess: true },
+      reports: { canView: true, canPrint: true, webAccess: true },
+    },
+  },
+  recovery_officer: {
+    label: "Recovery Officer",
+    description: "Customer list, due payments, collections — limited reports",
+    permissions: {
+      dashboard: { canView: true, webAccess: true, appAccess: true },
+      crm: { canView: true, webAccess: true, appAccess: true },
+      sales: { canView: true, canCreate: true, webAccess: true, appAccess: true },
+      reports: { canView: true, webAccess: true },
+    },
+  },
+  technician: {
+    label: "Technician",
+    description: "Support tickets, network, customer view — no finance or HR",
+    permissions: {
+      dashboard: { canView: true, appAccess: true },
+      crm: { canView: true, appAccess: true, webAccess: true },
+      tasks: { canView: true, canCreate: true, canEdit: true, appAccess: true, webAccess: true },
+      network: { canView: true, canEdit: true, appAccess: true, webAccess: true },
+      outages: { canView: true, canCreate: true, canEdit: true, appAccess: true, webAccess: true },
+    },
+  },
+  hr_manager: {
+    label: "HR Manager",
+    description: "Full HR & Payroll access, limited other modules",
+    permissions: {
+      dashboard: { canView: true, webAccess: true },
+      hrm: { canView: true, canCreate: true, canEdit: true, canDelete: true, canApprove: true, canExport: true, canPrint: true, webAccess: true },
+      reports: { canView: true, canExport: true, webAccess: true },
+      settings: { canView: true, webAccess: true },
+    },
+  },
+};
+
 type PermissionMap = Record<string, Record<string, Partial<HrmPermission>>>;
 
 export default function HrmRightsSetupPage() {
@@ -81,6 +158,10 @@ export default function HrmRightsSetupPage() {
   const [editRoleDesc, setEditRoleDesc] = useState("");
   const [unsavedChanges, setUnsavedChanges] = useState(false);
   const [localPermissions, setLocalPermissions] = useState<PermissionMap>({});
+  const [moduleSearch, setModuleSearch] = useState("");
+  const [showCompareDialog, setShowCompareDialog] = useState(false);
+  const [compareRoleId, setCompareRoleId] = useState<number | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState("");
 
   const { data: roles = [], isLoading: rolesLoading } = useQuery<HrmRole[]>({
     queryKey: ["/api/hrm-roles"],
@@ -90,6 +171,11 @@ export default function HrmRightsSetupPage() {
   const { data: permissions = [], isLoading: permsLoading } = useQuery<HrmPermission[]>({
     queryKey: ["/api/hrm-permissions", selectedRoleId],
     enabled: !!selectedRoleId,
+  });
+
+  const { data: comparePermissions = [] } = useQuery<HrmPermission[]>({
+    queryKey: ["/api/hrm-permissions", compareRoleId],
+    enabled: !!compareRoleId,
   });
 
   const selectedRole = useMemo(() => roles.find(r => r.id === selectedRoleId), [roles, selectedRoleId]);
@@ -131,14 +217,32 @@ export default function HrmRightsSetupPage() {
       const res = await apiRequest("POST", "/api/hrm-roles", data);
       return res.json();
     },
-    onSuccess: (role: HrmRole) => {
+    onSuccess: async (role: HrmRole) => {
       queryClient.invalidateQueries({ queryKey: ["/api/hrm-roles"] });
       queryClient.invalidateQueries({ queryKey: ["/api/roles"] });
       setSelectedRoleId(role.id);
       setShowCreateDialog(false);
       setNewRoleName("");
       setNewRoleDesc("");
-      toast({ title: "Role created", description: `${role.name} has been created` });
+      if (selectedTemplate && selectedTemplate !== "none") {
+        const template = ROLE_TEMPLATES[selectedTemplate];
+        if (template) {
+          const noPerms = { canView: false, canCreate: false, canEdit: false, canDelete: false, canApprove: false, canExport: false, canPrint: false, webAccess: false, appAccess: false };
+          const permsList: any[] = [];
+          Object.entries(MODULE_STRUCTURE).forEach(([modKey, mod]) => {
+            const modTemplate = template.permissions[modKey];
+            const base = modTemplate ? { ...noPerms, ...modTemplate } : noPerms;
+            mod.submenus.forEach(sub => permsList.push({ module: modKey, submenu: sub, ...base }));
+            permsList.push({ module: modKey, submenu: null, ...base });
+          });
+          await apiRequest("PUT", `/api/hrm-permissions/${role.id}`, { permissions: permsList });
+          queryClient.invalidateQueries({ queryKey: ["/api/hrm-permissions", role.id] });
+          toast({ title: "Role created with template", description: `${role.name} created from "${template.label}" template` });
+        }
+        setSelectedTemplate("");
+      } else {
+        toast({ title: "Role created", description: `${role.name} has been created` });
+      }
     },
   });
 
@@ -344,6 +448,108 @@ export default function HrmRightsSetupPage() {
     return { totalGranted, highRisk, financialAccess, deleteRights };
   }, [permissionMap]);
 
+  const comparePermissionMap = useMemo(() => {
+    const map: PermissionMap = {};
+    comparePermissions.forEach(p => {
+      if (!map[p.module]) map[p.module] = {};
+      const key = p.submenu || "__module__";
+      map[p.module][key] = p;
+    });
+    return map;
+  }, [comparePermissions]);
+
+  const filteredModules = useMemo(() => {
+    if (!moduleSearch.trim()) return Object.entries(MODULE_STRUCTURE);
+    const q = moduleSearch.toLowerCase();
+    return Object.entries(MODULE_STRUCTURE).filter(([, mod]) =>
+      mod.label.toLowerCase().includes(q) ||
+      mod.submenus.some(s => s.toLowerCase().includes(q))
+    );
+  }, [moduleSearch]);
+
+  const applyTemplate = useCallback((templateKey: string) => {
+    const template = ROLE_TEMPLATES[templateKey];
+    if (!template) return;
+    const noPerms = { canView: false, canCreate: false, canEdit: false, canDelete: false, canApprove: false, canExport: false, canPrint: false, webAccess: false, appAccess: false };
+    const newPerms: PermissionMap = {};
+    Object.entries(MODULE_STRUCTURE).forEach(([modKey, mod]) => {
+      const modTemplate = template.permissions[modKey];
+      const base = modTemplate ? { ...noPerms, ...modTemplate } : noPerms;
+      newPerms[modKey] = {};
+      mod.submenus.forEach(sub => {
+        newPerms[modKey][sub] = { module: modKey, submenu: sub, ...base } as any;
+      });
+      newPerms[modKey]["__module__"] = { module: modKey, submenu: null, ...base } as any;
+    });
+    setLocalPermissions(newPerms);
+    setUnsavedChanges(true);
+    toast({ title: `Template applied: ${template.label}`, description: template.description });
+  }, [toast]);
+
+  const exportPermissions = () => {
+    if (!selectedRole) return;
+    const data = {
+      role: selectedRole.name,
+      roleId: selectedRole.roleId,
+      exportedAt: new Date().toISOString(),
+      permissions: Object.keys(permissionMap).flatMap(mod =>
+        Object.keys(permissionMap[mod]).map(key => ({
+          module: mod,
+          submenu: key === "__module__" ? null : key,
+          ...(permissionMap[mod][key] as any),
+        }))
+      ),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${selectedRole.name.replace(/\s+/g, "_")}-permissions.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Permissions exported", description: `${selectedRole.name} permissions downloaded as JSON` });
+  };
+
+  const importPermissions = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target?.result as string);
+        const newPerms: PermissionMap = {};
+        (data.permissions || []).forEach((p: any) => {
+          const { module, submenu, ...rest } = p;
+          if (!module) return;
+          if (!newPerms[module]) newPerms[module] = {};
+          newPerms[module][submenu || "__module__"] = { module, submenu: submenu || null, ...rest };
+        });
+        setLocalPermissions(newPerms);
+        setUnsavedChanges(true);
+        toast({ title: "Permissions imported", description: "Review changes and click Save to apply" });
+      } catch {
+        toast({ title: "Import failed", description: "Invalid or corrupted JSON file", variant: "destructive" });
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const hasConflict = (module: string, submenu: string): boolean => {
+    const canView = getPermValue(module, submenu, "canView");
+    const canCreate = getPermValue(module, submenu, "canCreate");
+    const canEdit = getPermValue(module, submenu, "canEdit");
+    const canDelete = getPermValue(module, submenu, "canDelete");
+    return !canView && (canCreate || canEdit || canDelete);
+  };
+
+  const getCompareValue = (module: string, submenu: string | null, field: string): boolean => {
+    const key = submenu || "__module__";
+    const saved = comparePermissionMap[module]?.[key];
+    if (saved && field in saved) return !!(saved as any)[field];
+    return false;
+  };
+
   if (rolesLoading) {
     return (
       <div className="flex items-center justify-center h-full py-20">
@@ -478,6 +684,36 @@ export default function HrmRightsSetupPage() {
                   >
                     <Copy className="h-3 w-3 mr-1" /> Duplicate
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs"
+                    onClick={exportPermissions}
+                    data-testid="button-export-role"
+                  >
+                    <FileDown className="h-3 w-3 mr-1" /> Export
+                  </Button>
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept=".json"
+                      className="hidden"
+                      onChange={importPermissions}
+                      data-testid="input-import-role"
+                    />
+                    <span className="flex items-center justify-center gap-1 text-xs h-8 px-3 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground w-full">
+                      <Upload className="h-3 w-3" /> Import
+                    </span>
+                  </label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs col-span-2"
+                    onClick={() => { setCompareRoleId(null); setShowCompareDialog(true); }}
+                    data-testid="button-compare-role"
+                  >
+                    <GitCompare className="h-3 w-3 mr-1" /> Compare with Role
+                  </Button>
                   {!selectedRole.isSystem && (
                     <Button
                       variant="outline"
@@ -564,8 +800,58 @@ export default function HrmRightsSetupPage() {
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="matrix" className="mt-4 space-y-2">
-                  {Object.entries(MODULE_STRUCTURE).map(([modKey, mod]) => {
+                <TabsContent value="matrix" className="mt-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search modules or submenus..."
+                        value={moduleSearch}
+                        onChange={(e) => setModuleSearch(e.target.value)}
+                        className="pl-9 h-9 text-sm"
+                        data-testid="input-module-search"
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      onClick={() => { Object.keys(MODULE_STRUCTURE).forEach(m => grantFullAccess(m)); }}
+                      data-testid="button-grant-all-modules"
+                    >
+                      <Zap className="h-3.5 w-3.5 text-green-500" /> Full Access All
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs"
+                      onClick={() => { Object.keys(MODULE_STRUCTURE).forEach(m => revokeAllAccess(m)); }}
+                      data-testid="button-revoke-all-modules"
+                    >
+                      <XCircle className="h-3.5 w-3.5 text-red-500" /> Revoke All
+                    </Button>
+                    <Select value={selectedTemplate} onValueChange={(v) => { setSelectedTemplate(v); if (v) applyTemplate(v); }}>
+                      <SelectTrigger className="h-9 w-[170px] text-xs" data-testid="select-template">
+                        <Zap className="h-3 w-3 mr-1.5 text-indigo-500" />
+                        <SelectValue placeholder="Apply Template" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(ROLE_TEMPLATES).map(([key, t]) => (
+                          <SelectItem key={key} value={key}>
+                            <div>
+                              <p className="font-medium text-xs">{t.label}</p>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {filteredModules.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground text-sm">
+                      No modules match "<span className="font-medium">{moduleSearch}</span>"
+                    </div>
+                  )}
+                  {filteredModules.map(([modKey, mod]) => {
                     const isExpanded = expandedModules.has(modKey);
                     const accessLevel = getModuleAccessLevel(modKey);
                     const AccessIcon = accessLevel.icon;
@@ -649,25 +935,44 @@ export default function HrmRightsSetupPage() {
                                 );
                               })}
                             </div>
-                            {mod.submenus.map((sub, si) => (
-                              <div
-                                key={sub}
-                                className={`grid grid-cols-[1fr,repeat(7,48px)] items-center px-4 py-2.5 ${si % 2 === 0 ? "bg-white" : "bg-slate-50/40"} hover:bg-indigo-50/30 transition-colors`}
-                                data-testid={`row-submenu-${modKey}-${si}`}
-                              >
-                                <span className="text-sm pl-2">{sub}</span>
-                                {PERMISSION_ACTIONS.map(a => (
-                                  <div key={a.key} className="flex justify-center">
-                                    <Switch
-                                      checked={getPermValue(modKey, sub, a.key)}
-                                      onCheckedChange={(v) => updatePermission(modKey, sub, a.key, v)}
-                                      className="scale-75"
-                                      data-testid={`switch-${modKey}-${sub}-${a.key}`}
-                                    />
+                            {mod.submenus.map((sub, si) => {
+                              const conflict = hasConflict(modKey, sub);
+                              return (
+                                <div
+                                  key={sub}
+                                  className={`grid grid-cols-[1fr,repeat(7,48px)] items-center px-4 py-2.5 ${conflict ? "bg-red-50/40 border-l-2 border-red-400" : si % 2 === 0 ? "bg-white" : "bg-slate-50/40"} hover:bg-indigo-50/30 transition-colors`}
+                                  data-testid={`row-submenu-${modKey}-${si}`}
+                                >
+                                  <div className="flex items-center gap-1.5 pl-2">
+                                    <span className="text-sm">{sub}</span>
+                                    {conflict && (
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span>
+                                              <TriangleAlert className="h-3.5 w-3.5 text-red-500" />
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            Conflict: Write/Delete access granted without View — add View permission to fix
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
+                                    )}
                                   </div>
-                                ))}
-                              </div>
-                            ))}
+                                  {PERMISSION_ACTIONS.map(a => (
+                                    <div key={a.key} className="flex justify-center">
+                                      <Switch
+                                        checked={getPermValue(modKey, sub, a.key)}
+                                        onCheckedChange={(v) => updatePermission(modKey, sub, a.key, v)}
+                                        className="scale-75"
+                                        data-testid={`switch-${modKey}-${sub}-${a.key}`}
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </Card>
@@ -999,7 +1304,7 @@ export default function HrmRightsSetupPage() {
       </div>
 
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Create New Role</DialogTitle>
             <DialogDescription>Add a custom role with specific permissions</DialogDescription>
@@ -1020,15 +1325,44 @@ export default function HrmRightsSetupPage() {
                 value={newRoleDesc}
                 onChange={(e) => setNewRoleDesc(e.target.value)}
                 placeholder="Describe the role's responsibilities..."
-                rows={3}
+                rows={2}
                 data-testid="input-new-role-desc"
               />
             </div>
+            <div>
+              <Label className="text-sm flex items-center gap-1.5 mb-1.5">
+                <Zap className="h-3.5 w-3.5 text-indigo-500" /> Start from a Permission Template (optional)
+              </Label>
+              <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                <SelectTrigger className="h-9" data-testid="select-create-template">
+                  <SelectValue placeholder="No template — start blank" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No template — start blank</SelectItem>
+                  {Object.entries(ROLE_TEMPLATES).map(([key, t]) => (
+                    <SelectItem key={key} value={key}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{t.label}</span>
+                        <span className="text-[11px] text-muted-foreground">{t.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedTemplate && selectedTemplate !== "none" && (
+                <p className="text-[11px] text-indigo-600 mt-1.5 flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  {ROLE_TEMPLATES[selectedTemplate]?.description}
+                </p>
+              )}
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => { setShowCreateDialog(false); setSelectedTemplate(""); }}>Cancel</Button>
             <Button
-              onClick={() => createRoleMutation.mutate({ name: newRoleName, description: newRoleDesc })}
+              onClick={() => {
+                createRoleMutation.mutate({ name: newRoleName, description: newRoleDesc });
+              }}
               disabled={!newRoleName.trim() || createRoleMutation.isPending}
               data-testid="button-confirm-create"
             >
@@ -1074,6 +1408,133 @@ export default function HrmRightsSetupPage() {
               {updateRoleMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
               Save Changes
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCompareDialog} onOpenChange={setShowCompareDialog}>
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <GitCompare className="h-5 w-5 text-indigo-500" /> Compare Role Permissions
+            </DialogTitle>
+            <DialogDescription>
+              Comparing <span className="font-semibold text-foreground">{selectedRole?.name}</span> against another role
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 p-3 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200">
+                <p className="text-xs text-muted-foreground">Role A (current)</p>
+                <p className="font-semibold text-sm">{selectedRole?.name}</p>
+              </div>
+              <GitCompare className="h-5 w-5 text-slate-400 shrink-0" />
+              <div className="flex-1">
+                <Select value={compareRoleId?.toString() || ""} onValueChange={(v) => setCompareRoleId(Number(v))}>
+                  <SelectTrigger className="h-9" data-testid="select-compare-role">
+                    <SelectValue placeholder="Select Role B to compare..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roles.filter(r => r.id !== selectedRoleId).map(r => (
+                      <SelectItem key={r.id} value={r.id.toString()}>{r.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {compareRoleId && (
+              <div className="border rounded-lg overflow-hidden">
+                <div className="grid grid-cols-[180px,1fr,1fr] bg-slate-100 dark:bg-slate-800 text-xs font-semibold">
+                  <div className="px-3 py-2 border-r">Module / Submenu</div>
+                  <div className="px-3 py-2 border-r text-indigo-600">{selectedRole?.name}</div>
+                  <div className="px-3 py-2 text-emerald-600">{roles.find(r => r.id === compareRoleId)?.name}</div>
+                </div>
+                {Object.entries(MODULE_STRUCTURE).map(([modKey, mod]) => {
+                  const ModIcon = mod.icon;
+                  return (
+                    <div key={modKey}>
+                      <div className="grid grid-cols-[180px,1fr,1fr] bg-slate-50/80 dark:bg-slate-900/40 border-t border-slate-200">
+                        <div className="px-3 py-2 flex items-center gap-1.5 border-r font-semibold text-xs">
+                          <ModIcon className="h-3.5 w-3.5 text-indigo-500" />
+                          {mod.label}
+                        </div>
+                        <div className="px-3 py-2 border-r">
+                          <div className="flex flex-wrap gap-1">
+                            {PERMISSION_ACTIONS.map(a => {
+                              const on = getPermValue(modKey, null, a.key);
+                              const AIcon = a.icon;
+                              return on ? <AIcon key={a.key} className={`h-3 w-3 ${a.color}`} /> : null;
+                            })}
+                          </div>
+                        </div>
+                        <div className="px-3 py-2">
+                          <div className="flex flex-wrap gap-1">
+                            {PERMISSION_ACTIONS.map(a => {
+                              const on = getCompareValue(modKey, null, a.key);
+                              const AIcon = a.icon;
+                              return on ? <AIcon key={a.key} className={`h-3 w-3 ${a.color}`} /> : null;
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                      {mod.submenus.map((sub, si) => {
+                        const aPerms = PERMISSION_ACTIONS.map(a => getPermValue(modKey, sub, a.key));
+                        const bPerms = PERMISSION_ACTIONS.map(a => getCompareValue(modKey, sub, a.key));
+                        const hasDiff = aPerms.some((v, i) => v !== bPerms[i]);
+                        return (
+                          <div
+                            key={sub}
+                            className={`grid grid-cols-[180px,1fr,1fr] border-t border-slate-100 ${hasDiff ? "bg-amber-50/40" : si % 2 === 0 ? "" : "bg-slate-50/20"}`}
+                          >
+                            <div className="px-3 py-1.5 border-r text-[11px] text-muted-foreground pl-6 flex items-center gap-1">
+                              {hasDiff && <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />}
+                              {sub}
+                            </div>
+                            <div className="px-3 py-1.5 border-r">
+                              <div className="flex flex-wrap gap-1">
+                                {PERMISSION_ACTIONS.map((a, i) => {
+                                  const on = aPerms[i];
+                                  const AIcon = a.icon;
+                                  return (
+                                    <span key={a.key} className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] ${on ? `${a.color} bg-slate-100` : "text-slate-300"}`}>
+                                      <AIcon className="h-2.5 w-2.5" />
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                            <div className="px-3 py-1.5">
+                              <div className="flex flex-wrap gap-1">
+                                {PERMISSION_ACTIONS.map((a, i) => {
+                                  const on = bPerms[i];
+                                  const AIcon = a.icon;
+                                  return (
+                                    <span key={a.key} className={`inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] ${on ? `${a.color} bg-slate-100` : "text-slate-300"}`}>
+                                      <AIcon className="h-2.5 w-2.5" />
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {!compareRoleId && (
+              <div className="text-center py-10 text-muted-foreground text-sm">
+                <GitCompare className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                Select a role above to see the side-by-side comparison
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCompareDialog(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
