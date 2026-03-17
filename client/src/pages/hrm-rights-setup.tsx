@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 
 const MODULE_STRUCTURE: Record<string, { icon: any; label: string; submenus: string[] }> = {
-  dashboard:       { icon: LayoutGrid,       label: "Dashboard",             submenus: ["Overview", "Customers Dashboard", "Revenue & Collection", "Quick Action"] },
+  dashboard:       { icon: LayoutGrid,       label: "Dashboard",             submenus: ["Overview", "Customers Dashboard", "Revenue & Collection", "Quick Actions"] },
   company:         { icon: Building2,         label: "Company",               submenus: ["Company Profile", "Branches & Department"] },
   vendors:         { icon: Store,             label: "Vendors",               submenus: ["Vendor Type", "Add Vendor", "Vendor List", "Vendor Packages", "Bandwidth Changes", "Account & Ledger", "Wallet & Billing"] },
   packages:        { icon: Package,           label: "Packages",              submenus: ["Packages List", "Tax & Extra Fee", "Reseller Packages"] },
@@ -39,15 +39,15 @@ const MODULE_STRUCTURE: Record<string, { icon: any; label: string; submenus: str
   reseller:        { icon: Handshake,         label: "Reseller Management",   submenus: ["Reseller Type & Role", "Add New Reseller", "Reseller List", "Wallet & Transaction", "Commission Report"] },
   support:         { icon: LifeBuoy,          label: "Support & Ticket",      submenus: ["Support Type", "Open New Ticket", "Support & Ticket", "Support History"] },
   sale:            { icon: FileText,          label: "Sale",                  submenus: ["Invoice Type", "Add New Invoice", "Invoice List", "Daily Collection", "Collection Allocation"] },
-  accounting:      { icon: BookOpen,          label: "Accounting",            submenus: ["Account Types", "Add New Account", "Account List", "Income Entry", "Expense Entry", "Budget Allocation", "Expense Tracking", "Credit Notes", "Billing Rule", "Payment Gateway"] },
+  accounting:      { icon: BookOpen,          label: "Accounting",            submenus: ["Account Types", "Add New Account", "Account List", "Income Entry", "Expense Entry", "Budget Allocation", "Expense Tracking", "Credit Notes", "Billing Rules", "Payment Gateway"] },
   transactions:    { icon: ArrowLeftRight,    label: "Transactions",          submenus: ["Transaction Type", "Transactions List", "Customer Collections", "CIR Collections", "Corporate Collections", "Reseller Collections", "Refund & Credit", "Transfer Account", "Wallet & Prepaid", "Recovery Officer Collection", "Approval Workflow"] },
   tasks:           { icon: ListTodo,          label: "Task Management",       submenus: ["Projects", "Tasks", "Team Management", "Progress Tracking", "Task Audit"] },
-  network:         { icon: Globe,             label: "Network & IPAM",        submenus: ["Network Monitoring", "Mikrotik Integration", "IP Addresses", "Radius / AAA", "Bandwidth Usage", "Customer Map", "FTTH / P2P Map"] },
+  network:         { icon: Globe,             label: "Network & IPAM",        submenus: ["Network Monitoring", "MikroTik Integration", "IP Addresses", "RADIUS / AAA", "Bandwidth Usage", "Customer Map", "FTTH / P2P Map"] },
   outages:         { icon: Zap,               label: "Service Outages",       submenus: ["Outage Management"] },
   assets:          { icon: HardDrive,         label: "Assets",                submenus: ["Assets Type", "Assets List", "Transfer & Movement", "Request & Approvals", "Asset Tracking", "Asset Allocation", "Assign to Customer"] },
-  inventory:       { icon: Boxes,             label: "Inventory",             submenus: ["Product Type", "Suppliers", "Brands & Product", "Purchase Order", "Stock Management", "Purchase", "Sales", "Inventory List", "Batch & Serial", "Expiry & Warranty"] },
-  notifications:   { icon: Bell,              label: "Notifications",         submenus: ["Notification Type", "Alert & Templates", "Push Notification", "Bulk Notification", "Bulk & Campaign", "Bulk Messaging", "SMS & Email API", "Push SMS"] },
-  reports:         { icon: BarChart3,         label: "All Reports",           submenus: ["Reports Dashboard", "Customer Reports", "Billing & Invoice", "Payment Reports", "Network & IPAM", "Inventory Reports", "Assets Reports", "HRM Reports", "Notification Reports", "Activity Log", "Vendor Reports", "Revenue Analytics", "Aging Report"] },
+  inventory:       { icon: Boxes,             label: "Inventory",             submenus: ["Product Type", "Suppliers", "Brands & Products", "Purchase Order", "Stock Management", "Purchase", "Sales", "Inventory List", "Batch & Serial", "Expiry & Warranty"] },
+  notifications:   { icon: Bell,              label: "Notifications",         submenus: ["Notification Type", "Alert & Templates", "Push Notification", "Bulk & Campaign", "Bulk Messaging", "SMS & Email API", "Push SMS"] },
+  reports:         { icon: BarChart3,         label: "All Reports",           submenus: ["Reports Dashboard", "Customer Reports", "Billing & Invoice", "Payment Reports", "Network & IPAM", "Inventory Reports", "Asset Reports", "HRM Reports", "Notification Reports", "Activity Log", "Vendor Reports", "Revenue Analytics", "Aging Report"] },
   settings:        { icon: Settings,          label: "Settings",              submenus: ["General", "Company", "Billing", "HRM Rights Setup", "Customer Rights", "Invoice Template", "Notification Setting", "Payment Gateway", "Activity Log", "Audit Log"] },
 };
 

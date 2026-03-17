@@ -80,6 +80,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useTab } from "@/hooks/use-tab";
+import { usePermissions } from "@/hooks/use-permissions";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   insertPackageSchema,
@@ -661,6 +662,7 @@ function PriceBreakdownPreview({ form }: { form: ReturnType<typeof useForm> }) {
 
 export default function PackagesPage() {
   const { toast } = useToast();
+  const { canCreate, canEdit, canDelete } = usePermissions();
   const [tab, changeTab] = useTab("list");
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
@@ -827,7 +829,7 @@ export default function PackagesPage() {
           <p className="text-sm text-muted-foreground mt-0.5">Manage Internet, IPTV & Cable TV service packages</p>
         </div>
         <div className="flex items-center gap-2">
-          {tab === "list" && (
+          {tab === "list" && canCreate("packages") && (
             <Button onClick={openCreate} data-testid="button-add-package">
               <Plus className="h-4 w-4 mr-1" />
               Add Package
@@ -1083,12 +1085,16 @@ export default function PackagesPage() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => openEdit(pkg)}>
-                                      <Edit className="h-4 w-4 mr-2" /> Edit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem className="text-destructive" onClick={() => deleteMutation.mutate(pkg.id)}>
-                                      <Trash2 className="h-4 w-4 mr-2" /> Delete
-                                    </DropdownMenuItem>
+                                    {canEdit("packages") && (
+                                      <DropdownMenuItem onClick={() => openEdit(pkg)}>
+                                        <Edit className="h-4 w-4 mr-2" /> Edit
+                                      </DropdownMenuItem>
+                                    )}
+                                    {canDelete("packages") && (
+                                      <DropdownMenuItem className="text-destructive" onClick={() => deleteMutation.mutate(pkg.id)}>
+                                        <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                      </DropdownMenuItem>
+                                    )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               )}

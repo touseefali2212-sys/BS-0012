@@ -74,11 +74,11 @@ import { useTab } from "@/hooks/use-tab";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
-  insertRoleSchema,
+  insertHrmRoleSchema,
   insertAppAccessConfigSchema,
   insertAreaAssignmentSchema,
-  type Role,
-  type InsertRole,
+  type HrmRole,
+  type InsertHrmRole,
   type Employee,
   type Area,
   type AppAccessConfig,
@@ -89,8 +89,10 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
-const roleFormSchema = insertRoleSchema.extend({
+const roleFormSchema = insertHrmRoleSchema.pick({ name: true, description: true, isSystem: true }).extend({
   name: z.string().min(1, "Role name is required"),
+  description: z.string().optional(),
+  isSystem: z.boolean().optional().default(false),
 });
 
 const appAccessFormSchema = insertAppAccessConfigSchema.extend({
@@ -178,7 +180,7 @@ export default function AccessPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [editingRole, setEditingRole] = useState<HrmRole | null>(null);
   const [appAccessDialogOpen, setAppAccessDialogOpen] = useState(false);
   const [editingAppAccess, setEditingAppAccess] = useState<(AppAccessConfig & { roleName?: string }) | null>(null);
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
@@ -195,8 +197,9 @@ export default function AccessPage() {
   const [areaSearch, setAreaSearch] = useState("");
   const [viewConfigDialog, setViewConfigDialog] = useState<(AppAccessConfig & { roleName?: string }) | null>(null);
 
-  const { data: roles, isLoading } = useQuery<Role[]>({
-    queryKey: ["/api/roles"],
+  const { data: roles, isLoading } = useQuery<HrmRole[]>({
+    queryKey: ["/api/hrm-roles"],
+    staleTime: 0,
   });
 
   const { data: employees, isLoading: employeesLoading } = useQuery<Employee[]>({
@@ -223,14 +226,12 @@ export default function AccessPage() {
   const [logStatusFilter, setLogStatusFilter] = useState("all");
   const [logRoleFilter, setLogRoleFilter] = useState("all");
 
-  const form = useForm<InsertRole>({
+  const form = useForm<{ name: string; description?: string; isSystem?: boolean }>({
     resolver: zodResolver(roleFormSchema),
     defaultValues: {
       name: "",
       description: "",
-      permissions: "",
       isSystem: false,
-      status: "active",
     },
   });
 
@@ -266,12 +267,12 @@ export default function AccessPage() {
   const watchLoginType = appAccessForm.watch("appLoginType");
 
   const createMutation = useMutation({
-    mutationFn: async (data: InsertRole) => {
-      const res = await apiRequest("POST", "/api/roles", data);
+    mutationFn: async (data: { name: string; description?: string; isSystem?: boolean }) => {
+      const res = await apiRequest("POST", "/api/hrm-roles", { name: data.name, description: data.description || "", isSystem: data.isSystem || false });
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/roles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hrm-roles"] });
       setDialogOpen(false);
       form.reset();
       toast({ title: "Role created successfully" });
@@ -282,12 +283,12 @@ export default function AccessPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: Partial<InsertRole> }) => {
-      const res = await apiRequest("PATCH", `/api/roles/${id}`, data);
+    mutationFn: async ({ id, data }: { id: number; data: { name?: string; description?: string; isSystem?: boolean } }) => {
+      const res = await apiRequest("PATCH", `/api/hrm-roles/${id}`, data);
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/roles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hrm-roles"] });
       setDialogOpen(false);
       setEditingRole(null);
       form.reset();
@@ -300,10 +301,10 @@ export default function AccessPage() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await apiRequest("DELETE", `/api/roles/${id}`);
+      await apiRequest("DELETE", `/api/hrm-roles/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/roles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/hrm-roles"] });
       toast({ title: "Role deleted successfully" });
     },
     onError: (error: Error) => {
@@ -407,17 +408,17 @@ export default function AccessPage() {
 
   const openCreate = () => {
     setEditingRole(null);
-    form.reset({ name: "", description: "", permissions: "", isSystem: false, status: "active" });
+    form.reset({ name: "", description: "", isSystem: false });
     setDialogOpen(true);
   };
 
-  const openEdit = (role: Role) => {
+  const openEdit = (role: HrmRole) => {
     setEditingRole(role);
-    form.reset({ name: role.name, description: role.description || "", permissions: role.permissions || "", isSystem: role.isSystem, status: role.status });
+    form.reset({ name: role.name, description: role.description || "", isSystem: role.isSystem ?? false });
     setDialogOpen(true);
   };
 
-  const onSubmit = (data: InsertRole) => {
+  const onSubmit = (data: { name: string; description?: string; isSystem?: boolean }) => {
     if (editingRole) {
       updateMutation.mutate({ id: editingRole.id, data });
     } else {
@@ -529,7 +530,8 @@ export default function AccessPage() {
 
   const filtered = (roles || []).filter((r) => {
     const matchSearch = r.name.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === "all" || r.status === statusFilter;
+    const roleStatus = r.isArchived ? "inactive" : "active";
+    const matchStatus = statusFilter === "all" || roleStatus === statusFilter;
     return matchSearch && matchStatus;
   });
 
@@ -627,7 +629,7 @@ export default function AccessPage() {
                       <TableRow className="bg-gradient-to-r from-slate-800 to-slate-700">
                         <TableHead className="text-white">Role Name</TableHead>
                         <TableHead className="text-white hidden md:table-cell">Description</TableHead>
-                        <TableHead className="text-white hidden lg:table-cell">Permissions</TableHead>
+                        <TableHead className="text-white hidden lg:table-cell">Modules</TableHead>
                         <TableHead className="text-white">System Role</TableHead>
                         <TableHead className="text-white">Status</TableHead>
                         <TableHead className="text-white w-10"></TableHead>
@@ -644,11 +646,9 @@ export default function AccessPage() {
                           </TableCell>
                           <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{role.description || "—"}</TableCell>
                           <TableCell className="hidden lg:table-cell">
-                            <div className="flex flex-wrap gap-1 max-w-xs">
-                              {role.permissions ? role.permissions.split(",").map((p, i) => p.trim()).filter(Boolean).map((perm, i) => (
-                                <Badge key={i} variant="secondary" className="no-default-active-elevate text-[9px] font-mono">{perm}</Badge>
-                              )) : <span className="text-xs text-muted-foreground">No permissions</span>}
-                            </div>
+                            <span className="text-xs text-muted-foreground">
+                              {role.totalModules || 0} modules ({role.fullAccessModules || 0} full, {role.limitedAccessModules || 0} limited)
+                            </span>
                           </TableCell>
                           <TableCell>
                             {role.isSystem ? (
@@ -658,7 +658,9 @@ export default function AccessPage() {
                             ) : <span className="text-xs text-muted-foreground">Custom</span>}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="secondary" className={`no-default-active-elevate text-[10px] capitalize ${statusColors[role.status] || ""}`}>{role.status}</Badge>
+                            <Badge variant="secondary" className={`no-default-active-elevate text-[10px] capitalize ${role.isArchived ? statusColors["inactive"] : statusColors["active"]}`}>
+                              {role.isArchived ? "Inactive" : "Active"}
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             <DropdownMenu>
@@ -1483,37 +1485,13 @@ export default function AccessPage() {
                   <FormMessage />
                 </FormItem>
               )} />
-              <FormField control={form.control} name="permissions" render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Permissions</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Comma-separated permissions, e.g. dashboard.view, customers.create" data-testid="input-permissions" {...field} value={field.value || ""} />
-                  </FormControl>
+              <FormField control={form.control} name="isSystem" render={({ field }) => (
+                <FormItem className="flex flex-col gap-2">
+                  <FormLabel>System Role</FormLabel>
+                  <FormControl><Switch checked={!!field.value} onCheckedChange={field.onChange} data-testid="switch-is-system" /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="isSystem" render={({ field }) => (
-                  <FormItem className="flex flex-col gap-2">
-                    <FormLabel>System Role</FormLabel>
-                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} data-testid="switch-is-system" /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="status" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || "active"}>
-                      <FormControl><SelectTrigger data-testid="select-status"><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              </div>
               <DialogFooter>
                 <Button type="button" variant="secondary" onClick={() => setDialogOpen(false)}>Cancel</Button>
                 <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} data-testid="button-save-role" className="bg-gradient-to-r from-[#002B5B] to-[#007BFF]">

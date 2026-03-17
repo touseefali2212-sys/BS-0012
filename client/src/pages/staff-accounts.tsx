@@ -35,7 +35,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
-  type User, type Employee, type Role, type LoginActivityLog,
+  type User, type Employee, type Role, type LoginActivityLog, type HrmRole,
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -160,6 +160,7 @@ export default function StaffAccountsPage() {
   const { data: usersData, isLoading: usersLoading } = useQuery<User[]>({ queryKey: ["/api/users"] });
   const { data: employees } = useQuery<Employee[]>({ queryKey: ["/api/employees"] });
   const { data: roles } = useQuery<Role[]>({ queryKey: ["/api/roles"] });
+  const { data: hrmRoles } = useQuery<HrmRole[]>({ queryKey: ["/api/hrm-roles"] });
   const { data: loginLogs } = useQuery<LoginActivityLog[]>({ queryKey: ["/api/login-activity-logs"] });
   const { data: userHistory, isLoading: historyLoading } = useQuery<LoginActivityLog[]>({
     queryKey: ["/api/users", selectedUser?.id, "login-history"],
@@ -910,10 +911,8 @@ export default function StaffAccountsPage() {
                           <SelectTrigger data-testid="select-role"><SelectValue /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {roles?.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
                           <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
-                          <SelectItem value="staff">Staff</SelectItem>
+                          {hrmRoles?.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -1130,10 +1129,8 @@ export default function StaffAccountsPage() {
                           <SelectTrigger data-testid="edit-select-role"><SelectValue /></SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {roles?.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
                           <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="manager">Manager</SelectItem>
-                          <SelectItem value="staff">Staff</SelectItem>
+                          {hrmRoles?.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
                       <FormMessage />

@@ -90,6 +90,7 @@ import {
 } from "@/components/ui/table";
 import { useTab } from "@/hooks/use-tab";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/hooks/use-permissions";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { insertCustomerSchema, insertCustomerTypeSchema, type Customer, type InsertCustomer, type Package, type CustomerQuery, type CustomerType as CustomerTypeRecord } from "@shared/schema";
 import { z } from "zod";
@@ -568,6 +569,7 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
   const { data: queries, isLoading } = useQuery<CustomerQuery[]>({ queryKey: ["/api/customer-queries"] });
   const { data: pkgs } = useQuery<Package[]>({ queryKey: ["/api/packages"] });
   const { toast } = useToast();
+  const { canCreate, canDelete } = usePermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -673,10 +675,12 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
           <h2 className="text-lg font-semibold">Client Request</h2>
           <span className="text-sm text-muted-foreground">New Client Request</span>
         </div>
-        <Button onClick={() => setTab("query-new")} className="bg-blue-600 hover:bg-blue-700" data-testid="button-new-request">
-          <Plus className="h-4 w-4 mr-1" />
-          Client Request
-        </Button>
+        {canCreate("customers") && (
+          <Button onClick={() => setTab("query-new")} className="bg-blue-600 hover:bg-blue-700" data-testid="button-new-request">
+            <Plus className="h-4 w-4 mr-1" />
+            Client Request
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -831,15 +835,21 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => statusMutation.mutate({ id: q.id, status: "Completed" })} data-testid={`action-complete-${q.id}`}>
-                              <Check className="h-4 w-4 mr-2" /> Complete
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => statusMutation.mutate({ id: q.id, status: "Rejected" })} data-testid={`action-reject-${q.id}`}>
-                              <WifiOff className="h-4 w-4 mr-2" /> Reject
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600" onClick={() => deleteMutation.mutate(q.id)} data-testid={`action-delete-${q.id}`}>
-                              <Trash2 className="h-4 w-4 mr-2" /> Delete
-                            </DropdownMenuItem>
+                            {canCreate("customers") && (
+                              <DropdownMenuItem onClick={() => statusMutation.mutate({ id: q.id, status: "Completed" })} data-testid={`action-complete-${q.id}`}>
+                                <Check className="h-4 w-4 mr-2" /> Complete
+                              </DropdownMenuItem>
+                            )}
+                            {canCreate("customers") && (
+                              <DropdownMenuItem onClick={() => statusMutation.mutate({ id: q.id, status: "Rejected" })} data-testid={`action-reject-${q.id}`}>
+                                <WifiOff className="h-4 w-4 mr-2" /> Reject
+                              </DropdownMenuItem>
+                            )}
+                            {canDelete("customers") && (
+                              <DropdownMenuItem className="text-red-600" onClick={() => deleteMutation.mutate(q.id)} data-testid={`action-delete-${q.id}`}>
+                                <Trash2 className="h-4 w-4 mr-2" /> Delete
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -1657,6 +1667,7 @@ function CustomerListView({
   setTab: (v: string) => void;
 }) {
   const { toast } = useToast();
+  const { canCreate, canEdit, canDelete } = usePermissions();
   const [showFilters, setShowFilters] = useState(true);
   const [entriesCount, setEntriesCount] = useState(100);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -2168,9 +2179,11 @@ function CustomerListView({
                             <Eye className="h-4 w-4 mr-2" /> View Profile
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => openEdit(customer)} data-testid={`action-edit-profile-${customer.id}`}>
-                          <Edit className="h-4 w-4 mr-2" /> Edit Profile
-                        </DropdownMenuItem>
+                        {canEdit("customers") && (
+                          <DropdownMenuItem onClick={() => openEdit(customer)} data-testid={`action-edit-profile-${customer.id}`}>
+                            <Edit className="h-4 w-4 mr-2" /> Edit Profile
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem data-testid={`action-send-sms-${customer.id}`}
                           onClick={() => toast({ title: "Send SMS", description: `SMS dialog for ${customer.fullName}` })}>
                           <MessageCircle className="h-4 w-4 mr-2" /> Send SMS
@@ -2179,13 +2192,17 @@ function CustomerListView({
                           onClick={() => toast({ title: "Service Scheduler", description: `Scheduler for ${customer.fullName}` })}>
                           <CalendarRange className="h-4 w-4 mr-2" /> Service Scheduler
                         </DropdownMenuItem>
-                        <DropdownMenuItem data-testid={`action-closed-${customer.id}`}
-                          onClick={() => toggleStatusMutation.mutate({ id: customer.id, newStatus: "closed" })}>
-                          <XCircle className="h-4 w-4 mr-2" /> Closed
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => deleteMutation.mutate(customer.id)} data-testid={`action-delete-${customer.id}`}>
-                          <Trash2 className="h-4 w-4 mr-2" /> Delete
-                        </DropdownMenuItem>
+                        {canEdit("customers") && (
+                          <DropdownMenuItem data-testid={`action-closed-${customer.id}`}
+                            onClick={() => toggleStatusMutation.mutate({ id: customer.id, newStatus: "closed" })}>
+                            <XCircle className="h-4 w-4 mr-2" /> Closed
+                          </DropdownMenuItem>
+                        )}
+                        {canDelete("customers") && (
+                          <DropdownMenuItem className="text-destructive" onClick={() => deleteMutation.mutate(customer.id)} data-testid={`action-delete-${customer.id}`}>
+                            <Trash2 className="h-4 w-4 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -2210,6 +2227,7 @@ function CustomerListView({
 
 export default function CustomersPage() {
   const { toast } = useToast();
+  const { canCreate, canEdit, canDelete } = usePermissions();
   const [tab, setTab] = useTab("list");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -2546,12 +2564,14 @@ export default function CustomersPage() {
             </Card>
           </div>
 
-          <div className="flex items-center justify-end">
-            <Button onClick={openCtCreate} data-testid="button-add-customer-type" className="bg-gradient-to-r from-[#002B5B] to-[#007BFF] hover:from-[#001f42] hover:to-[#0066dd]">
-              <Plus className="h-4 w-4 mr-1" />
-              Add New Customer Type
-            </Button>
-          </div>
+          {canCreate("customers") && (
+            <div className="flex items-center justify-end">
+              <Button onClick={openCtCreate} data-testid="button-add-customer-type" className="bg-gradient-to-r from-[#002B5B] to-[#007BFF] hover:from-[#001f42] hover:to-[#0066dd]">
+                <Plus className="h-4 w-4 mr-1" />
+                Add New Customer Type
+              </Button>
+            </div>
+          )}
 
           <Card>
             <CardHeader className="pb-3">
@@ -2637,8 +2657,12 @@ export default function CustomersPage() {
                                   <Button variant="ghost" size="icon" data-testid={`button-ct-actions-${ct.id}`}><MoreHorizontal className="h-4 w-4" /></Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => openCtEdit(ct)}><Edit className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>
-                                  <DropdownMenuItem className="text-destructive" onClick={() => deleteCtMutation.mutate(ct.id)}><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
+                                  {canEdit("customers") && (
+                                    <DropdownMenuItem onClick={() => openCtEdit(ct)}><Edit className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>
+                                  )}
+                                  {canDelete("customers") && (
+                                    <DropdownMenuItem className="text-destructive" onClick={() => deleteCtMutation.mutate(ct.id)}><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
+                                  )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>

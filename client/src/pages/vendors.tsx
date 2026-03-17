@@ -85,6 +85,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/hooks/use-permissions";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   insertVendorSchema,
@@ -155,6 +156,7 @@ const typeColors: Record<string, string> = {
 function VendorTypesTab() {
   const [, changeTab] = useTab("types");
   const { toast } = useToast();
+  const { canCreate, canEdit, canDelete } = usePermissions();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [addTypeDialogOpen, setAddTypeDialogOpen] = useState(false);
@@ -264,10 +266,12 @@ function VendorTypesTab() {
           <p className="text-sm text-muted-foreground mt-1">Manage and monitor bandwidth and panel vendors</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button className="btn-vendor-primary no-default-hover-elevate no-default-active-elevate" onClick={() => { setEditingTypeIdx(null); setNewTypeName(""); setNewTypeDescription(""); setNewTypeBillingModel("fixed"); setAddTypeDialogOpen(true); }} data-testid="button-add-vendor-type">
-            <Plus className="h-4 w-4 mr-1" />
-            Add New Vendor Type
-          </Button>
+          {canCreate("vendors") && (
+            <Button className="btn-vendor-primary no-default-hover-elevate no-default-active-elevate" onClick={() => { setEditingTypeIdx(null); setNewTypeName(""); setNewTypeDescription(""); setNewTypeBillingModel("fixed"); setAddTypeDialogOpen(true); }} data-testid="button-add-vendor-type">
+              <Plus className="h-4 w-4 mr-1" />
+              Add New Vendor Type
+            </Button>
+          )}
           <Button size="sm" variant="outline" onClick={() => changeTab("packages")} data-testid="button-manage-packages">
             <Package className="h-4 w-4 mr-1" />
             Manage Packages
@@ -554,14 +558,18 @@ function VendorTypesTab() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => openEditType(idx)} data-testid={`button-edit-type-${idx}`}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit Type
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteType(idx)} data-testid={`button-delete-type-${idx}`}>
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
+                        {canEdit("vendors") && (
+                          <DropdownMenuItem onClick={() => openEditType(idx)} data-testid={`button-edit-type-${idx}`}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Type
+                          </DropdownMenuItem>
+                        )}
+                        {canDelete("vendors") && (
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteType(idx)} data-testid={`button-delete-type-${idx}`}>
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -1582,6 +1590,7 @@ function AddVendorTab() {
 
 function VendorListTab() {
   const { toast } = useToast();
+  const { canCreate, canEdit, canDelete } = usePermissions();
   const [, changeTab] = useTab("list");
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -1915,10 +1924,12 @@ function VendorListTab() {
               <Download className="h-3.5 w-3.5 mr-1" />
               Export CSV
             </Button>
-            <Button size="sm" className="btn-vendor-primary no-default-hover-elevate no-default-active-elevate" onClick={() => changeTab("add")} data-testid="button-add-new-vendor">
-              <Plus className="h-3.5 w-3.5 mr-1" />
-              Add New Vendor
-            </Button>
+            {canCreate("vendors") && (
+              <Button size="sm" className="btn-vendor-primary no-default-hover-elevate no-default-active-elevate" onClick={() => changeTab("add")} data-testid="button-add-new-vendor">
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Add New Vendor
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -2112,26 +2123,30 @@ function VendorListTab() {
                               <Eye className="h-4 w-4 mr-2" />
                               View Profile
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openEdit(vendor)} data-testid={`button-edit-${vendor.id}`}>
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit Profile
-                            </DropdownMenuItem>
+                            {canEdit("vendors") && (
+                              <DropdownMenuItem onClick={() => openEdit(vendor)} data-testid={`button-edit-${vendor.id}`}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit Profile
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem onClick={() => setWalletVendor(vendor)} data-testid={`button-wallet-${vendor.id}`}>
                               <Wallet className="h-4 w-4 mr-2" />
                               Wallet & Transactions
                             </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => {
-                                if (confirm(`Are you sure you want to delete vendor "${vendor.name}"?`)) {
-                                  deleteMutation.mutate(vendor.id);
-                                }
-                              }}
-                              data-testid={`button-delete-${vendor.id}`}
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
+                            {canDelete("vendors") && (
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => {
+                                  if (confirm(`Are you sure you want to delete vendor "${vendor.name}"?`)) {
+                                    deleteMutation.mutate(vendor.id);
+                                  }
+                                }}
+                                data-testid={`button-delete-${vendor.id}`}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
