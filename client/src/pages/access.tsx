@@ -1622,13 +1622,14 @@ export default function AccessPage() {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {getFeaturesForMode(watchLoginType || "office").map(feature => (
-                    <div key={feature.key} className="flex items-center space-x-3 rounded-lg border bg-white dark:bg-slate-800 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer" onClick={() => toggleFeature(feature.key)}>
+                    <div key={feature.key} className="flex items-center space-x-3 rounded-lg border bg-white dark:bg-slate-800 p-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer">
                       <Checkbox
+                        id={`feature-${feature.key}`}
                         checked={selectedFeatures.includes(feature.key)}
                         onCheckedChange={() => toggleFeature(feature.key)}
                         data-testid={`checkbox-feature-${feature.key}`}
                       />
-                      <Label className="text-sm cursor-pointer flex-1">{feature.label}</Label>
+                      <Label htmlFor={`feature-${feature.key}`} className="text-sm cursor-pointer flex-1">{feature.label}</Label>
                     </div>
                   ))}
                 </div>
