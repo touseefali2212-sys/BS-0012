@@ -331,6 +331,12 @@ export default function AddCustomerPage() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Compute which required fields are still missing — disables the save buttons
+  const missingFields: string[] = [];
+  if (!form.fullName || form.fullName.trim().length < 2) missingFields.push("Full Name");
+  if (!form.phone || form.phone.trim().length < 10)      missingFields.push("Phone Number");
+  const isFormReady = missingFields.length === 0;
+
   const saveMutation = useMutation({
     mutationFn: async (options: { activate?: boolean } = {}) => {
       const payload = {
@@ -1403,31 +1409,41 @@ export default function AddCustomerPage() {
                   Step {tabIndex + 1} of {tabItems.length} — {tabItems[tabIndex].label}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                {/* Required-fields hint */}
+                {!isFormReady && (
+                  <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md px-2.5 py-1" data-testid="hint-required-fields">
+                    <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span>Required: {missingFields.join(", ")}</span>
+                  </div>
+                )}
                 <Button
                   variant="outline"
                   onClick={() => handleSave({ addAnother: true })}
-                  disabled={saveMutation.isPending}
+                  disabled={!isFormReady || saveMutation.isPending}
                   data-testid="button-save-add-another"
-                  className="text-sm"
+                  className="text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={!isFormReady ? `Please fill: ${missingFields.join(", ")}` : "Save & add another customer"}
                 >
                   Save & Add Another
                 </Button>
                 <Button
                   variant="outline"
                   onClick={() => handleSave({ activate: true })}
-                  disabled={saveMutation.isPending}
+                  disabled={!isFormReady || saveMutation.isPending}
                   data-testid="button-save-activate"
-                  className="text-sm border-green-500 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20"
+                  className="text-sm border-green-500 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={!isFormReady ? `Please fill: ${missingFields.join(", ")}` : "Save and activate connection"}
                 >
                   <Zap className="h-3.5 w-3.5 mr-1.5" />
                   Save & Activate
                 </Button>
                 <Button
                   onClick={() => handleSave()}
-                  disabled={saveMutation.isPending}
+                  disabled={!isFormReady || saveMutation.isPending}
                   data-testid="button-save-customer"
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md gap-2"
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title={!isFormReady ? `Please fill: ${missingFields.join(", ")}` : "Save customer"}
                 >
                   {saveMutation.isPending ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
