@@ -286,9 +286,15 @@ export default function AddCustomerPage() {
   const handlePackageChange = (pkgId: string) => {
     const pkg = packages?.find(p => String(p.id) === pkgId);
     if (pkg) {
-      const bill = pkg.price ? String(pkg.price) : "0";
-      const disc = form.discountOnPackage || "0";
-      const final = String(Math.max(0, parseFloat(bill) - parseFloat(disc)));
+      const base    = parseFloat(pkg.price   ?? "0") || 0;
+      const wht     = parseFloat(pkg.whTax   ?? "0") || 0;
+      const ait     = parseFloat(pkg.aitTax  ?? "0") || 0;
+      const whtAmt  = (base * wht) / 100;
+      const aitAmt  = (base * ait) / 100;
+      const total   = base + whtAmt + aitAmt;
+      const bill    = total.toFixed(2);
+      const disc    = form.discountOnPackage || "0";
+      const final   = String(Math.max(0, parseFloat(bill) - parseFloat(disc)));
       const expire = form.joiningDate ? addMonths(form.joiningDate, cycleToMonths(pkg.billingCycle)) : "";
       setForm(prev => ({
         ...prev,
