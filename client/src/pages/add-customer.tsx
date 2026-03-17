@@ -833,33 +833,73 @@ export default function AddCustomerPage() {
                     </div>
                   </div>
 
-                  {selectedPackage && (
-                    <div className="mt-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Zap className="h-4 w-4 text-blue-600" />
-                        <span className="text-sm font-semibold text-blue-700 dark:text-blue-400">Package Details: {selectedPackage.name}</span>
-                        <Badge variant="outline" className="text-xs ml-auto">{selectedPackage.billingCycle}</Badge>
+                  {selectedPackage && (() => {
+                    const basePrice   = parseFloat(selectedPackage.price ?? "0") || 0;
+                    const whtPct      = parseFloat(selectedPackage.whTax  ?? "0") || 0;
+                    const aitPct      = parseFloat(selectedPackage.aitTax ?? "0") || 0;
+                    const whtAmount   = (basePrice * whtPct)  / 100;
+                    const aitAmount   = (basePrice * aitPct)  / 100;
+                    const totalTax    = whtAmount + aitAmount;
+                    const totalPrice  = basePrice + totalTax;
+                    const hasTax      = whtPct > 0 || aitPct > 0;
+                    return (
+                      <div className="mt-4 p-4 rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Zap className="h-4 w-4 text-blue-600" />
+                          <span className="text-sm font-semibold text-blue-700 dark:text-blue-400">Package Details: {selectedPackage.name}</span>
+                          <Badge variant="outline" className="text-xs ml-auto">{selectedPackage.billingCycle}</Badge>
+                        </div>
+                        {/* Basic info row */}
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                          <div>
+                            <p className="text-muted-foreground text-xs">Speed</p>
+                            <p className="font-medium">{selectedPackage.speed || "—"}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground text-xs">Service</p>
+                            <p className="font-medium capitalize">{selectedPackage.serviceType}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground text-xs">Data Limit</p>
+                            <p className="font-medium">{selectedPackage.dataLimit || "Unlimited"}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground text-xs">Base Price</p>
+                            <p className="font-semibold text-blue-700 dark:text-blue-400">PKR {basePrice.toLocaleString()}</p>
+                          </div>
+                        </div>
+
+                        {/* Tax breakdown — only shown when package has tax values */}
+                        {hasTax && (
+                          <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Tax Breakdown</p>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                              <div>
+                                <p className="text-muted-foreground text-xs">WHT ({whtPct}%)</p>
+                                <p className="font-medium text-amber-700 dark:text-amber-400">
+                                  {whtPct > 0 ? `PKR ${whtAmount.toFixed(2)}` : "—"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground text-xs">AIT ({aitPct}%)</p>
+                                <p className="font-medium text-amber-700 dark:text-amber-400">
+                                  {aitPct > 0 ? `PKR ${aitAmount.toFixed(2)}` : "—"}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground text-xs">Total Tax</p>
+                                <p className="font-medium text-red-600 dark:text-red-400">PKR {totalTax.toFixed(2)}</p>
+                              </div>
+                              <div className="bg-green-100 dark:bg-green-900/30 rounded-lg px-3 py-1.5">
+                                <p className="text-muted-foreground text-xs">Total (incl. Tax)</p>
+                                <p className="font-bold text-green-700 dark:text-green-400">PKR {totalPrice.toFixed(2)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                        <div>
-                          <p className="text-muted-foreground text-xs">Speed</p>
-                          <p className="font-medium">{selectedPackage.speed}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground text-xs">Service</p>
-                          <p className="font-medium capitalize">{selectedPackage.serviceType}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground text-xs">Data Limit</p>
-                          <p className="font-medium">{selectedPackage.dataLimit || "Unlimited"}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground text-xs">Price</p>
-                          <p className="font-semibold text-blue-700 dark:text-blue-400">PKR {selectedPackage.price}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
                     <div className="space-y-1.5">
