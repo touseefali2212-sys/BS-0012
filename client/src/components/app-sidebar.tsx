@@ -119,7 +119,7 @@ const managementNav: NavItem[] = [
   {
     title: "Company Profile",
     icon: Building2,
-    module: "management",
+    module: "company",
     subItems: [
       { title: "Company Profile", url: "/company?tab=profile", icon: Building2 },
       { title: "Branches & Department", url: "/company?tab=branches", icon: GitBranch },
@@ -128,7 +128,7 @@ const managementNav: NavItem[] = [
   {
     title: "Vendors",
     icon: Store,
-    module: "management",
+    module: "vendors",
     subItems: [
       { title: "Vendor Type", url: "/vendors?tab=types", icon: Layers },
       { title: "Add Vendor", url: "/vendors?tab=add", icon: UserPlus },
@@ -142,7 +142,7 @@ const managementNav: NavItem[] = [
   {
     title: "Packages",
     icon: Package,
-    module: "management",
+    module: "packages",
     subItems: [
       { title: "Packages List", url: "/packages?tab=list", icon: List },
       { title: "Tax & Extra Fee", url: "/packages?tab=tax", icon: Receipt },
@@ -152,7 +152,7 @@ const managementNav: NavItem[] = [
   {
     title: "Area Management",
     icon: MapPin,
-    module: "management",
+    module: "area_management",
     subItems: [
       { title: "Add Area", url: "/areas?tab=add", icon: UserPlus },
       { title: "Area List", url: "/areas?tab=list", icon: List },
@@ -167,7 +167,7 @@ const hrmNav: NavItem[] = [
   {
     title: "HR & Payroll",
     icon: UserCog,
-    module: "hrm",
+    module: "hr_payroll",
     subItems: [
       { title: "Add Employee", url: "/hr?tab=add", icon: UserPlus },
       { title: "Employee List", url: "/hr?tab=list", icon: List },
@@ -184,7 +184,7 @@ const hrmNav: NavItem[] = [
   {
     title: "HRM",
     icon: ShieldCheck,
-    module: "settings",
+    module: "hrm",
     subItems: [
       { title: "HRM Role & Type", url: "/access?tab=roles", icon: Shield },
       { title: "Staff User Login", url: "/access?tab=users", icon: KeyRound },
@@ -201,7 +201,7 @@ const customerNav: NavItem[] = [
   {
     title: "Customers",
     icon: Users,
-    module: "crm",
+    module: "customers",
     subItems: [
       { title: "Customer Type", url: "/customers?tab=types", icon: Hash },
       { title: "Add New Customer", url: "/customers?tab=add", icon: UserPlus },
@@ -215,13 +215,13 @@ const customerNav: NavItem[] = [
   {
     title: "Customer Portal",
     icon: MonitorSmartphone,
-    module: "crm",
+    module: "customer_portal",
     url: "/customer-portal",
   },
   {
     title: "Reseller Management",
     icon: Handshake,
-    module: "crm",
+    module: "reseller",
     subItems: [
       { title: "Reseller Type & Role", url: "/resellers?tab=types", icon: Hash },
       { title: "Add New Reseller", url: "/resellers?tab=add", icon: UserPlus },
@@ -236,7 +236,7 @@ const billingNav: NavItem[] = [
   {
     title: "Support & Ticket",
     icon: LifeBuoy,
-    module: "crm",
+    module: "support",
     subItems: [
       { title: "Support Type", url: "/tickets?tab=types", icon: Hash },
       { title: "Open New Ticket", url: "/tickets?tab=new", icon: Plus },
@@ -247,7 +247,7 @@ const billingNav: NavItem[] = [
   {
     title: "Sale",
     icon: FileText,
-    module: "sales",
+    module: "sale",
     subItems: [
       { title: "Invoice Type", url: "/invoices?tab=types", icon: Hash },
       { title: "Add New Invoice", url: "/invoices?tab=add", icon: UserPlus },
@@ -259,7 +259,7 @@ const billingNav: NavItem[] = [
   {
     title: "Accounting",
     icon: BookOpen,
-    module: "sales",
+    module: "accounting",
     subItems: [
       { title: "Account Types", url: "/accounting?tab=types", icon: Hash },
       { title: "Add New Account", url: "/accounting?tab=add", icon: UserPlus },
@@ -276,7 +276,7 @@ const billingNav: NavItem[] = [
   {
     title: "Transactions",
     icon: ArrowLeftRight,
-    module: "sales",
+    module: "transactions",
     subItems: [
       { title: "Transaction Type", url: "/transactions?tab=types", icon: Hash },
       { title: "Transactions List", url: "/transactions?tab=list", icon: List },

@@ -21,23 +21,34 @@ import {
   Eye, FilePlus, FileEdit, Trash2, ThumbsUp, Download, Printer,
   LayoutGrid, Settings, Package, ShoppingCart, Building2, Wrench,
   Bell, BarChart3, CreditCard, UserCog, Boxes, Loader2, Info,
-  Search, Upload, FileDown, GitCompare, Zap, TriangleAlert
+  Search, Upload, FileDown, GitCompare, Zap, TriangleAlert,
+  MapPin, Store, Handshake, LifeBuoy, FileText, BookOpen, ArrowLeftRight,
+  MonitorSmartphone, HardDrive, ListTodo
 } from "lucide-react";
 
 const MODULE_STRUCTURE: Record<string, { icon: any; label: string; submenus: string[] }> = {
-  dashboard: { icon: LayoutGrid, label: "Dashboard", submenus: ["Overview", "Analytics", "Quick Actions", "Widgets"] },
-  management: { icon: Building2, label: "Management", submenus: ["Company Profile", "Branches & Departments", "Vendors", "Packages", "Area Management"] },
-  crm: { icon: Users, label: "CRM / Customers", submenus: ["Customers", "Leads", "Tickets", "Customer Portal", "Resellers", "Communication"] },
-  sales: { icon: ShoppingCart, label: "Sales & Finance", submenus: ["Invoices", "Daily Collection", "Accounting", "Transactions", "Credit Notes", "Payment Gateway"] },
-  hrm: { icon: UserCog, label: "HR & Payroll", submenus: ["Employees", "Attendance", "Leaves", "Payroll", "Advances", "Shifts", "Bonus & Commission"] },
-  inventory: { icon: Package, label: "Inventory", submenus: ["Product Types", "Suppliers", "Brands & Products", "Purchase Orders", "Stock Management", "Inventory List", "Batch & Serial"] },
-  assets: { icon: Boxes, label: "Assets", submenus: ["Asset Register", "Asset Tracking", "Depreciation", "Asset Transfer", "Maintenance"] },
-  tasks: { icon: Wrench, label: "Task Management", submenus: ["Projects", "Tasks", "Team Management", "Progress Tracking", "Task Audit"] },
-  network: { icon: Globe, label: "Network & IPAM", submenus: ["Network Monitoring", "MikroTik", "IP Addresses", "RADIUS", "Bandwidth Usage", "Customer Map"] },
-  outages: { icon: Wrench, label: "Service Outages", submenus: ["Active Outages", "Outage History", "SLA Tracking", "Escalation", "Resolution"] },
-  notifications: { icon: Bell, label: "Notifications", submenus: ["Alert Templates", "Push Notifications", "Bulk Campaigns", "SMS & Email API"] },
-  reports: { icon: BarChart3, label: "Reports", submenus: ["Financial Reports", "Inventory Reports", "Sales Reports", "HR Reports", "Custom Reports"] },
-  settings: { icon: Settings, label: "Settings & HRM Admin", submenus: ["General", "Company", "Billing", "HRM Rights", "Customer Rights", "User Management", "Staff Accounts"] },
+  dashboard:       { icon: LayoutGrid,       label: "Dashboard",             submenus: ["Overview", "Customers Dashboard", "Revenue & Collection", "Quick Action"] },
+  company:         { icon: Building2,         label: "Company",               submenus: ["Company Profile", "Branches & Department"] },
+  vendors:         { icon: Store,             label: "Vendors",               submenus: ["Vendor Type", "Add Vendor", "Vendor List", "Vendor Packages", "Bandwidth Changes", "Account & Ledger", "Wallet & Billing"] },
+  packages:        { icon: Package,           label: "Packages",              submenus: ["Packages List", "Tax & Extra Fee", "Reseller Packages"] },
+  area_management: { icon: MapPin,            label: "Area Management",       submenus: ["Add Area", "Area List", "Area Allocation", "Service Availability", "Multi Branch Control"] },
+  hr_payroll:      { icon: UserCog,           label: "HR & Payroll",          submenus: ["Add Employee", "Employee List", "Employee Type/Role", "Shift & Scheduling", "Attendance", "Attendance Tracking", "Salary Processing", "Bonus & Commission", "Advance & Loan", "Holiday & Leave"] },
+  hrm:             { icon: ShieldCheck,       label: "HRM",                   submenus: ["HRM Role & Type", "Staff User Login", "Account Management", "App Access Control", "Area Management", "Area Allocation", "Login Activity Log"] },
+  customers:       { icon: Users,             label: "Customers",             submenus: ["Customer Type", "Add New Customer", "Customer List", "New Client Request", "Client Request", "CIR Customers", "Corporate Customers"] },
+  customer_portal: { icon: MonitorSmartphone, label: "Customer Portal",       submenus: ["Customer Portal"] },
+  reseller:        { icon: Handshake,         label: "Reseller Management",   submenus: ["Reseller Type & Role", "Add New Reseller", "Reseller List", "Wallet & Transaction", "Commission Report"] },
+  support:         { icon: LifeBuoy,          label: "Support & Ticket",      submenus: ["Support Type", "Open New Ticket", "Support & Ticket", "Support History"] },
+  sale:            { icon: FileText,          label: "Sale",                  submenus: ["Invoice Type", "Add New Invoice", "Invoice List", "Daily Collection", "Collection Allocation"] },
+  accounting:      { icon: BookOpen,          label: "Accounting",            submenus: ["Account Types", "Add New Account", "Account List", "Income Entry", "Expense Entry", "Budget Allocation", "Expense Tracking", "Credit Notes", "Billing Rule", "Payment Gateway"] },
+  transactions:    { icon: ArrowLeftRight,    label: "Transactions",          submenus: ["Transaction Type", "Transactions List", "Customer Collections", "CIR Collections", "Corporate Collections", "Reseller Collections", "Refund & Credit", "Transfer Account", "Wallet & Prepaid", "Recovery Officer Collection", "Approval Workflow"] },
+  tasks:           { icon: ListTodo,          label: "Task Management",       submenus: ["Projects", "Tasks", "Team Management", "Progress Tracking", "Task Audit"] },
+  network:         { icon: Globe,             label: "Network & IPAM",        submenus: ["Network Monitoring", "Mikrotik Integration", "IP Addresses", "Radius / AAA", "Bandwidth Usage", "Customer Map", "FTTH / P2P Map"] },
+  outages:         { icon: Zap,               label: "Service Outages",       submenus: ["Outage Management"] },
+  assets:          { icon: HardDrive,         label: "Assets",                submenus: ["Assets Type", "Assets List", "Transfer & Movement", "Request & Approvals", "Asset Tracking", "Asset Allocation", "Assign to Customer"] },
+  inventory:       { icon: Boxes,             label: "Inventory",             submenus: ["Product Type", "Suppliers", "Brands & Product", "Purchase Order", "Stock Management", "Purchase", "Sales", "Inventory List", "Batch & Serial", "Expiry & Warranty"] },
+  notifications:   { icon: Bell,              label: "Notifications",         submenus: ["Notification Type", "Alert & Templates", "Push Notification", "Bulk Notification", "Bulk & Campaign", "Bulk Messaging", "SMS & Email API", "Push SMS"] },
+  reports:         { icon: BarChart3,         label: "All Reports",           submenus: ["Reports Dashboard", "Customer Reports", "Billing & Invoice", "Payment Reports", "Network & IPAM", "Inventory Reports", "Assets Reports", "HRM Reports", "Notification Reports", "Activity Log", "Vendor Reports", "Revenue Analytics", "Aging Report"] },
+  settings:        { icon: Settings,          label: "Settings",              submenus: ["General", "Company", "Billing", "HRM Rights Setup", "Customer Rights", "Invoice Template", "Notification Setting", "Payment Gateway", "Activity Log", "Audit Log"] },
 };
 
 const PERMISSION_ACTIONS = [
@@ -69,25 +80,35 @@ const DEFAULT_ROLES = [
 
 type TemplatePerms = Record<string, Partial<{ canView: boolean; canCreate: boolean; canEdit: boolean; canDelete: boolean; canApprove: boolean; canExport: boolean; canPrint: boolean; webAccess: boolean; appAccess: boolean }>>;
 
+const ALL_MODULE_KEYS = Object.keys({
+  dashboard: 1, company: 1, vendors: 1, packages: 1, area_management: 1,
+  hr_payroll: 1, hrm: 1, customers: 1, customer_portal: 1, reseller: 1, support: 1,
+  sale: 1, accounting: 1, transactions: 1, tasks: 1, network: 1, outages: 1,
+  assets: 1, inventory: 1, notifications: 1, reports: 1, settings: 1,
+});
+
+const FULL_PERMS = { canView: true, canCreate: true, canEdit: true, canDelete: true, canApprove: true, canExport: true, canPrint: true, webAccess: true, appAccess: true };
+
 const ROLE_TEMPLATES: Record<string, { label: string; description: string; permissions: TemplatePerms }> = {
   super_admin: {
     label: "Super Admin",
     description: "Full access to everything — cannot be restricted",
-    permissions: Object.fromEntries(Object.keys({ dashboard: 1, management: 1, crm: 1, sales: 1, hrm: 1, inventory: 1, assets: 1, tasks: 1, network: 1, outages: 1, notifications: 1, reports: 1, settings: 1 }).map(k => [k, { canView: true, canCreate: true, canEdit: true, canDelete: true, canApprove: true, canExport: true, canPrint: true, webAccess: true, appAccess: true }])),
+    permissions: Object.fromEntries(ALL_MODULE_KEYS.map(k => [k, FULL_PERMS])),
   },
   admin: {
     label: "Admin",
     description: "Full system access except critical settings",
-    permissions: Object.fromEntries(Object.keys({ dashboard: 1, management: 1, crm: 1, sales: 1, hrm: 1, inventory: 1, assets: 1, tasks: 1, network: 1, outages: 1, notifications: 1, reports: 1 }).map(k => [k, { canView: true, canCreate: true, canEdit: true, canDelete: true, canApprove: true, canExport: true, canPrint: true, webAccess: true, appAccess: false }])),
+    permissions: Object.fromEntries(ALL_MODULE_KEYS.filter(k => k !== "settings").map(k => [k, { ...FULL_PERMS, appAccess: false }])),
   },
   branch_manager: {
     label: "Branch Manager",
     description: "Customers, billing, reports & limited staff management",
     permissions: {
       dashboard: { canView: true, webAccess: true },
-      crm: { canView: true, canCreate: true, canEdit: true, canExport: true, webAccess: true },
-      sales: { canView: true, canCreate: true, canApprove: true, canExport: true, canPrint: true, webAccess: true },
-      hrm: { canView: true, webAccess: true },
+      customers: { canView: true, canCreate: true, canEdit: true, canExport: true, webAccess: true },
+      sale: { canView: true, canCreate: true, canApprove: true, canExport: true, canPrint: true, webAccess: true },
+      accounting: { canView: true, canExport: true, webAccess: true },
+      hr_payroll: { canView: true, webAccess: true },
       reports: { canView: true, canExport: true, canPrint: true, webAccess: true },
     },
   },
@@ -96,7 +117,9 @@ const ROLE_TEMPLATES: Record<string, { label: string; description: string; permi
     description: "Accounting, transactions, billing and reports only",
     permissions: {
       dashboard: { canView: true, webAccess: true },
-      sales: { canView: true, canCreate: true, canEdit: true, canApprove: true, canExport: true, canPrint: true, webAccess: true },
+      sale: { canView: true, canCreate: true, canEdit: true, canApprove: true, canExport: true, canPrint: true, webAccess: true },
+      accounting: { canView: true, canCreate: true, canEdit: true, canApprove: true, canExport: true, canPrint: true, webAccess: true },
+      transactions: { canView: true, canCreate: true, canApprove: true, canExport: true, webAccess: true },
       reports: { canView: true, canExport: true, canPrint: true, webAccess: true },
     },
   },
@@ -105,8 +128,9 @@ const ROLE_TEMPLATES: Record<string, { label: string; description: string; permi
     description: "Invoice, customer billing and collections",
     permissions: {
       dashboard: { canView: true, webAccess: true },
-      crm: { canView: true, webAccess: true },
-      sales: { canView: true, canCreate: true, canPrint: true, webAccess: true },
+      customers: { canView: true, webAccess: true },
+      sale: { canView: true, canCreate: true, canPrint: true, webAccess: true },
+      transactions: { canView: true, canCreate: true, webAccess: true },
       reports: { canView: true, canPrint: true, webAccess: true },
     },
   },
@@ -115,8 +139,9 @@ const ROLE_TEMPLATES: Record<string, { label: string; description: string; permi
     description: "Customer list, due payments, collections — limited reports",
     permissions: {
       dashboard: { canView: true, webAccess: true, appAccess: true },
-      crm: { canView: true, webAccess: true, appAccess: true },
-      sales: { canView: true, canCreate: true, webAccess: true, appAccess: true },
+      customers: { canView: true, webAccess: true, appAccess: true },
+      sale: { canView: true, webAccess: true, appAccess: true },
+      transactions: { canView: true, canCreate: true, webAccess: true, appAccess: true },
       reports: { canView: true, webAccess: true },
     },
   },
@@ -124,8 +149,9 @@ const ROLE_TEMPLATES: Record<string, { label: string; description: string; permi
     label: "Technician",
     description: "Support tickets, network, customer view — no finance or HR",
     permissions: {
-      dashboard: { canView: true, appAccess: true },
-      crm: { canView: true, appAccess: true, webAccess: true },
+      dashboard: { canView: true, appAccess: true, webAccess: true },
+      customers: { canView: true, appAccess: true, webAccess: true },
+      support: { canView: true, canCreate: true, canEdit: true, appAccess: true, webAccess: true },
       tasks: { canView: true, canCreate: true, canEdit: true, appAccess: true, webAccess: true },
       network: { canView: true, canEdit: true, appAccess: true, webAccess: true },
       outages: { canView: true, canCreate: true, canEdit: true, appAccess: true, webAccess: true },
@@ -136,7 +162,8 @@ const ROLE_TEMPLATES: Record<string, { label: string; description: string; permi
     description: "Full HR & Payroll access, limited other modules",
     permissions: {
       dashboard: { canView: true, webAccess: true },
-      hrm: { canView: true, canCreate: true, canEdit: true, canDelete: true, canApprove: true, canExport: true, canPrint: true, webAccess: true },
+      hr_payroll: { ...FULL_PERMS, appAccess: false },
+      hrm: { canView: true, canCreate: true, canEdit: true, webAccess: true },
       reports: { canView: true, canExport: true, webAccess: true },
       settings: { canView: true, webAccess: true },
     },
@@ -439,7 +466,7 @@ export default function HrmRightsSetupPage() {
             if (a.key === "canApprove") highRisk++;
           }
         });
-        if ((mod === "sales" || mod === "purchase") && (p?.canEdit || p?.canDelete || p?.canApprove)) {
+        if ((mod === "sale" || mod === "accounting" || mod === "transactions") && (p?.canEdit || p?.canDelete || p?.canApprove)) {
           financialAccess = true;
         }
       });

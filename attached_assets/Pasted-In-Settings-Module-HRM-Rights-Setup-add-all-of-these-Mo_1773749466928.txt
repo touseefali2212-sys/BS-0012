@@ -1,0 +1,167 @@
+In Settings Module HRM Rights Setup add all of these Module & Submenus Permissions to All Role
+Dashboard
+•	Overview
+•	Customers Dashboard
+•	Revenue & Collection
+•	Quick Action
+Company Module
+•	Company Profile
+•	Branches & Department
+Vendors Module
+•	Vendor Type
+•	Add Vendor
+•	Vendor List
+•	Vendor Packages
+•	Bandwidth Changes
+•	Account & Ledger
+•	Wallet & Billing
+Packages Module
+•	Packages List
+•	Tax & Extra Fee
+•	Reseller Packages
+Area Management Module
+•	Add Area
+•	Area List
+•	Area Allocation
+•	Service Availability
+•	Multi Branch Control
+HR & Payroll Module
+•	Add Employee
+•	Employee List
+•	Employee Type/Role
+•	Shift & Scheduling
+•	Attendance 
+•	Attendance Tracking
+•	Salary Processing
+•	Bonus & Commission
+•	Advance & Loan
+•	Holiday & Leave
+HRM Module
+•	HRM Role & Type
+•	Staff User Login
+•	Account Management
+•	App Access Control
+•	Area Management
+•	Area Allocation
+•	Login Activity Log
+Customers Module
+•	Customer Type
+•	Add new Customer
+•	Customer List
+•	New Client Request
+•	Client Request
+•	CIR Customers
+•	Corporate Customers
+Customer Portal Module
+•	Customer Portal
+Reseller Management Module
+•	Reseller Type & Role
+•	Add New Reseller
+•	Reseller List
+•	Wallet & Transaction
+•	Commission Report
+Support & Ticket Module
+•	Support Type
+•	Open New Ticket
+•	Support & Ticket
+•	Support History
+Sale Module
+•	Invoice Type
+•	Add New Invoice
+•	Invoice List
+•	Daily Collection
+•	Collection Allocation
+Accounting Module
+•	Account Types
+•	Add New Account
+•	Account List
+•	Income Entry
+•	Expense Entry
+•	Budget Allocation
+•	Expense Tracking
+•	Credit Notes
+•	Billing Rule
+•	Payment Gateway
+Transactions Module
+•	Transaction Type
+•	Transactions List
+•	Customer Collections
+•	CIR Collections
+•	Corporate Collections
+•	Reseller Collections
+•	Refund & Credit
+•	Transfer Account
+•	Wallet & Prepaid
+•	Recovery Officer Collection
+•	Approval Workflow
+Task Management Module
+•	Projects
+•	Tasks
+•	Team Management
+•	Progress Tracking
+•	Task Audit
+Network & IPAM Module
+•	Network Monitoring 
+•	Mikrotik Integration
+•	IP Addresses
+•	Radius / AAA
+•	Bandwidth Usage
+•	Customer Map
+•	FTTH / P2P Map
+Service Outages Module
+•	Outage Management
+Assets Module
+•	Assets Type
+•	Assets List
+•	Transfer & Movement
+•	Request & Approvals
+•	Asset Tracking
+•	Asset Allocation
+•	Assign to Customer
+Inventory Module
+•	Product Type
+•	Suppliers
+•	Brands & Product
+•	Purchase Order
+•	Stock Management
+•	Purchase
+•	Sales
+•	Inventory List
+•	Batch & Serial
+•	Expiry & Warranty
+Notifications Module
+•	Notification Type
+•	Alert & Templates
+•	Push Notification
+•	Bulk Notification
+•	Bulk & Campaign
+•	Bulk Messaging
+•	SMS & Email API
+•	Push SMS
+All Reports
+•	Reports Dashboard
+•	Customer Reports
+•	Billing & Invoice
+•	Payment Reports
+•	Network & IPAM
+•	Inventory Reports
+•	Assets Reports
+•	HRM Reports
+•	Notification Reports
+•	Activity Log
+•	Vendor Reports
+•	Revenue Analytics
+•	Aging Report
+Settings
+•	General
+•	Company
+•	Billing
+•	HRM Rights Setup
+•	Customer Rights
+•	Invoice Template
+•	Notification Setting
+•	Payment Gateway
+•	Activity Log
+•	Audit Log
+
+
