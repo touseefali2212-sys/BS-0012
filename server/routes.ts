@@ -554,6 +554,29 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/customers", requireAuth, async (req, res) => {
+    try {
+      const adminRoles = ["admin", "super_admin", "superadmin", "super admin"];
+      const userId = (req.session as any).userId as number | undefined;
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(401).json({ message: "User not found" });
+      const isAdmin = adminRoles.includes((user.role || "").toLowerCase());
+      const allCustomers = await storage.getCustomers();
+      if (isAdmin || !user.employeeId) return res.json(allCustomers);
+      const assignments = await storage.getAreaAssignmentsByEmployee(user.employeeId);
+      const activeAssignments = assignments.filter(a => a.status === "active");
+      if (activeAssignments.length === 0) return res.json(allCustomers);
+      const areaIds = [...new Set(activeAssignments.map(a => a.areaId))];
+      const areaObjects = await Promise.all(areaIds.map(id => storage.getArea(id)));
+      const areaNames = areaObjects.filter((a): a is NonNullable<typeof a> => !!a).map(a => a.name.toLowerCase());
+      const filtered = allCustomers.filter(c => c.area && areaNames.includes(c.area.toLowerCase()));
+      res.json(filtered);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch customers" });
+    }
+  });
+
   crudRoutes(app, "customers", insertCustomerSchema,
     () => storage.getCustomers(),
     (id) => storage.getCustomer(id),
