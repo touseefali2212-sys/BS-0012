@@ -236,6 +236,7 @@ export default function AddCustomerPage() {
     connectedBy: "", usernameIp: "", password: "", vendorId: "", packageId: "",
     packageBill: "", discountOnPackage: "", finalPackageBill: "",
     installationCharges: "0", discountOnInstallation: "0", finalInstallationCharges: "0",
+    grandTotal: "0",
     joiningDate: "", expireDate: "", billingStatus: "Active",
 
     cnicFront: "", cnicBack: "", registrationFormNo: "", registrationFormPicture: "", addressProof: "",
@@ -264,6 +265,13 @@ export default function AddCustomerPage() {
         const inst = parseFloat(field === "installationCharges" ? String(value) : prev.installationCharges) || 0;
         const disc = parseFloat(field === "discountOnInstallation" ? String(value) : prev.discountOnInstallation) || 0;
         updated.finalInstallationCharges = String(Math.max(0, inst - disc));
+      }
+
+      // Auto-recalculate grand total whenever either final amount changes
+      if (["packageBill","discountOnPackage","installationCharges","discountOnInstallation"].includes(field)) {
+        const fp = parseFloat(updated.finalPackageBill)        || 0;
+        const fi = parseFloat(updated.finalInstallationCharges) || 0;
+        updated.grandTotal = (fp + fi).toFixed(2);
       }
 
       return updated;
@@ -296,11 +304,13 @@ export default function AddCustomerPage() {
       const disc    = form.discountOnPackage || "0";
       const final   = String(Math.max(0, parseFloat(bill) - parseFloat(disc)));
       const expire = form.joiningDate ? addMonths(form.joiningDate, cycleToMonths(pkg.billingCycle)) : "";
+      const instFinal = parseFloat(form.finalInstallationCharges) || 0;
       setForm(prev => ({
         ...prev,
         packageId: pkgId,
         packageBill: bill,
         finalPackageBill: final,
+        grandTotal: (parseFloat(final) + instFinal).toFixed(2),
         expireDate: expire,
       }));
     } else {
@@ -979,33 +989,33 @@ export default function AddCustomerPage() {
                     </div>
                   </div>
 
-                  {/* Grand Total = Final Package Bill + Final Installation Charges */}
-                  {(() => {
-                    const pkg   = parseFloat(form.finalPackageBill)        || 0;
-                    const inst  = parseFloat(form.finalInstallationCharges) || 0;
-                    const grand = pkg + inst;
-                    return (
-                      <div className="mt-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 p-4 flex items-center justify-between gap-4 shadow-md">
-                        <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-lg bg-white/20 flex items-center justify-center">
-                            <Calculator className="h-5 w-5 text-white" />
-                          </div>
-                          <div>
-                            <p className="text-xs text-blue-100 font-medium">Grand Total (First Payment)</p>
-                            <p className="text-[11px] text-blue-200">
-                              Final Package Bill + Final Installation Charges
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <p className="text-xs text-blue-200">PKR {pkg.toFixed(2)} + PKR {inst.toFixed(2)}</p>
-                            <p className="text-2xl font-bold text-white">PKR {grand.toFixed(2)}</p>
-                          </div>
-                        </div>
+                  {/* Grand Total = Final Package Bill + Final Installation Charges (editable) */}
+                  <div className="mt-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 p-4 shadow-md">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center">
+                        <Calculator className="h-4 w-4 text-white" />
                       </div>
-                    );
-                  })()}
+                      <div>
+                        <p className="text-sm font-semibold text-white">Grand Total (First Payment)</p>
+                        <p className="text-[11px] text-blue-200">
+                          PKR {(parseFloat(form.finalPackageBill) || 0).toFixed(2)} package
+                          {" "}+{" "}
+                          PKR {(parseFloat(form.finalInstallationCharges) || 0).toFixed(2)} installation
+                        </p>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-blue-700 pointer-events-none">PKR</span>
+                      <Input
+                        type="number"
+                        value={form.grandTotal}
+                        onChange={e => update("grandTotal", e.target.value)}
+                        data-testid="input-grand-total"
+                        className="pl-12 text-lg font-bold text-blue-700 dark:text-blue-700 bg-white border-0 h-12 shadow-inner"
+                      />
+                    </div>
+                    <p className="text-[11px] text-blue-200 mt-1.5 text-right">You can adjust the grand total manually if needed</p>
+                  </div>
                 </div>
 
                 <Separator />
