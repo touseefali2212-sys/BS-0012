@@ -480,51 +480,70 @@ export default function CustomerProfilePage() {
                 </div>
 
                 <SectionHeader title="Package Billing" />
-                <div className="bg-card border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Package Base Price" value={customerPackage ? `PKR ${Number(customerPackage.price).toFixed(2)}` : "-"} />
-                    <InfoRow label="WHT Tax" value={customerPackage?.whTax ? `${customerPackage.whTax}%` : "-"} />
-                    <InfoRow label="AIT Tax" value={customerPackage?.aitTax ? `${customerPackage.aitTax}%` : "-"} />
-                    <InfoRow label="Package Bill (incl. Tax)" value={customer.packageBill ? `PKR ${Number(customer.packageBill).toFixed(2)}` : (customer.monthlyBill ? `PKR ${Number(customer.monthlyBill).toFixed(2)}` : "-")} />
-                    <InfoRow label="Discount on Package" value={customer.discountOnPackage ? `PKR ${Number(customer.discountOnPackage).toFixed(2)}` : "PKR 0.00"} />
-                    <InfoRow label="Final Package Bill" value={
-                      <span className="font-semibold text-green-700 dark:text-green-400">
-                        PKR {customer.monthlyBill ? Number(customer.monthlyBill).toFixed(2) : "0.00"}
-                      </span>
-                    } />
-                  </div>
-                </div>
-
-                <SectionHeader title="Installation Charges" />
-                <div className="bg-card border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Installation Charges" value={customer.installationCharges ? `PKR ${Number(customer.installationCharges).toFixed(2)}` : "PKR 0.00"} />
-                    <InfoRow label="Discount on Installation" value={customer.discountOnInstallation ? `PKR ${Number(customer.discountOnInstallation).toFixed(2)}` : "PKR 0.00"} />
-                    <InfoRow label="Final Installation Charges" value={customer.finalInstallationCharges ? `PKR ${Number(customer.finalInstallationCharges).toFixed(2)}` : "PKR 0.00"} />
-                    <InfoRow label="Charge Created On" value={formatDate(customer.connectionDate)} />
-                    <InfoRow label="Received By" value={customer.connectedBy || "-"} />
-                    <InfoRow label="Payment Date" value={formatDate(customer.connectionDate)} />
-                  </div>
-                </div>
-
-                {/* Grand Total Banner */}
                 {(() => {
-                  const pkg  = parseFloat(String(customer.monthlyBill ?? "0")) || 0;
-                  const inst = parseFloat(String(customer.finalInstallationCharges ?? "0")) || 0;
-                  const grand = parseFloat(String(customer.grandTotal ?? "0")) || (pkg + inst);
+                  // Compute tax-inclusive amounts from package rates
+                  const base    = parseFloat(String(customerPackage?.price  ?? "0")) || 0;
+                  const whtPct  = parseFloat(String(customerPackage?.whTax  ?? "0")) || 0;
+                  const aitPct  = parseFloat(String(customerPackage?.aitTax ?? "0")) || 0;
+                  const whtAmt  = parseFloat(((base * whtPct) / 100).toFixed(2));
+                  const aitAmt  = parseFloat(((base * aitPct) / 100).toFixed(2));
+                  const taxInclusiveTotal = base + whtAmt + aitAmt;
+
+                  // Prefer saved packageBill (tax-inclusive) if it was stored; otherwise compute
+                  const savedPkgBill = parseFloat(String(customer.packageBill ?? "0")) || 0;
+                  const pkgBill = savedPkgBill > 0 ? savedPkgBill : taxInclusiveTotal;
+
+                  // Final Package Bill = pkgBill − discount
+                  const discount     = parseFloat(String(customer.discountOnPackage ?? "0")) || 0;
+                  const finalPkgBill = Math.max(0, pkgBill - discount);
+
+                  // Installation
+                  const inst  = parseFloat(String(customer.finalInstallationCharges ?? "0")) || 0;
+                  const grand = parseFloat(String(customer.grandTotal ?? "0")) || (finalPkgBill + inst);
+
                   return (
-                    <div className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 p-4 flex items-center justify-between shadow-md" data-testid="grand-total-banner">
-                      <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-lg bg-white/20 flex items-center justify-center">
-                          <Calculator className="h-5 w-5 text-white" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-white">Grand Total (First Payment)</p>
-                          <p className="text-[11px] text-blue-200">PKR {pkg.toFixed(2)} package + PKR {inst.toFixed(2)} installation</p>
+                    <>
+                      <div className="bg-card border rounded-lg overflow-hidden">
+                        <div className="grid grid-cols-2 divide-x divide-y">
+                          <InfoRow label="Package Base Price" value={base > 0 ? `PKR ${base.toFixed(2)}` : "-"} />
+                          <InfoRow label="WHT Tax" value={whtPct > 0 ? `${whtPct}% (PKR ${whtAmt.toFixed(2)})` : "-"} />
+                          <InfoRow label="AIT Tax" value={aitPct > 0 ? `${aitPct}% (PKR ${aitAmt.toFixed(2)})` : "-"} />
+                          <InfoRow label="Package Bill (incl. Tax)" value={pkgBill > 0 ? `PKR ${pkgBill.toFixed(2)}` : "-"} />
+                          <InfoRow label="Discount on Package" value={`PKR ${discount.toFixed(2)}`} />
+                          <InfoRow label="Final Package Bill" value={
+                            <span className="font-semibold text-green-700 dark:text-green-400">
+                              PKR {finalPkgBill.toFixed(2)}
+                            </span>
+                          } />
                         </div>
                       </div>
-                      <p className="text-2xl font-bold text-white" data-testid="text-grand-total">PKR {grand.toFixed(2)}</p>
-                    </div>
+
+                      <SectionHeader title="Installation Charges" />
+                      <div className="bg-card border rounded-lg overflow-hidden">
+                        <div className="grid grid-cols-2 divide-x divide-y">
+                          <InfoRow label="Installation Charges" value={customer.installationCharges ? `PKR ${Number(customer.installationCharges).toFixed(2)}` : "PKR 0.00"} />
+                          <InfoRow label="Discount on Installation" value={customer.discountOnInstallation ? `PKR ${Number(customer.discountOnInstallation).toFixed(2)}` : "PKR 0.00"} />
+                          <InfoRow label="Final Installation Charges" value={`PKR ${inst.toFixed(2)}`} />
+                          <InfoRow label="Charge Created On" value={formatDate(customer.connectionDate)} />
+                          <InfoRow label="Received By" value={customer.connectedBy || "-"} />
+                          <InfoRow label="Payment Date" value={formatDate(customer.connectionDate)} />
+                        </div>
+                      </div>
+
+                      {/* Grand Total Banner */}
+                      <div className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 p-4 flex items-center justify-between shadow-md" data-testid="grand-total-banner">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-lg bg-white/20 flex items-center justify-center">
+                            <Calculator className="h-5 w-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-white">Grand Total (First Payment)</p>
+                            <p className="text-[11px] text-blue-200">PKR {finalPkgBill.toFixed(2)} package + PKR {inst.toFixed(2)} installation</p>
+                          </div>
+                        </div>
+                        <p className="text-2xl font-bold text-white" data-testid="text-grand-total">PKR {grand.toFixed(2)}</p>
+                      </div>
+                    </>
                   );
                 })()}
               </div>
