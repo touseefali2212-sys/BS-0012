@@ -1047,7 +1047,7 @@ function SectionHeader({ title, action }: { title: string; action?: React.ReactN
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-0 flex-1">
-        <div className="bg-[#1a3a5c] text-white text-xs font-semibold px-5 py-2.5 rounded-md flex-1" data-testid={`section-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+        <div className="text-white text-xs font-semibold px-5 py-2.5 rounded-md flex-1 bg-[#1c67d4]" data-testid={`section-${title.toLowerCase().replace(/\s+/g, '-')}`}>
           {title}
         </div>
       </div>
