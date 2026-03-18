@@ -1514,7 +1514,7 @@ export default function ResellersPage() {
                         <th className="px-3 py-2.5 text-left font-medium text-xs hidden lg:table-cell">Commission</th>
                         <th className="px-3 py-2.5 text-center font-medium text-xs hidden md:table-cell">Customers</th>
                         <th className="px-3 py-2.5 text-center font-medium text-xs">Status</th>
-                        <th className="px-3 py-2.5 text-center font-medium text-xs w-14">Action</th>
+                        <th className="px-3 py-2.5 text-center font-medium text-xs w-14 bg-[#1c67d4]">Action</th>
                       </tr>
                     </thead>
                     <tbody>
