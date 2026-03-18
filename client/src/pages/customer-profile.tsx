@@ -38,6 +38,7 @@ import {
   Calculator,
   Building2,
   Smartphone,
+  LocateFixed,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -98,6 +99,9 @@ export default function CustomerProfilePage() {
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<CustomerConnection | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [gpsLat, setGpsLat] = useState("");
+  const [gpsLng, setGpsLng] = useState("");
+  const [gpsLocating, setGpsLocating] = useState(false);
 
   const { data: customer, isLoading: customerLoading } = useQuery<Customer>({
     queryKey: ["/api/customers", id],
@@ -176,6 +180,48 @@ export default function CustomerProfilePage() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
+
+  const gpsMutation = useMutation({
+    mutationFn: async ({ lat, lng }: { lat: string; lng: string }) => {
+      const res = await apiRequest("PATCH", `/api/customers/${id}`, {
+        mapLatitude: lat,
+        mapLongitude: lng,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers", id] });
+      toast({ title: "GPS coordinates saved" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error saving GPS", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleGetGps = () => {
+    if (!navigator.geolocation) {
+      toast({ title: "Geolocation not supported", description: "Your browser does not support GPS.", variant: "destructive" });
+      return;
+    }
+    setGpsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGpsLat(String(pos.coords.latitude));
+        setGpsLng(String(pos.coords.longitude));
+        setGpsLocating(false);
+        toast({ title: "Location detected", description: `Lat: ${pos.coords.latitude.toFixed(6)}, Lng: ${pos.coords.longitude.toFixed(6)}` });
+      },
+      (err) => {
+        setGpsLocating(false);
+        toast({ title: "GPS error", description: err.message, variant: "destructive" });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  // Sync GPS fields when customer data loads
+  const customerGpsLat = (customer as any)?.mapLatitude || "";
+  const customerGpsLng = (customer as any)?.mapLongitude || "";
 
   const connectionForm = useForm<InsertCustomerConnection>({
     resolver: zodResolver(insertCustomerConnectionSchema),
@@ -672,20 +718,84 @@ export default function CustomerProfilePage() {
 
                 <SectionHeader title="GPS Coordinates" />
                 <div className="bg-card border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Map Latitude" value={customer.mapLatitude || "-"} />
-                    <InfoRow label="Map Longitude" value={customer.mapLongitude || "-"} />
-                  </div>
-                  {customer.mapLatitude && customer.mapLongitude && (
-                    <div className="px-4 py-2 border-t">
-                      <a
-                        href={`https://maps.google.com/?q=${customer.mapLatitude},${customer.mapLongitude}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-xs text-blue-600 flex items-center gap-1 hover:underline"
+                  {/* Editable GPS inputs */}
+                  <div className="p-4 space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">Map Latitude</label>
+                        <Input
+                          data-testid="input-gps-lat"
+                          placeholder={customerGpsLat || "e.g. 31.5204"}
+                          value={gpsLat || customerGpsLat}
+                          onChange={e => setGpsLat(e.target.value)}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-xs font-medium text-muted-foreground">Map Longitude</label>
+                        <Input
+                          data-testid="input-gps-lng"
+                          placeholder={customerGpsLng || "e.g. 74.3587"}
+                          value={gpsLng || customerGpsLng}
+                          onChange={e => setGpsLng(e.target.value)}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Action buttons row */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Button
+                        data-testid="button-get-gps"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1.5 text-xs border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-950"
+                        onClick={handleGetGps}
+                        disabled={gpsLocating}
                       >
-                        <MapPin className="h-3 w-3" /> Open in Google Maps
-                      </a>
+                        <LocateFixed className={`h-3.5 w-3.5 ${gpsLocating ? "animate-pulse" : ""}`} />
+                        {gpsLocating ? "Detecting…" : "Get GPS Location"}
+                      </Button>
+
+                      <Button
+                        data-testid="button-save-gps"
+                        size="sm"
+                        className="h-8 gap-1.5 text-xs bg-[#1c67d4] hover:bg-[#1558b8]"
+                        onClick={() => {
+                          const lat = gpsLat || customerGpsLat;
+                          const lng = gpsLng || customerGpsLng;
+                          if (!lat || !lng) {
+                            toast({ title: "Enter coordinates", description: "Please fill in both latitude and longitude.", variant: "destructive" });
+                            return;
+                          }
+                          gpsMutation.mutate({ lat, lng });
+                        }}
+                        disabled={gpsMutation.isPending}
+                      >
+                        <Save className="h-3.5 w-3.5" />
+                        {gpsMutation.isPending ? "Saving…" : "Save Coordinates"}
+                      </Button>
+
+                      {(gpsLat || customerGpsLat) && (gpsLng || customerGpsLng) && (
+                        <a
+                          href={`https://maps.google.com/?q=${gpsLat || customerGpsLat},${gpsLng || customerGpsLng}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          data-testid="link-open-maps"
+                        >
+                          <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs text-green-700 hover:text-green-800 hover:bg-green-50 dark:text-green-400">
+                            <MapPin className="h-3.5 w-3.5" /> Open in Google Maps
+                          </Button>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Current saved coordinates display */}
+                  {(customerGpsLat || customerGpsLng) && (
+                    <div className="px-4 py-2 border-t bg-muted/30 flex items-center gap-2">
+                      <span className="text-[11px] text-muted-foreground">Saved:</span>
+                      <span className="text-[11px] font-mono text-foreground">{customerGpsLat}, {customerGpsLng}</span>
                     </div>
                   )}
                 </div>
