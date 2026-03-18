@@ -34,6 +34,10 @@ import {
   Settings,
   Package,
   RefreshCw,
+  Bell,
+  Calculator,
+  Building2,
+  Smartphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -298,8 +302,9 @@ export default function CustomerProfilePage() {
 
   const tabs = [
     { key: "service", label: "Service Information" },
-    { key: "network", label: "Network & Product Information" },
+    { key: "network", label: "Network & Infrastructure" },
     { key: "personal", label: "Personal Information" },
+    { key: "documents", label: "Documents" },
     { key: "invoices", label: "Generated & Updated Bill/Invoices" },
     { key: "received", label: "Received Bill History" },
     { key: "complain", label: "Complain History" },
@@ -448,13 +453,13 @@ export default function CustomerProfilePage() {
                 <SectionHeader title="Internet Service Information" />
                 <div className="bg-card border rounded-lg overflow-hidden">
                   <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Package" value={customerPackage ? `${customerPackage.name}` : "-"} />
+                    <InfoRow label="Package" value={customerPackage ? customerPackage.name : "-"} />
+                    <InfoRow label="Vendor" value={customerVendor?.name || "-"} />
                     <InfoRow label="Joining Date" value={formatDate(customer.joiningDate)} />
-                    <InfoRow label="Profile" value={customer.profile || "-"} />
-                    <InfoRow label="Client Type" value={customer.customerType} capitalize />
-                    <InfoRow label="Billing Start Month" value={formatDate(customer.billingStartMonth)} />
-                    <InfoRow label="Username/IP" value={customer.usernameIp || "-"} />
                     <InfoRow label="Expire Date" value={customer.expireDate || "-"} />
+                    <InfoRow label="Billing Start Month" value={formatDate(customer.billingStartMonth)} />
+                    <InfoRow label="Billing Status" value={customer.billingStatus || "Inactive"} />
+                    <InfoRow label="Username / PPPoE / IP" value={customer.usernameIp || "-"} />
                     <InfoRow label="Password" value={
                       <span className="flex items-center gap-1.5">
                         {showPassword ? (customer.password || "Not set") : (customer.password ? "••••••••" : "Not set")}
@@ -465,47 +470,91 @@ export default function CustomerProfilePage() {
                         )}
                       </span>
                     } />
-                    <InfoRow label="Monthly Bill" value={customer.monthlyBill ? `${Number(customer.monthlyBill).toFixed(2)}` : (customerPackage ? `${Number(customerPackage.price).toFixed(2)}` : "-")} />
-                    <InfoRow label="Balance Due" value={`0.00 BDT`} />
-                    <InfoRow label="Reference By" value={customer.referenceBy || "-"} />
+                    <InfoRow label="Client Type" value={customer.customerType} capitalize />
+                    <InfoRow label="Profile" value={customer.profile || "-"} />
                     <InfoRow label="Connection Setup By" value={customer.connectedBy || "-"} />
-                    <InfoRow label="Assigned To Employees" value={customer.assignTo || "-"} />
+                    <InfoRow label="Assigned To" value={customer.assignTo || "-"} />
+                    <InfoRow label="Reference By" value={customer.referenceBy || "-"} />
                     <InfoRow label="Last Log In" value="-" />
                   </div>
                 </div>
 
-                <SectionHeader title="Installation Charge Information" />
+                <SectionHeader title="Package Billing" />
                 <div className="bg-card border rounded-lg overflow-hidden">
                   <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Charge Created On" value={formatDate(customer.connectionDate)} />
-                    <InfoRow label="Installation Fee" value={customerPackage ? `${Number(customerPackage.price).toFixed(2)}` : "-"} />
-                    <InfoRow label="Paid Amount" value={customer.monthlyBill ? `${Number(customer.monthlyBill).toFixed(2)}` : "-"} />
-                    <InfoRow label="Due Amount" value="0.00" />
-                    <InfoRow label="Payment Method" value="-" />
-                    <InfoRow label="Payment Date" value={formatDate(customer.connectionDate)} />
-                    <InfoRow label="Received By" value={customer.connectedBy || "-"} />
+                    <InfoRow label="Package Base Price" value={customerPackage ? `PKR ${Number(customerPackage.price).toFixed(2)}` : "-"} />
+                    <InfoRow label="WHT Tax" value={customerPackage?.whTax ? `${customerPackage.whTax}%` : "-"} />
+                    <InfoRow label="AIT Tax" value={customerPackage?.aitTax ? `${customerPackage.aitTax}%` : "-"} />
+                    <InfoRow label="Package Bill (incl. Tax)" value={customer.packageBill ? `PKR ${Number(customer.packageBill).toFixed(2)}` : (customer.monthlyBill ? `PKR ${Number(customer.monthlyBill).toFixed(2)}` : "-")} />
+                    <InfoRow label="Discount on Package" value={customer.discountOnPackage ? `PKR ${Number(customer.discountOnPackage).toFixed(2)}` : "PKR 0.00"} />
+                    <InfoRow label="Final Package Bill" value={
+                      <span className="font-semibold text-green-700 dark:text-green-400">
+                        PKR {customer.monthlyBill ? Number(customer.monthlyBill).toFixed(2) : "0.00"}
+                      </span>
+                    } />
                   </div>
                 </div>
+
+                <SectionHeader title="Installation Charges" />
+                <div className="bg-card border rounded-lg overflow-hidden">
+                  <div className="grid grid-cols-2 divide-x divide-y">
+                    <InfoRow label="Installation Charges" value={customer.installationCharges ? `PKR ${Number(customer.installationCharges).toFixed(2)}` : "PKR 0.00"} />
+                    <InfoRow label="Discount on Installation" value={customer.discountOnInstallation ? `PKR ${Number(customer.discountOnInstallation).toFixed(2)}` : "PKR 0.00"} />
+                    <InfoRow label="Final Installation Charges" value={customer.finalInstallationCharges ? `PKR ${Number(customer.finalInstallationCharges).toFixed(2)}` : "PKR 0.00"} />
+                    <InfoRow label="Charge Created On" value={formatDate(customer.connectionDate)} />
+                    <InfoRow label="Received By" value={customer.connectedBy || "-"} />
+                    <InfoRow label="Payment Date" value={formatDate(customer.connectionDate)} />
+                  </div>
+                </div>
+
+                {/* Grand Total Banner */}
+                {(() => {
+                  const pkg  = parseFloat(String(customer.monthlyBill ?? "0")) || 0;
+                  const inst = parseFloat(String(customer.finalInstallationCharges ?? "0")) || 0;
+                  const grand = parseFloat(String(customer.grandTotal ?? "0")) || (pkg + inst);
+                  return (
+                    <div className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 p-4 flex items-center justify-between shadow-md" data-testid="grand-total-banner">
+                      <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-lg bg-white/20 flex items-center justify-center">
+                          <Calculator className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-white">Grand Total (First Payment)</p>
+                          <p className="text-[11px] text-blue-200">PKR {pkg.toFixed(2)} package + PKR {inst.toFixed(2)} installation</p>
+                        </div>
+                      </div>
+                      <p className="text-2xl font-bold text-white" data-testid="text-grand-total">PKR {grand.toFixed(2)}</p>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 
             {activeTab === "network" && (
               <div className="space-y-5" data-testid="tab-content-network">
-                <SectionHeader title="Network & Product Information" />
+                <SectionHeader title="Connection & Protocol" />
                 <div className="bg-card border rounded-lg overflow-hidden">
                   <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Server" value={customer.server || "-"} />
                     <InfoRow label="Protocol Type" value={customer.protocolType || "-"} />
+                    <InfoRow label="Connection Type" value={customer.connectionType || "-"} capitalize />
+                    <InfoRow label="Server" value={customer.server || "-"} />
                     <InfoRow label="Zone" value={customer.zone || "-"} />
                     <InfoRow label="Sub Zone" value={customer.subzone || "-"} />
                     <InfoRow label="Box" value={customer.box || "-"} />
-                    <InfoRow label="Connection Type" value={customer.connectionType || "-"} capitalize />
-                    <InfoRow label="Cable Requirement" value={customer.cableRequirement || "-"} />
+                    <InfoRow label="Cable Requirement (m)" value={customer.cableRequirement || "-"} />
                     <InfoRow label="Fiber Code" value={customer.fiberCode || "-"} />
                     <InfoRow label="Number of Core" value={customer.numberOfCore || "-"} />
                     <InfoRow label="Core Color" value={customer.coreColor || "-"} />
-                    <InfoRow label="Device" value={customer.device || "-"} />
-                    <InfoRow label="Device MAC/Serial" value={customer.deviceMacSerial || "-"} />
+                  </div>
+                </div>
+
+                <SectionHeader title="Device Information" />
+                <div className="bg-card border rounded-lg overflow-hidden">
+                  <div className="grid grid-cols-2 divide-x divide-y">
+                    <InfoRow label="Device Type" value={customer.device || "-"} />
+                    <InfoRow label="Device Model" value={(customer as any).deviceModel || "-"} />
+                    <InfoRow label="Device MAC / Serial No" value={customer.deviceMacSerial || "-"} />
+                    <InfoRow label="Device Owned By" value={(customer as any).deviceOwnedBy || "-"} />
                     <InfoRow label="Vendor" value={customerVendor?.name || "-"} />
                     <InfoRow label="Purchase Date" value={formatDate(customer.purchaseDate)} />
                   </div>
@@ -589,15 +638,37 @@ export default function CustomerProfilePage() {
                 <SectionHeader title="Address Information" />
                 <div className="bg-card border rounded-lg overflow-hidden">
                   <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Address" value={customer.address || "-"} />
+                    <InfoRow label="Branch" value={(customer as any).branch || "-"} />
                     <InfoRow label="Area" value={customer.area || "-"} />
+                    <InfoRow label="City" value={(customer as any).city || "-"} />
+                    <InfoRow label="CNIC Address" value={customer.address || "-"} />
+                    <InfoRow label="Current Address" value={customer.presentAddress || "-"} />
+                    <InfoRow label="Permanent Address" value={customer.permanentAddress || "-"} />
                     <InfoRow label="District" value={customer.district || "-"} />
-                    <InfoRow label="Upazila/Thana" value={customer.upazilaThana || "-"} />
+                    <InfoRow label="Upazila / Thana" value={customer.upazilaThana || "-"} />
                     <InfoRow label="Road Number" value={customer.roadNumber || "-"} />
                     <InfoRow label="House Number" value={customer.houseNumber || "-"} />
-                    <InfoRow label="Present Address" value={customer.presentAddress || "-"} />
-                    <InfoRow label="Permanent Address" value={customer.permanentAddress || "-"} />
                   </div>
+                </div>
+
+                <SectionHeader title="GPS Coordinates" />
+                <div className="bg-card border rounded-lg overflow-hidden">
+                  <div className="grid grid-cols-2 divide-x divide-y">
+                    <InfoRow label="Map Latitude" value={customer.mapLatitude || "-"} />
+                    <InfoRow label="Map Longitude" value={customer.mapLongitude || "-"} />
+                  </div>
+                  {customer.mapLatitude && customer.mapLongitude && (
+                    <div className="px-4 py-2 border-t">
+                      <a
+                        href={`https://maps.google.com/?q=${customer.mapLatitude},${customer.mapLongitude}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-blue-600 flex items-center gap-1 hover:underline"
+                      >
+                        <MapPin className="h-3 w-3" /> Open in Google Maps
+                      </a>
+                    </div>
+                  )}
                 </div>
 
                 <SectionHeader title="Social Links" />
@@ -606,6 +677,93 @@ export default function CustomerProfilePage() {
                     <InfoRow label="Facebook" value={customer.facebookUrl || "-"} />
                     <InfoRow label="LinkedIn" value={customer.linkedinUrl || "-"} />
                     <InfoRow label="Twitter" value={customer.twitterUrl || "-"} />
+                    <InfoRow label="Facebook Profile" value={customer.facebookId || "-"} />
+                    <InfoRow label="WhatsApp" value={customer.whatsapp || "-"} />
+                  </div>
+                </div>
+
+                <SectionHeader title="Notifications & Settings" />
+                <div className="bg-card border rounded-lg overflow-hidden">
+                  <div className="grid grid-cols-2 divide-x divide-y">
+                    <InfoRow label="VIP Client" value={customer.isVipClient ? "Yes" : "No"} />
+                    <InfoRow label="Affiliator" value={customer.affiliator || "-"} />
+                    <InfoRow
+                      label="Send SMS to Employee"
+                      value={
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${customer.sendSmsToEmployee ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" : "bg-muted text-muted-foreground"}`}>
+                          <Bell className="h-3 w-3" /> {customer.sendSmsToEmployee ? "Enabled" : "Disabled"}
+                        </span>
+                      }
+                    />
+                    <InfoRow
+                      label="Send Greeting SMS"
+                      value={
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${customer.sendGreetingSms ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" : "bg-muted text-muted-foreground"}`}>
+                          <Bell className="h-3 w-3" /> {customer.sendGreetingSms ? "Enabled" : "Disabled"}
+                        </span>
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "documents" && (
+              <div className="space-y-5" data-testid="tab-content-documents">
+                <SectionHeader title="Customer Documents" />
+                {(() => {
+                  const cnicFront = customer.nidPicture;
+                  const cnicBack  = (customer as any).cnicBackPicture;
+                  const regForm   = customer.registrationFormPicture;
+                  const docs = [
+                    { label: "CNIC Front", url: cnicFront },
+                    { label: "CNIC Back",  url: cnicBack  },
+                    { label: "Registration Form", url: regForm },
+                  ].filter(d => d.url);
+
+                  if (docs.length === 0) {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
+                        <FileText className="h-12 w-12 opacity-30" />
+                        <p className="text-sm">No documents uploaded for this customer.</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                      {docs.map(doc => (
+                        <div key={doc.label} className="border rounded-xl overflow-hidden shadow-sm" data-testid={`card-doc-${doc.label.replace(/\s+/g, "-").toLowerCase()}`}>
+                          <div className="bg-muted/40 px-4 py-2.5 flex items-center justify-between border-b">
+                            <span className="text-sm font-semibold">{doc.label}</span>
+                            <a href={doc.url!} target="_blank" rel="noreferrer">
+                              <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs">
+                                <Download className="h-3.5 w-3.5" /> View
+                              </Button>
+                            </a>
+                          </div>
+                          <div className="bg-card flex items-center justify-center p-3 min-h-[200px]">
+                            <img
+                              src={doc.url!}
+                              alt={doc.label}
+                              className="max-h-52 object-contain rounded"
+                              onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                <SectionHeader title="Document References" />
+                <div className="bg-card border rounded-lg overflow-hidden">
+                  <div className="grid grid-cols-2 divide-x divide-y">
+                    <InfoRow label="CNIC / NID Number" value={customer.nidNumber || "-"} />
+                    <InfoRow label="Registration Form No" value={customer.registrationFormNo || "-"} />
+                    <InfoRow label="CNIC Front" value={customer.nidPicture ? "Uploaded" : "Not uploaded"} />
+                    <InfoRow label="CNIC Back" value={(customer as any).cnicBackPicture ? "Uploaded" : "Not uploaded"} />
+                    <InfoRow label="Registration Form" value={customer.registrationFormPicture ? "Uploaded" : "Not uploaded"} />
                   </div>
                 </div>
               </div>

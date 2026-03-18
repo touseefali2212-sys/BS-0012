@@ -95,6 +95,17 @@ export const customers = pgTable("customers", {
   affiliator: text("affiliator"),
   sendSmsToEmployee: boolean("send_sms_to_employee").default(false),
   sendGreetingSms: boolean("send_greeting_sms").default(false),
+  city: text("city"),
+  branch: text("branch"),
+  cnicBackPicture: text("cnic_back_picture"),
+  deviceModel: text("device_model"),
+  deviceOwnedBy: text("device_owned_by").default("Company"),
+  installationCharges: decimal("installation_charges", { precision: 10, scale: 2 }).default("0"),
+  discountOnInstallation: decimal("discount_on_installation", { precision: 10, scale: 2 }).default("0"),
+  finalInstallationCharges: decimal("final_installation_charges", { precision: 10, scale: 2 }).default("0"),
+  packageBill: decimal("package_bill", { precision: 10, scale: 2 }).default("0"),
+  discountOnPackage: decimal("discount_on_package", { precision: 10, scale: 2 }).default("0"),
+  grandTotal: decimal("grand_total", { precision: 10, scale: 2 }).default("0"),
 });
 
 export const customerTypes = pgTable("customer_types", {

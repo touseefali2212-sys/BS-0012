@@ -438,6 +438,16 @@ export default function AddCustomerPage() {
         sendSmsToEmployee: form.sendSmsToEmployee,
         sendGreetingSms: form.sendGreetingSms,
         isRecurring: true,
+        branch: form.branch,
+        cnicBackPicture: form.cnicBack,
+        deviceModel: form.deviceModel,
+        deviceOwnedBy: form.deviceOwnedBy,
+        installationCharges: form.installationCharges || "0",
+        discountOnInstallation: form.discountOnInstallation || "0",
+        finalInstallationCharges: form.finalInstallationCharges || "0",
+        packageBill: form.packageBill || "0",
+        discountOnPackage: form.discountOnPackage || "0",
+        grandTotal: form.grandTotal || "0",
       };
       const res = await apiRequest("POST", "/api/customers", payload);
       return res.json();
