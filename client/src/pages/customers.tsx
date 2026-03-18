@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Link, Redirect } from "wouter";
+import { Link, Redirect, useLocation } from "wouter";
 import {
   Plus,
   Search,
@@ -2239,6 +2239,7 @@ function CustomerListView({
 
 export default function CustomersPage() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const { canCreate, canEdit, canDelete } = usePermissions();
   const [tab, setTab] = useTab("list");
   const [search, setSearch] = useState("");
@@ -2458,25 +2459,7 @@ export default function CustomersPage() {
   };
 
   const openEdit = (customer: Customer) => {
-    setEditingCustomer(customer);
-    form.reset({
-      customerId: customer.customerId,
-      fullName: customer.fullName,
-      email: customer.email || "",
-      phone: customer.phone,
-      address: customer.address || "",
-      area: customer.area || "",
-      customerType: customer.customerType,
-      packageId: customer.packageId,
-      status: customer.status,
-      notes: customer.notes || "",
-      connectionDate: customer.connectionDate || "",
-      isRecurring: customer.isRecurring ?? true,
-      recurringDay: customer.recurringDay ?? 1,
-      nextBillingDate: customer.nextBillingDate || "",
-      lastBilledDate: customer.lastBilledDate || "",
-    });
-    setDialogOpen(true);
+    setLocation(`/customers/${customer.id}/edit`);
   };
 
   const onSubmit = (data: InsertCustomer) => {

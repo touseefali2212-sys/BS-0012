@@ -16,6 +16,7 @@ import DashboardPage from "@/pages/dashboard";
 import CustomersPage from "@/pages/customers";
 import CustomerProfilePage from "@/pages/customer-profile";
 import AddCustomerPage from "@/pages/add-customer";
+import EditCustomerPage from "@/pages/edit-customer";
 import PackagesPage from "@/pages/packages";
 import InvoicesPage from "@/pages/invoices";
 import TicketsPage from "@/pages/tickets";
@@ -122,6 +123,7 @@ function Router() {
       <Route path="/" component={DashboardPage} />
       <Route path="/customers" component={CustomersPage} />
       <Route path="/customers/add" component={AddCustomerPage} />
+      <Route path="/customers/:id/edit" component={EditCustomerPage} />
       <Route path="/customers/:id" component={CustomerProfilePage} />
       <Route path="/cir-customers" component={CirCustomersPage} />
       <Route path="/corporate-customers" component={CorporateCustomersPage} />
