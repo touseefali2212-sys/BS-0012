@@ -7,7 +7,7 @@ import {
   AlertCircle, Camera, Calculator, Phone, Mail, Shield,
   Building2, Zap, Package, UserCheck, Image, X,
   CheckCircle2, XCircle, Loader2, SkipForward, FileSpreadsheet,
-  ClipboardList, Send, Users, Radio, Sparkles, ArrowRight
+  ClipboardList, Send, Users, Radio, Sparkles, ArrowRight, LocateFixed
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -220,6 +220,7 @@ export default function AddCustomerPage() {
   const [activeTab, setActiveTab] = useState("basic");
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [gpsLocating, setGpsLocating] = useState(false);
 
   // Automation modal state
   const [autoModalOpen, setAutoModalOpen] = useState(false);
@@ -316,6 +317,27 @@ export default function AddCustomerPage() {
     } else {
       update("packageId", pkgId);
     }
+  };
+
+  const handleGetGps = () => {
+    if (!navigator.geolocation) {
+      toast({ title: "Geolocation not supported", description: "Your browser does not support GPS.", variant: "destructive" });
+      return;
+    }
+    setGpsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        update("mapLatitude",  String(pos.coords.latitude));
+        update("mapLongitude", String(pos.coords.longitude));
+        setGpsLocating(false);
+        toast({ title: "Location detected", description: `Lat: ${pos.coords.latitude.toFixed(6)}, Lng: ${pos.coords.longitude.toFixed(6)}` });
+      },
+      (err) => {
+        setGpsLocating(false);
+        toast({ title: "GPS error", description: err.message, variant: "destructive" });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
   };
 
   const handleJoiningDateChange = (date: string) => {
@@ -1235,6 +1257,18 @@ export default function AddCustomerPage() {
                     <MapPin className="h-4 w-4 text-green-600" />
                     <span className="font-semibold text-sm">GPS Coordinates</span>
                     <Badge variant="outline" className="text-xs">Optional</Badge>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="ml-auto h-7 gap-1.5 text-xs border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-950"
+                      onClick={handleGetGps}
+                      disabled={gpsLocating}
+                      data-testid="button-get-gps"
+                    >
+                      <LocateFixed className={`h-3.5 w-3.5 ${gpsLocating ? "animate-pulse" : ""}`} />
+                      {gpsLocating ? "Detecting…" : "Get GPS Location"}
+                    </Button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
@@ -1258,7 +1292,7 @@ export default function AddCustomerPage() {
                   </div>
                   <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
                     <MapPin className="h-3.5 w-3.5" />
-                    Enter GPS coordinates manually or use the customer map to pin location
+                    Enter GPS coordinates manually or click "Get GPS Location" to auto-detect
                   </p>
                 </div>
               </CardContent>
