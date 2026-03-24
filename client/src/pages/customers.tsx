@@ -16,6 +16,7 @@ import {
   Mail,
   MapPin,
   Eye,
+  EyeOff,
   RefreshCw,
   CalendarClock,
   Home,
@@ -1671,6 +1672,12 @@ function CustomerListView({
   const [showFilters, setShowFilters] = useState(true);
   const [entriesCount, setEntriesCount] = useState(100);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [visiblePasswords, setVisiblePasswords] = useState<Set<number>>(new Set());
+  const togglePasswordVisibility = (id: number) => setVisiblePasswords(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
   const [filterVendor, setFilterVendor] = useState("all");
   const [filterProtocol, setFilterProtocol] = useState("all");
   const [filterProfile, setFilterProfile] = useState("all");
@@ -2087,14 +2094,13 @@ function CustomerListView({
               <TableHead className="text-white font-semibold text-[11px] whitespace-nowrap">MAC Addr</TableHead>
               <TableHead className="text-white font-semibold text-[11px] whitespace-nowrap">Connection Service Vendor</TableHead>
               <TableHead className="text-white font-semibold text-[11px] whitespace-nowrap">B.Status</TableHead>
-              <TableHead className="text-white font-semibold text-[11px] whitespace-nowrap">M.Status</TableHead>
               <TableHead className="text-white font-semibold text-[11px] whitespace-nowrap">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {displayed.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={16} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={15} className="text-center py-12 text-muted-foreground">
                   <div className="flex flex-col items-center">
                     <Users className="h-12 w-12 mb-3 opacity-30" />
                     <p className="font-medium">No customers found</p>
@@ -2118,13 +2124,30 @@ function CustomerListView({
                     />
                   </TableCell>
                   <TableCell className="font-mono text-xs font-medium" data-testid={`text-customer-code-${customer.id}`}>
-                    {customer.customerId}
+                    <Link href={`/customers/${customer.id}`} className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
+                      {customer.customerId}
+                    </Link>
                   </TableCell>
                   <TableCell className="font-mono text-xs" data-testid={`text-customer-ip-${customer.id}`}>
-                    {customer.usernameIp || "-"}
+                    <Link href={`/customers/${customer.id}`} className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
+                      {customer.usernameIp || "-"}
+                    </Link>
                   </TableCell>
                   <TableCell className="text-xs" data-testid={`text-customer-password-${customer.id}`}>
-                    <span className="text-muted-foreground">{maskedPassword}</span>
+                    <div className="flex items-center gap-1">
+                      <span className="font-mono text-muted-foreground">
+                        {visiblePasswords.has(customer.id) ? (customer.password || "-") : maskedPassword}
+                      </span>
+                      {customer.password && (
+                        <button
+                          onClick={() => togglePasswordVisibility(customer.id)}
+                          className="text-muted-foreground hover:text-foreground"
+                          data-testid={`button-toggle-password-${customer.id}`}
+                        >
+                          {visiblePasswords.has(customer.id) ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                        </button>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell data-testid={`text-customer-name-${customer.id}`}>
                     <div className="flex items-center gap-2">
@@ -2153,7 +2176,7 @@ function CustomerListView({
                     {pkg ? `${pkg.name}/${pkg.speed || ""}` : "-"}
                   </TableCell>
                   <TableCell className="text-xs font-medium">{customer.monthlyBill || "-"}</TableCell>
-                  <TableCell className="text-xs font-mono">{customer.deviceMacSerial || "-"}</TableCell>
+                  <TableCell className="text-xs font-mono">{(customer as any).macAddress || "-"}</TableCell>
                   <TableCell className="text-xs">
                     {vendorName !== "-" ? (
                       <span className="text-blue-600 dark:text-blue-400 font-medium">{vendorName}</span>
@@ -2165,18 +2188,6 @@ function CustomerListView({
                     <Badge className={`text-[10px] ${customer.billingStatus === "Active" ? "bg-green-600 text-white" : "bg-gray-400 text-white"}`}>
                       {customer.billingStatus || "Inactive"}
                     </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={customer.status === "active"}
-                      onCheckedChange={(checked) => {
-                        toggleStatusMutation.mutate({
-                          id: customer.id,
-                          newStatus: checked ? "active" : "inactive",
-                        });
-                      }}
-                      data-testid={`switch-status-${customer.id}`}
-                    />
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
