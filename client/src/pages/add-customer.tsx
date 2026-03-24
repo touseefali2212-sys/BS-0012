@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
@@ -309,14 +309,26 @@ export default function AddCustomerPage() {
   };
 
   const handleAreaChange = (areaName: string) => {
-    const area = areas?.find(a => a.name === areaName);
+    setForm(prev => ({ ...prev, area: areaName }));
+  };
+
+  useEffect(() => {
+    if (!form.branch || !branches?.length) return;
+    const branch = branches.find(b => String(b.id) === form.branch);
+    if (!branch?.city) return;
+    setForm(prev => ({ ...prev, city: branch.city! }));
+  }, [form.branch, branches]);
+
+  useEffect(() => {
+    if (!form.area || !areas?.length) return;
+    const area = areas.find(a => a.name === form.area);
+    if (!area) return;
     setForm(prev => ({
       ...prev,
-      area: areaName,
-      city:    area?.city  || prev.city,
-      zone:    area?.zone  || prev.zone,
+      ...(area.city ? { city: area.city } : {}),
+      ...(area.zone ? { zone: area.zone } : {}),
     }));
-  };
+  }, [form.area, areas]);
 
   const handlePackageChange = (pkgId: string) => {
     const pkg = packages?.find(p => String(p.id) === pkgId);

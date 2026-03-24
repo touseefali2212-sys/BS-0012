@@ -369,25 +369,38 @@ export default function EditCustomerPage() {
     !selectedBranch || a.branch === selectedBranch.name
   );
 
+  const manualBranchRef = useRef<string | null>(null);
+  const manualAreaRef   = useRef<string | null>(null);
+
   const handleBranchChange = (branchId: string) => {
-    const branch = branches?.find(b => String(b.id) === branchId);
-    setForm(prev => ({
-      ...prev,
-      branch: branchId,
-      area: "",
-      city: branch?.city || prev.city,
-    }));
+    manualBranchRef.current = branchId;
+    setForm(prev => ({ ...prev, branch: branchId, area: "" }));
   };
 
   const handleAreaChange = (areaName: string) => {
-    const area = areas?.find(a => a.name === areaName);
+    manualAreaRef.current = areaName;
+    setForm(prev => ({ ...prev, area: areaName }));
+  };
+
+  useEffect(() => {
+    if (form.branch !== manualBranchRef.current) return;
+    if (!form.branch || !branches?.length) return;
+    const branch = branches.find(b => String(b.id) === form.branch);
+    if (!branch?.city) return;
+    setForm(prev => ({ ...prev, city: branch.city! }));
+  }, [form.branch, branches]);
+
+  useEffect(() => {
+    if (form.area !== manualAreaRef.current) return;
+    if (!form.area || !areas?.length) return;
+    const area = areas.find(a => a.name === form.area);
+    if (!area) return;
     setForm(prev => ({
       ...prev,
-      area: areaName,
-      city: area?.city || prev.city,
-      zone: area?.zone || prev.zone,
+      ...(area.city ? { city: area.city } : {}),
+      ...(area.zone ? { zone: area.zone } : {}),
     }));
-  };
+  }, [form.area, areas]);
 
   const handlePackageChange = (pkgId: string) => {
     const pkg = packages?.find(p => String(p.id) === pkgId);
