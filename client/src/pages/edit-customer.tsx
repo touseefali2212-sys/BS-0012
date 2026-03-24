@@ -363,6 +363,32 @@ export default function EditCustomerPage() {
 
   const selectedPackage = packages?.find(p => String(p.id) === form.packageId);
 
+  const selectedBranch = branches?.find(b => String(b.id) === form.branch);
+
+  const filteredAreas = areas?.filter(a =>
+    !selectedBranch || a.branch === selectedBranch.name
+  );
+
+  const handleBranchChange = (branchId: string) => {
+    const branch = branches?.find(b => String(b.id) === branchId);
+    setForm(prev => ({
+      ...prev,
+      branch: branchId,
+      area: "",
+      city: branch?.city || prev.city,
+    }));
+  };
+
+  const handleAreaChange = (areaName: string) => {
+    const area = areas?.find(a => a.name === areaName);
+    setForm(prev => ({
+      ...prev,
+      area: areaName,
+      city: area?.city || prev.city,
+      zone: area?.zone || prev.zone,
+    }));
+  };
+
   const handlePackageChange = (pkgId: string) => {
     const pkg = packages?.find(p => String(p.id) === pkgId);
     if (pkg) {
@@ -1176,7 +1202,7 @@ export default function EditCustomerPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">Branch</label>
-                    <Select value={form.branch} onValueChange={v => update("branch", v)}>
+                    <Select value={form.branch} onValueChange={handleBranchChange}>
                       <SelectTrigger data-testid="select-branch"><SelectValue placeholder="Select branch" /></SelectTrigger>
                       <SelectContent>
                         {branches?.map(b => (
@@ -1188,10 +1214,10 @@ export default function EditCustomerPage() {
 
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">Area</label>
-                    <Select value={form.area} onValueChange={v => update("area", v)}>
-                      <SelectTrigger data-testid="select-area"><SelectValue placeholder="Select area" /></SelectTrigger>
+                    <Select value={form.area} onValueChange={handleAreaChange} disabled={!form.branch}>
+                      <SelectTrigger data-testid="select-area"><SelectValue placeholder={form.branch ? "Select area" : "Select branch first"} /></SelectTrigger>
                       <SelectContent>
-                        {areas?.map(a => (
+                        {filteredAreas?.map(a => (
                           <SelectItem key={a.id} value={a.name}>{a.name} — {a.city}</SelectItem>
                         ))}
                       </SelectContent>
