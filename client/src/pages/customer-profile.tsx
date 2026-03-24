@@ -536,17 +536,38 @@ export default function CustomerProfilePage() {
                   const aitAmt  = parseFloat(((base * aitPct) / 100).toFixed(2));
                   const taxInclusiveTotal = base + whtAmt + aitAmt;
 
-                  // Prefer saved packageBill (tax-inclusive) if it was stored; otherwise compute
                   const savedPkgBill = parseFloat(String(customer.packageBill ?? "0")) || 0;
                   const pkgBill = savedPkgBill > 0 ? savedPkgBill : taxInclusiveTotal;
-
-                  // Final Package Bill = pkgBill − discount
                   const discount     = parseFloat(String(customer.discountOnPackage ?? "0")) || 0;
                   const finalPkgBill = Math.max(0, pkgBill - discount);
 
-                  // Installation
                   const inst  = parseFloat(String(customer.finalInstallationCharges ?? "0")) || 0;
-                  const grand = parseFloat(String(customer.grandTotal ?? "0")) || (finalPkgBill + inst);
+
+                  const deviceCharges   = parseFloat(String((customer as any).deviceCharges  ?? "0")) || 0;
+                  const staticIpEnabled = (customer as any).staticIpEnabled;
+                  const staticIpMrc     = parseFloat(String((customer as any).staticIpMrc    ?? "0")) || 0;
+                  const instEnabled     = (customer as any).installmentEnabled;
+                  const instMonthly     = parseFloat(String((customer as any).installmentMonthlyAmount ?? "0")) || 0;
+
+                  let addlPkgs: { packageId: number; bill: string }[] = [];
+                  try { addlPkgs = JSON.parse((customer as any).additionalPackages || "[]"); } catch {}
+                  const addlPkgsTotal = addlPkgs.reduce((s, p) => s + (parseFloat(p.bill) || 0), 0);
+
+                  let addlDevices: { deviceType: string; deviceDetail: string; deviceCharges: string }[] = [];
+                  try { addlDevices = JSON.parse((customer as any).additionalDevices || "[]"); } catch {}
+                  const addlDevicesTotal = addlDevices.reduce((s, d) => s + (parseFloat(d.deviceCharges) || 0), 0);
+
+                  const grand = parseFloat(String(customer.grandTotal ?? "0")) || (finalPkgBill + inst + deviceCharges + (staticIpEnabled ? staticIpMrc : 0) + (instEnabled ? instMonthly : 0) + addlPkgsTotal + addlDevicesTotal);
+
+                  // Build breakdown text
+                  const breakdownParts: string[] = [];
+                  if (finalPkgBill > 0) breakdownParts.push(`PKR ${finalPkgBill.toFixed(0)} pkg`);
+                  if (deviceCharges > 0) breakdownParts.push(`PKR ${deviceCharges.toFixed(0)} device`);
+                  if (addlDevicesTotal > 0) breakdownParts.push(`PKR ${addlDevicesTotal.toFixed(0)} addl. devices`);
+                  if (inst > 0) breakdownParts.push(`PKR ${inst.toFixed(0)} install`);
+                  if (staticIpEnabled && staticIpMrc > 0) breakdownParts.push(`PKR ${staticIpMrc.toFixed(0)} static IP`);
+                  if (instEnabled && instMonthly > 0) breakdownParts.push(`PKR ${instMonthly.toFixed(0)} installment`);
+                  if (addlPkgsTotal > 0) breakdownParts.push(`PKR ${addlPkgsTotal.toFixed(0)} addl. pkgs`);
 
                   return (
                     <>
@@ -558,12 +579,42 @@ export default function CustomerProfilePage() {
                           <InfoRow label="Package Bill (incl. Tax)" value={pkgBill > 0 ? `PKR ${pkgBill.toFixed(2)}` : "-"} />
                           <InfoRow label="Discount on Package" value={`PKR ${discount.toFixed(2)}`} />
                           <InfoRow label="Final Package Bill" value={
-                            <span className="font-semibold text-green-700 dark:text-green-400">
-                              PKR {finalPkgBill.toFixed(2)}
-                            </span>
+                            <span className="font-semibold text-green-700 dark:text-green-400">PKR {finalPkgBill.toFixed(2)}</span>
                           } />
                         </div>
                       </div>
+
+                      {/* Primary Device Billing */}
+                      {deviceCharges > 0 && (
+                        <>
+                          <SectionHeader title="Device Billing" />
+                          <div className="bg-card border rounded-lg overflow-hidden">
+                            <div className="grid grid-cols-2 divide-x divide-y">
+                              <InfoRow label="Device Type" value={(customer as any).deviceType || "-"} />
+                              <InfoRow label="Device Detail" value={(customer as any).deviceDetail || "-"} />
+                              <InfoRow label="Device Charges" value={`PKR ${deviceCharges.toFixed(2)}`} />
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Additional Devices Billing */}
+                      {addlDevices.length > 0 && (
+                        <>
+                          <SectionHeader title="Additional Devices Billing" />
+                          <div className="bg-card border rounded-lg overflow-hidden">
+                            <div className="grid grid-cols-2 divide-x divide-y">
+                              {addlDevices.map((d, i) => (
+                                <>
+                                  <InfoRow key={`adt-${i}`} label={`Device ${i + 1}`} value={`${d.deviceType}${d.deviceDetail ? ` — ${d.deviceDetail}` : ""}`} />
+                                  <InfoRow key={`adc-${i}`} label={`Device ${i + 1} Charges`} value={Number(d.deviceCharges) > 0 ? `PKR ${Number(d.deviceCharges).toFixed(2)}` : "-"} />
+                                </>
+                              ))}
+                              <InfoRow label="Additional Devices Total" value={<span className="font-semibold">PKR {addlDevicesTotal.toFixed(2)}</span>} />
+                            </div>
+                          </div>
+                        </>
+                      )}
 
                       <SectionHeader title="Installation Charges" />
                       <div className="bg-card border rounded-lg overflow-hidden">
@@ -577,6 +628,60 @@ export default function CustomerProfilePage() {
                         </div>
                       </div>
 
+                      {/* Static IP Add-on */}
+                      {staticIpEnabled && (
+                        <>
+                          <SectionHeader title="Static IP Add-on" />
+                          <div className="bg-card border rounded-lg overflow-hidden">
+                            <div className="grid grid-cols-2 divide-x divide-y">
+                              <InfoRow label="Static IP" value={<span className="text-green-600 font-medium">Enabled</span>} />
+                              <InfoRow label="Monthly Recurring Charge" value={`PKR ${staticIpMrc.toFixed(2)}`} />
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Installment Plan */}
+                      {instEnabled && (
+                        <>
+                          <SectionHeader title="Installment Plan" />
+                          <div className="bg-card border rounded-lg overflow-hidden">
+                            <div className="grid grid-cols-2 divide-x divide-y">
+                              <InfoRow label="Installment Type" value={(customer as any).installmentType || "-"} />
+                              <InfoRow label="Total Amount" value={`PKR ${parseFloat(String((customer as any).installmentTotalAmount ?? "0")).toFixed(2)}`} />
+                              <InfoRow label="Total Months" value={String((customer as any).installmentMonths || "-")} />
+                              <InfoRow label="Monthly Amount" value={`PKR ${instMonthly.toFixed(2)}`} />
+                              <InfoRow label="Months Paid" value={String((customer as any).installmentPaidMonths ?? "0")} />
+                              <InfoRow label="Remaining Months" value={String(Math.max(0, ((customer as any).installmentMonths || 0) - ((customer as any).installmentPaidMonths || 0)))} />
+                              {(customer as any).installmentNote && (
+                                <InfoRow label="Note" value={(customer as any).installmentNote} />
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      {/* Additional Packages */}
+                      {addlPkgs.length > 0 && (
+                        <>
+                          <SectionHeader title="Additional Packages" />
+                          <div className="bg-card border rounded-lg overflow-hidden">
+                            <div className="grid grid-cols-2 divide-x divide-y">
+                              {addlPkgs.map((ap, i) => {
+                                const pkg = packages?.find(p => p.id === ap.packageId);
+                                return (
+                                  <>
+                                    <InfoRow key={`apn-${i}`} label={`Package ${i + 1}`} value={pkg?.name || `Package #${ap.packageId}`} />
+                                    <InfoRow key={`apb-${i}`} label={`Package ${i + 1} Bill`} value={parseFloat(ap.bill) > 0 ? `PKR ${parseFloat(ap.bill).toFixed(2)}` : "-"} />
+                                  </>
+                                );
+                              })}
+                              <InfoRow label="Additional Packages Total" value={<span className="font-semibold">PKR {addlPkgsTotal.toFixed(2)}</span>} />
+                            </div>
+                          </div>
+                        </>
+                      )}
+
                       {/* Grand Total Banner */}
                       <div className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 p-4 flex items-center justify-between shadow-md" data-testid="grand-total-banner">
                         <div className="flex items-center gap-3">
@@ -585,7 +690,7 @@ export default function CustomerProfilePage() {
                           </div>
                           <div>
                             <p className="text-sm font-semibold text-white">Grand Total (First Payment)</p>
-                            <p className="text-[11px] text-blue-200">PKR {finalPkgBill.toFixed(2)} package + PKR {inst.toFixed(2)} installation</p>
+                            <p className="text-[11px] text-blue-200">{breakdownParts.length > 0 ? breakdownParts.join(" + ") : "No billing components"}</p>
                           </div>
                         </div>
                         <p className="text-2xl font-bold text-white" data-testid="text-grand-total">PKR {grand.toFixed(2)}</p>
@@ -617,14 +722,40 @@ export default function CustomerProfilePage() {
                 <SectionHeader title="Device Information" />
                 <div className="bg-card border rounded-lg overflow-hidden">
                   <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Device Type" value={customer.device || "-"} />
+                    <InfoRow label="Device Type" value={(customer as any).deviceType || customer.device || "-"} />
                     <InfoRow label="Device Model" value={(customer as any).deviceModel || "-"} />
-                    <InfoRow label="Device MAC / Serial No" value={customer.deviceMacSerial || "-"} />
+                    <InfoRow label="Device Detail" value={(customer as any).deviceDetail || "-"} />
+                    <InfoRow label="Device Charges" value={(customer as any).deviceCharges && Number((customer as any).deviceCharges) > 0 ? `PKR ${Number((customer as any).deviceCharges).toFixed(2)}` : "-"} />
+                    <InfoRow label="Device Serial No" value={customer.deviceMacSerial || "-"} />
+                    <InfoRow label="Device MAC Address" value={(customer as any).macAddress || "-"} />
                     <InfoRow label="Device Owned By" value={(customer as any).deviceOwnedBy || "-"} />
                     <InfoRow label="Vendor" value={customerVendor?.name || "-"} />
                     <InfoRow label="Purchase Date" value={formatDate(customer.purchaseDate)} />
                   </div>
                 </div>
+
+                {(() => {
+                  const raw = (customer as any).additionalDevices;
+                  let addlDevices: { deviceType: string; deviceDetail: string; deviceCharges: string }[] = [];
+                  try { addlDevices = JSON.parse(raw || "[]"); } catch {}
+                  if (!addlDevices.length) return null;
+                  return (
+                    <>
+                      <SectionHeader title="Additional Devices" />
+                      <div className="bg-card border rounded-lg overflow-hidden">
+                        <div className="grid grid-cols-2 divide-x divide-y">
+                          {addlDevices.map((d, i) => (
+                            <>
+                              <InfoRow key={`type-${i}`} label={`Device ${i + 1} — Type`} value={d.deviceType || "-"} />
+                              <InfoRow key={`detail-${i}`} label={`Device ${i + 1} — Detail`} value={d.deviceDetail || "-"} />
+                              <InfoRow key={`charge-${i}`} label={`Device ${i + 1} — Charges`} value={Number(d.deviceCharges) > 0 ? `PKR ${Number(d.deviceCharges).toFixed(2)}` : "-"} />
+                            </>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
 
                 {connections && connections.length > 0 && (
                   <>
