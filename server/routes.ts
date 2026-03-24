@@ -616,6 +616,128 @@ export async function registerRoutes(
         }
       } catch (e) {
       }
+
+      // Auto-generate invoice in Sales when customer has billing details
+      try {
+        const grandTotal = parseFloat(String(customer.grandTotal || "0"));
+        if (grandTotal > 0 || customer.packageId) {
+          const now = new Date();
+          const dateStr = now.toISOString().split("T")[0];
+          const yr = now.getFullYear();
+          const invNum = `INV-${yr}-${Date.now().toString(36).toUpperCase()}`;
+
+          // Look up package name for description
+          let pkgName = "Service Package";
+          let pkgServiceType = "internet";
+          if (customer.packageId) {
+            try {
+              const pkg = await storage.getPackage(customer.packageId as number);
+              if (pkg) { pkgName = pkg.name; pkgServiceType = pkg.serviceType || "internet"; }
+            } catch {}
+          }
+
+          const issueDate = (customer.joiningDate as string | null) || dateStr;
+          const dueDate   = (customer.expireDate  as string | null) || (() => { const d = new Date(); d.setDate(d.getDate() + 30); return d.toISOString().split("T")[0]; })();
+          const totalAmt  = grandTotal || parseFloat(String(customer.monthlyBill || "0")) || 0;
+
+          // Build description
+          const descParts: string[] = [`New customer connection — ${customer.fullName} (${customer.customerId})`];
+          descParts.push(`Package: ${pkgName}`);
+
+          const invoice = await storage.createInvoice({
+            invoiceNumber: invNum,
+            customerId: customer.id,
+            amount: String(totalAmt),
+            tax: "0",
+            totalAmount: String(totalAmt),
+            status: "pending",
+            issueDate,
+            dueDate,
+            description: descParts.join(" | "),
+            isRecurring: false,
+            serviceType: pkgServiceType,
+          });
+
+          // Build line items
+          const lineItems: Array<{ invoiceId: number; itemType: string; description: string; quantity: number; unitPrice: string; discount: string; taxRate: string; taxAmount: string; total: string; packageId?: number; sortOrder: number }> = [];
+          let sortIdx = 0;
+
+          // Package bill
+          const pkgBill = parseFloat(String(customer.finalPackageBill || customer.packageBill || "0"));
+          if (pkgBill > 0 && customer.packageId) {
+            lineItems.push({ invoiceId: invoice.id, itemType: "service", description: `${pkgName} — Monthly Service`, quantity: 1, unitPrice: String(pkgBill), discount: "0", taxRate: "0", taxAmount: "0", total: String(pkgBill), packageId: customer.packageId as number, sortOrder: sortIdx++ });
+          }
+
+          // Device charges (primary device)
+          const deviceCharges = parseFloat(String(customer.deviceCharges || "0"));
+          if (deviceCharges > 0) {
+            const devLabel = (customer.deviceType as string | null) ? `Device: ${customer.deviceType}${(customer.deviceDetail as string | null) ? ` (${customer.deviceDetail})` : ""}` : "Device Charges";
+            lineItems.push({ invoiceId: invoice.id, itemType: "equipment", description: devLabel, quantity: 1, unitPrice: String(deviceCharges), discount: "0", taxRate: "0", taxAmount: "0", total: String(deviceCharges), sortOrder: sortIdx++ });
+          }
+
+          // Additional devices
+          try {
+            const addlDevs = JSON.parse(String(customer.additionalDevices || "[]"));
+            if (Array.isArray(addlDevs)) {
+              for (const d of addlDevs) {
+                const dc = parseFloat(String(d.deviceCharges || "0"));
+                if (dc > 0) {
+                  const label = d.deviceType ? `Device: ${d.deviceType}${d.deviceDetail ? ` (${d.deviceDetail})` : ""}` : "Additional Device";
+                  lineItems.push({ invoiceId: invoice.id, itemType: "equipment", description: label, quantity: 1, unitPrice: String(dc), discount: "0", taxRate: "0", taxAmount: "0", total: String(dc), sortOrder: sortIdx++ });
+                }
+              }
+            }
+          } catch {}
+
+          // Installation charges
+          const instCharges = parseFloat(String(customer.finalInstallationCharges || "0"));
+          if (instCharges > 0) {
+            lineItems.push({ invoiceId: invoice.id, itemType: "service", description: "Installation Charges", quantity: 1, unitPrice: String(instCharges), discount: "0", taxRate: "0", taxAmount: "0", total: String(instCharges), sortOrder: sortIdx++ });
+          }
+
+          // Static IP MRC
+          if (customer.staticIpEnabled) {
+            const sipMrc = parseFloat(String(customer.staticIpMrc || "0"));
+            if (sipMrc > 0) {
+              lineItems.push({ invoiceId: invoice.id, itemType: "service", description: "Static IP — Monthly Recurring Charge", quantity: 1, unitPrice: String(sipMrc), discount: "0", taxRate: "0", taxAmount: "0", total: String(sipMrc), sortOrder: sortIdx++ });
+            }
+          }
+
+          // Installment monthly amount
+          if (customer.installmentEnabled) {
+            const instMo = parseFloat(String(customer.installmentMonthlyAmount || "0"));
+            if (instMo > 0) {
+              const instDesc = `Installment (Month 1 of ${customer.installmentMonths || "?"}) — ${customer.installmentType || ""}`.trim();
+              lineItems.push({ invoiceId: invoice.id, itemType: "service", description: instDesc, quantity: 1, unitPrice: String(instMo), discount: "0", taxRate: "0", taxAmount: "0", total: String(instMo), sortOrder: sortIdx++ });
+            }
+          }
+
+          // Additional packages (IPTV, Cable TV, OTT)
+          try {
+            const addlPkgs = JSON.parse(String(customer.additionalPackages || "[]"));
+            if (Array.isArray(addlPkgs)) {
+              for (const ap of addlPkgs) {
+                const apBill = parseFloat(String(ap.bill || "0"));
+                if (apBill > 0) {
+                  let apName = "Additional Service";
+                  if (ap.packageId) {
+                    try { const apPkg = await storage.getPackage(Number(ap.packageId)); if (apPkg) apName = apPkg.name; } catch {}
+                  }
+                  lineItems.push({ invoiceId: invoice.id, itemType: "service", description: apName, quantity: 1, unitPrice: String(apBill), discount: "0", taxRate: "0", taxAmount: "0", total: String(apBill), sortOrder: sortIdx++ });
+                }
+              }
+            }
+          } catch {}
+
+          // Insert all line items
+          for (const li of lineItems) {
+            await storage.createInvoiceItem(li);
+          }
+        }
+      } catch (e) {
+        // Invoice auto-generation failure is non-blocking
+      }
+
       return customer;
     },
     (id, data) => storage.updateCustomer(id, data),
