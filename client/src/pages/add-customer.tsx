@@ -237,6 +237,7 @@ export default function AddCustomerPage() {
     connectedBy: "", usernameIp: "", password: "", vendorId: "", packageId: "",
     packageBill: "", discountOnPackage: "", finalPackageBill: "",
     installationCharges: "0", discountOnInstallation: "0", finalInstallationCharges: "0",
+    staticIpEnabled: false, staticIpMrc: "0",
     grandTotal: "0",
     joiningDate: "", expireDate: "", billingStatus: "Active",
 
@@ -269,10 +270,11 @@ export default function AddCustomerPage() {
       }
 
       // Auto-recalculate grand total whenever either final amount changes
-      if (["packageBill","discountOnPackage","installationCharges","discountOnInstallation"].includes(field)) {
-        const fp = parseFloat(updated.finalPackageBill)        || 0;
-        const fi = parseFloat(updated.finalInstallationCharges) || 0;
-        updated.grandTotal = (fp + fi).toFixed(2);
+      if (["packageBill","discountOnPackage","installationCharges","discountOnInstallation","staticIpMrc","staticIpEnabled"].includes(field)) {
+        const fp  = parseFloat(updated.finalPackageBill)         || 0;
+        const fi  = parseFloat(updated.finalInstallationCharges) || 0;
+        const sip = (updated.staticIpEnabled ? parseFloat(updated.staticIpMrc) : 0) || 0;
+        updated.grandTotal = (fp + fi + sip).toFixed(2);
       }
 
       return updated;
@@ -344,14 +346,17 @@ export default function AddCustomerPage() {
       const final   = String(Math.max(0, parseFloat(bill) - parseFloat(disc)));
       const expire = form.joiningDate ? addMonths(form.joiningDate, cycleToMonths(pkg.billingCycle)) : "";
       const instFinal = parseFloat(form.finalInstallationCharges) || 0;
-      setForm(prev => ({
-        ...prev,
-        packageId: pkgId,
-        packageBill: bill,
-        finalPackageBill: final,
-        grandTotal: (parseFloat(final) + instFinal).toFixed(2),
-        expireDate: expire,
-      }));
+      setForm(prev => {
+        const sip = (prev.staticIpEnabled ? parseFloat(prev.staticIpMrc) : 0) || 0;
+        return {
+          ...prev,
+          packageId: pkgId,
+          packageBill: bill,
+          finalPackageBill: final,
+          grandTotal: (parseFloat(final) + instFinal + sip).toFixed(2),
+          expireDate: expire,
+        };
+      });
     } else {
       update("packageId", pkgId);
     }
@@ -508,6 +513,8 @@ export default function AddCustomerPage() {
         packageBill: form.packageBill || "0",
         discountOnPackage: form.discountOnPackage || "0",
         grandTotal: form.grandTotal || "0",
+        staticIpEnabled: form.staticIpEnabled,
+        staticIpMrc: form.staticIpMrc || "0",
       };
       const res = await apiRequest("POST", "/api/customers", payload);
       return res.json();
@@ -1059,7 +1066,71 @@ export default function AddCustomerPage() {
                     </div>
                   </div>
 
-                  {/* Grand Total = Final Package Bill + Final Installation Charges (editable) */}
+                  {/* Add-on Services */}
+                  <div className="mt-4 rounded-xl border border-dashed border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-950/20 p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Zap className="h-4 w-4 text-purple-600" />
+                      <span className="text-sm font-semibold text-purple-700 dark:text-purple-400">Add-on Services</span>
+                      <span className="text-xs text-muted-foreground ml-1">Optional recurring charges</span>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      {/* Static IP toggle button */}
+                      <div className="flex flex-col gap-2">
+                        <button
+                          type="button"
+                          data-testid="btn-addon-static-ip"
+                          onClick={() => update("staticIpEnabled", !form.staticIpEnabled)}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                            form.staticIpEnabled
+                              ? "bg-purple-600 border-purple-600 text-white shadow-md"
+                              : "bg-white dark:bg-background border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-400 hover:border-purple-500"
+                          }`}
+                        >
+                          {form.staticIpEnabled
+                            ? <Check className="h-4 w-4" />
+                            : <span className="font-bold text-base leading-none">+</span>
+                          }
+                          Static IP
+                          {form.staticIpEnabled && (
+                            <Badge className="ml-1 bg-white/20 text-white text-[10px] px-1.5 py-0">Active</Badge>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Static IP MRC field — shown only when enabled */}
+                    {form.staticIpEnabled && (
+                      <div className="mt-3 flex items-end gap-3">
+                        <div className="space-y-1.5 flex-1 max-w-xs">
+                          <label className="text-sm font-medium text-purple-700 dark:text-purple-400">
+                            Static IP — MRC (PKR) <span className="text-red-500">*</span>
+                          </label>
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              placeholder="0.00"
+                              value={form.staticIpMrc}
+                              onChange={e => update("staticIpMrc", e.target.value)}
+                              data-testid="input-static-ip-mrc"
+                              className="pr-9 border-purple-300 dark:border-purple-700 focus-visible:ring-purple-400"
+                            />
+                            <Calculator className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-purple-500" />
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">Monthly Recurring Charge for Static IP service</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => update("staticIpEnabled", false)}
+                          className="mb-6 text-xs text-muted-foreground hover:text-red-500 flex items-center gap-1"
+                          data-testid="btn-remove-static-ip"
+                        >
+                          <X className="h-3.5 w-3.5" /> Remove
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Grand Total = Final Package Bill + Final Installation Charges + Static IP MRC (editable) */}
                   <div className="mt-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 p-4 shadow-md">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center">
@@ -1067,10 +1138,16 @@ export default function AddCustomerPage() {
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-white">Grand Total (First Payment)</p>
-                        <p className="text-[11px] text-blue-200">
-                          PKR {(parseFloat(form.finalPackageBill) || 0).toFixed(2)} package
-                          {" "}+{" "}
-                          PKR {(parseFloat(form.finalInstallationCharges) || 0).toFixed(2)} installation
+                        <p className="text-[11px] text-blue-200 space-x-1">
+                          <span>PKR {(parseFloat(form.finalPackageBill) || 0).toFixed(2)} package</span>
+                          <span>+</span>
+                          <span>PKR {(parseFloat(form.finalInstallationCharges) || 0).toFixed(2)} installation</span>
+                          {form.staticIpEnabled && parseFloat(form.staticIpMrc) > 0 && (
+                            <>
+                              <span>+</span>
+                              <span>PKR {(parseFloat(form.staticIpMrc) || 0).toFixed(2)} static IP</span>
+                            </>
+                          )}
                         </p>
                       </div>
                     </div>
