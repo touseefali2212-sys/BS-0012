@@ -238,6 +238,8 @@ export default function AddCustomerPage() {
     packageBill: "", discountOnPackage: "", finalPackageBill: "",
     installationCharges: "0", discountOnInstallation: "0", finalInstallationCharges: "0",
     staticIpEnabled: false, staticIpMrc: "0",
+    installmentEnabled: false, installmentTotalAmount: "", installmentMonths: "6",
+    installmentMonthlyAmount: "0", installmentPaidMonths: "0",
     grandTotal: "0",
     joiningDate: "", expireDate: "", billingStatus: "Active",
 
@@ -269,12 +271,22 @@ export default function AddCustomerPage() {
         updated.finalInstallationCharges = String(Math.max(0, inst - disc));
       }
 
-      // Auto-recalculate grand total whenever either final amount changes
-      if (["packageBill","discountOnPackage","installationCharges","discountOnInstallation","staticIpMrc","staticIpEnabled"].includes(field)) {
+      // Auto-calculate installment monthly amount when total or months change
+      if (field === "installmentTotalAmount" || field === "installmentMonths") {
+        const total  = parseFloat(field === "installmentTotalAmount" ? String(value) : prev.installmentTotalAmount) || 0;
+        const months = parseInt(field === "installmentMonths"        ? String(value) : prev.installmentMonths, 10)  || 1;
+        updated.installmentMonthlyAmount = months > 0 ? (total / months).toFixed(2) : "0";
+      }
+
+      // Auto-recalculate grand total whenever any billing component changes
+      if (["packageBill","discountOnPackage","installationCharges","discountOnInstallation",
+           "staticIpMrc","staticIpEnabled",
+           "installmentEnabled","installmentTotalAmount","installmentMonths"].includes(field)) {
         const fp  = parseFloat(updated.finalPackageBill)         || 0;
         const fi  = parseFloat(updated.finalInstallationCharges) || 0;
-        const sip = (updated.staticIpEnabled ? parseFloat(updated.staticIpMrc) : 0) || 0;
-        updated.grandTotal = (fp + fi + sip).toFixed(2);
+        const sip = (updated.staticIpEnabled  ? parseFloat(updated.staticIpMrc)            : 0) || 0;
+        const ins = (updated.installmentEnabled ? parseFloat(updated.installmentMonthlyAmount) : 0) || 0;
+        updated.grandTotal = (fp + fi + sip + ins).toFixed(2);
       }
 
       return updated;
@@ -347,13 +359,14 @@ export default function AddCustomerPage() {
       const expire = form.joiningDate ? addMonths(form.joiningDate, cycleToMonths(pkg.billingCycle)) : "";
       const instFinal = parseFloat(form.finalInstallationCharges) || 0;
       setForm(prev => {
-        const sip = (prev.staticIpEnabled ? parseFloat(prev.staticIpMrc) : 0) || 0;
+        const sip = (prev.staticIpEnabled     ? parseFloat(prev.staticIpMrc)             : 0) || 0;
+        const ins = (prev.installmentEnabled  ? parseFloat(prev.installmentMonthlyAmount) : 0) || 0;
         return {
           ...prev,
           packageId: pkgId,
           packageBill: bill,
           finalPackageBill: final,
-          grandTotal: (parseFloat(final) + instFinal + sip).toFixed(2),
+          grandTotal: (parseFloat(final) + instFinal + sip + ins).toFixed(2),
           expireDate: expire,
         };
       });
@@ -515,6 +528,11 @@ export default function AddCustomerPage() {
         grandTotal: form.grandTotal || "0",
         staticIpEnabled: form.staticIpEnabled,
         staticIpMrc: form.staticIpMrc || "0",
+        installmentEnabled:      form.installmentEnabled,
+        installmentTotalAmount:  form.installmentTotalAmount  || "0",
+        installmentMonths:       parseInt(form.installmentMonths, 10) || 0,
+        installmentMonthlyAmount:form.installmentMonthlyAmount || "0",
+        installmentPaidMonths:   parseInt(form.installmentPaidMonths, 10) || 0,
       };
       const res = await apiRequest("POST", "/api/customers", payload);
       return res.json();
@@ -1075,30 +1093,39 @@ export default function AddCustomerPage() {
                     </div>
                     <div className="flex flex-wrap gap-3">
                       {/* Static IP toggle button */}
-                      <div className="flex flex-col gap-2">
-                        <button
-                          type="button"
-                          data-testid="btn-addon-static-ip"
-                          onClick={() => update("staticIpEnabled", !form.staticIpEnabled)}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
-                            form.staticIpEnabled
-                              ? "bg-purple-600 border-purple-600 text-white shadow-md"
-                              : "bg-white dark:bg-background border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-400 hover:border-purple-500"
-                          }`}
-                        >
-                          {form.staticIpEnabled
-                            ? <Check className="h-4 w-4" />
-                            : <span className="font-bold text-base leading-none">+</span>
-                          }
-                          Static IP
-                          {form.staticIpEnabled && (
-                            <Badge className="ml-1 bg-white/20 text-white text-[10px] px-1.5 py-0">Active</Badge>
-                          )}
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        data-testid="btn-addon-static-ip"
+                        onClick={() => update("staticIpEnabled", !form.staticIpEnabled)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                          form.staticIpEnabled
+                            ? "bg-purple-600 border-purple-600 text-white shadow-md"
+                            : "bg-white dark:bg-background border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-400 hover:border-purple-500"
+                        }`}
+                      >
+                        {form.staticIpEnabled ? <Check className="h-4 w-4" /> : <span className="font-bold text-base leading-none">+</span>}
+                        Static IP
+                        {form.staticIpEnabled && <Badge className="ml-1 bg-white/20 text-white text-[10px] px-1.5 py-0">Active</Badge>}
+                      </button>
+
+                      {/* Installment Plan toggle button */}
+                      <button
+                        type="button"
+                        data-testid="btn-addon-installment"
+                        onClick={() => update("installmentEnabled", !form.installmentEnabled)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                          form.installmentEnabled
+                            ? "bg-amber-600 border-amber-600 text-white shadow-md"
+                            : "bg-white dark:bg-background border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:border-amber-500"
+                        }`}
+                      >
+                        {form.installmentEnabled ? <Check className="h-4 w-4" /> : <span className="font-bold text-base leading-none">+</span>}
+                        Installment Plan
+                        {form.installmentEnabled && <Badge className="ml-1 bg-white/20 text-white text-[10px] px-1.5 py-0">Active</Badge>}
+                      </button>
                     </div>
 
-                    {/* Static IP MRC field — shown only when enabled */}
+                    {/* Static IP MRC field */}
                     {form.staticIpEnabled && (
                       <div className="mt-3 flex items-end gap-3">
                         <div className="space-y-1.5 flex-1 max-w-xs">
@@ -1128,6 +1155,83 @@ export default function AddCustomerPage() {
                         </button>
                       </div>
                     )}
+
+                    {/* Installment Plan fields */}
+                    {form.installmentEnabled && (
+                      <div className="mt-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Installment Plan Details</p>
+                          <button
+                            type="button"
+                            onClick={() => update("installmentEnabled", false)}
+                            className="text-xs text-muted-foreground hover:text-red-500 flex items-center gap-1"
+                            data-testid="btn-remove-installment"
+                          >
+                            <X className="h-3.5 w-3.5" /> Remove
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                              Total Amount (PKR) <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                              type="number"
+                              placeholder="e.g. 12000"
+                              value={form.installmentTotalAmount}
+                              onChange={e => update("installmentTotalAmount", e.target.value)}
+                              data-testid="input-installment-total"
+                              className="border-amber-300 dark:border-amber-700 focus-visible:ring-amber-400"
+                            />
+                            <p className="text-[11px] text-muted-foreground">Device / installation cost to recover</p>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                              No. of Installments <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                              type="number"
+                              min="1"
+                              placeholder="e.g. 6"
+                              value={form.installmentMonths}
+                              onChange={e => update("installmentMonths", e.target.value)}
+                              data-testid="input-installment-months"
+                              className="border-amber-300 dark:border-amber-700 focus-visible:ring-amber-400"
+                            />
+                            <p className="text-[11px] text-muted-foreground">Number of monthly installments</p>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-amber-700 dark:text-amber-400">Monthly Installment (PKR)</label>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                readOnly
+                                value={form.installmentMonthlyAmount}
+                                data-testid="input-installment-monthly"
+                                className="bg-amber-100 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 font-semibold cursor-not-allowed"
+                              />
+                              <Calculator className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-amber-500" />
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">Auto-calculated · added to monthly bill</p>
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium text-amber-700 dark:text-amber-400">Installments Already Paid</label>
+                          <Input
+                            type="number"
+                            min="0"
+                            placeholder="0"
+                            value={form.installmentPaidMonths}
+                            onChange={e => update("installmentPaidMonths", e.target.value)}
+                            data-testid="input-installment-paid"
+                            className="max-w-xs border-amber-300 dark:border-amber-700 focus-visible:ring-amber-400"
+                          />
+                          <p className="text-[11px] text-muted-foreground">
+                            Remaining: {Math.max(0, (parseInt(form.installmentMonths, 10) || 0) - (parseInt(form.installmentPaidMonths, 10) || 0))} of {form.installmentMonths || 0} installments
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Grand Total = Final Package Bill + Final Installation Charges + Static IP MRC (editable) */}
@@ -1146,6 +1250,12 @@ export default function AddCustomerPage() {
                             <>
                               <span>+</span>
                               <span>PKR {(parseFloat(form.staticIpMrc) || 0).toFixed(2)} static IP</span>
+                            </>
+                          )}
+                          {form.installmentEnabled && parseFloat(form.installmentMonthlyAmount) > 0 && (
+                            <>
+                              <span>+</span>
+                              <span>PKR {(parseFloat(form.installmentMonthlyAmount) || 0).toFixed(2)} installment</span>
                             </>
                           )}
                         </p>

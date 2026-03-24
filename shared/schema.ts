@@ -108,6 +108,11 @@ export const customers = pgTable("customers", {
   grandTotal: decimal("grand_total", { precision: 10, scale: 2 }).default("0"),
   staticIpEnabled: boolean("static_ip_enabled").default(false),
   staticIpMrc: decimal("static_ip_mrc", { precision: 10, scale: 2 }).default("0"),
+  installmentEnabled: boolean("installment_enabled").default(false),
+  installmentTotalAmount: decimal("installment_total_amount", { precision: 10, scale: 2 }).default("0"),
+  installmentMonths: integer("installment_months").default(0),
+  installmentMonthlyAmount: decimal("installment_monthly_amount", { precision: 10, scale: 2 }).default("0"),
+  installmentPaidMonths: integer("installment_paid_months").default(0),
 });
 
 export const customerTypes = pgTable("customer_types", {
