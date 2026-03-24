@@ -238,8 +238,8 @@ export default function AddCustomerPage() {
     packageBill: "", discountOnPackage: "", finalPackageBill: "",
     installationCharges: "0", discountOnInstallation: "0", finalInstallationCharges: "0",
     staticIpEnabled: false, staticIpMrc: "0",
-    installmentEnabled: false, installmentTotalAmount: "", installmentMonths: "6",
-    installmentMonthlyAmount: "0", installmentPaidMonths: "0",
+    installmentEnabled: false, installmentType: "", installmentTotalAmount: "", installmentMonths: "6",
+    installmentMonthlyAmount: "0", installmentPaidMonths: "0", installmentNote: "",
     grandTotal: "0",
     joiningDate: "", expireDate: "", billingStatus: "Active",
 
@@ -271,6 +271,19 @@ export default function AddCustomerPage() {
         updated.finalInstallationCharges = String(Math.max(0, inst - disc));
       }
 
+      // When installment type changes, auto-fill total amount from the matching charge
+      if (field === "installmentType") {
+        if (value === "Installation") {
+          const amt = parseFloat(prev.finalInstallationCharges) || 0;
+          updated.installmentTotalAmount = amt > 0 ? amt.toFixed(2) : "";
+        } else if (value === "Device") {
+          updated.installmentTotalAmount = "";
+        }
+        const total  = parseFloat(updated.installmentTotalAmount) || 0;
+        const months = parseInt(updated.installmentMonths, 10) || 1;
+        updated.installmentMonthlyAmount = total > 0 && months > 0 ? (total / months).toFixed(2) : "0";
+      }
+
       // Auto-calculate installment monthly amount when total or months change
       if (field === "installmentTotalAmount" || field === "installmentMonths") {
         const total  = parseFloat(field === "installmentTotalAmount" ? String(value) : prev.installmentTotalAmount) || 0;
@@ -281,7 +294,7 @@ export default function AddCustomerPage() {
       // Auto-recalculate grand total whenever any billing component changes
       if (["packageBill","discountOnPackage","installationCharges","discountOnInstallation",
            "staticIpMrc","staticIpEnabled",
-           "installmentEnabled","installmentTotalAmount","installmentMonths"].includes(field)) {
+           "installmentEnabled","installmentType","installmentTotalAmount","installmentMonths"].includes(field)) {
         const fp  = parseFloat(updated.finalPackageBill)         || 0;
         const fi  = parseFloat(updated.finalInstallationCharges) || 0;
         const sip = (updated.staticIpEnabled  ? parseFloat(updated.staticIpMrc)            : 0) || 0;
@@ -528,11 +541,13 @@ export default function AddCustomerPage() {
         grandTotal: form.grandTotal || "0",
         staticIpEnabled: form.staticIpEnabled,
         staticIpMrc: form.staticIpMrc || "0",
-        installmentEnabled:      form.installmentEnabled,
-        installmentTotalAmount:  form.installmentTotalAmount  || "0",
-        installmentMonths:       parseInt(form.installmentMonths, 10) || 0,
-        installmentMonthlyAmount:form.installmentMonthlyAmount || "0",
-        installmentPaidMonths:   parseInt(form.installmentPaidMonths, 10) || 0,
+        installmentEnabled:       form.installmentEnabled,
+        installmentType:          form.installmentType || "",
+        installmentTotalAmount:   form.installmentTotalAmount  || "0",
+        installmentMonths:        parseInt(form.installmentMonths, 10) || 0,
+        installmentMonthlyAmount: form.installmentMonthlyAmount || "0",
+        installmentPaidMonths:    parseInt(form.installmentPaidMonths, 10) || 0,
+        installmentNote:          form.installmentNote || "",
       };
       const res = await apiRequest("POST", "/api/customers", payload);
       return res.json();
@@ -1170,6 +1185,28 @@ export default function AddCustomerPage() {
                             <X className="h-3.5 w-3.5" /> Remove
                           </button>
                         </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-1">
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                              Installment For <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                              value={form.installmentType}
+                              onChange={e => update("installmentType", e.target.value)}
+                              data-testid="select-installment-type"
+                              className="w-full h-9 rounded-md border border-amber-300 dark:border-amber-700 bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                            >
+                              <option value="">-- Select Type --</option>
+                              <option value="Device">Device</option>
+                              <option value="Installation">Installation</option>
+                            </select>
+                            <p className="text-[11px] text-muted-foreground">
+                              {form.installmentType === "Installation"
+                                ? "Total will auto-fill from Final Installation Charges"
+                                : "Enter the device cost to be recovered in installments"}
+                            </p>
+                          </div>
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                           <div className="space-y-1.5">
                             <label className="text-sm font-medium text-amber-700 dark:text-amber-400">
@@ -1179,11 +1216,14 @@ export default function AddCustomerPage() {
                               type="number"
                               placeholder="e.g. 12000"
                               value={form.installmentTotalAmount}
+                              readOnly={form.installmentType === "Installation"}
                               onChange={e => update("installmentTotalAmount", e.target.value)}
                               data-testid="input-installment-total"
-                              className="border-amber-300 dark:border-amber-700 focus-visible:ring-amber-400"
+                              className={`border-amber-300 dark:border-amber-700 focus-visible:ring-amber-400 ${form.installmentType === "Installation" ? "bg-amber-100 dark:bg-amber-900/30 cursor-not-allowed" : ""}`}
                             />
-                            <p className="text-[11px] text-muted-foreground">Device / installation cost to recover</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {form.installmentType === "Installation" ? "Auto-filled from Final Installation Charges" : "Device / installation cost to recover"}
+                            </p>
                           </div>
                           <div className="space-y-1.5">
                             <label className="text-sm font-medium text-amber-700 dark:text-amber-400">
@@ -1215,20 +1255,34 @@ export default function AddCustomerPage() {
                             <p className="text-[11px] text-muted-foreground">Auto-calculated · added to monthly bill</p>
                           </div>
                         </div>
-                        <div className="space-y-1.5">
-                          <label className="text-sm font-medium text-amber-700 dark:text-amber-400">Installments Already Paid</label>
-                          <Input
-                            type="number"
-                            min="0"
-                            placeholder="0"
-                            value={form.installmentPaidMonths}
-                            onChange={e => update("installmentPaidMonths", e.target.value)}
-                            data-testid="input-installment-paid"
-                            className="max-w-xs border-amber-300 dark:border-amber-700 focus-visible:ring-amber-400"
-                          />
-                          <p className="text-[11px] text-muted-foreground">
-                            Remaining: {Math.max(0, (parseInt(form.installmentMonths, 10) || 0) - (parseInt(form.installmentPaidMonths, 10) || 0))} of {form.installmentMonths || 0} installments
-                          </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-amber-700 dark:text-amber-400">Installments Already Paid</label>
+                            <Input
+                              type="number"
+                              min="0"
+                              placeholder="0"
+                              value={form.installmentPaidMonths}
+                              onChange={e => update("installmentPaidMonths", e.target.value)}
+                              data-testid="input-installment-paid"
+                              className="border-amber-300 dark:border-amber-700 focus-visible:ring-amber-400"
+                            />
+                            <p className="text-[11px] text-muted-foreground">
+                              Remaining: {Math.max(0, (parseInt(form.installmentMonths, 10) || 0) - (parseInt(form.installmentPaidMonths, 10) || 0))} of {form.installmentMonths || 0} installments
+                            </p>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-amber-700 dark:text-amber-400">Note</label>
+                            <textarea
+                              placeholder="e.g. Customer took Huawei HG8245 router — PKR 12,000 over 6 months"
+                              value={form.installmentNote}
+                              onChange={e => update("installmentNote", e.target.value)}
+                              data-testid="textarea-installment-note"
+                              rows={3}
+                              className="w-full rounded-md border border-amber-300 dark:border-amber-700 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+                            />
+                            <p className="text-[11px] text-muted-foreground">Optional: device name, model, agreement details, etc.</p>
+                          </div>
                         </div>
                       </div>
                     )}
