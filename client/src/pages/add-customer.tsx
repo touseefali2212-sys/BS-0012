@@ -236,6 +236,7 @@ export default function AddCustomerPage() {
 
     connectedBy: "", usernameIp: "", password: "", vendorId: "", packageId: "",
     packageBill: "", discountOnPackage: "", finalPackageBill: "",
+    deviceType: "", deviceDetail: "", deviceCharges: "0",
     installationCharges: "0", discountOnInstallation: "0", finalInstallationCharges: "0",
     staticIpEnabled: false, staticIpMrc: "0",
     installmentEnabled: false, installmentType: "", installmentTotalAmount: "", installmentMonths: "6",
@@ -292,14 +293,16 @@ export default function AddCustomerPage() {
       }
 
       // Auto-recalculate grand total whenever any billing component changes
-      if (["packageBill","discountOnPackage","installationCharges","discountOnInstallation",
+      if (["packageBill","discountOnPackage","deviceCharges",
+           "installationCharges","discountOnInstallation",
            "staticIpMrc","staticIpEnabled",
            "installmentEnabled","installmentType","installmentTotalAmount","installmentMonths"].includes(field)) {
         const fp  = parseFloat(updated.finalPackageBill)         || 0;
+        const dc  = parseFloat(updated.deviceCharges)            || 0;
         const fi  = parseFloat(updated.finalInstallationCharges) || 0;
-        const sip = (updated.staticIpEnabled  ? parseFloat(updated.staticIpMrc)            : 0) || 0;
+        const sip = (updated.staticIpEnabled  ? parseFloat(updated.staticIpMrc)              : 0) || 0;
         const ins = (updated.installmentEnabled ? parseFloat(updated.installmentMonthlyAmount) : 0) || 0;
-        updated.grandTotal = (fp + fi + sip + ins).toFixed(2);
+        updated.grandTotal = (fp + dc + fi + sip + ins).toFixed(2);
       }
 
       return updated;
@@ -372,6 +375,7 @@ export default function AddCustomerPage() {
       const expire = form.joiningDate ? addMonths(form.joiningDate, cycleToMonths(pkg.billingCycle)) : "";
       const instFinal = parseFloat(form.finalInstallationCharges) || 0;
       setForm(prev => {
+        const dc  = parseFloat(prev.deviceCharges)            || 0;
         const sip = (prev.staticIpEnabled     ? parseFloat(prev.staticIpMrc)             : 0) || 0;
         const ins = (prev.installmentEnabled  ? parseFloat(prev.installmentMonthlyAmount) : 0) || 0;
         return {
@@ -379,7 +383,7 @@ export default function AddCustomerPage() {
           packageId: pkgId,
           packageBill: bill,
           finalPackageBill: final,
-          grandTotal: (parseFloat(final) + instFinal + sip + ins).toFixed(2),
+          grandTotal: (parseFloat(final) + dc + instFinal + sip + ins).toFixed(2),
           expireDate: expire,
         };
       });
@@ -533,6 +537,9 @@ export default function AddCustomerPage() {
         cnicBackPicture: form.cnicBack,
         deviceModel: form.deviceModel,
         deviceOwnedBy: form.deviceOwnedBy,
+        deviceType:    form.deviceType  || "",
+        deviceDetail:  form.deviceDetail || "",
+        deviceCharges: form.deviceCharges || "0",
         installationCharges: form.installationCharges || "0",
         discountOnInstallation: form.discountOnInstallation || "0",
         finalInstallationCharges: form.finalInstallationCharges || "0",
@@ -1063,6 +1070,67 @@ export default function AddCustomerPage() {
                     </div>
                   </div>
 
+                  {/* Device Section */}
+                  <div className="mt-4 rounded-xl border border-dashed border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/20 p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="h-5 w-5 rounded bg-sky-600 flex items-center justify-center">
+                        <span className="text-white text-[10px] font-bold">D</span>
+                      </div>
+                      <span className="text-sm font-semibold text-sky-700 dark:text-sky-400">Device</span>
+                      <span className="text-xs text-muted-foreground ml-1">Device type, details & one-time charge</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-sky-700 dark:text-sky-400">Device Type</label>
+                        <select
+                          value={form.deviceType}
+                          onChange={e => update("deviceType", e.target.value)}
+                          data-testid="select-device-type-billing"
+                          className="w-full h-9 rounded-md border border-sky-300 dark:border-sky-700 bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                        >
+                          <option value="">-- Select Device --</option>
+                          <option value="ONT">ONT</option>
+                          <option value="Router">Router</option>
+                          <option value="Wireless Router">Wireless Router</option>
+                          <option value="Switch">Switch</option>
+                          <option value="Media Converter">Media Converter</option>
+                          <option value="OLT">OLT</option>
+                          <option value="GPON">GPON</option>
+                          <option value="Set Top Box">Set Top Box</option>
+                          <option value="Other">Other</option>
+                        </select>
+                        <p className="text-[11px] text-muted-foreground">Type of device provided to customer</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-sky-700 dark:text-sky-400">Device Details</label>
+                        <Input
+                          type="text"
+                          placeholder="e.g. Huawei HG8245H5, S/N: 12345"
+                          value={form.deviceDetail}
+                          onChange={e => update("deviceDetail", e.target.value)}
+                          data-testid="input-device-detail-billing"
+                          className="border-sky-300 dark:border-sky-700 focus-visible:ring-sky-400"
+                        />
+                        <p className="text-[11px] text-muted-foreground">Model, serial number, or any relevant detail</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-sky-700 dark:text-sky-400">Device Charges (PKR)</label>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            placeholder="0.00"
+                            value={form.deviceCharges}
+                            onChange={e => update("deviceCharges", e.target.value)}
+                            data-testid="input-device-charges"
+                            className="pr-9 border-sky-300 dark:border-sky-700 focus-visible:ring-sky-400"
+                          />
+                          <Calculator className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-sky-500" />
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">One-time device cost included in first payment</p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium">Installation Charges</label>
@@ -1298,6 +1366,12 @@ export default function AddCustomerPage() {
                         <p className="text-sm font-semibold text-white">Grand Total (First Payment)</p>
                         <p className="text-[11px] text-blue-200 space-x-1">
                           <span>PKR {(parseFloat(form.finalPackageBill) || 0).toFixed(2)} package</span>
+                          {parseFloat(form.deviceCharges) > 0 && (
+                            <>
+                              <span>+</span>
+                              <span>PKR {(parseFloat(form.deviceCharges) || 0).toFixed(2)} device</span>
+                            </>
+                          )}
                           <span>+</span>
                           <span>PKR {(parseFloat(form.finalInstallationCharges) || 0).toFixed(2)} installation</span>
                           {form.staticIpEnabled && parseFloat(form.staticIpMrc) > 0 && (
