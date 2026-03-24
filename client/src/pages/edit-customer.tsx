@@ -6,7 +6,7 @@ import {
   ChevronLeft, Upload, Check, Eye, EyeOff, RefreshCw,
   AlertCircle, Camera, Calculator, Phone, Mail, Shield,
   Building2, Zap, Package, UserCheck, Image, X,
-  Loader2, FileSpreadsheet, LocateFixed
+  Loader2, FileSpreadsheet, LocateFixed, Plus, Tv
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -245,6 +245,10 @@ export default function EditCustomerPage() {
   const [gpsLocating, setGpsLocating] = useState(false);
   const [formLoaded, setFormLoaded] = useState(false);
 
+  // Additional packages (IPTV, Cable TV, OTT, etc.)
+  const [addlPkgs, setAddlPkgs] = useState<{packageId: string; bill: string}[]>([]);
+  const addlPkgsTotal = addlPkgs.reduce((s, p) => s + (parseFloat(p.bill) || 0), 0);
+
   const [form, setForm] = useState({ ...defaultForm });
 
   const { data: customer, isLoading: customerLoading } = useQuery<Customer>({
@@ -343,6 +347,12 @@ export default function EditCustomerPage() {
       sendSmsToEmployee: false,
       sendGreetingSms:   false,
     });
+    // Load additional packages
+    try {
+      const ap = JSON.parse((customer as any).additionalPackages ?? "[]");
+      if (Array.isArray(ap)) setAddlPkgs(ap);
+    } catch { setAddlPkgs([]); }
+
     setFormLoaded(true);
   }, [customer, formLoaded]);
 
@@ -391,7 +401,8 @@ export default function EditCustomerPage() {
         const fi  = parseFloat(updated.finalInstallationCharges) || 0;
         const sip = (updated.staticIpEnabled     ? parseFloat(updated.staticIpMrc)             : 0) || 0;
         const ins = (updated.installmentEnabled  ? parseFloat(updated.installmentMonthlyAmount) : 0) || 0;
-        updated.grandTotal = (fp + dc + fi + sip + ins).toFixed(2);
+        const apl = addlPkgs.reduce((s, p) => s + (parseFloat(p.bill) || 0), 0);
+        updated.grandTotal = (fp + dc + fi + sip + ins + apl).toFixed(2);
       }
 
       return updated;
@@ -444,6 +455,19 @@ export default function EditCustomerPage() {
     }));
   }, [form.area, areas]);
 
+  // Recalculate grand total whenever additional packages change
+  useEffect(() => {
+    setForm(prev => {
+      const fp  = parseFloat(prev.finalPackageBill)         || 0;
+      const dc  = parseFloat(prev.deviceCharges)            || 0;
+      const fi  = parseFloat(prev.finalInstallationCharges) || 0;
+      const sip = (prev.staticIpEnabled  ? parseFloat(prev.staticIpMrc)             : 0) || 0;
+      const ins = (prev.installmentEnabled ? parseFloat(prev.installmentMonthlyAmount) : 0) || 0;
+      const apl = addlPkgs.reduce((s, p) => s + (parseFloat(p.bill) || 0), 0);
+      return { ...prev, grandTotal: (fp + dc + fi + sip + ins + apl).toFixed(2) };
+    });
+  }, [addlPkgs]);
+
   const handlePackageChange = (pkgId: string) => {
     const pkg = packages?.find(p => String(p.id) === pkgId);
     if (pkg) {
@@ -463,7 +487,7 @@ export default function EditCustomerPage() {
         packageId: pkgId,
         packageBill: bill,
         finalPackageBill: final,
-        grandTotal: (parseFloat(final) + instFinal).toFixed(2),
+        grandTotal: (parseFloat(final) + instFinal + (form.staticIpEnabled ? parseFloat(form.staticIpMrc)||0 : 0) + (form.installmentEnabled ? parseFloat(form.installmentMonthlyAmount)||0 : 0) + addlPkgs.reduce((s,p)=>s+(parseFloat(p.bill)||0),0)).toFixed(2),
         expireDate: expire,
       }));
     } else {
@@ -575,6 +599,7 @@ export default function EditCustomerPage() {
         numberOfCore:    form.numberOfCore,
         coreColor:       form.coreColor,
 
+        additionalPackages: JSON.stringify(addlPkgs),
         deviceType:    form.deviceType  || "",
         deviceDetail:  form.deviceDetail || "",
         deviceCharges: form.deviceCharges || "0",
@@ -1083,6 +1108,87 @@ export default function EditCustomerPage() {
                     </div>
                   </div>
 
+                  {/* Additional Packages Section */}
+                  <div className="mt-4 rounded-xl border border-dashed border-violet-300 dark:border-violet-700 bg-violet-50 dark:bg-violet-950/20 p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="h-5 w-5 rounded bg-violet-600 flex items-center justify-center">
+                          <Tv className="h-3 w-3 text-white" />
+                        </div>
+                        <span className="text-sm font-semibold text-violet-700 dark:text-violet-400">Additional Packages</span>
+                        <span className="text-xs text-muted-foreground ml-1">Cable TV / IPTV / OTT bundle</span>
+                      </div>
+                      <button
+                        type="button"
+                        data-testid="btn-add-another-package"
+                        onClick={() => setAddlPkgs(prev => [...prev, { packageId: "", bill: "" }])}
+                        className="flex items-center gap-1.5 rounded-lg border border-violet-400 bg-violet-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-violet-700 transition-colors"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Add Another Package
+                      </button>
+                    </div>
+                    {addlPkgs.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-2">No additional packages added. Click the button to add Cable TV, IPTV or OTT services.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {addlPkgs.map((ap, idx) => {
+                          return (
+                            <div key={idx} className="flex items-center gap-2 bg-white dark:bg-violet-900/20 rounded-lg border border-violet-200 dark:border-violet-700 p-2">
+                              <div className="flex-1 min-w-0">
+                                <select
+                                  data-testid={`select-addl-package-${idx}`}
+                                  value={ap.packageId}
+                                  onChange={e => {
+                                    const pkgId = e.target.value;
+                                    const pkg = packages?.find(p => String(p.id) === pkgId);
+                                    const base = parseFloat(pkg?.price ?? "0") || 0;
+                                    const wht  = parseFloat(pkg?.whTax ?? "0") || 0;
+                                    const ait  = parseFloat(pkg?.aitTax ?? "0") || 0;
+                                    const bill = (base + (base*wht/100) + (base*ait/100)).toFixed(2);
+                                    setAddlPkgs(prev => prev.map((x, i) => i === idx ? { packageId: pkgId, bill: pkgId ? bill : "" } : x));
+                                  }}
+                                  className="w-full h-8 rounded-md border border-violet-300 dark:border-violet-600 bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400"
+                                >
+                                  <option value="">-- Select Package --</option>
+                                  {packages?.filter(p => p.serviceType && p.serviceType !== "internet").map(p => (
+                                    <option key={p.id} value={String(p.id)}>{p.name} ({p.serviceType?.toUpperCase()})</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="w-32 shrink-0">
+                                <div className="relative">
+                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-violet-600 font-semibold pointer-events-none">PKR</span>
+                                  <Input
+                                    type="number"
+                                    data-testid={`input-addl-bill-${idx}`}
+                                    placeholder="0.00"
+                                    value={ap.bill}
+                                    onChange={e => setAddlPkgs(prev => prev.map((x, i) => i === idx ? { ...x, bill: e.target.value } : x))}
+                                    className="pl-10 h-8 text-sm border-violet-300 dark:border-violet-600 focus-visible:ring-violet-400"
+                                  />
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                data-testid={`btn-remove-addl-package-${idx}`}
+                                onClick={() => setAddlPkgs(prev => prev.filter((_, i) => i !== idx))}
+                                className="shrink-0 h-7 w-7 flex items-center justify-center rounded-md text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                        {addlPkgsTotal > 0 && (
+                          <div className="flex justify-end pt-1">
+                            <span className="text-xs font-semibold text-violet-700 dark:text-violet-400">Subtotal: PKR {addlPkgsTotal.toFixed(2)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Device Section */}
                   <div className="mt-4 rounded-xl border border-dashed border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/20 p-4">
                     <div className="flex items-center gap-2 mb-3">
@@ -1394,6 +1500,12 @@ export default function EditCustomerPage() {
                             <>
                               <span>+</span>
                               <span>PKR {(parseFloat(form.installmentMonthlyAmount) || 0).toFixed(2)} installment</span>
+                            </>
+                          )}
+                          {addlPkgsTotal > 0 && (
+                            <>
+                              <span>+</span>
+                              <span>PKR {addlPkgsTotal.toFixed(2)} add-ons</span>
                             </>
                           )}
                         </p>

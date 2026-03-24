@@ -109,6 +109,7 @@ export const customers = pgTable("customers", {
   packageBill: decimal("package_bill", { precision: 10, scale: 2 }).default("0"),
   discountOnPackage: decimal("discount_on_package", { precision: 10, scale: 2 }).default("0"),
   grandTotal: decimal("grand_total", { precision: 10, scale: 2 }).default("0"),
+  additionalPackages: text("additional_packages").default("[]"),
   staticIpEnabled: boolean("static_ip_enabled").default(false),
   staticIpMrc: decimal("static_ip_mrc", { precision: 10, scale: 2 }).default("0"),
   installmentEnabled: boolean("installment_enabled").default(false),
