@@ -257,7 +257,7 @@ export default function AddCustomerPage() {
     branch: "", cnicAddress: "", presentAddress: "", area: "", city: "",
     mapLatitude: "", mapLongitude: "", zone: "", subzone: "",
 
-    protocolType: "", connectionType: "", device: "", deviceModel: "", deviceMacSerial: "",
+    protocolType: "", connectionType: "", device: "", deviceModel: "", deviceMacSerial: "", macAddress: "",
     deviceOwnedBy: "Company", cableRequirement: "", fiberCode: "", numberOfCore: "", coreColor: "",
 
     smsMobile: true, smsWhatsapp: false, emailNotif: false, inAppNotif: true,
@@ -454,7 +454,7 @@ export default function AddCustomerPage() {
     if (!form.phone || form.phone.length < 10) newErrors.phone = "Valid phone number required";
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) newErrors.email = "Invalid email address";
     if (form.cnic && !validateCnic(form.cnic)) newErrors.cnic = "Format: XXXXX-XXXXXXX-X";
-    if (form.deviceMacSerial && !validateMac(form.deviceMacSerial)) newErrors.deviceMacSerial = "Format: AA:BB:CC:DD:EE:FF";
+    if (form.macAddress && !validateMac(form.macAddress)) newErrors.macAddress = "Format: AA:BB:CC:DD:EE:FF";
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
       const firstErrorTab = Object.keys(newErrors)[0];
@@ -462,6 +462,7 @@ export default function AddCustomerPage() {
         fullName: "basic", fatherName: "basic", cnic: "basic", phone: "basic", email: "basic",
         connectedBy: "connection", usernameIp: "connection", packageId: "connection",
         deviceMacSerial: "infrastructure",
+        macAddress: "infrastructure",
       };
       if (tabMap[firstErrorTab]) setActiveTab(tabMap[firstErrorTab]);
     }
@@ -552,6 +553,7 @@ export default function AddCustomerPage() {
         connectionType: form.connectionType,
         device: form.device,
         deviceMacSerial: form.deviceMacSerial,
+        macAddress: form.macAddress,
         cableRequirement: form.cableRequirement,
         fiberCode: form.fiberCode,
         numberOfCore: form.numberOfCore,
@@ -1924,7 +1926,7 @@ export default function AddCustomerPage() {
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">Device Serial No</label>
                     <Input
-                      placeholder="Serial number"
+                      placeholder="e.g. SN123456789"
                       value={form.deviceMacSerial}
                       onChange={e => update("deviceMacSerial", e.target.value)}
                       data-testid="input-device-serial"
@@ -1936,19 +1938,19 @@ export default function AddCustomerPage() {
                     <div className="relative">
                       <Input
                         placeholder="AA:BB:CC:DD:EE:FF"
-                        value={form.deviceMacSerial.includes(":") ? form.deviceMacSerial : ""}
-                        onChange={e => update("deviceMacSerial", e.target.value)}
+                        value={form.macAddress}
+                        onChange={e => update("macAddress", e.target.value)}
                         data-testid="input-mac-address"
-                        className={errors.deviceMacSerial ? "border-red-500" : ""}
+                        className={errors.macAddress ? "border-red-500" : ""}
                         maxLength={17}
                       />
-                      {form.deviceMacSerial && form.deviceMacSerial.includes(":") && (
-                        <div className={`absolute right-3 top-1/2 -translate-y-1/2 ${validateMac(form.deviceMacSerial) ? "text-green-500" : "text-amber-500"}`}>
-                          {validateMac(form.deviceMacSerial) ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                      {form.macAddress && (
+                        <div className={`absolute right-3 top-1/2 -translate-y-1/2 ${validateMac(form.macAddress) ? "text-green-500" : "text-amber-500"}`}>
+                          {validateMac(form.macAddress) ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                         </div>
                       )}
                     </div>
-                    {errors.deviceMacSerial && <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{errors.deviceMacSerial}</p>}
+                    {errors.macAddress && <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{errors.macAddress}</p>}
                   </div>
 
                   <div className="space-y-1.5">

@@ -79,6 +79,7 @@ export const customers = pgTable("customers", {
   coreColor: text("core_color"),
   device: text("device"),
   deviceMacSerial: text("device_mac_serial"),
+  macAddress: text("mac_address"),
   vendorId: integer("vendor_id"),
   purchaseDate: text("purchase_date"),
   profile: text("profile"),
