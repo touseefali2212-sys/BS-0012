@@ -103,6 +103,7 @@ export const customers = pgTable("customers", {
   deviceType: text("device_type").default(""),
   deviceDetail: text("device_detail").default(""),
   deviceCharges: decimal("device_charges", { precision: 10, scale: 2 }).default("0"),
+  additionalDevices: text("additional_devices").default("[]"),
   installationCharges: decimal("installation_charges", { precision: 10, scale: 2 }).default("0"),
   discountOnInstallation: decimal("discount_on_installation", { precision: 10, scale: 2 }).default("0"),
   finalInstallationCharges: decimal("final_installation_charges", { precision: 10, scale: 2 }).default("0"),

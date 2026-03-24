@@ -249,6 +249,10 @@ export default function EditCustomerPage() {
   const [addlPkgs, setAddlPkgs] = useState<{packageId: string; bill: string}[]>([]);
   const addlPkgsTotal = addlPkgs.reduce((s, p) => s + (parseFloat(p.bill) || 0), 0);
 
+  // Additional devices (extra devices with their charges)
+  const [addlDevices, setAddlDevices] = useState<{deviceType: string; deviceDetail: string; deviceCharges: string}[]>([]);
+  const addlDevicesTotal = addlDevices.reduce((s, d) => s + (parseFloat(d.deviceCharges) || 0), 0);
+
   const [form, setForm] = useState({ ...defaultForm });
 
   const { data: customer, isLoading: customerLoading } = useQuery<Customer>({
@@ -352,6 +356,11 @@ export default function EditCustomerPage() {
       const ap = JSON.parse((customer as any).additionalPackages ?? "[]");
       if (Array.isArray(ap)) setAddlPkgs(ap);
     } catch { setAddlPkgs([]); }
+    // Load additional devices
+    try {
+      const ad = JSON.parse((customer as any).additionalDevices ?? "[]");
+      if (Array.isArray(ad)) setAddlDevices(ad);
+    } catch { setAddlDevices([]); }
 
     setFormLoaded(true);
   }, [customer, formLoaded]);
@@ -402,7 +411,8 @@ export default function EditCustomerPage() {
         const sip = (updated.staticIpEnabled     ? parseFloat(updated.staticIpMrc)             : 0) || 0;
         const ins = (updated.installmentEnabled  ? parseFloat(updated.installmentMonthlyAmount) : 0) || 0;
         const apl = addlPkgs.reduce((s, p) => s + (parseFloat(p.bill) || 0), 0);
-        updated.grandTotal = (fp + dc + fi + sip + ins + apl).toFixed(2);
+        const adv = addlDevices.reduce((s, d) => s + (parseFloat(d.deviceCharges) || 0), 0);
+        updated.grandTotal = (fp + dc + fi + sip + ins + apl + adv).toFixed(2);
       }
 
       return updated;
@@ -455,7 +465,7 @@ export default function EditCustomerPage() {
     }));
   }, [form.area, areas]);
 
-  // Recalculate grand total whenever additional packages change
+  // Recalculate grand total whenever additional packages or devices change
   useEffect(() => {
     setForm(prev => {
       const fp  = parseFloat(prev.finalPackageBill)         || 0;
@@ -464,9 +474,10 @@ export default function EditCustomerPage() {
       const sip = (prev.staticIpEnabled  ? parseFloat(prev.staticIpMrc)             : 0) || 0;
       const ins = (prev.installmentEnabled ? parseFloat(prev.installmentMonthlyAmount) : 0) || 0;
       const apl = addlPkgs.reduce((s, p) => s + (parseFloat(p.bill) || 0), 0);
-      return { ...prev, grandTotal: (fp + dc + fi + sip + ins + apl).toFixed(2) };
+      const adv = addlDevices.reduce((s, d) => s + (parseFloat(d.deviceCharges) || 0), 0);
+      return { ...prev, grandTotal: (fp + dc + fi + sip + ins + apl + adv).toFixed(2) };
     });
-  }, [addlPkgs]);
+  }, [addlPkgs, addlDevices]);
 
   const handlePackageChange = (pkgId: string) => {
     const pkg = packages?.find(p => String(p.id) === pkgId);
@@ -487,7 +498,7 @@ export default function EditCustomerPage() {
         packageId: pkgId,
         packageBill: bill,
         finalPackageBill: final,
-        grandTotal: (parseFloat(final) + instFinal + (form.staticIpEnabled ? parseFloat(form.staticIpMrc)||0 : 0) + (form.installmentEnabled ? parseFloat(form.installmentMonthlyAmount)||0 : 0) + addlPkgs.reduce((s,p)=>s+(parseFloat(p.bill)||0),0)).toFixed(2),
+        grandTotal: (parseFloat(final) + instFinal + (form.staticIpEnabled ? parseFloat(form.staticIpMrc)||0 : 0) + (form.installmentEnabled ? parseFloat(form.installmentMonthlyAmount)||0 : 0) + addlPkgs.reduce((s,p)=>s+(parseFloat(p.bill)||0),0) + addlDevices.reduce((s,d)=>s+(parseFloat(d.deviceCharges)||0),0)).toFixed(2),
         expireDate: expire,
       }));
     } else {
@@ -600,6 +611,7 @@ export default function EditCustomerPage() {
         coreColor:       form.coreColor,
 
         additionalPackages: JSON.stringify(addlPkgs),
+        additionalDevices: JSON.stringify(addlDevices),
         deviceType:    form.deviceType  || "",
         deviceDetail:  form.deviceDetail || "",
         deviceCharges: form.deviceCharges || "0",
@@ -1216,6 +1228,7 @@ export default function EditCustomerPage() {
                           <option value="OLT">OLT</option>
                           <option value="GPON">GPON</option>
                           <option value="Set Top Box">Set Top Box</option>
+                          <option value="Android Box">Android Box</option>
                           <option value="Other">Other</option>
                         </select>
                         <p className="text-[11px] text-muted-foreground">Type of device provided to customer</p>
@@ -1247,6 +1260,85 @@ export default function EditCustomerPage() {
                         </div>
                         <p className="text-[11px] text-muted-foreground">One-time device cost included in first payment</p>
                       </div>
+                    </div>
+
+                    {/* Additional Devices */}
+                    {addlDevices.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        <p className="text-xs font-medium text-sky-600 dark:text-sky-400">Additional Devices</p>
+                        {addlDevices.map((ad, idx) => (
+                          <div key={idx} className="flex items-center gap-2 bg-white dark:bg-sky-900/20 rounded-lg border border-sky-200 dark:border-sky-700 p-2">
+                            <div className="flex-1 min-w-0">
+                              <select
+                                data-testid={`select-addl-device-type-${idx}`}
+                                value={ad.deviceType}
+                                onChange={e => setAddlDevices(prev => prev.map((x, i) => i === idx ? { ...x, deviceType: e.target.value } : x))}
+                                className="w-full h-8 rounded-md border border-sky-300 dark:border-sky-600 bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                              >
+                                <option value="">-- Device Type --</option>
+                                <option value="ONT">ONT</option>
+                                <option value="Router">Router</option>
+                                <option value="Wireless Router">Wireless Router</option>
+                                <option value="Switch">Switch</option>
+                                <option value="Media Converter">Media Converter</option>
+                                <option value="OLT">OLT</option>
+                                <option value="GPON">GPON</option>
+                                <option value="Set Top Box">Set Top Box</option>
+                                <option value="Android Box">Android Box</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <Input
+                                type="text"
+                                data-testid={`input-addl-device-detail-${idx}`}
+                                placeholder="Model / S/N"
+                                value={ad.deviceDetail}
+                                onChange={e => setAddlDevices(prev => prev.map((x, i) => i === idx ? { ...x, deviceDetail: e.target.value } : x))}
+                                className="h-8 text-sm border-sky-300 dark:border-sky-600 focus-visible:ring-sky-400"
+                              />
+                            </div>
+                            <div className="w-28 shrink-0">
+                              <div className="relative">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-sky-600 font-semibold pointer-events-none">PKR</span>
+                                <Input
+                                  type="number"
+                                  data-testid={`input-addl-device-charges-${idx}`}
+                                  placeholder="0.00"
+                                  value={ad.deviceCharges}
+                                  onChange={e => setAddlDevices(prev => prev.map((x, i) => i === idx ? { ...x, deviceCharges: e.target.value } : x))}
+                                  className="pl-10 h-8 text-sm border-sky-300 dark:border-sky-600 focus-visible:ring-sky-400"
+                                />
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              data-testid={`btn-remove-addl-device-${idx}`}
+                              onClick={() => setAddlDevices(prev => prev.filter((_, i) => i !== idx))}
+                              className="shrink-0 h-7 w-7 flex items-center justify-center rounded-md text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ))}
+                        {addlDevicesTotal > 0 && (
+                          <div className="flex justify-end">
+                            <span className="text-xs font-semibold text-sky-700 dark:text-sky-400">Devices subtotal: PKR {addlDevicesTotal.toFixed(2)}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="mt-3 flex justify-end">
+                      <button
+                        type="button"
+                        data-testid="btn-add-device"
+                        onClick={() => setAddlDevices(prev => [...prev, { deviceType: "", deviceDetail: "", deviceCharges: "" }])}
+                        className="flex items-center gap-1.5 rounded-lg border border-sky-400 bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-700 transition-colors"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Add Device
+                      </button>
                     </div>
                   </div>
 
@@ -1506,6 +1598,12 @@ export default function EditCustomerPage() {
                             <>
                               <span>+</span>
                               <span>PKR {addlPkgsTotal.toFixed(2)} add-ons</span>
+                            </>
+                          )}
+                          {addlDevicesTotal > 0 && (
+                            <>
+                              <span>+</span>
+                              <span>PKR {addlDevicesTotal.toFixed(2)} extra devices</span>
                             </>
                           )}
                         </p>
