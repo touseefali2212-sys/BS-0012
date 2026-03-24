@@ -1364,6 +1364,7 @@ export default function EditCustomerPage() {
                       <SelectTrigger data-testid="select-protocol"><SelectValue placeholder="Select protocol" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="PPPoE">PPPoE</SelectItem>
+                        <SelectItem value="Hotspot">Hotspot</SelectItem>
                         <SelectItem value="Static">Static IP</SelectItem>
                         <SelectItem value="DHCP">DHCP</SelectItem>
                         <SelectItem value="IPoE">IPoE</SelectItem>
