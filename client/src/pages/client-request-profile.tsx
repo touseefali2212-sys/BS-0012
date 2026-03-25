@@ -263,8 +263,8 @@ export default function ClientRequestProfilePage() {
       <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
         <FileText className="h-12 w-12 mb-3 opacity-30" />
         <p className="font-medium">Client request not found</p>
-        <Link href="/customers">
-          <Button variant="outline" className="mt-4"><ArrowLeft className="h-4 w-4 mr-1" /> Back to Customers</Button>
+        <Link href="/customers?tab=query-list">
+          <Button variant="outline" className="mt-4"><ArrowLeft className="h-4 w-4 mr-1" /> Back to Client Requests</Button>
         </Link>
       </div>
     );
@@ -279,7 +279,7 @@ export default function ClientRequestProfilePage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Link href="/customers">
+          <Link href="/customers?tab=query-list">
             <Button variant="ghost" size="icon" data-testid="button-back">
               <ArrowLeft className="h-5 w-5" />
             </Button>
