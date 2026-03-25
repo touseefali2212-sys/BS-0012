@@ -47,6 +47,7 @@ import {
   ToggleLeft,
   CheckCircle2,
   X,
+  BadgeCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +66,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -1055,14 +1058,32 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
                               </DropdownMenuItem>
                             )}
                             {canCreate("customers") && (
-                              <DropdownMenuItem onClick={() => statusMutation.mutate({ id: q.id, status: "Completed" })} data-testid={`action-complete-${q.id}`}>
-                                <Check className="h-4 w-4 mr-2" /> Complete
-                              </DropdownMenuItem>
-                            )}
-                            {canCreate("customers") && (
-                              <DropdownMenuItem onClick={() => statusMutation.mutate({ id: q.id, status: "Rejected" })} data-testid={`action-reject-${q.id}`}>
-                                <WifiOff className="h-4 w-4 mr-2" /> Reject
-                              </DropdownMenuItem>
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuLabel className="text-xs text-muted-foreground font-semibold px-2 py-1">Set Status</DropdownMenuLabel>
+                                {[
+                                  { status: "Pending", color: "text-orange-500", icon: <Clock className="h-3.5 w-3.5 mr-2" /> },
+                                  { status: "Approved", color: "text-green-600", icon: <CheckCircle className="h-3.5 w-3.5 mr-2" /> },
+                                  { status: "Assigned", color: "text-blue-600", icon: <UserCheck className="h-3.5 w-3.5 mr-2" /> },
+                                  { status: "Under Review", color: "text-purple-600", icon: <ClipboardList className="h-3.5 w-3.5 mr-2" /> },
+                                  { status: "Final Approved", color: "text-emerald-600", icon: <BadgeCheck className="h-3.5 w-3.5 mr-2" /> },
+                                  { status: "Converted", color: "text-slate-600", icon: <Users className="h-3.5 w-3.5 mr-2" /> },
+                                ].map(({ status, color, icon }) => (
+                                  <DropdownMenuItem
+                                    key={status}
+                                    onClick={() => statusMutation.mutate({ id: q.id, status })}
+                                    className={`${color} ${q.status === status ? "font-bold bg-muted" : ""}`}
+                                    data-testid={`action-status-${status.toLowerCase().replace(/\s+/g, "-")}-${q.id}`}
+                                  >
+                                    {icon} {status}
+                                    {q.status === status && <span className="ml-auto text-xs">✓</span>}
+                                  </DropdownMenuItem>
+                                ))}
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="text-red-500" onClick={() => statusMutation.mutate({ id: q.id, status: "Rejected" })} data-testid={`action-reject-${q.id}`}>
+                                  <WifiOff className="h-3.5 w-3.5 mr-2" /> Reject
+                                </DropdownMenuItem>
+                              </>
                             )}
                             {canDelete("customers") && (
                               <DropdownMenuItem className="text-red-600" onClick={() => deleteMutation.mutate(q.id)} data-testid={`action-delete-${q.id}`}>

@@ -218,6 +218,16 @@ export default function ClientRequestProfilePage() {
     onError: (e: any) => toast({ title: "Error", description: e.message || "Failed to convert", variant: "destructive" }),
   });
 
+  const [quickStatusPending, setQuickStatusPending] = useState<string | null>(null);
+  const quickStatusMutation = useMutation({
+    mutationFn: async (newStatus: string) => {
+      setQuickStatusPending(newStatus);
+      await apiRequest("PATCH", `/api/customer-queries/${id}`, { status: newStatus });
+    },
+    onSuccess: () => { toast({ title: "Status Updated" }); invalidate(); setQuickStatusPending(null); },
+    onError: (e: any) => { toast({ title: "Error", description: e.message || "Failed to update status", variant: "destructive" }); setQuickStatusPending(null); },
+  });
+
   const getVendorName = (vendorId: number | null | undefined) => {
     if (!vendorId || !vendors) return "-";
     const v = vendors.find((v: any) => v.id === vendorId);
@@ -348,6 +358,43 @@ export default function ClientRequestProfilePage() {
             <Printer className="h-4 w-4 mr-1" /> Print
           </Button>
         </div>
+      </div>
+
+      {/* Quick Status Buttons */}
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-4 py-3">
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide shrink-0 mr-1">Set Status:</span>
+        {[
+          { status: "Pending", active: "bg-orange-500 text-white border-orange-500", idle: "border-orange-300 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30" },
+          { status: "Approved", active: "bg-green-600 text-white border-green-600", idle: "border-green-400 text-green-700 hover:bg-green-50 dark:hover:bg-green-950/30" },
+          { status: "Assigned", active: "bg-blue-600 text-white border-blue-600", idle: "border-blue-400 text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/30" },
+          { status: "Under Review", active: "bg-purple-600 text-white border-purple-600", idle: "border-purple-400 text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/30" },
+          { status: "Final Approved", active: "bg-emerald-600 text-white border-emerald-600", idle: "border-emerald-400 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30" },
+          { status: "Converted", active: "bg-slate-700 text-white border-slate-700", idle: "border-slate-400 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/30" },
+        ].map(({ status, active, idle }) => {
+          const isCurrent = request.status === status;
+          const isLoading = quickStatusPending === status;
+          return (
+            <button
+              key={status}
+              onClick={() => !isCurrent && quickStatusMutation.mutate(status)}
+              disabled={quickStatusMutation.isPending}
+              data-testid={`btn-quick-status-${status.toLowerCase().replace(/\s+/g, "-")}`}
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md border transition-all ${
+                isCurrent
+                  ? `${active} cursor-default ring-2 ring-offset-1 ring-current`
+                  : `bg-transparent ${idle} cursor-pointer`
+              } disabled:opacity-60`}
+            >
+              {isLoading ? "..." : status}
+              {isCurrent && " ✓"}
+            </button>
+          );
+        })}
+        {request.status === "Rejected" && (
+          <span className="px-3 py-1.5 text-xs font-semibold rounded-md border bg-red-500 text-white border-red-500 ring-2 ring-offset-1 ring-red-500 cursor-default">
+            Rejected ✓
+          </span>
+        )}
       </div>
 
       {/* Status Timeline */}
