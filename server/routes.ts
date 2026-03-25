@@ -2736,6 +2736,184 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/customer-queries/:id/logs", requireAuth, async (req, res) => {
+    try {
+      const logs = await storage.getCustomerQueryLogs(Number(req.params.id));
+      res.json(logs);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch logs" });
+    }
+  });
+
+  const logQueryAction = async (queryId: number, action: string, performedBy: string, notes?: string, metadata?: object) => {
+    await storage.createCustomerQueryLog({
+      queryId,
+      action,
+      performedBy,
+      performedAt: new Date().toISOString(),
+      notes: notes || null,
+      metadata: metadata ? JSON.stringify(metadata) : null,
+    });
+  };
+
+  app.post("/api/customer-queries/:id/approve", requireAuth, async (req: any, res) => {
+    try {
+      const qid = Number(req.params.id);
+      const q = await storage.getCustomerQuery(qid);
+      if (!q) return res.status(404).json({ message: "Not found" });
+      if (q.status !== "Pending") return res.status(400).json({ message: "Request must be Pending to approve" });
+      const performedBy = req.user?.username || "system";
+      const result = await storage.updateCustomerQuery(qid, {
+        status: "Approved",
+        approvedBy: performedBy,
+        approvedAt: new Date().toISOString(),
+      });
+      await logQueryAction(qid, "approved", performedBy, req.body?.notes);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to approve" });
+    }
+  });
+
+  app.post("/api/customer-queries/:id/reject", requireAuth, async (req: any, res) => {
+    try {
+      const qid = Number(req.params.id);
+      const q = await storage.getCustomerQuery(qid);
+      if (!q) return res.status(404).json({ message: "Not found" });
+      if (!["Pending", "Under Review"].includes(q.status)) return res.status(400).json({ message: "Cannot reject at this stage" });
+      const performedBy = req.user?.username || "system";
+      const result = await storage.updateCustomerQuery(qid, {
+        status: "Rejected",
+        rejectedBy: performedBy,
+        rejectedReason: req.body?.reason || null,
+      });
+      await logQueryAction(qid, "rejected", performedBy, req.body?.reason);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to reject" });
+    }
+  });
+
+  app.post("/api/customer-queries/:id/assign", requireAuth, async (req: any, res) => {
+    try {
+      const qid = Number(req.params.id);
+      const q = await storage.getCustomerQuery(qid);
+      if (!q) return res.status(404).json({ message: "Not found" });
+      if (q.status !== "Approved") return res.status(400).json({ message: "Request must be Approved before assigning" });
+      const { employeeId, employeeName, notes } = req.body;
+      if (!employeeName) return res.status(400).json({ message: "Employee name is required" });
+      const performedBy = req.user?.username || "system";
+      const result = await storage.updateCustomerQuery(qid, {
+        status: "Assigned",
+        assignedEmployeeId: employeeId || null,
+        assignedEmployeeName: employeeName,
+        assignedAt: new Date().toISOString(),
+      });
+      await logQueryAction(qid, "assigned", performedBy, notes, { employeeId, employeeName });
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to assign" });
+    }
+  });
+
+  app.post("/api/customer-queries/:id/submit-requirements", requireAuth, async (req: any, res) => {
+    try {
+      const qid = Number(req.params.id);
+      const q = await storage.getCustomerQuery(qid);
+      if (!q) return res.status(404).json({ message: "Not found" });
+      if (q.status !== "Assigned") return res.status(400).json({ message: "Request must be Assigned before submitting requirements" });
+      const performedBy = req.user?.username || "system";
+      const { notes, ...fields } = req.body;
+      const result = await storage.updateCustomerQuery(qid, {
+        ...fields,
+        status: "Under Review",
+        requirementsSubmittedAt: new Date().toISOString(),
+      });
+      await logQueryAction(qid, "requirements_submitted", performedBy, notes);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to submit requirements" });
+    }
+  });
+
+  app.post("/api/customer-queries/:id/send-back", requireAuth, async (req: any, res) => {
+    try {
+      const qid = Number(req.params.id);
+      const q = await storage.getCustomerQuery(qid);
+      if (!q) return res.status(404).json({ message: "Not found" });
+      const performedBy = req.user?.username || "system";
+      const result = await storage.updateCustomerQuery(qid, {
+        status: "Assigned",
+      });
+      await logQueryAction(qid, "sent_back_for_revision", performedBy, req.body?.notes);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to send back" });
+    }
+  });
+
+  app.post("/api/customer-queries/:id/final-approve", requireAuth, async (req: any, res) => {
+    try {
+      const qid = Number(req.params.id);
+      const q = await storage.getCustomerQuery(qid);
+      if (!q) return res.status(404).json({ message: "Not found" });
+      if (q.status !== "Under Review") return res.status(400).json({ message: "Request must be Under Review for final approval" });
+      const performedBy = req.user?.username || "system";
+      const result = await storage.updateCustomerQuery(qid, {
+        status: "Final Approved",
+        finalApprovedBy: performedBy,
+        finalApprovedAt: new Date().toISOString(),
+      });
+      await logQueryAction(qid, "final_approved", performedBy, req.body?.notes);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to final approve" });
+    }
+  });
+
+  app.post("/api/customer-queries/:id/convert", requireAuth, async (req: any, res) => {
+    try {
+      const qid = Number(req.params.id);
+      const q = await storage.getCustomerQuery(qid);
+      if (!q) return res.status(404).json({ message: "Not found" });
+      if (q.status !== "Final Approved") return res.status(400).json({ message: "Request must be Final Approved before converting" });
+      const performedBy = req.user?.username || "system";
+      const now = new Date().toISOString();
+      const newCustomer = await storage.createCustomer({
+        username: `${q.name?.toLowerCase().replace(/\s+/g, ".") || "customer"}.${qid}`,
+        password: "changeme123",
+        fullName: q.name,
+        email: q.email || null,
+        phone: q.phone,
+        address: q.address || null,
+        area: q.area || null,
+        city: q.city || null,
+        packageId: q.packageId || null,
+        ipAddress: q.ipAddress || null,
+        macAddress: q.macAddress || null,
+        connectionType: q.connectionType || null,
+        serviceType: q.serviceType || null,
+        billingCycle: q.billingCycle || null,
+        monthlyCharges: q.monthlyCharges || null,
+        securityDeposit: q.securityDeposit || null,
+        installationFee: q.installationFee || null,
+        otcCharge: q.otcCharge || null,
+        staticIp: q.staticIp || false,
+        status: "active",
+        createdAt: now,
+      } as any);
+      await storage.updateCustomerQuery(qid, {
+        status: "Converted",
+        convertedAt: now,
+        convertedCustomerId: newCustomer.id,
+      });
+      await logQueryAction(qid, "converted_to_customer", performedBy, null, { customerId: newCustomer.id });
+      res.json({ message: "Converted successfully", customerId: newCustomer.id });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to convert" });
+    }
+  });
+
   app.get("/api/settings", requireAuth, async (_req, res) => {
     try {
       res.json(await storage.getSettings());

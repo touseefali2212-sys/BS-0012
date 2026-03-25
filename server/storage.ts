@@ -6,7 +6,7 @@ import {
   assetTypes, assets, assetTransfers, inventoryItems, employees, roles, companySettings,
   notifications, reports, settings, customerConnections,
   notificationTemplates, smtpSettings, smsSettings, notificationDispatches, branches,
-  vendorWalletTransactions, resellerWalletTransactions, vendorPackages, vendorBandwidthLinks, bandwidthChangeHistory, customerQueries, supportCategories, invoiceItems,
+  vendorWalletTransactions, resellerWalletTransactions, vendorPackages, vendorBandwidthLinks, bandwidthChangeHistory, customerQueries, customerQueryLogs, supportCategories, invoiceItems,
   expenses, attendance, attendanceBreaks, leaves, holidays, auditLogs, taskActivityLogs, creditNotes, bulkMessages, ipAddresses, subnets, vlans, ipamLogs, outages, outageTimeline,
   networkDevices, pppoeUsers, radiusProfiles, radiusNasDevices, radiusAuthLogs, paymentGateways, payments, billingRules, bandwidthUsage, dailyCollections, salaryHistory, advanceLoans, loanInstallments, payroll, salaryPayments, bonusCommissions, commissionTypes, employeeTypes, shifts, shiftAssignments,
   transactionTypes,
@@ -47,6 +47,7 @@ import {
   type VendorBandwidthLink, type InsertVendorBandwidthLink,
   type BandwidthChangeHistory, type InsertBandwidthChangeHistory,
   type CustomerQuery, type InsertCustomerQuery,
+  type CustomerQueryLog, type InsertCustomerQueryLog,
   type SupportCategory, type InsertSupportCategory,
   type InvoiceItem, type InsertInvoiceItem,
   type Expense, type InsertExpense,
@@ -295,6 +296,8 @@ export interface IStorage {
   createCustomerQuery(q: InsertCustomerQuery): Promise<CustomerQuery>;
   updateCustomerQuery(id: number, q: Partial<InsertCustomerQuery>): Promise<CustomerQuery | undefined>;
   deleteCustomerQuery(id: number): Promise<void>;
+  createCustomerQueryLog(log: InsertCustomerQueryLog): Promise<CustomerQueryLog>;
+  getCustomerQueryLogs(queryId: number): Promise<CustomerQueryLog[]>;
 
   getSupportCategories(): Promise<SupportCategory[]>;
   getSupportCategory(id: number): Promise<SupportCategory | undefined>;
@@ -2216,6 +2219,17 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCustomerQuery(id: number): Promise<void> {
     await db.delete(customerQueries).where(eq(customerQueries.id, id));
+  }
+
+  async createCustomerQueryLog(log: InsertCustomerQueryLog): Promise<CustomerQueryLog> {
+    const [created] = await db.insert(customerQueryLogs).values(log).returning();
+    return created;
+  }
+
+  async getCustomerQueryLogs(queryId: number): Promise<CustomerQueryLog[]> {
+    return db.select().from(customerQueryLogs)
+      .where(eq(customerQueryLogs.queryId, queryId))
+      .orderBy(desc(customerQueryLogs.id));
   }
 
   async getSupportCategories(): Promise<SupportCategory[]> {

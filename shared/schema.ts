@@ -946,7 +946,29 @@ export const customerQueries = pgTable("customer_queries", {
   setupBy: text("setup_by"),
   setupTime: text("setup_time"),
   status: text("status").notNull().default("Pending"),
+  approvedBy: text("approved_by"),
+  approvedAt: text("approved_at"),
+  rejectedBy: text("rejected_by"),
+  rejectedReason: text("rejected_reason"),
+  assignedEmployeeId: integer("assigned_employee_id"),
+  assignedEmployeeName: text("assigned_employee_name"),
+  assignedAt: text("assigned_at"),
+  requirementsSubmittedAt: text("requirements_submitted_at"),
+  finalApprovedBy: text("final_approved_by"),
+  finalApprovedAt: text("final_approved_at"),
+  convertedAt: text("converted_at"),
+  convertedCustomerId: integer("converted_customer_id"),
   createdAt: text("created_at").notNull(),
+});
+
+export const customerQueryLogs = pgTable("customer_query_logs", {
+  id: serial("id").primaryKey(),
+  queryId: integer("query_id").notNull(),
+  action: text("action").notNull(),
+  performedBy: text("performed_by"),
+  performedAt: text("performed_at").notNull(),
+  notes: text("notes"),
+  metadata: text("metadata"),
 });
 
 export const invoiceItems = pgTable("invoice_items", {
@@ -1113,6 +1135,9 @@ export type BandwidthChangeHistory = typeof bandwidthChangeHistory.$inferSelect;
 
 export type InsertCustomerQuery = z.infer<typeof insertCustomerQuerySchema>;
 export type CustomerQuery = typeof customerQueries.$inferSelect;
+export const insertCustomerQueryLogSchema = createInsertSchema(customerQueryLogs).omit({ id: true });
+export type InsertCustomerQueryLog = z.infer<typeof insertCustomerQueryLogSchema>;
+export type CustomerQueryLog = typeof customerQueryLogs.$inferSelect;
 export type InsertSupportCategory = z.infer<typeof insertSupportCategorySchema>;
 export type SupportCategory = typeof supportCategories.$inferSelect;
 export type InsertInvoiceItem = z.infer<typeof insertInvoiceItemSchema>;
