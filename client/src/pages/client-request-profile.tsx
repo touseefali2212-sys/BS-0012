@@ -76,6 +76,13 @@ export default function ClientRequestProfilePage() {
   });
 
   const { data: pkgs } = useQuery<PackageType[]>({ queryKey: ["/api/packages"] });
+  const { data: vendors } = useQuery<any[]>({ queryKey: ["/api/vendors"] });
+
+  const getVendorName = (vendorId: number | null | undefined) => {
+    if (!vendorId || !vendors) return "-";
+    const v = vendors.find((v: any) => v.id === vendorId);
+    return v ? v.name : "-";
+  };
 
   const statusMutation = useMutation({
     mutationFn: async (status: string) => {
@@ -249,12 +256,26 @@ export default function ClientRequestProfilePage() {
           <div>
             <InfoRow label="Customer Type" value={request.customerType} />
             <InfoRow label="Service Type" value={request.serviceType} />
-            <InfoRow label="Package" value={pkgName + (pkgSpeed ? ` – ${pkgSpeed}` : "") + (pkgPrice ? ` (${pkgPrice} PKR)` : "")} />
+            {(request.customerType === "CIR" || request.customerType === "Corporate") && (
+              <InfoRow label="Bandwidth Required" value={request.bandwidthRequired} />
+            )}
+            {request.customerType === "CIR" && (
+              <InfoRow label="Bandwidth Vendor" value={getVendorName(request.bandwidthVendorId)} />
+            )}
+            {request.customerType === "Reseller" && (
+              <InfoRow label="Panel Users Capacity" value={request.panelUsersCapacity} />
+            )}
+            {request.customerType === "Reseller" && (
+              <InfoRow label="Panel Vendor" value={getVendorName(request.panelVendorId)} />
+            )}
+            {!["CIR", "Corporate", "Reseller"].includes(request.customerType || "") && (
+              <InfoRow label="Package" value={pkgName + (pkgSpeed ? ` – ${pkgSpeed}` : "") + (pkgPrice ? ` (${pkgPrice} PKR)` : "")} />
+            )}
           </div>
           <div>
-            <InfoRow label="Static IP" value={(request as any).staticIp ? "Required" : "Not Required"} />
-            <InfoRow label="POP ID" value={(request as any).popId} />
-            <InfoRow label="Request Date" value={formatDate((request as any).requestDate)} />
+            <InfoRow label="Static IP" value={request.staticIp ? "Required" : "Not Required"} />
+            <InfoRow label="POP ID" value={request.popId} />
+            <InfoRow label="Request Date" value={formatDate(request.requestDate)} />
           </div>
         </div>
       </SectionCard>

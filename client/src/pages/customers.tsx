@@ -684,6 +684,41 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
   const [setupByFilter, setSetupByFilter] = useState("");
   const [createdByFilter, setCreatedByFilter] = useState("");
   const [entriesCount, setEntriesCount] = useState(10);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editingQuery, setEditingQuery] = useState<CustomerQuery | null>(null);
+  const [editForm, setEditForm] = useState({ bandwidthRequired: "", panelUsersCapacity: "", bandwidthVendorId: 0, panelVendorId: 0, packageId: 0 });
+
+  const openEditDialog = (q: CustomerQuery) => {
+    setEditingQuery(q);
+    setEditForm({
+      bandwidthRequired: q.bandwidthRequired || "",
+      panelUsersCapacity: q.panelUsersCapacity || "",
+      bandwidthVendorId: q.bandwidthVendorId || 0,
+      panelVendorId: q.panelVendorId || 0,
+      packageId: q.packageId || 0,
+    });
+    setEditOpen(true);
+  };
+
+  const editMutation = useMutation({
+    mutationFn: async () => {
+      if (!editingQuery) return;
+      const ct = editingQuery.customerType;
+      const payload: Record<string, any> = {};
+      if (ct === "CIR" || ct === "Corporate") payload.bandwidthRequired = editForm.bandwidthRequired || null;
+      if (ct === "CIR") payload.bandwidthVendorId = editForm.bandwidthVendorId || null;
+      if (ct === "Reseller") payload.panelUsersCapacity = editForm.panelUsersCapacity || null;
+      if (ct === "Reseller") payload.panelVendorId = editForm.panelVendorId || null;
+      if (!["CIR", "Corporate", "Reseller"].includes(ct || "")) payload.packageId = editForm.packageId || null;
+      await apiRequest("PATCH", `/api/customer-queries/${editingQuery.id}`, payload);
+    },
+    onSuccess: () => {
+      toast({ title: "Updated", description: "Record updated successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/customer-queries"] });
+      setEditOpen(false);
+    },
+    onError: () => toast({ title: "Error", description: "Failed to update record.", variant: "destructive" }),
+  });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => { await apiRequest("DELETE", `/api/customer-queries/${id}`); },
@@ -983,6 +1018,11 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             {canCreate("customers") && (
+                              <DropdownMenuItem onClick={() => openEditDialog(q)} data-testid={`action-edit-pkg-${q.id}`}>
+                                <Edit className="h-4 w-4 mr-2" /> Edit Package / BW / Vendor
+                              </DropdownMenuItem>
+                            )}
+                            {canCreate("customers") && (
                               <DropdownMenuItem onClick={() => statusMutation.mutate({ id: q.id, status: "Completed" })} data-testid={`action-complete-${q.id}`}>
                                 <Check className="h-4 w-4 mr-2" /> Complete
                               </DropdownMenuItem>
@@ -1013,6 +1053,90 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Package / BW / Vendor Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Package / Bandwidth / Vendor</DialogTitle>
+          </DialogHeader>
+          {editingQuery && (
+            <div className="space-y-4 py-2">
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">{editingQuery.name}</span> — {editingQuery.customerType}
+              </div>
+              {(editingQuery.customerType === "CIR" || editingQuery.customerType === "Corporate") && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Bandwidth Required</label>
+                  <Input
+                    placeholder="e.g. 100 Mbps, 1 Gbps"
+                    value={editForm.bandwidthRequired}
+                    onChange={e => setEditForm(prev => ({ ...prev, bandwidthRequired: e.target.value }))}
+                    data-testid="input-edit-bandwidth"
+                  />
+                </div>
+              )}
+              {editingQuery.customerType === "CIR" && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Bandwidth Vendor</label>
+                  <Select value={editForm.bandwidthVendorId ? String(editForm.bandwidthVendorId) : ""} onValueChange={v => setEditForm(prev => ({ ...prev, bandwidthVendorId: Number(v) }))}>
+                    <SelectTrigger data-testid="select-edit-bw-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
+                    <SelectContent>
+                      {(vendorsList || []).map((v: any) => (
+                        <SelectItem key={v.id} value={String(v.id)}>{v.name}{v.serviceType ? ` – ${v.serviceType}` : ""}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {editingQuery.customerType === "Reseller" && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Panel Users Capacity</label>
+                  <Input
+                    type="number"
+                    placeholder="e.g. 500"
+                    value={editForm.panelUsersCapacity}
+                    onChange={e => setEditForm(prev => ({ ...prev, panelUsersCapacity: e.target.value }))}
+                    data-testid="input-edit-capacity"
+                  />
+                </div>
+              )}
+              {editingQuery.customerType === "Reseller" && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Panel Vendor</label>
+                  <Select value={editForm.panelVendorId ? String(editForm.panelVendorId) : ""} onValueChange={v => setEditForm(prev => ({ ...prev, panelVendorId: Number(v) }))}>
+                    <SelectTrigger data-testid="select-edit-panel-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
+                    <SelectContent>
+                      {(vendorsList || []).map((v: any) => (
+                        <SelectItem key={v.id} value={String(v.id)}>{v.name}{v.serviceType ? ` – ${v.serviceType}` : ""}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {!["CIR", "Corporate", "Reseller"].includes(editingQuery.customerType || "") && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Package</label>
+                  <Select value={editForm.packageId ? String(editForm.packageId) : ""} onValueChange={v => setEditForm(prev => ({ ...prev, packageId: Number(v) }))}>
+                    <SelectTrigger data-testid="select-edit-package"><SelectValue placeholder="Select package" /></SelectTrigger>
+                    <SelectContent>
+                      {(pkgs || []).filter(p => p.isActive).map(p => (
+                        <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button onClick={() => editMutation.mutate()} disabled={editMutation.isPending} className="bg-[#1c67d4] hover:bg-[#1558b8] text-white" data-testid="button-edit-pkg-save">
+              {editMutation.isPending ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
