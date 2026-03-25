@@ -729,7 +729,6 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
   const [wfFinalApprovedByUser, setWfFinalApprovedByUser] = useState("");
   const [wfSendBackOpen, setWfSendBackOpen] = useState(false);
   const [wfSendBackNotes, setWfSendBackNotes] = useState("");
-  const [wfConvertOpen, setWfConvertOpen] = useState(false);
 
   const wfInvalidate = () => queryClient.invalidateQueries({ queryKey: ["/api/customer-queries"] });
 
@@ -743,7 +742,7 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
       setWfReqOpen(true);
     }
     else if (dialog === "finalApproved") { setWfFinalNotes(""); setWfFinalOpen(true); }
-    else if (dialog === "converted") { setWfConvertOpen(true); }
+    else if (dialog === "converted") { setLocation(`/customers/add?fromQuery=${q.id}`); return; }
   };
 
   const wfApproveMutation = useMutation({
@@ -777,11 +776,6 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
   const wfSendBackMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/customer-queries/${wfQuery?.id}/send-back`, { notes: wfSendBackNotes }),
     onSuccess: () => { toast({ title: "Reset to Pending" }); wfInvalidate(); setWfSendBackOpen(false); setWfSendBackNotes(""); },
-    onError: (e: any) => toast({ title: "Error", description: e.message || "Failed", variant: "destructive" }),
-  });
-  const wfConvertMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/customer-queries/${wfQuery?.id}/convert`, {}),
-    onSuccess: () => { toast({ title: "Converted!" }); wfInvalidate(); setWfConvertOpen(false); },
     onError: (e: any) => toast({ title: "Error", description: e.message || "Failed", variant: "destructive" }),
   });
   const [editForm, setEditForm] = useState({
@@ -1630,30 +1624,6 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
         </DialogContent>
       </Dialog>
 
-      {/* Workflow: Convert to Customer */}
-      <Dialog open={wfConvertOpen} onOpenChange={setWfConvertOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Users className="h-4 w-4 text-[#1c67d4]" /> Convert to Customer</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">You'll be taken to the Add Customer form with all available details from this request pre-filled for <strong>{wfQuery?.name}</strong>.</p>
-            <div className="rounded-lg border bg-muted/50 p-3 space-y-1 text-sm">
-              <p><span className="text-muted-foreground">Name:</span> {wfQuery?.name}</p>
-              <p><span className="text-muted-foreground">Phone:</span> {wfQuery?.phone}</p>
-              <p><span className="text-muted-foreground">Type:</span> {wfQuery?.customerType}</p>
-            </div>
-            <div className="flex items-start gap-2 text-xs text-blue-600 bg-blue-50 dark:bg-blue-950/20 p-2 rounded border border-blue-200">
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-              Review and complete the form, then save to register this customer. The request will be marked as Converted automatically.
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setWfConvertOpen(false)}>Cancel</Button>
-            <Button className="bg-[#1c67d4] hover:bg-[#1558b8] text-white" onClick={() => { setWfConvertOpen(false); setLocation(`/customers/add?fromQuery=${wfQuery?.id}`); }} data-testid="button-wf-convert-confirm">
-              Open Add Customer Form
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

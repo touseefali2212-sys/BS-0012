@@ -117,7 +117,6 @@ export default function ClientRequestProfilePage() {
   const [finalApprovedByUser, setFinalApprovedByUser] = useState("");
   const [sendBackOpen, setSendBackOpen] = useState(false);
   const [sendBackNotes, setSendBackNotes] = useState("");
-  const [convertOpen, setConvertOpen] = useState(false);
 
   const [reqForm, setReqForm] = useState({
     packageId: "",
@@ -217,11 +216,6 @@ export default function ClientRequestProfilePage() {
     onError: (e: any) => toast({ title: "Error", description: e.message || "Failed to send back", variant: "destructive" }),
   });
 
-  const convertMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/customer-queries/${id}/convert`, {}),
-    onSuccess: () => { toast({ title: "Converted!", description: "Client has been added to the customer list." }); invalidate(); setConvertOpen(false); },
-    onError: (e: any) => toast({ title: "Error", description: e.message || "Failed to convert", variant: "destructive" }),
-  });
 
 
   const getVendorName = (vendorId: number | null | undefined) => {
@@ -346,8 +340,8 @@ export default function ClientRequestProfilePage() {
             </>
           )}
           {request.status === "Final Approved" && (
-            <Button size="sm" className="bg-[#1c67d4] hover:bg-[#1558b8] text-white" onClick={() => setConvertOpen(true)} data-testid="button-convert">
-              <Users className="h-4 w-4 mr-1" /> Convert to Customer
+            <Button size="sm" className="bg-[#1c67d4] hover:bg-[#1558b8] text-white" onClick={() => setLocation(`/customers/add?fromQuery=${id}`)} data-testid="button-convert">
+              <Users className="h-4 w-4 mr-1" /> Convert to {request.customerType && request.customerType !== "Normal" ? `${request.customerType} ` : ""}Customer
             </Button>
           )}
           <Button size="sm" variant="outline" onClick={() => window.print()} data-testid="button-print">
@@ -403,7 +397,7 @@ export default function ClientRequestProfilePage() {
             status: "Converted",
             active: "bg-slate-700 text-white border-slate-700",
             idle: "border-slate-400 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/30",
-            onClick: () => setConvertOpen(true),
+            onClick: () => setLocation(`/customers/add?fromQuery=${id}`),
           },
         ] as { status: string; active: string; idle: string; onClick: () => void }[]).map(({ status, active, idle, onClick }) => {
           const isCurrent = request.status === status;
@@ -901,31 +895,6 @@ export default function ClientRequestProfilePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Convert to Customer Dialog */}
-      <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><Users className="h-4 w-4 text-[#1c67d4]" /> Convert to Customer</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">You'll be taken to the Add Customer form with all available details from this request pre-filled for <strong>{request.name}</strong>.</p>
-            <div className="rounded-lg border bg-muted/50 p-3 space-y-1 text-sm">
-              <p><span className="text-muted-foreground">Name:</span> {request.name}</p>
-              <p><span className="text-muted-foreground">Phone:</span> {request.phone}</p>
-              <p><span className="text-muted-foreground">Type:</span> {request.customerType}</p>
-              {request.monthlyCharges && <p><span className="text-muted-foreground">Monthly:</span> PKR {Number(request.monthlyCharges).toLocaleString()}</p>}
-            </div>
-            <div className="flex items-start gap-2 text-xs text-blue-600 bg-blue-50 dark:bg-blue-950/20 p-2 rounded border border-blue-200">
-              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-              Review and complete the form, then save to register this customer. The request will be marked as Converted automatically.
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConvertOpen(false)}>Cancel</Button>
-            <Button className="bg-[#1c67d4] hover:bg-[#1558b8] text-white" onClick={() => { setConvertOpen(false); setLocation(`/customers/add?fromQuery=${id}`); }} data-testid="button-confirm-convert">
-              Open Add Customer Form
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

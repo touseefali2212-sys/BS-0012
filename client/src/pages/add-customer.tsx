@@ -728,8 +728,14 @@ export default function AddCustomerPage() {
               <UserCheck className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">Add New Customer</h1>
-              <p className="text-xs text-muted-foreground">Complete customer onboarding form</p>
+              <h1 className="text-xl font-bold text-foreground">
+                Add New {fromQueryId && form.customerType && form.customerType !== "Normal" ? `${form.customerType} ` : ""}Customer
+              </h1>
+              <p className="text-xs text-muted-foreground">
+                {fromQueryId && form.customerType && form.customerType !== "Normal"
+                  ? `${form.customerType} customer onboarding form`
+                  : "Complete customer onboarding form"}
+              </p>
             </div>
           </div>
         </div>
@@ -738,8 +744,12 @@ export default function AddCustomerPage() {
           <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-sm">
             <Sparkles className="h-4 w-4 shrink-0" />
             <span>
-              Form pre-filled from client request <strong>#{fromQueryId}</strong>. Review the details and make any necessary changes before saving.
+              Converting client request <strong>#{fromQueryId}</strong>
               {fromQueryData && <> — <strong>{fromQueryData.name}</strong></>}
+              {form.customerType && form.customerType !== "Normal" && (
+                <> &bull; <span className="font-semibold">{form.customerType}</span> customer type</>
+              )}
+              . Review the details below and save to complete the conversion.
             </span>
           </div>
         )}
