@@ -678,6 +678,7 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
   const { data: queries, isLoading } = useQuery<CustomerQuery[]>({ queryKey: ["/api/customer-queries"] });
   const { data: pkgs } = useQuery<Package[]>({ queryKey: ["/api/packages"] });
   const { data: vendorsList } = useQuery<any[]>({ queryKey: ["/api/vendors"] });
+  const { data: employeesList } = useQuery<any[]>({ queryKey: ["/api/employees"] });
   const { toast } = useToast();
   const { canCreate, canDelete } = usePermissions();
   const [searchTerm, setSearchTerm] = useState("");
@@ -689,6 +690,77 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
   const [entriesCount, setEntriesCount] = useState(10);
   const [editOpen, setEditOpen] = useState(false);
   const [editingQuery, setEditingQuery] = useState<CustomerQuery | null>(null);
+
+  // Workflow dialog state
+  const [wfQuery, setWfQuery] = useState<CustomerQuery | null>(null);
+  const [wfApproveOpen, setWfApproveOpen] = useState(false);
+  const [wfApproveNotes, setWfApproveNotes] = useState("");
+  const [wfRejectOpen, setWfRejectOpen] = useState(false);
+  const [wfRejectReason, setWfRejectReason] = useState("");
+  const [wfAssignOpen, setWfAssignOpen] = useState(false);
+  const [wfAssignEmployeeId, setWfAssignEmployeeId] = useState("");
+  const [wfAssignNotes, setWfAssignNotes] = useState("");
+  const [wfReqOpen, setWfReqOpen] = useState(false);
+  const [wfReqForm, setWfReqForm] = useState({ packageId: "", serviceType: "", connectionType: "", bandwidthRequired: "", monthlyCharges: "", otcCharge: "", installationFee: "", securityDeposit: "", popId: "", staticIp: false, remarks: "" });
+  const [wfFinalOpen, setWfFinalOpen] = useState(false);
+  const [wfFinalNotes, setWfFinalNotes] = useState("");
+  const [wfSendBackOpen, setWfSendBackOpen] = useState(false);
+  const [wfSendBackNotes, setWfSendBackNotes] = useState("");
+  const [wfConvertOpen, setWfConvertOpen] = useState(false);
+
+  const wfInvalidate = () => queryClient.invalidateQueries({ queryKey: ["/api/customer-queries"] });
+
+  const openWfDialog = (q: CustomerQuery, dialog: "pending" | "approved" | "assigned" | "underReview" | "finalApproved" | "converted") => {
+    setWfQuery(q);
+    if (dialog === "pending") { setWfSendBackNotes(""); setWfSendBackOpen(true); }
+    else if (dialog === "approved") { setWfApproveNotes(""); setWfApproveOpen(true); }
+    else if (dialog === "assigned") { setWfAssignEmployeeId(""); setWfAssignNotes(""); setWfAssignOpen(true); }
+    else if (dialog === "underReview") {
+      setWfReqForm({ packageId: String(q.packageId || ""), serviceType: q.serviceType || "", connectionType: q.connectionType || "", bandwidthRequired: (q as any).bandwidthRequired || "", monthlyCharges: String((q as any).monthlyCharges || ""), otcCharge: String((q as any).otcCharge || ""), installationFee: String((q as any).installationFee || ""), securityDeposit: String((q as any).securityDeposit || ""), popId: (q as any).popId || "", staticIp: (q as any).staticIp || false, remarks: q.remarks || "" });
+      setWfReqOpen(true);
+    }
+    else if (dialog === "finalApproved") { setWfFinalNotes(""); setWfFinalOpen(true); }
+    else if (dialog === "converted") { setWfConvertOpen(true); }
+  };
+
+  const wfApproveMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/customer-queries/${wfQuery?.id}/approve`, { notes: wfApproveNotes }),
+    onSuccess: () => { toast({ title: "Approved" }); wfInvalidate(); setWfApproveOpen(false); },
+    onError: (e: any) => toast({ title: "Error", description: e.message || "Failed", variant: "destructive" }),
+  });
+  const wfRejectMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/customer-queries/${wfQuery?.id}/reject`, { reason: wfRejectReason }),
+    onSuccess: () => { toast({ title: "Rejected" }); wfInvalidate(); setWfRejectOpen(false); setWfRejectReason(""); },
+    onError: (e: any) => toast({ title: "Error", description: e.message || "Failed", variant: "destructive" }),
+  });
+  const wfAssignMutation = useMutation({
+    mutationFn: () => {
+      const emp = (employeesList || []).find((e: any) => String(e.id) === wfAssignEmployeeId);
+      return apiRequest("POST", `/api/customer-queries/${wfQuery?.id}/assign`, { employeeId: emp?.id || null, employeeName: emp?.fullName || wfAssignEmployeeId, notes: wfAssignNotes });
+    },
+    onSuccess: () => { toast({ title: "Assigned" }); wfInvalidate(); setWfAssignOpen(false); },
+    onError: (e: any) => toast({ title: "Error", description: e.message || "Failed", variant: "destructive" }),
+  });
+  const wfReqMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/customer-queries/${wfQuery?.id}/submit-requirements`, { packageId: wfReqForm.packageId ? Number(wfReqForm.packageId) : null, serviceType: wfReqForm.serviceType || null, connectionType: wfReqForm.connectionType || null, bandwidthRequired: wfReqForm.bandwidthRequired || null, monthlyCharges: wfReqForm.monthlyCharges || null, otcCharge: wfReqForm.otcCharge || null, installationFee: wfReqForm.installationFee || null, securityDeposit: wfReqForm.securityDeposit || null, popId: wfReqForm.popId || null, staticIp: wfReqForm.staticIp, remarks: wfReqForm.remarks || null, notes: wfReqForm.remarks }),
+    onSuccess: () => { toast({ title: "Requirements Submitted" }); wfInvalidate(); setWfReqOpen(false); },
+    onError: (e: any) => toast({ title: "Error", description: e.message || "Failed", variant: "destructive" }),
+  });
+  const wfFinalMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/customer-queries/${wfQuery?.id}/final-approve`, { notes: wfFinalNotes }),
+    onSuccess: () => { toast({ title: "Final Approved" }); wfInvalidate(); setWfFinalOpen(false); },
+    onError: (e: any) => toast({ title: "Error", description: e.message || "Failed", variant: "destructive" }),
+  });
+  const wfSendBackMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/customer-queries/${wfQuery?.id}/send-back`, { notes: wfSendBackNotes }),
+    onSuccess: () => { toast({ title: "Reset to Pending" }); wfInvalidate(); setWfSendBackOpen(false); setWfSendBackNotes(""); },
+    onError: (e: any) => toast({ title: "Error", description: e.message || "Failed", variant: "destructive" }),
+  });
+  const wfConvertMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/customer-queries/${wfQuery?.id}/convert`, {}),
+    onSuccess: () => { toast({ title: "Converted!" }); wfInvalidate(); setWfConvertOpen(false); },
+    onError: (e: any) => toast({ title: "Error", description: e.message || "Failed", variant: "destructive" }),
+  });
   const [editForm, setEditForm] = useState({
     name: "", phone: "", email: "", address: "", area: "", city: "",
     serviceType: "", connectionType: "", remarks: "", popId: "", staticIp: false,
@@ -1061,17 +1133,17 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
                               <>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuLabel className="text-xs text-muted-foreground font-semibold px-2 py-1">Set Status</DropdownMenuLabel>
-                                {[
-                                  { status: "Pending", color: "text-orange-500", icon: <Clock className="h-3.5 w-3.5 mr-2" /> },
-                                  { status: "Approved", color: "text-green-600", icon: <CheckCircle2 className="h-3.5 w-3.5 mr-2" /> },
-                                  { status: "Assigned", color: "text-blue-600", icon: <UserCheck className="h-3.5 w-3.5 mr-2" /> },
-                                  { status: "Under Review", color: "text-purple-600", icon: <ClipboardList className="h-3.5 w-3.5 mr-2" /> },
-                                  { status: "Final Approved", color: "text-emerald-600", icon: <BadgeCheck className="h-3.5 w-3.5 mr-2" /> },
-                                  { status: "Converted", color: "text-slate-600", icon: <Users className="h-3.5 w-3.5 mr-2" /> },
-                                ].map(({ status, color, icon }) => (
+                                {([
+                                  { status: "Pending", color: "text-orange-500", icon: <Clock className="h-3.5 w-3.5 mr-2" />, dialog: "pending" as const },
+                                  { status: "Approved", color: "text-green-600", icon: <CheckCircle2 className="h-3.5 w-3.5 mr-2" />, dialog: "approved" as const },
+                                  { status: "Assigned", color: "text-blue-600", icon: <UserCheck className="h-3.5 w-3.5 mr-2" />, dialog: "assigned" as const },
+                                  { status: "Under Review", color: "text-purple-600", icon: <ClipboardList className="h-3.5 w-3.5 mr-2" />, dialog: "underReview" as const },
+                                  { status: "Final Approved", color: "text-emerald-600", icon: <BadgeCheck className="h-3.5 w-3.5 mr-2" />, dialog: "finalApproved" as const },
+                                  { status: "Converted", color: "text-slate-600", icon: <Users className="h-3.5 w-3.5 mr-2" />, dialog: "converted" as const },
+                                ]).map(({ status, color, icon, dialog }) => (
                                   <DropdownMenuItem
                                     key={status}
-                                    onClick={() => statusMutation.mutate({ id: q.id, status })}
+                                    onClick={() => openWfDialog(q, dialog)}
                                     className={`${color} ${q.status === status ? "font-bold bg-muted" : ""}`}
                                     data-testid={`action-status-${status.toLowerCase().replace(/\s+/g, "-")}-${q.id}`}
                                   >
@@ -1080,7 +1152,7 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
                                   </DropdownMenuItem>
                                 ))}
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-red-500" onClick={() => statusMutation.mutate({ id: q.id, status: "Rejected" })} data-testid={`action-reject-${q.id}`}>
+                                <DropdownMenuItem className="text-red-500" onClick={() => { setWfQuery(q); setWfRejectReason(""); setWfRejectOpen(true); }} data-testid={`action-reject-${q.id}`}>
                                   <WifiOff className="h-3.5 w-3.5 mr-2" /> Reject
                                 </DropdownMenuItem>
                               </>
@@ -1270,6 +1342,244 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
             <Button onClick={() => editMutation.mutate()} disabled={editMutation.isPending || !editForm.name || !editForm.phone} className="bg-[#1c67d4] hover:bg-[#1558b8] text-white" data-testid="button-edit-request-save">
               {editMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Workflow: Reset to Pending */}
+      <Dialog open={wfSendBackOpen} onOpenChange={setWfSendBackOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><RefreshCw className="h-4 w-4 text-orange-500" /> Reset to Pending</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Reset <strong>{wfQuery?.name}</strong>'s request back to <span className="font-semibold text-orange-600">Pending</span> status. Your name will be recorded as the accepting officer.</p>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Reason / Notes <span className="text-red-500">*</span></label>
+              <textarea value={wfSendBackNotes} onChange={e => setWfSendBackNotes(e.target.value)} rows={3} placeholder="State why this is being reset to pending..." className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" data-testid="textarea-wf-sendback-notes" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWfSendBackOpen(false)}>Cancel</Button>
+            <Button className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => wfSendBackMutation.mutate()} disabled={wfSendBackMutation.isPending || !wfSendBackNotes.trim()} data-testid="button-wf-sendback-confirm">
+              {wfSendBackMutation.isPending ? "Processing..." : "Reset to Pending"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Workflow: Approve */}
+      <Dialog open={wfApproveOpen} onOpenChange={setWfApproveOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-600" /> Approve / Reject Request</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Review <strong>{wfQuery?.name}</strong>'s request before confirming approval or rejection.</p>
+            <div className="rounded-md border bg-green-50 dark:bg-green-950/20 px-3 py-2.5">
+              <p className="text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">Approver Details</p>
+              <p className="text-sm text-muted-foreground mt-0.5">Your logged-in account will be recorded as the approver.</p>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Approval Notes (optional)</label>
+              <textarea value={wfApproveNotes} onChange={e => setWfApproveNotes(e.target.value)} rows={2} placeholder="Any notes for the approval..." className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" data-testid="textarea-wf-approve-notes" />
+            </div>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setWfApproveOpen(false)} className="sm:mr-auto">Cancel</Button>
+            <Button variant="destructive" onClick={() => { setWfApproveOpen(false); setWfRejectReason(""); setWfRejectOpen(true); }} data-testid="button-wf-reject-instead">
+              <XCircle className="h-4 w-4 mr-1" /> Reject Instead
+            </Button>
+            <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => wfApproveMutation.mutate()} disabled={wfApproveMutation.isPending} data-testid="button-wf-approve-confirm">
+              {wfApproveMutation.isPending ? "Approving..." : "Confirm Approval"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Workflow: Reject */}
+      <Dialog open={wfRejectOpen} onOpenChange={setWfRejectOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><XCircle className="h-4 w-4 text-red-500" /> Reject Request</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Reject <strong>{wfQuery?.name}</strong>'s request. Please provide a reason.</p>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Reason for Rejection <span className="text-red-500">*</span></label>
+            <textarea value={wfRejectReason} onChange={e => setWfRejectReason(e.target.value)} rows={3} placeholder="Explain why this request is being rejected..." className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" data-testid="textarea-wf-reject-reason" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWfRejectOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => wfRejectMutation.mutate()} disabled={wfRejectMutation.isPending || !wfRejectReason.trim()} data-testid="button-wf-reject-confirm">
+              {wfRejectMutation.isPending ? "Rejecting..." : "Confirm Rejection"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Workflow: Assign Employee */}
+      <Dialog open={wfAssignOpen} onOpenChange={setWfAssignOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><UserCheck className="h-4 w-4 text-blue-600" /> Assign Employee</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Select an employee to visit <strong>{wfQuery?.name}</strong>'s site and collect requirements.</p>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Employee <span className="text-red-500">*</span></label>
+              <Select value={wfAssignEmployeeId} onValueChange={setWfAssignEmployeeId}>
+                <SelectTrigger data-testid="select-wf-assign-employee"><SelectValue placeholder="Select employee" /></SelectTrigger>
+                <SelectContent>
+                  {(employeesList || []).filter((e: any) => e.status === "active").map((e: any) => (
+                    <SelectItem key={e.id} value={String(e.id)}>{e.fullName} — {e.designation}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Assignment Notes (optional)</label>
+              <textarea value={wfAssignNotes} onChange={e => setWfAssignNotes(e.target.value)} rows={2} placeholder="Instructions for the employee..." className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" data-testid="textarea-wf-assign-notes" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWfAssignOpen(false)}>Cancel</Button>
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => wfAssignMutation.mutate()} disabled={wfAssignMutation.isPending || !wfAssignEmployeeId} data-testid="button-wf-assign-confirm">
+              {wfAssignMutation.isPending ? "Assigning..." : "Assign Employee"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Workflow: Under Review (Site Requirements) */}
+      <Dialog open={wfReqOpen} onOpenChange={setWfReqOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><ClipboardList className="h-4 w-4 text-purple-600" /> Submit Site Requirements</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Fill in requirements for <strong>{wfQuery?.name}</strong> collected during the site visit. This will submit for admin final review.</p>
+          <div className="space-y-4 py-1">
+            <div className="grid grid-cols-2 gap-3">
+              {!["CIR", "Corporate", "Reseller"].includes(wfQuery?.customerType || "") && (
+                <div className="col-span-2 space-y-1.5">
+                  <label className="text-sm font-medium">Package</label>
+                  <Select value={wfReqForm.packageId} onValueChange={v => setWfReqForm(prev => ({ ...prev, packageId: v }))}>
+                    <SelectTrigger data-testid="select-wf-req-package"><SelectValue placeholder="Select package" /></SelectTrigger>
+                    <SelectContent>
+                      {(pkgs || []).filter(p => p.isActive).map(p => (
+                        <SelectItem key={p.id} value={String(p.id)}>{p.name} — {p.speed}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {(wfQuery?.customerType === "CIR" || wfQuery?.customerType === "Corporate") && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Bandwidth Required</label>
+                  <Input value={wfReqForm.bandwidthRequired} onChange={e => setWfReqForm(prev => ({ ...prev, bandwidthRequired: e.target.value }))} placeholder="e.g. 100 Mbps" data-testid="input-wf-req-bandwidth" />
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Connectivity Type</label>
+                <Select value={wfReqForm.serviceType} onValueChange={v => setWfReqForm(prev => ({ ...prev, serviceType: v }))}>
+                  <SelectTrigger data-testid="select-wf-req-service"><SelectValue placeholder="Select connectivity" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Fiber">Fiber / FTTH</SelectItem>
+                    <SelectItem value="Wireless">Wireless / Radio</SelectItem>
+                    <SelectItem value="DSL">DSL</SelectItem>
+                    <SelectItem value="Cable">Cable</SelectItem>
+                    <SelectItem value="VSAT">VSAT / Satellite</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Connection Type</label>
+                <Select value={wfReqForm.connectionType} onValueChange={v => setWfReqForm(prev => ({ ...prev, connectionType: v }))}>
+                  <SelectTrigger data-testid="select-wf-req-connection"><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="New">New Connection</SelectItem>
+                    <SelectItem value="Migration">Migration</SelectItem>
+                    <SelectItem value="Upgrade">Upgrade</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Monthly Charges (PKR)</label>
+                <Input type="number" value={wfReqForm.monthlyCharges} onChange={e => setWfReqForm(prev => ({ ...prev, monthlyCharges: e.target.value }))} placeholder="0.00" data-testid="input-wf-req-monthly" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">OTC Charges (PKR)</label>
+                <Input type="number" value={wfReqForm.otcCharge} onChange={e => setWfReqForm(prev => ({ ...prev, otcCharge: e.target.value }))} placeholder="0.00" data-testid="input-wf-req-otc" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Installation Fee (PKR)</label>
+                <Input type="number" value={wfReqForm.installationFee} onChange={e => setWfReqForm(prev => ({ ...prev, installationFee: e.target.value }))} placeholder="0.00" data-testid="input-wf-req-install" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Security Deposit (PKR)</label>
+                <Input type="number" value={wfReqForm.securityDeposit} onChange={e => setWfReqForm(prev => ({ ...prev, securityDeposit: e.target.value }))} placeholder="0.00" data-testid="input-wf-req-deposit" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">POP / Exchange Location</label>
+                <Input value={wfReqForm.popId} onChange={e => setWfReqForm(prev => ({ ...prev, popId: e.target.value }))} placeholder="POP ID or location" data-testid="input-wf-req-pop" />
+              </div>
+              <div className="col-span-2 flex items-center gap-2">
+                <input type="checkbox" id="wf-req-static-ip" checked={wfReqForm.staticIp} onChange={e => setWfReqForm(prev => ({ ...prev, staticIp: e.target.checked }))} className="h-4 w-4 cursor-pointer" data-testid="checkbox-wf-req-static-ip" />
+                <label htmlFor="wf-req-static-ip" className="text-sm font-medium cursor-pointer">Static IP Required</label>
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <label className="text-sm font-medium">Site Visit Notes / Installation Equipment</label>
+                <textarea value={wfReqForm.remarks} onChange={e => setWfReqForm(prev => ({ ...prev, remarks: e.target.value }))} rows={3} placeholder="Fiber deployment needed, router model, cable requirements, equipment list..." className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" data-testid="textarea-wf-req-notes" />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWfReqOpen(false)}>Cancel</Button>
+            <Button className="bg-purple-600 hover:bg-purple-700 text-white" onClick={() => wfReqMutation.mutate()} disabled={wfReqMutation.isPending} data-testid="button-wf-req-confirm">
+              {wfReqMutation.isPending ? "Submitting..." : "Submit for Review"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Workflow: Final Approve */}
+      <Dialog open={wfFinalOpen} onOpenChange={setWfFinalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><BadgeCheck className="h-4 w-4 text-emerald-600" /> Final Approval / Rejection</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Give your final decision on <strong>{wfQuery?.name}</strong>'s submitted requirements.</p>
+            <div className="rounded-md border bg-emerald-50 dark:bg-emerald-950/20 px-3 py-2.5">
+              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">Approver Details</p>
+              <p className="text-sm text-muted-foreground mt-0.5">Your logged-in account will be recorded as the final approver/rejector.</p>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Final Notes (optional)</label>
+              <textarea value={wfFinalNotes} onChange={e => setWfFinalNotes(e.target.value)} rows={2} placeholder="Any final notes..." className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" data-testid="textarea-wf-final-notes" />
+            </div>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setWfFinalOpen(false)} className="sm:mr-auto">Cancel</Button>
+            <Button variant="destructive" onClick={() => { setWfFinalOpen(false); setWfRejectReason(""); setWfRejectOpen(true); }} data-testid="button-wf-final-reject-instead">
+              <XCircle className="h-4 w-4 mr-1" /> Reject Instead
+            </Button>
+            <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => wfFinalMutation.mutate()} disabled={wfFinalMutation.isPending} data-testid="button-wf-final-confirm">
+              {wfFinalMutation.isPending ? "Approving..." : "Final Approve"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Workflow: Convert to Customer */}
+      <Dialog open={wfConvertOpen} onOpenChange={setWfConvertOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Users className="h-4 w-4 text-[#1c67d4]" /> Convert to Customer</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">This will automatically create a new customer profile for <strong>{wfQuery?.name}</strong> using all the data collected in this request.</p>
+            <div className="rounded-lg border bg-muted/50 p-3 space-y-1 text-sm">
+              <p><span className="text-muted-foreground">Name:</span> {wfQuery?.name}</p>
+              <p><span className="text-muted-foreground">Phone:</span> {wfQuery?.phone}</p>
+              <p><span className="text-muted-foreground">Type:</span> {wfQuery?.customerType}</p>
+            </div>
+            <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-2 rounded border border-amber-200">
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+              The customer will be set to active status. Login credentials can be configured in the customer profile.
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWfConvertOpen(false)}>Cancel</Button>
+            <Button className="bg-[#1c67d4] hover:bg-[#1558b8] text-white" onClick={() => wfConvertMutation.mutate()} disabled={wfConvertMutation.isPending} data-testid="button-wf-convert-confirm">
+              {wfConvertMutation.isPending ? "Converting..." : "Convert to Customer"}
             </Button>
           </DialogFooter>
         </DialogContent>
