@@ -495,7 +495,7 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
             </div>
             <div className={fieldClass}>
               <label className={labelClass}>Service Type</label>
-              <Select value={form.serviceType} onValueChange={v => update("serviceType", v)}>
+              <Select key={`service-type-${form.customerType}`} value={form.serviceType} onValueChange={v => update("serviceType", v)}>
                 <SelectTrigger data-testid="select-cr-service-type"><SelectValue placeholder="Select service type" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Home">Home</SelectItem>
