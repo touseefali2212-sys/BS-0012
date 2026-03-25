@@ -1063,7 +1063,7 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
                                 <DropdownMenuLabel className="text-xs text-muted-foreground font-semibold px-2 py-1">Set Status</DropdownMenuLabel>
                                 {[
                                   { status: "Pending", color: "text-orange-500", icon: <Clock className="h-3.5 w-3.5 mr-2" /> },
-                                  { status: "Approved", color: "text-green-600", icon: <CheckCircle className="h-3.5 w-3.5 mr-2" /> },
+                                  { status: "Approved", color: "text-green-600", icon: <CheckCircle2 className="h-3.5 w-3.5 mr-2" /> },
                                   { status: "Assigned", color: "text-blue-600", icon: <UserCheck className="h-3.5 w-3.5 mr-2" /> },
                                   { status: "Under Review", color: "text-purple-600", icon: <ClipboardList className="h-3.5 w-3.5 mr-2" /> },
                                   { status: "Final Approved", color: "text-emerald-600", icon: <BadgeCheck className="h-3.5 w-3.5 mr-2" /> },
