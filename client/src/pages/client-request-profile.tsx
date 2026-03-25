@@ -218,15 +218,6 @@ export default function ClientRequestProfilePage() {
     onError: (e: any) => toast({ title: "Error", description: e.message || "Failed to convert", variant: "destructive" }),
   });
 
-  const [quickStatusPending, setQuickStatusPending] = useState<string | null>(null);
-  const quickStatusMutation = useMutation({
-    mutationFn: async (newStatus: string) => {
-      setQuickStatusPending(newStatus);
-      await apiRequest("PATCH", `/api/customer-queries/${id}`, { status: newStatus });
-    },
-    onSuccess: () => { toast({ title: "Status Updated" }); invalidate(); setQuickStatusPending(null); },
-    onError: (e: any) => { toast({ title: "Error", description: e.message || "Failed to update status", variant: "destructive" }); setQuickStatusPending(null); },
-  });
 
   const getVendorName = (vendorId: number | null | undefined) => {
     if (!vendorId || !vendors) return "-";
@@ -363,29 +354,72 @@ export default function ClientRequestProfilePage() {
       {/* Quick Status Buttons */}
       <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-4 py-3">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide shrink-0 mr-1">Set Status:</span>
-        {[
-          { status: "Pending", active: "bg-orange-500 text-white border-orange-500", idle: "border-orange-300 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30" },
-          { status: "Approved", active: "bg-green-600 text-white border-green-600", idle: "border-green-400 text-green-700 hover:bg-green-50 dark:hover:bg-green-950/30" },
-          { status: "Assigned", active: "bg-blue-600 text-white border-blue-600", idle: "border-blue-400 text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/30" },
-          { status: "Under Review", active: "bg-purple-600 text-white border-purple-600", idle: "border-purple-400 text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/30" },
-          { status: "Final Approved", active: "bg-emerald-600 text-white border-emerald-600", idle: "border-emerald-400 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30" },
-          { status: "Converted", active: "bg-slate-700 text-white border-slate-700", idle: "border-slate-400 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/30" },
-        ].map(({ status, active, idle }) => {
+        {([
+          {
+            status: "Pending",
+            active: "bg-orange-500 text-white border-orange-500",
+            idle: "border-orange-300 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30",
+            onClick: () => setSendBackOpen(true),
+          },
+          {
+            status: "Approved",
+            active: "bg-green-600 text-white border-green-600",
+            idle: "border-green-400 text-green-700 hover:bg-green-50 dark:hover:bg-green-950/30",
+            onClick: () => setApproveOpen(true),
+          },
+          {
+            status: "Assigned",
+            active: "bg-blue-600 text-white border-blue-600",
+            idle: "border-blue-400 text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/30",
+            onClick: () => setAssignOpen(true),
+          },
+          {
+            status: "Under Review",
+            active: "bg-purple-600 text-white border-purple-600",
+            idle: "border-purple-400 text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/30",
+            onClick: () => {
+              setReqForm({
+                packageId: String(request.packageId || ""),
+                serviceType: request.serviceType || "",
+                connectionType: request.connectionType || "",
+                bandwidthRequired: request.bandwidthRequired || "",
+                monthlyCharges: String(request.monthlyCharges || ""),
+                otcCharge: String(request.otcCharge || ""),
+                installationFee: String(request.installationFee || ""),
+                securityDeposit: String(request.securityDeposit || ""),
+                popId: request.popId || "",
+                staticIp: request.staticIp || false,
+                remarks: request.remarks || "",
+              });
+              setRequirementsOpen(true);
+            },
+          },
+          {
+            status: "Final Approved",
+            active: "bg-emerald-600 text-white border-emerald-600",
+            idle: "border-emerald-400 text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30",
+            onClick: () => setFinalApproveOpen(true),
+          },
+          {
+            status: "Converted",
+            active: "bg-slate-700 text-white border-slate-700",
+            idle: "border-slate-400 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/30",
+            onClick: () => setConvertOpen(true),
+          },
+        ] as { status: string; active: string; idle: string; onClick: () => void }[]).map(({ status, active, idle, onClick }) => {
           const isCurrent = request.status === status;
-          const isLoading = quickStatusPending === status;
           return (
             <button
               key={status}
-              onClick={() => !isCurrent && quickStatusMutation.mutate(status)}
-              disabled={quickStatusMutation.isPending}
+              onClick={() => !isCurrent && onClick()}
               data-testid={`btn-quick-status-${status.toLowerCase().replace(/\s+/g, "-")}`}
               className={`px-3 py-1.5 text-xs font-semibold rounded-md border transition-all ${
                 isCurrent
                   ? `${active} cursor-default ring-2 ring-offset-1 ring-current`
                   : `bg-transparent ${idle} cursor-pointer`
-              } disabled:opacity-60`}
+              }`}
             >
-              {isLoading ? "..." : status}
+              {status}
               {isCurrent && " ✓"}
             </button>
           );
@@ -595,15 +629,24 @@ export default function ClientRequestProfilePage() {
 
       {/* Approve Dialog */}
       <Dialog open={approveOpen} onOpenChange={setApproveOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-600" /> Approve Request</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Confirm approval of <strong>{request.name}</strong>'s request. The request will move to the next stage for employee assignment.</p>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Notes (optional)</label>
-            <textarea value={approveNotes} onChange={e => setApproveNotes(e.target.value)} rows={3} placeholder="Any notes for the approval..." className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" data-testid="textarea-approve-notes" />
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-600" /> Approve / Reject Request</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Review <strong>{request.name}</strong>'s request before confirming approval or rejection.</p>
+            <div className="rounded-md border bg-green-50 dark:bg-green-950/20 px-3 py-2.5 space-y-1">
+              <p className="text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">Approver Details</p>
+              <p className="text-sm text-muted-foreground">Your logged-in account will be recorded as the approver.</p>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Approval Notes (optional)</label>
+              <textarea value={approveNotes} onChange={e => setApproveNotes(e.target.value)} rows={2} placeholder="Any notes for the approval..." className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" data-testid="textarea-approve-notes" />
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setApproveOpen(false)}>Cancel</Button>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setApproveOpen(false)} className="sm:mr-auto">Cancel</Button>
+            <Button variant="destructive" onClick={() => { setApproveOpen(false); setRejectOpen(true); }} data-testid="button-switch-to-reject">
+              <XCircle className="h-4 w-4 mr-1" /> Reject Instead
+            </Button>
             <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => approveMutation.mutate()} disabled={approveMutation.isPending} data-testid="button-confirm-approve">
               {approveMutation.isPending ? "Approving..." : "Confirm Approval"}
             </Button>
@@ -752,15 +795,34 @@ export default function ClientRequestProfilePage() {
 
       {/* Final Approve Dialog */}
       <Dialog open={finalApproveOpen} onOpenChange={setFinalApproveOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><BadgeCheck className="h-4 w-4 text-emerald-600" /> Final Approval</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Give final approval to convert this request into an active customer account.</p>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Notes (optional)</label>
-            <textarea value={finalApproveNotes} onChange={e => setFinalApproveNotes(e.target.value)} rows={2} placeholder="Any final notes..." className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" data-testid="textarea-final-approve-notes" />
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><BadgeCheck className="h-4 w-4 text-emerald-600" /> Final Approval / Rejection</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Review the site requirements submitted for <strong>{request.name}</strong> and give your final decision.</p>
+            <div className="rounded-md border bg-emerald-50 dark:bg-emerald-950/20 px-3 py-2.5 space-y-1">
+              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">Approver Details</p>
+              <p className="text-sm text-muted-foreground">Your logged-in account will be recorded as the final approver/rejector.</p>
+            </div>
+            {req.requirementsSubmittedAt && (
+              <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm space-y-1">
+                <p className="font-semibold text-xs text-muted-foreground uppercase tracking-wide">Submitted Requirements</p>
+                {req.serviceType && <p><span className="text-muted-foreground">Connectivity:</span> {req.serviceType}</p>}
+                {req.bandwidthRequired && <p><span className="text-muted-foreground">Bandwidth:</span> {req.bandwidthRequired}</p>}
+                {req.monthlyCharges && <p><span className="text-muted-foreground">Monthly Charges:</span> PKR {Number(req.monthlyCharges).toLocaleString()}</p>}
+                {req.installationFee && <p><span className="text-muted-foreground">Installation:</span> PKR {Number(req.installationFee).toLocaleString()}</p>}
+                {req.popId && <p><span className="text-muted-foreground">POP:</span> {req.popId}</p>}
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Final Notes (optional)</label>
+              <textarea value={finalApproveNotes} onChange={e => setFinalApproveNotes(e.target.value)} rows={2} placeholder="Any final notes..." className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" data-testid="textarea-final-approve-notes" />
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFinalApproveOpen(false)}>Cancel</Button>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setFinalApproveOpen(false)} className="sm:mr-auto">Cancel</Button>
+            <Button variant="destructive" onClick={() => { setFinalApproveOpen(false); setRejectOpen(true); }} data-testid="button-final-reject-instead">
+              <XCircle className="h-4 w-4 mr-1" /> Reject Instead
+            </Button>
             <Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={() => finalApproveMutation.mutate()} disabled={finalApproveMutation.isPending} data-testid="button-confirm-final-approve">
               {finalApproveMutation.isPending ? "Approving..." : "Final Approve"}
             </Button>
@@ -768,19 +830,25 @@ export default function ClientRequestProfilePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Send Back Dialog */}
+      {/* Send Back / Reset to Pending Dialog */}
       <Dialog open={sendBackOpen} onOpenChange={setSendBackOpen}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle className="flex items-center gap-2"><RefreshCw className="h-4 w-4 text-orange-500" /> Send Back for Revision</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">The requirements will be sent back to the assigned employee for revision.</p>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Reason / Instructions <span className="text-red-500">*</span></label>
-            <textarea value={sendBackNotes} onChange={e => setSendBackNotes(e.target.value)} rows={3} placeholder="Explain what needs to be revised..." className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" data-testid="textarea-send-back-notes" />
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><RefreshCw className="h-4 w-4 text-orange-500" /> Reset to Pending</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">This will reset <strong>{request.name}</strong>'s request back to <span className="font-semibold text-orange-600">Pending</span> status. Your name will be recorded as the accepting officer.</p>
+            <div className="rounded-md border bg-muted/50 px-3 py-2 text-sm flex items-center gap-2 text-muted-foreground">
+              <Clock className="h-3.5 w-3.5 shrink-0" />
+              <span>Accepted by: <strong className="text-foreground">Logged-in User</strong></span>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Reason / Notes <span className="text-red-500">*</span></label>
+              <textarea value={sendBackNotes} onChange={e => setSendBackNotes(e.target.value)} rows={3} placeholder="State why this is being reset to pending..." className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" data-testid="textarea-send-back-notes" />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSendBackOpen(false)}>Cancel</Button>
             <Button className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => sendBackMutation.mutate()} disabled={sendBackMutation.isPending || !sendBackNotes.trim()} data-testid="button-confirm-send-back">
-              {sendBackMutation.isPending ? "Sending..." : "Send Back"}
+              {sendBackMutation.isPending ? "Processing..." : "Reset to Pending"}
             </Button>
           </DialogFooter>
         </DialogContent>
