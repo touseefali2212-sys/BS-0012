@@ -183,12 +183,13 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
   const { data: allCustomers } = useQuery<any[]>({ queryKey: ["/api/customers"] });
   const { data: cirCustomers } = useQuery<any[]>({ queryKey: ["/api/cir-customers"] });
   const { data: corporateCustomers } = useQuery<any[]>({ queryKey: ["/api/corporate-customers"] });
+  const { data: vendorsData } = useQuery<any[]>({ queryKey: ["/api/vendors"] });
 
   const [form, setForm] = useState({
     fullName: "", fatherName: "", gender: "", remarks: "",
     referredBy: "", referredByDetail: "", referredById: 0, referredByType: "",
     phone: "", branch: "", area: "", city: "",
-    customerType: "", serviceType: "", packageId: 0, bandwidthRequired: "", panelUsersCapacity: "", staticIp: false, popId: "", requestDate: new Date().toISOString().split("T")[0],
+    customerType: "", serviceType: "", packageId: 0, bandwidthRequired: "", panelUsersCapacity: "", bandwidthVendorId: 0, panelVendorId: 0, staticIp: false, popId: "", requestDate: new Date().toISOString().split("T")[0],
   });
 
   const update = (field: string, value: string | number | boolean) => setForm(prev => ({ ...prev, [field]: value }));
@@ -238,6 +239,8 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
         packageId: ["CIR", "Corporate", "Reseller"].includes(form.customerType) ? null : (form.packageId || null),
         bandwidthRequired: ["CIR", "Corporate"].includes(form.customerType) ? (form.bandwidthRequired || null) : null,
         panelUsersCapacity: form.customerType === "Reseller" ? (form.panelUsersCapacity || null) : null,
+        bandwidthVendorId: form.customerType === "CIR" ? (form.bandwidthVendorId || null) : null,
+        panelVendorId: form.customerType === "Reseller" ? (form.panelVendorId || null) : null,
         staticIp: form.staticIp,
         popId: form.popId || null,
         requestDate: form.requestDate || null,
@@ -481,6 +484,8 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
                   packageId: 0,
                   bandwidthRequired: "",
                   panelUsersCapacity: "",
+                  bandwidthVendorId: 0,
+                  panelVendorId: 0,
                   serviceType: prev.serviceType === "ISP" && !["CIR", "Reseller"].includes(v) ? "" : prev.serviceType,
                 }))}
               >
@@ -557,6 +562,55 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
               <Input placeholder="Enter POP ID" value={form.popId} onChange={e => update("popId", e.target.value)} data-testid="input-cr-pop-id" />
             </div>
           </div>
+
+          {/* Vendor selectors — shown only for CIR or Reseller */}
+          {(form.customerType === "CIR" || form.customerType === "Reseller") && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {form.customerType === "CIR" && (
+                <div className={fieldClass}>
+                  <label className={labelClass}>Bandwidth Vendor</label>
+                  <Select
+                    key={`bw-vendor-${form.customerType}`}
+                    value={form.bandwidthVendorId ? String(form.bandwidthVendorId) : ""}
+                    onValueChange={v => update("bandwidthVendorId", Number(v))}
+                  >
+                    <SelectTrigger data-testid="select-cr-bandwidth-vendor">
+                      <SelectValue placeholder="Select bandwidth vendor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(vendorsData || []).map((v: any) => (
+                        <SelectItem key={v.id} value={String(v.id)}>
+                          {v.name}{v.serviceType ? ` – ${v.serviceType}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {form.customerType === "Reseller" && (
+                <div className={fieldClass}>
+                  <label className={labelClass}>Panel Vendor</label>
+                  <Select
+                    key={`panel-vendor-${form.customerType}`}
+                    value={form.panelVendorId ? String(form.panelVendorId) : ""}
+                    onValueChange={v => update("panelVendorId", Number(v))}
+                  >
+                    <SelectTrigger data-testid="select-cr-panel-vendor">
+                      <SelectValue placeholder="Select panel vendor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(vendorsData || []).map((v: any) => (
+                        <SelectItem key={v.id} value={String(v.id)}>
+                          {v.name}{v.serviceType ? ` – ${v.serviceType}` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className={fieldClass}>
               <label className={labelClass}>Request Date</label>

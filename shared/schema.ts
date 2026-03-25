@@ -940,6 +940,8 @@ export const customerQueries = pgTable("customer_queries", {
   popId: text("pop_id"),
   bandwidthRequired: text("bandwidth_required"),
   panelUsersCapacity: text("panel_users_capacity"),
+  bandwidthVendorId: integer("bandwidth_vendor_id"),
+  panelVendorId: integer("panel_vendor_id"),
   createdBy: text("created_by"),
   setupBy: text("setup_by"),
   setupTime: text("setup_time"),
