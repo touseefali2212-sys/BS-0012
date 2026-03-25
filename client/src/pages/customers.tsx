@@ -242,7 +242,7 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
         packageId: ["CIR", "Corporate", "Reseller"].includes(form.customerType) ? null : (form.packageId || null),
         bandwidthRequired: ["CIR", "Corporate"].includes(form.customerType) ? (form.bandwidthRequired || null) : null,
         panelUsersCapacity: form.customerType === "Reseller" ? (form.panelUsersCapacity || null) : null,
-        bandwidthVendorId: form.customerType === "CIR" ? (form.bandwidthVendorId || null) : null,
+        bandwidthVendorId: ["CIR", "Corporate"].includes(form.customerType) ? (form.bandwidthVendorId || null) : null,
         panelVendorId: form.customerType === "Reseller" ? (form.panelVendorId || null) : null,
         staticIp: form.staticIp,
         popId: form.popId || null,
@@ -588,7 +588,7 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
             </div>
           )}
 
-          {/* Corporate: Bandwidth Required only */}
+          {/* Corporate: Bandwidth Required + Bandwidth Vendor */}
           {form.customerType === "Corporate" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className={fieldClass}>
@@ -597,8 +597,26 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
                   placeholder="e.g. 100 Mbps, 1 Gbps"
                   value={form.bandwidthRequired}
                   onChange={e => update("bandwidthRequired", e.target.value)}
-                  data-testid="input-cr-bandwidth-required"
+                  data-testid="input-cr-corporate-bandwidth-required"
                 />
+              </div>
+              <div className={fieldClass}>
+                <label className={labelClass}>Bandwidth Vendor</label>
+                <Select
+                  value={form.bandwidthVendorId ? String(form.bandwidthVendorId) : ""}
+                  onValueChange={v => update("bandwidthVendorId", Number(v))}
+                >
+                  <SelectTrigger data-testid="select-cr-corporate-bandwidth-vendor">
+                    <SelectValue placeholder="Select bandwidth vendor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(vendorsData || []).map((v: any) => (
+                      <SelectItem key={v.id} value={String(v.id)}>
+                        {v.name}{v.serviceType ? ` – ${v.serviceType}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}
