@@ -2761,8 +2761,7 @@ export async function registerRoutes(
       const qid = Number(req.params.id);
       const q = await storage.getCustomerQuery(qid);
       if (!q) return res.status(404).json({ message: "Not found" });
-      if (q.status !== "Pending") return res.status(400).json({ message: "Request must be Pending to approve" });
-      const performedBy = req.user?.username || "system";
+      const performedBy = req.body?.approvedBy || req.user?.username || "system";
       const result = await storage.updateCustomerQuery(qid, {
         status: "Approved",
         approvedBy: performedBy,
@@ -2857,8 +2856,7 @@ export async function registerRoutes(
       const qid = Number(req.params.id);
       const q = await storage.getCustomerQuery(qid);
       if (!q) return res.status(404).json({ message: "Not found" });
-      if (q.status !== "Under Review") return res.status(400).json({ message: "Request must be Under Review for final approval" });
-      const performedBy = req.user?.username || "system";
+      const performedBy = req.body?.approvedBy || req.user?.username || "system";
       const result = await storage.updateCustomerQuery(qid, {
         status: "Final Approved",
         finalApprovedBy: performedBy,

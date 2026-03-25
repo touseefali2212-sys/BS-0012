@@ -103,6 +103,7 @@ export default function ClientRequestProfilePage() {
 
   const [approveOpen, setApproveOpen] = useState(false);
   const [approveNotes, setApproveNotes] = useState("");
+  const [approvedByUser, setApprovedByUser] = useState("");
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [assignOpen, setAssignOpen] = useState(false);
@@ -111,6 +112,7 @@ export default function ClientRequestProfilePage() {
   const [requirementsOpen, setRequirementsOpen] = useState(false);
   const [finalApproveOpen, setFinalApproveOpen] = useState(false);
   const [finalApproveNotes, setFinalApproveNotes] = useState("");
+  const [finalApprovedByUser, setFinalApprovedByUser] = useState("");
   const [sendBackOpen, setSendBackOpen] = useState(false);
   const [sendBackNotes, setSendBackNotes] = useState("");
   const [convertOpen, setConvertOpen] = useState(false);
@@ -141,6 +143,7 @@ export default function ClientRequestProfilePage() {
   const { data: pkgs } = useQuery<PackageType[]>({ queryKey: ["/api/packages"] });
   const { data: vendors } = useQuery<any[]>({ queryKey: ["/api/vendors"] });
   const { data: employees } = useQuery<any[]>({ queryKey: ["/api/employees"] });
+  const { data: systemUsers } = useQuery<any[]>({ queryKey: ["/api/users"] });
   const { data: logs } = useQuery<CustomerQueryLog[]>({
     queryKey: ["/api/customer-queries", Number(id), "logs"],
     queryFn: async () => {
@@ -157,8 +160,8 @@ export default function ClientRequestProfilePage() {
   };
 
   const approveMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/customer-queries/${id}/approve`, { notes: approveNotes }),
-    onSuccess: () => { toast({ title: "Approved", description: "Request has been approved." }); invalidate(); setApproveOpen(false); setApproveNotes(""); },
+    mutationFn: () => apiRequest("POST", `/api/customer-queries/${id}/approve`, { notes: approveNotes, approvedBy: approvedByUser || undefined }),
+    onSuccess: () => { toast({ title: "Approved", description: "Request has been approved." }); invalidate(); setApproveOpen(false); setApproveNotes(""); setApprovedByUser(""); },
     onError: (e: any) => toast({ title: "Error", description: e.message || "Failed to approve", variant: "destructive" }),
   });
 
@@ -201,8 +204,8 @@ export default function ClientRequestProfilePage() {
   });
 
   const finalApproveMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/customer-queries/${id}/final-approve`, { notes: finalApproveNotes }),
-    onSuccess: () => { toast({ title: "Final Approved", description: "Request is ready for conversion." }); invalidate(); setFinalApproveOpen(false); setFinalApproveNotes(""); },
+    mutationFn: () => apiRequest("POST", `/api/customer-queries/${id}/final-approve`, { notes: finalApproveNotes, approvedBy: finalApprovedByUser || undefined }),
+    onSuccess: () => { toast({ title: "Final Approved", description: "Request is ready for conversion." }); invalidate(); setFinalApproveOpen(false); setFinalApproveNotes(""); setFinalApprovedByUser(""); },
     onError: (e: any) => toast({ title: "Error", description: e.message || "Failed to final approve", variant: "destructive" }),
   });
 
@@ -633,9 +636,23 @@ export default function ClientRequestProfilePage() {
           <DialogHeader><DialogTitle className="flex items-center gap-2"><CheckCircle className="h-4 w-4 text-green-600" /> Approve / Reject Request</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">Review <strong>{request.name}</strong>'s request before confirming approval or rejection.</p>
-            <div className="rounded-md border bg-green-50 dark:bg-green-950/20 px-3 py-2.5 space-y-1">
-              <p className="text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">Approver Details</p>
-              <p className="text-sm text-muted-foreground">Your logged-in account will be recorded as the approver.</p>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Approved By <span className="text-red-500">*</span></label>
+              <Select key={approveOpen ? "open" : "closed"} value={approvedByUser} onValueChange={setApprovedByUser}>
+                <SelectTrigger data-testid="select-approve-user" className="w-full">
+                  <SelectValue placeholder="Select approver..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {(systemUsers ?? []).filter((u: any) => u.isActive !== false && u.accountStatus !== "inactive").map((u: any) => (
+                    <SelectItem key={u.id} value={u.username}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{u.fullName}</span>
+                        <span className="text-xs text-muted-foreground capitalize">{u.role}{u.department ? ` · ${u.department}` : ""}{u.branch ? ` · ${u.branch}` : ""}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Approval Notes (optional)</label>
@@ -799,9 +816,23 @@ export default function ClientRequestProfilePage() {
           <DialogHeader><DialogTitle className="flex items-center gap-2"><BadgeCheck className="h-4 w-4 text-emerald-600" /> Final Approval / Rejection</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">Review the site requirements submitted for <strong>{request.name}</strong> and give your final decision.</p>
-            <div className="rounded-md border bg-emerald-50 dark:bg-emerald-950/20 px-3 py-2.5 space-y-1">
-              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">Approver Details</p>
-              <p className="text-sm text-muted-foreground">Your logged-in account will be recorded as the final approver/rejector.</p>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Approved By <span className="text-red-500">*</span></label>
+              <Select key={finalApproveOpen ? "open" : "closed"} value={finalApprovedByUser} onValueChange={setFinalApprovedByUser}>
+                <SelectTrigger data-testid="select-final-approve-user" className="w-full">
+                  <SelectValue placeholder="Select approver..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {(systemUsers ?? []).filter((u: any) => u.isActive !== false && u.accountStatus !== "inactive").map((u: any) => (
+                    <SelectItem key={u.id} value={u.username}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{u.fullName}</span>
+                        <span className="text-xs text-muted-foreground capitalize">{u.role}{u.department ? ` · ${u.department}` : ""}{u.branch ? ` · ${u.branch}` : ""}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             {req.requirementsSubmittedAt && (
               <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm space-y-1">

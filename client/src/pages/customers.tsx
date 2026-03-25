@@ -679,6 +679,7 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
   const { data: pkgs } = useQuery<Package[]>({ queryKey: ["/api/packages"] });
   const { data: vendorsList } = useQuery<any[]>({ queryKey: ["/api/vendors"] });
   const { data: employeesList } = useQuery<any[]>({ queryKey: ["/api/employees"] });
+  const { data: systemUsers } = useQuery<any[]>({ queryKey: ["/api/users"] });
   const { toast } = useToast();
   const { canCreate, canDelete } = usePermissions();
   const [searchTerm, setSearchTerm] = useState("");
@@ -702,8 +703,10 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
   const [wfAssignNotes, setWfAssignNotes] = useState("");
   const [wfReqOpen, setWfReqOpen] = useState(false);
   const [wfReqForm, setWfReqForm] = useState({ packageId: "", serviceType: "", connectionType: "", bandwidthRequired: "", monthlyCharges: "", otcCharge: "", installationFee: "", securityDeposit: "", popId: "", staticIp: false, remarks: "" });
+  const [wfApprovedByUser, setWfApprovedByUser] = useState("");
   const [wfFinalOpen, setWfFinalOpen] = useState(false);
   const [wfFinalNotes, setWfFinalNotes] = useState("");
+  const [wfFinalApprovedByUser, setWfFinalApprovedByUser] = useState("");
   const [wfSendBackOpen, setWfSendBackOpen] = useState(false);
   const [wfSendBackNotes, setWfSendBackNotes] = useState("");
   const [wfConvertOpen, setWfConvertOpen] = useState(false);
@@ -724,8 +727,8 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
   };
 
   const wfApproveMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/customer-queries/${wfQuery?.id}/approve`, { notes: wfApproveNotes }),
-    onSuccess: () => { toast({ title: "Approved" }); wfInvalidate(); setWfApproveOpen(false); },
+    mutationFn: () => apiRequest("POST", `/api/customer-queries/${wfQuery?.id}/approve`, { notes: wfApproveNotes, approvedBy: wfApprovedByUser || undefined }),
+    onSuccess: () => { toast({ title: "Approved" }); wfInvalidate(); setWfApproveOpen(false); setWfApproveNotes(""); setWfApprovedByUser(""); },
     onError: (e: any) => toast({ title: "Error", description: e.message || "Failed", variant: "destructive" }),
   });
   const wfRejectMutation = useMutation({
@@ -747,8 +750,8 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
     onError: (e: any) => toast({ title: "Error", description: e.message || "Failed", variant: "destructive" }),
   });
   const wfFinalMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/customer-queries/${wfQuery?.id}/final-approve`, { notes: wfFinalNotes }),
-    onSuccess: () => { toast({ title: "Final Approved" }); wfInvalidate(); setWfFinalOpen(false); },
+    mutationFn: () => apiRequest("POST", `/api/customer-queries/${wfQuery?.id}/final-approve`, { notes: wfFinalNotes, approvedBy: wfFinalApprovedByUser || undefined }),
+    onSuccess: () => { toast({ title: "Final Approved" }); wfInvalidate(); setWfFinalOpen(false); setWfFinalNotes(""); setWfFinalApprovedByUser(""); },
     onError: (e: any) => toast({ title: "Error", description: e.message || "Failed", variant: "destructive" }),
   });
   const wfSendBackMutation = useMutation({
@@ -1373,9 +1376,23 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
           <DialogHeader><DialogTitle className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-600" /> Approve / Reject Request</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">Review <strong>{wfQuery?.name}</strong>'s request before confirming approval or rejection.</p>
-            <div className="rounded-md border bg-green-50 dark:bg-green-950/20 px-3 py-2.5">
-              <p className="text-xs font-semibold text-green-700 dark:text-green-400 uppercase tracking-wide">Approver Details</p>
-              <p className="text-sm text-muted-foreground mt-0.5">Your logged-in account will be recorded as the approver.</p>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Approved By <span className="text-red-500">*</span></label>
+              <Select key={wfApproveOpen ? "open" : "closed"} value={wfApprovedByUser} onValueChange={setWfApprovedByUser}>
+                <SelectTrigger data-testid="select-wf-approve-user" className="w-full">
+                  <SelectValue placeholder="Select approver..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {(systemUsers ?? []).filter((u: any) => u.isActive !== false && u.accountStatus !== "inactive").map((u: any) => (
+                    <SelectItem key={u.id} value={u.username}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{u.fullName}</span>
+                        <span className="text-xs text-muted-foreground capitalize">{u.role}{u.department ? ` · ${u.department}` : ""}{u.branch ? ` · ${u.branch}` : ""}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Approval Notes (optional)</label>
@@ -1539,9 +1556,23 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
           <DialogHeader><DialogTitle className="flex items-center gap-2"><BadgeCheck className="h-4 w-4 text-emerald-600" /> Final Approval / Rejection</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">Give your final decision on <strong>{wfQuery?.name}</strong>'s submitted requirements.</p>
-            <div className="rounded-md border bg-emerald-50 dark:bg-emerald-950/20 px-3 py-2.5">
-              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">Approver Details</p>
-              <p className="text-sm text-muted-foreground mt-0.5">Your logged-in account will be recorded as the final approver/rejector.</p>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Approved By <span className="text-red-500">*</span></label>
+              <Select key={wfFinalOpen ? "open" : "closed"} value={wfFinalApprovedByUser} onValueChange={setWfFinalApprovedByUser}>
+                <SelectTrigger data-testid="select-wf-final-approve-user" className="w-full">
+                  <SelectValue placeholder="Select approver..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {(systemUsers ?? []).filter((u: any) => u.isActive !== false && u.accountStatus !== "inactive").map((u: any) => (
+                    <SelectItem key={u.id} value={u.username}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{u.fullName}</span>
+                        <span className="text-xs text-muted-foreground capitalize">{u.role}{u.department ? ` · ${u.department}` : ""}{u.branch ? ` · ${u.branch}` : ""}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Final Notes (optional)</label>
