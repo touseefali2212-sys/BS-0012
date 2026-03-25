@@ -938,6 +938,8 @@ export const customerQueries = pgTable("customer_queries", {
   requestDate: text("request_date"),
   staticIp: boolean("static_ip").default(false),
   popId: text("pop_id"),
+  bandwidthRequired: text("bandwidth_required"),
+  panelUsersCapacity: text("panel_users_capacity"),
   createdBy: text("created_by"),
   setupBy: text("setup_by"),
   setupTime: text("setup_time"),

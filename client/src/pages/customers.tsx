@@ -188,7 +188,7 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
     fullName: "", fatherName: "", gender: "", remarks: "",
     referredBy: "", referredByDetail: "", referredById: 0, referredByType: "",
     phone: "", branch: "", area: "", city: "",
-    customerType: "", serviceType: "", packageId: 0, staticIp: false, popId: "", requestDate: new Date().toISOString().split("T")[0],
+    customerType: "", serviceType: "", packageId: 0, bandwidthRequired: "", panelUsersCapacity: "", staticIp: false, popId: "", requestDate: new Date().toISOString().split("T")[0],
   });
 
   const update = (field: string, value: string | number | boolean) => setForm(prev => ({ ...prev, [field]: value }));
@@ -235,7 +235,9 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
         city: form.city || null,
         customerType: form.customerType || null,
         serviceType: form.serviceType || null,
-        packageId: form.packageId || null,
+        packageId: ["CIR", "Corporate", "Reseller"].includes(form.customerType) ? null : (form.packageId || null),
+        bandwidthRequired: ["CIR", "Corporate"].includes(form.customerType) ? (form.bandwidthRequired || null) : null,
+        panelUsersCapacity: form.customerType === "Reseller" ? (form.panelUsersCapacity || null) : null,
         staticIp: form.staticIp,
         popId: form.popId || null,
         requestDate: form.requestDate || null,
@@ -471,12 +473,16 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className={fieldClass}>
               <label className={labelClass}>Customer Type</label>
-              <Select value={form.customerType} onValueChange={v => update("customerType", v)}>
+              <Select
+                value={form.customerType}
+                onValueChange={v => setForm(prev => ({ ...prev, customerType: v, packageId: 0, bandwidthRequired: "", panelUsersCapacity: "" }))}
+              >
                 <SelectTrigger data-testid="select-cr-customer-type"><SelectValue placeholder="Select customer type" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="CIR">CIR</SelectItem>
                   <SelectItem value="Corporate">Corporate</SelectItem>
                   <SelectItem value="Customer">Customer</SelectItem>
+                  <SelectItem value="Reseller">Reseller</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -499,17 +505,42 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className={fieldClass}>
-              <label className={labelClass}>Package</label>
-              <Select value={form.packageId ? String(form.packageId) : ""} onValueChange={v => update("packageId", Number(v))}>
-                <SelectTrigger data-testid="select-cr-package"><SelectValue placeholder="Select package" /></SelectTrigger>
-                <SelectContent>
-                  {pkgs?.filter(p => p.isActive).map(p => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {p.name}{p.speed ? ` – ${p.speed}` : ""}{p.price ? ` (${p.price} PKR)` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {["CIR", "Corporate"].includes(form.customerType) ? (
+                <>
+                  <label className={labelClass}>Bandwidth Required</label>
+                  <Input
+                    placeholder="e.g. 100 Mbps, 1 Gbps"
+                    value={form.bandwidthRequired}
+                    onChange={e => update("bandwidthRequired", e.target.value)}
+                    data-testid="input-cr-bandwidth-required"
+                  />
+                </>
+              ) : form.customerType === "Reseller" ? (
+                <>
+                  <label className={labelClass}>Panel Users Capacity</label>
+                  <Input
+                    type="number"
+                    placeholder="e.g. 500"
+                    value={form.panelUsersCapacity}
+                    onChange={e => update("panelUsersCapacity", e.target.value)}
+                    data-testid="input-cr-panel-users-capacity"
+                  />
+                </>
+              ) : (
+                <>
+                  <label className={labelClass}>Package</label>
+                  <Select value={form.packageId ? String(form.packageId) : ""} onValueChange={v => update("packageId", Number(v))}>
+                    <SelectTrigger data-testid="select-cr-package"><SelectValue placeholder="Select package" /></SelectTrigger>
+                    <SelectContent>
+                      {pkgs?.filter(p => p.isActive).map(p => (
+                        <SelectItem key={p.id} value={String(p.id)}>
+                          {p.name}{p.speed ? ` – ${p.speed}` : ""}{p.price ? ` (${p.price} PKR)` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
             </div>
             <div className={fieldClass}>
               <label className={labelClass}>POP ID</label>
