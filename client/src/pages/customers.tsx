@@ -475,7 +475,14 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
               <label className={labelClass}>Customer Type</label>
               <Select
                 value={form.customerType}
-                onValueChange={v => setForm(prev => ({ ...prev, customerType: v, packageId: 0, bandwidthRequired: "", panelUsersCapacity: "" }))}
+                onValueChange={v => setForm(prev => ({
+                  ...prev,
+                  customerType: v,
+                  packageId: 0,
+                  bandwidthRequired: "",
+                  panelUsersCapacity: "",
+                  serviceType: prev.serviceType === "ISP" && !["CIR", "Reseller"].includes(v) ? "" : prev.serviceType,
+                }))}
               >
                 <SelectTrigger data-testid="select-cr-customer-type"><SelectValue placeholder="Select customer type" /></SelectTrigger>
                 <SelectContent>
@@ -498,6 +505,9 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
                   <SelectItem value="Reseller">Reseller</SelectItem>
                   <SelectItem value="School">School</SelectItem>
                   <SelectItem value="Hotel">Hotel</SelectItem>
+                  {["CIR", "Reseller"].includes(form.customerType) && (
+                    <SelectItem value="ISP">ISP</SelectItem>
+                  )}
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
