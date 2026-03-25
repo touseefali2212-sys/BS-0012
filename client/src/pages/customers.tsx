@@ -699,6 +699,7 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
   const { data: employeesList } = useQuery<any[]>({ queryKey: ["/api/employees"] });
   const { data: systemUsers } = useQuery<any[]>({ queryKey: ["/api/users"] });
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const { canCreate, canDelete } = usePermissions();
   const [searchTerm, setSearchTerm] = useState("");
   const [fromDate, setFromDate] = useState("");
@@ -1634,21 +1635,21 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><Users className="h-4 w-4 text-[#1c67d4]" /> Convert to Customer</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">This will automatically create a new customer profile for <strong>{wfQuery?.name}</strong> using all the data collected in this request.</p>
+            <p className="text-sm text-muted-foreground">You'll be taken to the Add Customer form with all available details from this request pre-filled for <strong>{wfQuery?.name}</strong>.</p>
             <div className="rounded-lg border bg-muted/50 p-3 space-y-1 text-sm">
               <p><span className="text-muted-foreground">Name:</span> {wfQuery?.name}</p>
               <p><span className="text-muted-foreground">Phone:</span> {wfQuery?.phone}</p>
               <p><span className="text-muted-foreground">Type:</span> {wfQuery?.customerType}</p>
             </div>
-            <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-2 rounded border border-amber-200">
+            <div className="flex items-start gap-2 text-xs text-blue-600 bg-blue-50 dark:bg-blue-950/20 p-2 rounded border border-blue-200">
               <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-              The customer will be set to active status. Login credentials can be configured in the customer profile.
+              Review and complete the form, then save to register this customer. The request will be marked as Converted automatically.
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setWfConvertOpen(false)}>Cancel</Button>
-            <Button className="bg-[#1c67d4] hover:bg-[#1558b8] text-white" onClick={() => wfConvertMutation.mutate()} disabled={wfConvertMutation.isPending} data-testid="button-wf-convert-confirm">
-              {wfConvertMutation.isPending ? "Converting..." : "Convert to Customer"}
+            <Button className="bg-[#1c67d4] hover:bg-[#1558b8] text-white" onClick={() => { setWfConvertOpen(false); setLocation(`/customers/add?fromQuery=${wfQuery?.id}`); }} data-testid="button-wf-convert-confirm">
+              Open Add Customer Form
             </Button>
           </DialogFooter>
         </DialogContent>

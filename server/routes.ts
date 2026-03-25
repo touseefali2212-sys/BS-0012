@@ -2874,10 +2874,23 @@ export async function registerRoutes(
       const qid = Number(req.params.id);
       const q = await storage.getCustomerQuery(qid);
       if (!q) return res.status(404).json({ message: "Not found" });
-      if (q.status !== "Final Approved") return res.status(400).json({ message: "Request must be Final Approved before converting" });
+      if (q.status === "Converted") return res.status(400).json({ message: "Request is already converted" });
       const performedBy = req.user?.username || "system";
       const now = new Date().toISOString();
+      // If a customerId is provided (customer was already created via Add Customer form), just mark as Converted
+      const providedCustomerId = req.body?.customerId ? Number(req.body.customerId) : null;
+      if (providedCustomerId) {
+        await storage.updateCustomerQuery(qid, {
+          status: "Converted",
+          convertedAt: now,
+          convertedCustomerId: providedCustomerId,
+        });
+        await logQueryAction(qid, "converted_to_customer", performedBy, null, { customerId: providedCustomerId });
+        return res.json({ message: "Converted successfully", customerId: providedCustomerId });
+      }
+      // Legacy flow: auto-create a basic customer record from query data
       const newCustomer = await storage.createCustomer({
+        customerId: `CUST-${Date.now().toString(36).toUpperCase()}`,
         username: `${q.name?.toLowerCase().replace(/\s+/g, ".") || "customer"}.${qid}`,
         password: "changeme123",
         fullName: q.name,

@@ -222,6 +222,13 @@ export default function AddCustomerPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [gpsLocating, setGpsLocating] = useState(false);
 
+  // Pre-fill from client request query
+  const fromQueryId = new URLSearchParams(window.location.search).get("fromQuery");
+  const { data: fromQueryData } = useQuery<any>({
+    queryKey: ["/api/customer-queries", fromQueryId],
+    enabled: !!fromQueryId,
+  });
+
   // Automation modal state
   const [autoModalOpen, setAutoModalOpen] = useState(false);
   const [autoSteps, setAutoSteps] = useState<AutoStep[]>([]);
@@ -383,6 +390,46 @@ export default function AddCustomerPage() {
       return { ...prev, grandTotal: (fp + dc + fi + sip + ins + apl + adv).toFixed(2) };
     });
   }, [addlPkgs, addlDevices]);
+
+  // Pre-fill form when fromQuery data is loaded
+  useEffect(() => {
+    if (!fromQueryData) return;
+    const q = fromQueryData;
+    const matchedBranch = branches?.find(b => b.name === q.branch);
+    setForm(prev => ({
+      ...prev,
+      fullName: q.name || prev.fullName,
+      fatherName: q.fatherName || prev.fatherName,
+      gender: q.gender || prev.gender,
+      occupation: q.occupation || prev.occupation,
+      dateOfBirth: q.dateOfBirth || prev.dateOfBirth,
+      cnic: q.nidNumber || prev.cnic,
+      phone: q.phone || prev.phone,
+      email: q.email || prev.email,
+      customerType: q.customerType === "CIR" ? "CIR" : q.customerType === "Corporate" ? "Corporate" : q.customerType === "Reseller" ? "Reseller" : q.customerType || prev.customerType,
+      presentAddress: q.address || prev.presentAddress,
+      cnicAddress: q.address || prev.cnicAddress,
+      area: q.area || prev.area,
+      city: q.city || prev.city,
+      zone: q.zone || prev.zone,
+      subzone: q.subzone || prev.subzone,
+      branch: matchedBranch ? String(matchedBranch.id) : prev.branch,
+      connectionType: q.connectionType || prev.connectionType,
+      macAddress: q.macAddress || prev.macAddress,
+      deviceModel: q.routerModel || prev.deviceModel,
+      profilePicture: q.profilePicture || prev.profilePicture,
+      cnicFront: q.nidPicture || prev.cnicFront,
+      registrationFormNo: q.registrationFormNo || prev.registrationFormNo,
+      registrationFormPicture: q.registrationFormPicture || prev.registrationFormPicture,
+      packageId: q.packageId ? String(q.packageId) : prev.packageId,
+      packageBill: q.monthlyCharges ? String(q.monthlyCharges) : prev.packageBill,
+      finalPackageBill: q.monthlyCharges ? String(q.monthlyCharges) : prev.finalPackageBill,
+      installationCharges: q.installationFee ? String(q.installationFee) : prev.installationCharges,
+      finalInstallationCharges: q.installationFee ? String(q.installationFee) : prev.finalInstallationCharges,
+      staticIpEnabled: q.staticIp ?? prev.staticIpEnabled,
+      notes: q.remarks || prev.notes,
+    }));
+  }, [fromQueryData, branches]);
 
   const handlePackageChange = (pkgId: string) => {
     const pkg = packages?.find(p => String(p.id) === pkgId);
@@ -598,6 +645,12 @@ export default function AddCustomerPage() {
       setAutoComplete(false);
       setAutoModalOpen(true);
       runAutomation(data.id, initialSteps);
+      // If created from a client request query, mark it as Converted
+      if (fromQueryId) {
+        apiRequest("POST", `/api/customer-queries/${fromQueryId}/convert`, { customerId: data.id }).catch(() => {});
+        queryClient.invalidateQueries({ queryKey: ["/api/customer-queries"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/customer-queries", fromQueryId] });
+      }
     },
     onError: (err: any) => {
       toast({ title: "Error", description: err.message || "Failed to save customer", variant: "destructive" });
@@ -680,6 +733,16 @@ export default function AddCustomerPage() {
             </div>
           </div>
         </div>
+
+        {fromQueryId && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-sm">
+            <Sparkles className="h-4 w-4 shrink-0" />
+            <span>
+              Form pre-filled from client request <strong>#{fromQueryId}</strong>. Review the details and make any necessary changes before saving.
+              {fromQueryData && <> — <strong>{fromQueryData.name}</strong></>}
+            </span>
+          </div>
+        )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="sticky top-0 z-10 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md rounded-2xl border border-border/60 shadow-sm p-1.5">

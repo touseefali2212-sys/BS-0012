@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import {
   User,
   Phone,
@@ -100,6 +100,7 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
 export default function ClientRequestProfilePage() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const [approveOpen, setApproveOpen] = useState(false);
   const [approveNotes, setApproveNotes] = useState("");
@@ -905,22 +906,22 @@ export default function ClientRequestProfilePage() {
         <DialogContent className="max-w-sm">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><Users className="h-4 w-4 text-[#1c67d4]" /> Convert to Customer</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">This will automatically create a new customer profile for <strong>{request.name}</strong> using all the data collected in this request.</p>
+            <p className="text-sm text-muted-foreground">You'll be taken to the Add Customer form with all available details from this request pre-filled for <strong>{request.name}</strong>.</p>
             <div className="rounded-lg border bg-muted/50 p-3 space-y-1 text-sm">
               <p><span className="text-muted-foreground">Name:</span> {request.name}</p>
               <p><span className="text-muted-foreground">Phone:</span> {request.phone}</p>
               <p><span className="text-muted-foreground">Type:</span> {request.customerType}</p>
               {request.monthlyCharges && <p><span className="text-muted-foreground">Monthly:</span> PKR {Number(request.monthlyCharges).toLocaleString()}</p>}
             </div>
-            <div className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/20 p-2 rounded border border-amber-200">
+            <div className="flex items-start gap-2 text-xs text-blue-600 bg-blue-50 dark:bg-blue-950/20 p-2 rounded border border-blue-200">
               <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-              The customer will be set to active status. Login credentials can be configured in the customer profile.
+              Review and complete the form, then save to register this customer. The request will be marked as Converted automatically.
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConvertOpen(false)}>Cancel</Button>
-            <Button className="bg-[#1c67d4] hover:bg-[#1558b8] text-white" onClick={() => convertMutation.mutate()} disabled={convertMutation.isPending} data-testid="button-confirm-convert">
-              {convertMutation.isPending ? "Converting..." : "Convert to Customer"}
+            <Button className="bg-[#1c67d4] hover:bg-[#1558b8] text-white" onClick={() => { setConvertOpen(false); setLocation(`/customers/add?fromQuery=${id}`); }} data-testid="button-confirm-convert">
+              Open Add Customer Form
             </Button>
           </DialogFooter>
         </DialogContent>
