@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -49,8 +50,14 @@ export default function CorporateCustomersPage() {
   const [referralsDialogOpen, setReferralsDialogOpen] = useState(false);
   const [viewingReferralsCorp, setViewingReferralsCorp] = useState<CorporateCustomer | null>(null);
 
+  const fromQueryId = new URLSearchParams(window.location.search).get("fromQuery");
+
   const { data: corporateCustomers, isLoading } = useQuery<CorporateCustomer[]>({ queryKey: ["/api/corporate-customers"] });
   const { data: allClientRequests } = useQuery<any[]>({ queryKey: ["/api/customer-queries"] });
+  const { data: fromQueryData } = useQuery<any>({
+    queryKey: ["/api/customer-queries", fromQueryId],
+    enabled: !!fromQueryId,
+  });
 
   const corpReferralCount = (corpId: number) => (allClientRequests || []).filter((q: any) => q.referredByType === "corporate" && q.referredById === corpId).length;
   const corpReferrals = (corpId: number) => (allClientRequests || []).filter((q: any) => q.referredByType === "corporate" && q.referredById === corpId);
@@ -83,7 +90,16 @@ export default function CorporateCustomersPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertCorporateCustomer) => { const r = await apiRequest("POST", "/api/corporate-customers", data); return r.json(); },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/corporate-customers"] }); setDialogOpen(false); form.reset(); toast({ title: "Corporate customer created" }); },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/corporate-customers"] });
+      setDialogOpen(false);
+      form.reset();
+      toast({ title: "Corporate customer created" });
+      if (fromQueryId) {
+        apiRequest("POST", `/api/customer-queries/${fromQueryId}/convert`, { customerId: data.id }).catch(() => {});
+        queryClient.invalidateQueries({ queryKey: ["/api/customer-queries"] });
+      }
+    },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
@@ -130,6 +146,47 @@ export default function CorporateCustomersPage() {
     });
     setDialogOpen(true);
   };
+
+  // Auto-open and pre-fill when navigated from Convert flow
+  useEffect(() => {
+    if (!fromQueryData) return;
+    const q = fromQueryData;
+    setEditing(null);
+    setFormSection(0);
+    form.reset({
+      companyName: q.name || "",
+      registrationNumber: "",
+      ntn: "",
+      industryType: "",
+      headOfficeAddress: q.address ? `${q.address}${q.city ? ", " + q.city : ""}` : "",
+      billingAddress: q.address ? `${q.address}${q.city ? ", " + q.city : ""}` : "",
+      accountManager: "",
+      email: q.email || "",
+      phone: q.phone || "",
+      centralizedBilling: true,
+      perBranchBilling: false,
+      customInvoiceFormat: "",
+      paymentTerms: "net_30",
+      creditLimit: "0",
+      securityDeposit: q.securityDeposit ? String(q.securityDeposit) : "0",
+      contractDuration: "",
+      customSla: "",
+      dedicatedAccountManager: "",
+      customPricingAgreement: "",
+      managedRouter: false,
+      firewall: false,
+      loadBalancer: false,
+      dedicatedSupport: false,
+      backupLink: false,
+      monitoringSla: false,
+      totalConnections: 0,
+      totalBandwidth: q.bandwidthRequired || "",
+      monthlyBilling: q.monthlyCharges ? String(q.monthlyCharges) : "0",
+      status: "active",
+      notes: q.remarks || "",
+    });
+    setDialogOpen(true);
+  }, [fromQueryData]);
 
   const openEdit = (c: CorporateCustomer) => {
     setEditing(c); setFormSection(0);

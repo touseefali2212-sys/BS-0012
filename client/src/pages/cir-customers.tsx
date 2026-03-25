@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -41,9 +42,15 @@ export default function CirCustomersPage() {
   const [referralsDialogOpen, setReferralsDialogOpen] = useState(false);
   const [viewingReferralsCir, setViewingReferralsCir] = useState<CirCustomer | null>(null);
 
+  const fromQueryId = new URLSearchParams(window.location.search).get("fromQuery");
+
   const { data: cirCustomers, isLoading } = useQuery<CirCustomer[]>({ queryKey: ["/api/cir-customers"] });
   const { data: vendors } = useQuery<any[]>({ queryKey: ["/api/vendors"] });
   const { data: allClientRequests } = useQuery<any[]>({ queryKey: ["/api/customer-queries"] });
+  const { data: fromQueryData } = useQuery<any>({
+    queryKey: ["/api/customer-queries", fromQueryId],
+    enabled: !!fromQueryId,
+  });
 
   const cirReferralCount = (cirId: number) => (allClientRequests || []).filter((q: any) => q.referredByType === "cir" && q.referredById === cirId).length;
   const cirReferrals = (cirId: number) => (allClientRequests || []).filter((q: any) => q.referredByType === "cir" && q.referredById === cirId);
@@ -63,7 +70,16 @@ export default function CirCustomersPage() {
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertCirCustomer) => { const r = await apiRequest("POST", "/api/cir-customers", data); return r.json(); },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/cir-customers"] }); setDialogOpen(false); form.reset(); toast({ title: "CIR customer created" }); },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cir-customers"] });
+      setDialogOpen(false);
+      form.reset();
+      toast({ title: "CIR customer created" });
+      if (fromQueryId) {
+        apiRequest("POST", `/api/customer-queries/${fromQueryId}/convert`, { customerId: data.id }).catch(() => {});
+        queryClient.invalidateQueries({ queryKey: ["/api/customer-queries"] });
+      }
+    },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
@@ -92,6 +108,58 @@ export default function CirCustomersPage() {
     });
     setDialogOpen(true);
   };
+
+  // Auto-open and pre-fill when navigated from Convert flow
+  useEffect(() => {
+    if (!fromQueryData) return;
+    const q = fromQueryData;
+    setEditing(null);
+    setFormSection(0);
+    form.reset({
+      companyName: q.name || "",
+      contactPerson: q.name || "",
+      cnic: q.nidNumber || "",
+      ntn: "",
+      email: q.email || "",
+      phone: q.phone || "",
+      address: q.address || "",
+      city: q.city || "",
+      branch: q.branch || "",
+      vendorPort: "",
+      committedBandwidth: q.bandwidthRequired || "",
+      burstBandwidth: "",
+      uploadSpeed: "",
+      downloadSpeed: "",
+      contentionRatio: "",
+      vlanId: "",
+      onuDevice: "",
+      staticIp: q.ipAddress || "",
+      subnetMask: "",
+      gateway: "",
+      dns: "",
+      publicIpBlock: "",
+      contractStartDate: new Date().toISOString().split("T")[0],
+      contractEndDate: "",
+      slaLevel: "99.5",
+      slaPenaltyClause: "",
+      autoRenewal: false,
+      monthlyCharges: q.monthlyCharges ? String(q.monthlyCharges) : "0",
+      installationCharges: q.installationFee ? String(q.installationFee) : "0",
+      securityDeposit: q.securityDeposit ? String(q.securityDeposit) : "0",
+      billingCycle: "monthly",
+      invoiceType: "tax",
+      lateFeePolicy: "",
+      radiusProfile: "",
+      bandwidthProfileName: "",
+      monitoringEnabled: false,
+      snmpMonitoring: false,
+      trafficAlerts: false,
+      status: "active",
+      notes: q.remarks || "",
+      ...(q.bandwidthVendorId ? { vendorId: q.bandwidthVendorId } : {}),
+    });
+    setDialogOpen(true);
+  }, [fromQueryData]);
 
   const openEdit = (c: CirCustomer) => {
     setEditing(c); setFormSection(0);

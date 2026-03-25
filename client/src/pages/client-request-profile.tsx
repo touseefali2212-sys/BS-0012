@@ -340,7 +340,13 @@ export default function ClientRequestProfilePage() {
             </>
           )}
           {request.status === "Final Approved" && (
-            <Button size="sm" className="bg-[#1c67d4] hover:bg-[#1558b8] text-white" onClick={() => setLocation(`/customers/add?fromQuery=${id}`)} data-testid="button-convert">
+            <Button size="sm" className="bg-[#1c67d4] hover:bg-[#1558b8] text-white" onClick={() => {
+              const ct = request.customerType;
+              if (ct === "CIR") setLocation(`/cir-customers?add=true&fromQuery=${id}`);
+              else if (ct === "Corporate") setLocation(`/corporate-customers?add=true&fromQuery=${id}`);
+              else if (ct === "Reseller") setLocation(`/resellers?tab=add&fromQuery=${id}`);
+              else setLocation(`/customers/add?fromQuery=${id}`);
+            }} data-testid="button-convert">
               <Users className="h-4 w-4 mr-1" /> Convert to {request.customerType && request.customerType !== "Normal" ? `${request.customerType} ` : ""}Customer
             </Button>
           )}
@@ -397,7 +403,13 @@ export default function ClientRequestProfilePage() {
             status: "Converted",
             active: "bg-slate-700 text-white border-slate-700",
             idle: "border-slate-400 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/30",
-            onClick: () => setLocation(`/customers/add?fromQuery=${id}`),
+            onClick: () => {
+              const ct = request.customerType;
+              if (ct === "CIR") setLocation(`/cir-customers?add=true&fromQuery=${id}`);
+              else if (ct === "Corporate") setLocation(`/corporate-customers?add=true&fromQuery=${id}`);
+              else if (ct === "Reseller") setLocation(`/resellers?tab=add&fromQuery=${id}`);
+              else setLocation(`/customers/add?fromQuery=${id}`);
+            },
           },
         ] as { status: string; active: string; idle: string; onClick: () => void }[]).map(({ status, active, idle, onClick }) => {
           const isCurrent = request.status === status;

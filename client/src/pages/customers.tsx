@@ -742,7 +742,14 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
       setWfReqOpen(true);
     }
     else if (dialog === "finalApproved") { setWfFinalNotes(""); setWfFinalOpen(true); }
-    else if (dialog === "converted") { setLocation(`/customers/add?fromQuery=${q.id}`); return; }
+    else if (dialog === "converted") {
+      const ct = (q as any).customerType;
+      if (ct === "CIR") setLocation(`/cir-customers?add=true&fromQuery=${q.id}`);
+      else if (ct === "Corporate") setLocation(`/corporate-customers?add=true&fromQuery=${q.id}`);
+      else if (ct === "Reseller") setLocation(`/resellers?tab=add&fromQuery=${q.id}`);
+      else setLocation(`/customers/add?fromQuery=${q.id}`);
+      return;
+    }
   };
 
   const wfApproveMutation = useMutation({

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -256,9 +256,16 @@ export default function ResellersPage() {
     defaultValues: { ...resellerDefaults },
   });
 
+  const fromQueryId = new URLSearchParams(window.location.search).get("fromQuery");
+
   const addForm = useForm<InsertReseller>({
     resolver: zodResolver(resellerFormSchema),
     defaultValues: { ...resellerDefaults },
+  });
+
+  const { data: fromQueryData } = useQuery<any>({
+    queryKey: ["/api/customer-queries", fromQueryId],
+    enabled: !!fromQueryId,
   });
 
   const createMutation = useMutation({
@@ -266,16 +273,41 @@ export default function ResellersPage() {
       const res = await apiRequest("POST", "/api/resellers", data);
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/resellers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
       addForm.reset();
       toast({ title: "Reseller created successfully" });
+      if (fromQueryId) {
+        apiRequest("POST", `/api/customer-queries/${fromQueryId}/convert`, { customerId: data.id }).catch(() => {});
+        queryClient.invalidateQueries({ queryKey: ["/api/customer-queries"] });
+      }
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
+
+  // Auto-pre-fill when navigated from Convert flow
+  useEffect(() => {
+    if (!fromQueryData) return;
+    const q = fromQueryData;
+    addForm.reset({
+      ...resellerDefaults,
+      name: q.name || "",
+      phone: q.phone || "",
+      email: q.email || "",
+      address: q.address || "",
+      city: q.city || "",
+      area: q.area || "",
+      fatherName: q.fatherName || "",
+      gender: q.gender || "",
+      cnic: q.nidNumber || "",
+      notes: q.remarks || "",
+      ...(q.panelVendorId ? { vendorId: q.panelVendorId } : {}),
+      ...(q.panelUsersCapacity ? { maxCustomerLimit: q.panelUsersCapacity } : {}),
+    });
+  }, [fromQueryData]);
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<InsertReseller> }) => {
