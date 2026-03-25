@@ -63,6 +63,7 @@ import BonusCommissionPage from "@/pages/bonus-commission";
 import EmployeeTypesRolesPage from "@/pages/employee-types-roles";
 import ShiftSchedulingPage from "@/pages/shift-scheduling";
 import StaffAccountsPage from "@/pages/staff-accounts";
+import ClientRequestProfilePage from "@/pages/client-request-profile";
 import CirCustomersPage from "@/pages/cir-customers";
 import CorporateCustomersPage from "@/pages/corporate-customers";
 import AssetAssignmentsPage from "@/pages/asset-assignments";
@@ -125,6 +126,7 @@ function Router() {
       <Route path="/customers/add" component={AddCustomerPage} />
       <Route path="/customers/:id/edit" component={EditCustomerPage} />
       <Route path="/customers/:id" component={CustomerProfilePage} />
+      <Route path="/client-requests/:id" component={ClientRequestProfilePage} />
       <Route path="/cir-customers" component={CirCustomersPage} />
       <Route path="/corporate-customers" component={CorporateCustomersPage} />
       <Route path="/packages" component={PackagesPage} />

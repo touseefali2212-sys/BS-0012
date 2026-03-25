@@ -136,12 +136,6 @@ const customerTypes = [
   },
 ];
 
-const wizardSteps = [
-  { label: "Personal Info", icon: User },
-  { label: "Contact Info", icon: Phone },
-  { label: "Network & Product", icon: Network },
-  { label: "Service Info", icon: ClipboardList },
-];
 
 function FileUploadField({ label, value, onChange, testId }: { label: string; value: string; onChange: (url: string) => void; testId: string }) {
   const [uploading, setUploading] = useState(false);
@@ -180,33 +174,51 @@ function FileUploadField({ label, value, onChange, testId }: { label: string; va
 }
 
 function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
-  const [step, setStep] = useState(0);
   const { toast } = useToast();
   const { data: pkgs } = useQuery<Package[]>({ queryKey: ["/api/packages"] });
-  const [formData, setFormData] = useState({
-    name: "", gender: "", occupation: "", dateOfBirth: "", fatherName: "", motherName: "",
-    nidNumber: "", registrationFormNo: "", remarks: "", profilePicture: "", nidPicture: "", registrationFormPicture: "",
-    phone: "", email: "", address: "", area: "", city: "", district: "", emergencyContact: "", emergencyPhone: "",
-    connectionType: "", packageId: 0, ipAddress: "", macAddress: "", routerModel: "", ontSerialNumber: "", popLocation: "", vlanId: "",
-    serviceType: "", billingCycle: "", installationDate: "", activationDate: "",
-    monthlyCharges: "", securityDeposit: "", installationFee: "", specialDiscount: "",
-    zone: "", subzone: "", customerType: "", billingDate: 0, otcCharge: "",
+  const { data: areasData } = useQuery<any[]>({ queryKey: ["/api/areas"] });
+  const { data: branchesData } = useQuery<any[]>({ queryKey: ["/api/branches"] });
+
+  const [form, setForm] = useState({
+    fullName: "", fatherName: "", gender: "", remarks: "",
+    referredBy: "", phone: "", branch: "", area: "", city: "",
+    customerType: "", serviceType: "", packageId: 0, staticIp: false, popId: "", requestDate: new Date().toISOString().split("T")[0],
   });
 
-  const update = (field: string, value: string | number) => setFormData(prev => ({ ...prev, [field]: value }));
+  const update = (field: string, value: string | number | boolean) => setForm(prev => ({ ...prev, [field]: value }));
+
+  const areaOptions = areasData || [];
+  const branchOptions = branchesData || [];
+
+  const onAreaChange = (areaName: string) => {
+    const found = areaOptions.find((a: any) => a.name === areaName);
+    update("area", areaName);
+    if (found?.city) update("city", found.city);
+    if (found?.branch) update("branch", found.branch);
+  };
 
   const createMutation = useMutation({
     mutationFn: async () => {
+      if (!form.fullName.trim()) throw new Error("Full Name is required");
+      if (!form.phone.trim()) throw new Error("Mobile No is required");
+      if (!form.area.trim()) throw new Error("Area is required");
       const payload = {
-        ...formData,
         queryId: `CR-${Date.now().toString(36).toUpperCase()}`,
-        packageId: formData.packageId || null,
-        monthlyCharges: formData.monthlyCharges || null,
-        securityDeposit: formData.securityDeposit || null,
-        installationFee: formData.installationFee || null,
-        specialDiscount: formData.specialDiscount || null,
-        otcCharge: formData.otcCharge || null,
-        billingDate: formData.billingDate || null,
+        name: form.fullName,
+        fatherName: form.fatherName || null,
+        gender: form.gender || null,
+        remarks: form.remarks || null,
+        referredBy: form.referredBy || null,
+        phone: form.phone,
+        branch: form.branch || null,
+        area: form.area,
+        city: form.city || null,
+        customerType: form.customerType || null,
+        serviceType: form.serviceType || null,
+        packageId: form.packageId || null,
+        staticIp: form.staticIp,
+        popId: form.popId || null,
+        requestDate: form.requestDate || null,
         status: "Pending",
         createdBy: "admin",
         createdAt: new Date().toISOString(),
@@ -224,344 +236,203 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
     },
   });
 
-  const canProceed = () => {
-    if (step === 0) return formData.name.trim().length >= 2;
-    if (step === 1) return formData.phone.trim().length >= 10;
-    return true;
-  };
+  const fieldClass = "space-y-1.5";
+  const labelClass = "text-sm font-medium text-foreground";
+  const sectionHeaderClass = "bg-[#1c67d4] text-white px-4 py-2.5 rounded-t-lg flex items-center gap-2 text-sm font-semibold";
 
   return (
-    <div className="mt-5 space-y-6">
-      <div className="flex items-center gap-2 mb-6">
-        {wizardSteps.map((s, i) => {
-          const Icon = s.icon;
-          const isActive = i === step;
-          const isComplete = i < step;
-          return (
-            <div key={i} className="flex items-center gap-2 flex-1">
-              <div
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer w-full ${
-                  isActive ? "bg-blue-600 text-white shadow-md" : isComplete ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-muted text-muted-foreground"
-                }`}
-                onClick={() => { if (isComplete) setStep(i); }}
-                data-testid={`wizard-step-${i}`}
-              >
-                <div className={`flex items-center justify-center w-6 h-6 rounded-full text-xs ${
-                  isActive ? "bg-white/20" : isComplete ? "bg-green-200 dark:bg-green-800" : "bg-background"
-                }`}>
-                  {isComplete ? <Check className="h-3.5 w-3.5" /> : <span>{i + 1}</span>}
-                </div>
-                <Icon className="h-4 w-4 hidden sm:block" />
-                <span className="hidden md:inline">{s.label}</span>
-              </div>
-              {i < wizardSteps.length - 1 && <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />}
-            </div>
-          );
-        })}
+    <div className="mt-5 space-y-6 max-w-4xl">
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" onClick={() => setTab("query-list")} data-testid="button-back-to-list">
+          <ChevronLeft className="h-5 w-5" />
+        </Button>
+        <div>
+          <h2 className="text-lg font-bold">New Client Request</h2>
+          <p className="text-sm text-muted-foreground">Fill in the client details to submit a new connection request</p>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {(() => { const Icon = wizardSteps[step].icon; return <Icon className="h-5 w-5" />; })()}
-            {wizardSteps[step].label}
-          </CardTitle>
-          <CardDescription>
-            {step === 0 && "Enter the customer's personal details and upload required documents."}
-            {step === 1 && "Provide customer contact and address information."}
-            {step === 2 && "Configure network and product details for the connection."}
-            {step === 3 && "Set service configuration, billing, and charges."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {step === 0 && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Name <span className="text-red-500">*</span></label>
-                  <Input placeholder="Full name" value={formData.name} onChange={e => update("name", e.target.value)} data-testid="input-query-name" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Gender</label>
-                  <Select value={formData.gender} onValueChange={v => update("gender", v)}>
-                    <SelectTrigger data-testid="select-query-gender"><SelectValue placeholder="Select gender" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Occupation</label>
-                  <Input placeholder="e.g. Engineer, Teacher" value={formData.occupation} onChange={e => update("occupation", e.target.value)} data-testid="input-query-occupation" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Date of Birth</label>
-                  <Input type="date" value={formData.dateOfBirth} onChange={e => update("dateOfBirth", e.target.value)} data-testid="input-query-dob" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Father Name</label>
-                  <Input placeholder="Father's full name" value={formData.fatherName} onChange={e => update("fatherName", e.target.value)} data-testid="input-query-father" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Mother Name</label>
-                  <Input placeholder="Mother's full name" value={formData.motherName} onChange={e => update("motherName", e.target.value)} data-testid="input-query-mother" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">NID / Birth Certificate No</label>
-                  <Input placeholder="National ID or birth certificate number" value={formData.nidNumber} onChange={e => update("nidNumber", e.target.value)} data-testid="input-query-nid" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Registration Form No</label>
-                  <Input placeholder="Registration form number" value={formData.registrationFormNo} onChange={e => update("registrationFormNo", e.target.value)} data-testid="input-query-regform" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Remarks / Special Note</label>
-                <Textarea placeholder="Any special notes or remarks..." value={formData.remarks} onChange={e => update("remarks", e.target.value)} data-testid="input-query-remarks" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                <FileUploadField label="Profile Picture" value={formData.profilePicture} onChange={v => update("profilePicture", v)} testId="upload-profile-picture" />
-                <FileUploadField label="NID / Birth Certificate Picture" value={formData.nidPicture} onChange={v => update("nidPicture", v)} testId="upload-nid-picture" />
-                <FileUploadField label="Registration Form Picture" value={formData.registrationFormPicture} onChange={v => update("registrationFormPicture", v)} testId="upload-reg-form-picture" />
-              </div>
+      {/* Section 1: Personal Info */}
+      <div className="rounded-lg border overflow-hidden shadow-sm">
+        <div className={sectionHeaderClass}>
+          <User className="h-4 w-4" />
+          1 – Personal Info
+        </div>
+        <div className="p-4 bg-card space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={fieldClass}>
+              <label className={labelClass}>Full Name <span className="text-red-500">*</span></label>
+              <Input placeholder="Enter full name" value={form.fullName} onChange={e => update("fullName", e.target.value)} data-testid="input-cr-fullname" />
             </div>
-          )}
-
-          {step === 1 && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Phone <span className="text-red-500">*</span></label>
-                  <Input placeholder="03XX-XXXXXXX" value={formData.phone} onChange={e => update("phone", e.target.value)} data-testid="input-query-phone" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Email</label>
-                  <Input type="email" placeholder="customer@example.com" value={formData.email} onChange={e => update("email", e.target.value)} data-testid="input-query-email" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Address</label>
-                <Textarea placeholder="Full street address" value={formData.address} onChange={e => update("address", e.target.value)} data-testid="input-query-address" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Area</label>
-                  <Input placeholder="Service area" value={formData.area} onChange={e => update("area", e.target.value)} data-testid="input-query-area" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Zone</label>
-                  <Input placeholder="Zone" value={formData.zone} onChange={e => update("zone", e.target.value)} data-testid="input-query-zone" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Subzone</label>
-                  <Input placeholder="Subzone" value={formData.subzone} onChange={e => update("subzone", e.target.value)} data-testid="input-query-subzone" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">City</label>
-                  <Input placeholder="City name" value={formData.city} onChange={e => update("city", e.target.value)} data-testid="input-query-city" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">District</label>
-                  <Input placeholder="District" value={formData.district} onChange={e => update("district", e.target.value)} data-testid="input-query-district" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Customer Type</label>
-                  <Select value={formData.customerType} onValueChange={v => update("customerType", v)}>
-                    <SelectTrigger data-testid="select-query-customer-type"><SelectValue placeholder="Select type" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Home">Home</SelectItem>
-                      <SelectItem value="Corporate">Corporate</SelectItem>
-                      <SelectItem value="Hostel">Hostel</SelectItem>
-                      <SelectItem value="Reseller">Reseller</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Emergency Contact Name</label>
-                  <Input placeholder="Emergency contact person" value={formData.emergencyContact} onChange={e => update("emergencyContact", e.target.value)} data-testid="input-query-emergency-name" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Emergency Phone</label>
-                  <Input placeholder="03XX-XXXXXXX" value={formData.emergencyPhone} onChange={e => update("emergencyPhone", e.target.value)} data-testid="input-query-emergency-phone" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step === 2 && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Connection Type</label>
-                  <Select value={formData.connectionType} onValueChange={v => update("connectionType", v)}>
-                    <SelectTrigger data-testid="select-query-connection-type"><SelectValue placeholder="Select type" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fiber">Fiber (FTTH)</SelectItem>
-                      <SelectItem value="wireless">Wireless</SelectItem>
-                      <SelectItem value="dsl">DSL</SelectItem>
-                      <SelectItem value="cable">Cable</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Package</label>
-                  <Select value={formData.packageId ? String(formData.packageId) : ""} onValueChange={v => update("packageId", Number(v))}>
-                    <SelectTrigger data-testid="select-query-package"><SelectValue placeholder="Select package" /></SelectTrigger>
-                    <SelectContent>
-                      {pkgs?.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name} - {p.speed} ({p.price} PKR)</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">IP Address</label>
-                  <Input placeholder="e.g. 192.168.1.100" value={formData.ipAddress} onChange={e => update("ipAddress", e.target.value)} data-testid="input-query-ip" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">MAC Address</label>
-                  <Input placeholder="e.g. AA:BB:CC:DD:EE:FF" value={formData.macAddress} onChange={e => update("macAddress", e.target.value)} data-testid="input-query-mac" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Router Model</label>
-                  <Input placeholder="e.g. Huawei HG8245H" value={formData.routerModel} onChange={e => update("routerModel", e.target.value)} data-testid="input-query-router" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">ONT Serial Number</label>
-                  <Input placeholder="ONT S/N" value={formData.ontSerialNumber} onChange={e => update("ontSerialNumber", e.target.value)} data-testid="input-query-ont" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">POP Location</label>
-                  <Input placeholder="Point of Presence location" value={formData.popLocation} onChange={e => update("popLocation", e.target.value)} data-testid="input-query-pop" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">VLAN ID</label>
-                  <Input placeholder="e.g. 100" value={formData.vlanId} onChange={e => update("vlanId", e.target.value)} data-testid="input-query-vlan" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Service Type</label>
-                  <Select value={formData.serviceType} onValueChange={v => update("serviceType", v)}>
-                    <SelectTrigger data-testid="select-query-service-type"><SelectValue placeholder="Select service" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="internet">Internet</SelectItem>
-                      <SelectItem value="iptv">IPTV</SelectItem>
-                      <SelectItem value="cable_tv">Cable TV</SelectItem>
-                      <SelectItem value="bundle">Bundle</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Billing Cycle</label>
-                  <Select value={formData.billingCycle} onValueChange={v => update("billingCycle", v)}>
-                    <SelectTrigger data-testid="select-query-billing-cycle"><SelectValue placeholder="Select cycle" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="monthly">Monthly</SelectItem>
-                      <SelectItem value="quarterly">Quarterly</SelectItem>
-                      <SelectItem value="semi-annual">Semi-Annual</SelectItem>
-                      <SelectItem value="annual">Annual</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Installation Date</label>
-                  <Input type="date" value={formData.installationDate} onChange={e => update("installationDate", e.target.value)} data-testid="input-query-install-date" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Activation Date</label>
-                  <Input type="date" value={formData.activationDate} onChange={e => update("activationDate", e.target.value)} data-testid="input-query-activation-date" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Monthly Charges (PKR)</label>
-                  <Input type="number" placeholder="0.00" value={formData.monthlyCharges} onChange={e => update("monthlyCharges", e.target.value)} data-testid="input-query-monthly" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Security Deposit (PKR)</label>
-                  <Input type="number" placeholder="0.00" value={formData.securityDeposit} onChange={e => update("securityDeposit", e.target.value)} data-testid="input-query-deposit" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Installation Fee (PKR)</label>
-                  <Input type="number" placeholder="0.00" value={formData.installationFee} onChange={e => update("installationFee", e.target.value)} data-testid="input-query-install-fee" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Special Discount (PKR)</label>
-                  <Input type="number" placeholder="0.00" value={formData.specialDiscount} onChange={e => update("specialDiscount", e.target.value)} data-testid="input-query-discount" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">OTC / Connection Charge (PKR)</label>
-                  <Input type="number" placeholder="0.00" value={formData.otcCharge} onChange={e => update("otcCharge", e.target.value)} data-testid="input-query-otc" />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Billing Date (Day of Month)</label>
-                  <Input type="number" min="1" max="31" placeholder="e.g. 10" value={formData.billingDate || ""} onChange={e => update("billingDate", Number(e.target.value))} data-testid="input-query-billing-date" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-between pt-6 border-t mt-6">
-            <Button
-              variant="outline"
-              onClick={() => step > 0 ? setStep(step - 1) : setTab("query-list")}
-              data-testid="button-wizard-back"
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              {step === 0 ? "Cancel" : "Previous"}
-            </Button>
-            <div className="flex gap-2">
-              {step < 3 ? (
-                <Button
-                  onClick={() => setStep(step + 1)}
-                  disabled={!canProceed()}
-                  data-testid="button-wizard-next"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => createMutation.mutate()}
-                  disabled={createMutation.isPending}
-                  className="bg-blue-600 hover:bg-blue-700"
-                  data-testid="button-wizard-submit"
-                >
-                  {createMutation.isPending ? "Submitting..." : "Submit Request"}
-                </Button>
-              )}
+            <div className={fieldClass}>
+              <label className={labelClass}>Father Name</label>
+              <Input placeholder="Enter father's name" value={form.fatherName} onChange={e => update("fatherName", e.target.value)} data-testid="input-cr-father" />
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={fieldClass}>
+              <label className={labelClass}>Gender</label>
+              <Select value={form.gender} onValueChange={v => update("gender", v)}>
+                <SelectTrigger data-testid="select-cr-gender"><SelectValue placeholder="Select gender" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className={fieldClass}>
+              <label className={labelClass}>Remarks / Special Note</label>
+              <Input placeholder="Any special notes or remarks..." value={form.remarks} onChange={e => update("remarks", e.target.value)} data-testid="input-cr-remarks" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 2: Contact Info */}
+      <div className="rounded-lg border overflow-hidden shadow-sm">
+        <div className={sectionHeaderClass}>
+          <Phone className="h-4 w-4" />
+          2 – Contact Info
+        </div>
+        <div className="p-4 bg-card space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={fieldClass}>
+              <label className={labelClass}>Referred By</label>
+              <Select value={form.referredBy} onValueChange={v => update("referredBy", v)}>
+                <SelectTrigger data-testid="select-cr-referred-by"><SelectValue placeholder="Select referral source" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Any Customer">Any Customer</SelectItem>
+                  <SelectItem value="CIR">CIR</SelectItem>
+                  <SelectItem value="Corporate Referred">Corporate Referred</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className={fieldClass}>
+              <label className={labelClass}>Mobile No <span className="text-red-500">*</span></label>
+              <Input placeholder="03XX-XXXXXXX" value={form.phone} onChange={e => update("phone", e.target.value)} data-testid="input-cr-phone" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className={fieldClass}>
+              <label className={labelClass}>Branch</label>
+              <Select value={form.branch} onValueChange={v => update("branch", v)}>
+                <SelectTrigger data-testid="select-cr-branch"><SelectValue placeholder="Select branch" /></SelectTrigger>
+                <SelectContent>
+                  {branchOptions.length > 0
+                    ? branchOptions.map((b: any) => <SelectItem key={b.id} value={b.name || b.id}>{b.name}</SelectItem>)
+                    : <SelectItem value="Main Branch">Main Branch</SelectItem>
+                  }
+                </SelectContent>
+              </Select>
+            </div>
+            <div className={fieldClass}>
+              <label className={labelClass}>Area <span className="text-red-500">*</span></label>
+              <Select value={form.area} onValueChange={onAreaChange}>
+                <SelectTrigger data-testid="select-cr-area"><SelectValue placeholder="Select area" /></SelectTrigger>
+                <SelectContent>
+                  {areaOptions.map((a: any) => <SelectItem key={a.id} value={a.name}>{a.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className={fieldClass}>
+              <label className={labelClass}>City</label>
+              <Input placeholder="City name" value={form.city} onChange={e => update("city", e.target.value)} data-testid="input-cr-city" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Section 3: Network & Service */}
+      <div className="rounded-lg border overflow-hidden shadow-sm">
+        <div className={sectionHeaderClass}>
+          <Network className="h-4 w-4" />
+          3 – Network & Service
+        </div>
+        <div className="p-4 bg-card space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={fieldClass}>
+              <label className={labelClass}>Customer Type</label>
+              <Select value={form.customerType} onValueChange={v => update("customerType", v)}>
+                <SelectTrigger data-testid="select-cr-customer-type"><SelectValue placeholder="Select customer type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CIR">CIR</SelectItem>
+                  <SelectItem value="Corporate">Corporate</SelectItem>
+                  <SelectItem value="Customer">Customer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className={fieldClass}>
+              <label className={labelClass}>Service Type</label>
+              <Select value={form.serviceType} onValueChange={v => update("serviceType", v)}>
+                <SelectTrigger data-testid="select-cr-service-type"><SelectValue placeholder="Select service type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Home">Home</SelectItem>
+                  <SelectItem value="Office">Office</SelectItem>
+                  <SelectItem value="Hospital">Hospital</SelectItem>
+                  <SelectItem value="Hostel">Hostel</SelectItem>
+                  <SelectItem value="Reseller">Reseller</SelectItem>
+                  <SelectItem value="School">School</SelectItem>
+                  <SelectItem value="Hotel">Hotel</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={fieldClass}>
+              <label className={labelClass}>Package</label>
+              <Select value={form.packageId ? String(form.packageId) : ""} onValueChange={v => update("packageId", Number(v))}>
+                <SelectTrigger data-testid="select-cr-package"><SelectValue placeholder="Select package" /></SelectTrigger>
+                <SelectContent>
+                  {pkgs?.filter(p => p.status === "active").map(p => (
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      {p.name}{p.speed ? ` – ${p.speed}` : ""}{p.price ? ` (${p.price} PKR)` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className={fieldClass}>
+              <label className={labelClass}>POP ID</label>
+              <Input placeholder="Enter POP ID" value={form.popId} onChange={e => update("popId", e.target.value)} data-testid="input-cr-pop-id" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={fieldClass}>
+              <label className={labelClass}>Request Date</label>
+              <Input type="date" value={form.requestDate} onChange={e => update("requestDate", e.target.value)} data-testid="input-cr-request-date" />
+            </div>
+            <div className={fieldClass}>
+              <label className={labelClass}>Static IP</label>
+              <div className="flex items-center gap-3 h-10 px-3 rounded-md border bg-background">
+                <Switch
+                  checked={form.staticIp}
+                  onCheckedChange={v => update("staticIp", v)}
+                  data-testid="switch-cr-static-ip"
+                />
+                <span className="text-sm text-muted-foreground">{form.staticIp ? "Required" : "Not Required"}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center justify-between pt-2">
+        <Button variant="outline" onClick={() => setTab("query-list")} data-testid="button-cr-cancel">
+          <XCircle className="h-4 w-4 mr-1" /> Cancel
+        </Button>
+        <Button
+          className="bg-[#1c67d4] hover:bg-[#1558b8] text-white px-8"
+          onClick={() => createMutation.mutate()}
+          disabled={createMutation.isPending}
+          data-testid="button-cr-submit"
+        >
+          {createMutation.isPending ? "Submitting..." : "Submit Request"}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -794,7 +665,11 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
                   {displayed.map((q, idx) => (
                     <TableRow key={q.id} className="text-xs" data-testid={`row-request-${q.id}`}>
                       <TableCell className="font-medium">{idx + 1}</TableCell>
-                      <TableCell className="font-medium whitespace-nowrap">{q.name}</TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">
+                        <Link href={`/client-requests/${q.id}`} className="text-blue-600 dark:text-blue-400 hover:underline cursor-pointer">
+                          {q.name}
+                        </Link>
+                      </TableCell>
                       <TableCell className="whitespace-nowrap">{q.phone}</TableCell>
                       <TableCell className="max-w-[150px] truncate">{q.address || "-"}</TableCell>
                       <TableCell>{q.zone || "-"}</TableCell>
