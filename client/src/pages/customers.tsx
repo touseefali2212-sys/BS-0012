@@ -727,8 +727,8 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
 
   const getPackageCell = (q: CustomerQuery) => {
     const ct = q.customerType;
-    if (ct === "CIR" || ct === "Corporate") return (q as any).bandwidthRequired || "-";
-    if (ct === "Reseller") return (q as any).panelUsersCapacity || "-";
+    if (ct === "CIR" || ct === "Corporate") return q.bandwidthRequired || "-";
+    if (ct === "Reseller") return q.panelUsersCapacity || "-";
     return getPackageName(q.packageId);
   };
 
@@ -741,8 +741,8 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
 
   const getVendorCell = (q: CustomerQuery) => {
     const ct = q.customerType;
-    if (ct === "CIR") return getVendorName((q as any).bandwidthVendorId);
-    if (ct === "Reseller") return getVendorName((q as any).panelVendorId);
+    if (ct === "CIR") return getVendorName(q.bandwidthVendorId);
+    if (ct === "Reseller") return getVendorName(q.panelVendorId);
     return "-";
   };
 
