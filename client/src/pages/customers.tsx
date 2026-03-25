@@ -674,6 +674,7 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
 function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
   const { data: queries, isLoading } = useQuery<CustomerQuery[]>({ queryKey: ["/api/customer-queries"] });
   const { data: pkgs } = useQuery<Package[]>({ queryKey: ["/api/packages"] });
+  const { data: vendorsList } = useQuery<any[]>({ queryKey: ["/api/vendors"] });
   const { toast } = useToast();
   const { canCreate, canDelete } = usePermissions();
   const [searchTerm, setSearchTerm] = useState("");
@@ -716,6 +717,33 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
     if (!pkgId || !pkgs) return "-";
     const p = pkgs.find(p => p.id === pkgId);
     return p ? p.name : "-";
+  };
+
+  const getVendorName = (vendorId: number | null | undefined) => {
+    if (!vendorId || !vendorsList) return "-";
+    const v = vendorsList.find((v: any) => v.id === vendorId);
+    return v ? v.name : "-";
+  };
+
+  const getPackageCell = (q: CustomerQuery) => {
+    const ct = q.customerType;
+    if (ct === "CIR" || ct === "Corporate") return (q as any).bandwidthRequired || "-";
+    if (ct === "Reseller") return (q as any).panelUsersCapacity || "-";
+    return getPackageName(q.packageId);
+  };
+
+  const getPackageLabel = (q: CustomerQuery) => {
+    const ct = q.customerType;
+    if (ct === "CIR" || ct === "Corporate") return "bw";
+    if (ct === "Reseller") return "cap";
+    return "pkg";
+  };
+
+  const getVendorCell = (q: CustomerQuery) => {
+    const ct = q.customerType;
+    if (ct === "CIR") return getVendorName((q as any).bandwidthVendorId);
+    if (ct === "Reseller") return getVendorName((q as any).panelVendorId);
+    return "-";
   };
 
   const filtered = (queries || []).filter(q => {
@@ -882,7 +910,8 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
                     <TableHead className="text-white font-semibold text-xs whitespace-nowrap">Subzone</TableHead>
                     <TableHead className="text-white font-semibold text-xs whitespace-nowrap">Cus.Type</TableHead>
                     <TableHead className="text-white font-semibold text-xs whitespace-nowrap">Conn.Type</TableHead>
-                    <TableHead className="text-white font-semibold text-xs whitespace-nowrap">Package</TableHead>
+                    <TableHead className="text-white font-semibold text-xs whitespace-nowrap">Package/BW/Cap</TableHead>
+                    <TableHead className="text-white font-semibold text-xs whitespace-nowrap">Vendor</TableHead>
                     <TableHead className="text-white font-semibold text-xs whitespace-nowrap">M.Bill</TableHead>
                     <TableHead className="text-white font-semibold text-xs whitespace-nowrap">B.Date</TableHead>
                     <TableHead className="text-white font-semibold text-xs whitespace-nowrap">OTC(Conn.Charge)</TableHead>
@@ -910,7 +939,15 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
                       <TableCell>{q.subzone || "-"}</TableCell>
                       <TableCell>{q.customerType || "-"}</TableCell>
                       <TableCell className="whitespace-nowrap">{q.connectionType || "-"}</TableCell>
-                      <TableCell className="whitespace-nowrap">{getPackageName(q.packageId)}</TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span>{getPackageCell(q)}</span>
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                            {getPackageLabel(q) === "bw" ? "Bandwidth" : getPackageLabel(q) === "cap" ? "Capacity" : "Package"}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-xs">{getVendorCell(q)}</TableCell>
                       <TableCell>{q.monthlyCharges || "-"}</TableCell>
                       <TableCell>{q.billingDate || "-"}</TableCell>
                       <TableCell>{q.otcCharge || "-"}</TableCell>
