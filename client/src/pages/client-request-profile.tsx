@@ -106,6 +106,7 @@ export default function ClientRequestProfilePage() {
   const [approvedByUser, setApprovedByUser] = useState("");
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [rejectedByUser, setRejectedByUser] = useState("");
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignEmployeeId, setAssignEmployeeId] = useState("");
   const [assignNotes, setAssignNotes] = useState("");
@@ -166,8 +167,8 @@ export default function ClientRequestProfilePage() {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/customer-queries/${id}/reject`, { reason: rejectReason }),
-    onSuccess: () => { toast({ title: "Rejected", description: "Request has been rejected." }); invalidate(); setRejectOpen(false); setRejectReason(""); },
+    mutationFn: () => apiRequest("POST", `/api/customer-queries/${id}/reject`, { reason: rejectReason, rejectedBy: rejectedByUser || undefined }),
+    onSuccess: () => { toast({ title: "Rejected", description: "Request has been rejected." }); invalidate(); setRejectOpen(false); setRejectReason(""); setRejectedByUser(""); },
     onError: (e: any) => toast({ title: "Error", description: e.message || "Failed to reject", variant: "destructive" }),
   });
 
@@ -667,12 +668,32 @@ export default function ClientRequestProfilePage() {
 
       {/* Reject Dialog */}
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><XCircle className="h-4 w-4 text-red-500" /> Reject Request</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">This will reject the request. Please provide a reason.</p>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Reason for Rejection <span className="text-red-500">*</span></label>
-            <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} rows={3} placeholder="Explain why this request is being rejected..." className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" data-testid="textarea-reject-reason" />
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">This will reject the request. Please provide a reason and the authorised person rejecting it.</p>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Rejected By <span className="text-red-500">*</span></label>
+              <Select key={rejectOpen ? "open" : "closed"} value={rejectedByUser} onValueChange={setRejectedByUser}>
+                <SelectTrigger data-testid="select-rejected-by-user" className="w-full">
+                  <SelectValue placeholder="Select authorised person..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {(systemUsers ?? []).filter((u: any) => u.isActive !== false && u.accountStatus !== "inactive").map((u: any) => (
+                    <SelectItem key={u.id} value={u.username}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{u.fullName}</span>
+                        <span className="text-xs text-muted-foreground capitalize">{u.role}{u.department ? ` · ${u.department}` : ""}{u.branch ? ` · ${u.branch}` : ""}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Reason for Rejection <span className="text-red-500">*</span></label>
+              <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} rows={3} placeholder="Explain why this request is being rejected..." className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" data-testid="textarea-reject-reason" />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectOpen(false)}>Cancel</Button>

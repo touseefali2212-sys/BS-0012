@@ -2780,7 +2780,7 @@ export async function registerRoutes(
       const q = await storage.getCustomerQuery(qid);
       if (!q) return res.status(404).json({ message: "Not found" });
       if (["Converted", "Rejected"].includes(q.status)) return res.status(400).json({ message: "Cannot reject a converted or already rejected request" });
-      const performedBy = req.user?.username || "system";
+      const performedBy = req.body?.rejectedBy || req.user?.username || "system";
       const result = await storage.updateCustomerQuery(qid, {
         status: "Rejected",
         rejectedBy: performedBy,

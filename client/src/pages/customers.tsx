@@ -698,6 +698,7 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
   const [wfApproveNotes, setWfApproveNotes] = useState("");
   const [wfRejectOpen, setWfRejectOpen] = useState(false);
   const [wfRejectReason, setWfRejectReason] = useState("");
+  const [wfRejectedByUser, setWfRejectedByUser] = useState("");
   const [wfAssignOpen, setWfAssignOpen] = useState(false);
   const [wfAssignEmployeeId, setWfAssignEmployeeId] = useState("");
   const [wfAssignNotes, setWfAssignNotes] = useState("");
@@ -732,8 +733,8 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
     onError: (e: any) => toast({ title: "Error", description: e.message || "Failed", variant: "destructive" }),
   });
   const wfRejectMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/customer-queries/${wfQuery?.id}/reject`, { reason: wfRejectReason }),
-    onSuccess: () => { toast({ title: "Rejected" }); wfInvalidate(); setWfRejectOpen(false); setWfRejectReason(""); },
+    mutationFn: () => apiRequest("POST", `/api/customer-queries/${wfQuery?.id}/reject`, { reason: wfRejectReason, rejectedBy: wfRejectedByUser || undefined }),
+    onSuccess: () => { toast({ title: "Rejected" }); wfInvalidate(); setWfRejectOpen(false); setWfRejectReason(""); setWfRejectedByUser(""); },
     onError: (e: any) => toast({ title: "Error", description: e.message || "Failed", variant: "destructive" }),
   });
   const wfAssignMutation = useMutation({
@@ -1412,12 +1413,32 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
 
       {/* Workflow: Reject */}
       <Dialog open={wfRejectOpen} onOpenChange={setWfRejectOpen}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-md">
           <DialogHeader><DialogTitle className="flex items-center gap-2"><XCircle className="h-4 w-4 text-red-500" /> Reject Request</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">Reject <strong>{wfQuery?.name}</strong>'s request. Please provide a reason.</p>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Reason for Rejection <span className="text-red-500">*</span></label>
-            <textarea value={wfRejectReason} onChange={e => setWfRejectReason(e.target.value)} rows={3} placeholder="Explain why this request is being rejected..." className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" data-testid="textarea-wf-reject-reason" />
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">Reject <strong>{wfQuery?.name}</strong>'s request. Please select the authorised person and provide a reason.</p>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Rejected By <span className="text-red-500">*</span></label>
+              <Select key={wfRejectOpen ? "open" : "closed"} value={wfRejectedByUser} onValueChange={setWfRejectedByUser}>
+                <SelectTrigger data-testid="select-wf-rejected-by-user" className="w-full">
+                  <SelectValue placeholder="Select authorised person..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {(systemUsers ?? []).filter((u: any) => u.isActive !== false && u.accountStatus !== "inactive").map((u: any) => (
+                    <SelectItem key={u.id} value={u.username}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{u.fullName}</span>
+                        <span className="text-xs text-muted-foreground capitalize">{u.role}{u.department ? ` · ${u.department}` : ""}{u.branch ? ` · ${u.branch}` : ""}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Reason for Rejection <span className="text-red-500">*</span></label>
+              <textarea value={wfRejectReason} onChange={e => setWfRejectReason(e.target.value)} rows={3} placeholder="Explain why this request is being rejected..." className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none" data-testid="textarea-wf-reject-reason" />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setWfRejectOpen(false)}>Cancel</Button>
