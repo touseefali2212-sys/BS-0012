@@ -518,96 +518,118 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
               </Select>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className={fieldClass}>
-              {["CIR", "Corporate"].includes(form.customerType) ? (
-                <>
-                  <label className={labelClass}>Bandwidth Required</label>
-                  <Input
-                    placeholder="e.g. 100 Mbps, 1 Gbps"
-                    value={form.bandwidthRequired}
-                    onChange={e => update("bandwidthRequired", e.target.value)}
-                    data-testid="input-cr-bandwidth-required"
-                  />
-                </>
-              ) : form.customerType === "Reseller" ? (
-                <>
-                  <label className={labelClass}>Panel Users Capacity</label>
-                  <Input
-                    type="number"
-                    placeholder="e.g. 500"
-                    value={form.panelUsersCapacity}
-                    onChange={e => update("panelUsersCapacity", e.target.value)}
-                    data-testid="input-cr-panel-users-capacity"
-                  />
-                </>
-              ) : (
-                <>
-                  <label className={labelClass}>Package</label>
-                  <Select value={form.packageId ? String(form.packageId) : ""} onValueChange={v => update("packageId", Number(v))}>
-                    <SelectTrigger data-testid="select-cr-package"><SelectValue placeholder="Select package" /></SelectTrigger>
-                    <SelectContent>
-                      {pkgs?.filter(p => p.isActive).map(p => (
-                        <SelectItem key={p.id} value={String(p.id)}>
-                          {p.name}{p.speed ? ` – ${p.speed}` : ""}{p.price ? ` (${p.price} PKR)` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </>
-              )}
-            </div>
-            <div className={fieldClass}>
-              <label className={labelClass}>POP ID</label>
-              <Input placeholder="Enter POP ID" value={form.popId} onChange={e => update("popId", e.target.value)} data-testid="input-cr-pop-id" />
-            </div>
-          </div>
-
-          {/* Vendor selectors — shown only for CIR or Reseller */}
-          {(form.customerType === "CIR" || form.customerType === "Reseller") && (
+          {/* CIR: Bandwidth Required + Bandwidth Vendor */}
+          {form.customerType === "CIR" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {form.customerType === "CIR" && (
-                <div className={fieldClass}>
-                  <label className={labelClass}>Bandwidth Vendor</label>
-                  <Select
-                    key={`bw-vendor-${form.customerType}`}
-                    value={form.bandwidthVendorId ? String(form.bandwidthVendorId) : ""}
-                    onValueChange={v => update("bandwidthVendorId", Number(v))}
-                  >
-                    <SelectTrigger data-testid="select-cr-bandwidth-vendor">
-                      <SelectValue placeholder="Select bandwidth vendor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(vendorsData || []).map((v: any) => (
-                        <SelectItem key={v.id} value={String(v.id)}>
-                          {v.name}{v.serviceType ? ` – ${v.serviceType}` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              {form.customerType === "Reseller" && (
-                <div className={fieldClass}>
-                  <label className={labelClass}>Panel Vendor</label>
-                  <Select
-                    key={`panel-vendor-${form.customerType}`}
-                    value={form.panelVendorId ? String(form.panelVendorId) : ""}
-                    onValueChange={v => update("panelVendorId", Number(v))}
-                  >
-                    <SelectTrigger data-testid="select-cr-panel-vendor">
-                      <SelectValue placeholder="Select panel vendor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(vendorsData || []).map((v: any) => (
-                        <SelectItem key={v.id} value={String(v.id)}>
-                          {v.name}{v.serviceType ? ` – ${v.serviceType}` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              <div className={fieldClass}>
+                <label className={labelClass}>Bandwidth Required</label>
+                <Input
+                  placeholder="e.g. 100 Mbps, 1 Gbps"
+                  value={form.bandwidthRequired}
+                  onChange={e => update("bandwidthRequired", e.target.value)}
+                  data-testid="input-cr-bandwidth-required"
+                />
+              </div>
+              <div className={fieldClass}>
+                <label className={labelClass}>Bandwidth Vendor</label>
+                <Select
+                  value={form.bandwidthVendorId ? String(form.bandwidthVendorId) : ""}
+                  onValueChange={v => update("bandwidthVendorId", Number(v))}
+                >
+                  <SelectTrigger data-testid="select-cr-bandwidth-vendor">
+                    <SelectValue placeholder="Select bandwidth vendor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(vendorsData || []).map((v: any) => (
+                      <SelectItem key={v.id} value={String(v.id)}>
+                        {v.name}{v.serviceType ? ` – ${v.serviceType}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          {/* Reseller: Panel Users Capacity + Panel Vendor */}
+          {form.customerType === "Reseller" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className={fieldClass}>
+                <label className={labelClass}>Panel Users Capacity</label>
+                <Input
+                  type="number"
+                  placeholder="e.g. 500"
+                  value={form.panelUsersCapacity}
+                  onChange={e => update("panelUsersCapacity", e.target.value)}
+                  data-testid="input-cr-panel-users-capacity"
+                />
+              </div>
+              <div className={fieldClass}>
+                <label className={labelClass}>Panel Vendor</label>
+                <Select
+                  value={form.panelVendorId ? String(form.panelVendorId) : ""}
+                  onValueChange={v => update("panelVendorId", Number(v))}
+                >
+                  <SelectTrigger data-testid="select-cr-panel-vendor">
+                    <SelectValue placeholder="Select panel vendor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(vendorsData || []).map((v: any) => (
+                      <SelectItem key={v.id} value={String(v.id)}>
+                        {v.name}{v.serviceType ? ` – ${v.serviceType}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          {/* Corporate: Bandwidth Required only */}
+          {form.customerType === "Corporate" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className={fieldClass}>
+                <label className={labelClass}>Bandwidth Required</label>
+                <Input
+                  placeholder="e.g. 100 Mbps, 1 Gbps"
+                  value={form.bandwidthRequired}
+                  onChange={e => update("bandwidthRequired", e.target.value)}
+                  data-testid="input-cr-bandwidth-required"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Customer/default: Package + POP ID */}
+          {!["CIR", "Corporate", "Reseller"].includes(form.customerType) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className={fieldClass}>
+                <label className={labelClass}>Package</label>
+                <Select value={form.packageId ? String(form.packageId) : ""} onValueChange={v => update("packageId", Number(v))}>
+                  <SelectTrigger data-testid="select-cr-package"><SelectValue placeholder="Select package" /></SelectTrigger>
+                  <SelectContent>
+                    {pkgs?.filter(p => p.isActive).map(p => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        {p.name}{p.speed ? ` – ${p.speed}` : ""}{p.price ? ` (${p.price} PKR)` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className={fieldClass}>
+                <label className={labelClass}>POP ID</label>
+                <Input placeholder="Enter POP ID" value={form.popId} onChange={e => update("popId", e.target.value)} data-testid="input-cr-pop-id" />
+              </div>
+            </div>
+          )}
+
+          {/* POP ID — always shown for CIR, Corporate, Reseller */}
+          {["CIR", "Corporate", "Reseller"].includes(form.customerType) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className={fieldClass}>
+                <label className={labelClass}>POP ID</label>
+                <Input placeholder="Enter POP ID" value={form.popId} onChange={e => update("popId", e.target.value)} data-testid="input-cr-pop-id-alt" />
+              </div>
             </div>
           )}
 
