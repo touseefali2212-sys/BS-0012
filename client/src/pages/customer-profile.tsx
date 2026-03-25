@@ -152,6 +152,16 @@ export default function CustomerProfilePage() {
     enabled: !!id,
   });
 
+  const { data: referrals, isLoading: referralsLoading } = useQuery<any[]>({
+    queryKey: ["/api/customer-queries/by-referrer", "customer", id],
+    queryFn: async () => {
+      const res = await fetch(`/api/customer-queries/by-referrer?type=customer&id=${id}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch referrals");
+      return res.json();
+    },
+    enabled: !!id,
+  });
+
   const statusUpdateMutation = useMutation({
     mutationFn: async (status: string) => {
       const res = await apiRequest("PATCH", `/api/customers/${id}`, { status });
@@ -360,6 +370,7 @@ export default function CustomerProfilePage() {
     { key: "changelog", label: "Customer Change Log" },
     { key: "enablelog", label: "Customer Enable/Disable Log" },
     { key: "sales", label: "Product & Service Sales Invoices" },
+    { key: "referrals", label: "Referrals" },
   ];
 
   if (customerLoading) {
@@ -1223,6 +1234,56 @@ export default function CustomerProfilePage() {
               <div className="space-y-5" data-testid="tab-content-sales">
                 <SectionHeader title="Product & Service Sales Invoices" />
                 <EmptyState icon={FileText} message="No product & service sales invoices" />
+              </div>
+            )}
+
+            {activeTab === "referrals" && (
+              <div className="space-y-5" data-testid="tab-content-referrals">
+                <SectionHeader title="Referred Client Requests" />
+                {referralsLoading ? (
+                  <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+                ) : !referrals?.length ? (
+                  <EmptyState icon={User} message="No referred client requests found" />
+                ) : (
+                  <div className="bg-card border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-[#1a3a5c] border-[#1a3a5c]">
+                          <TableHead className="text-white text-xs font-semibold">Request ID</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Name</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Phone</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Area</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Service Type</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Status</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Request Date</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {referrals.map((r: any, idx: number) => (
+                          <TableRow key={r.id} data-testid={`row-referral-${r.id}`} className={idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"}>
+                            <TableCell className="text-xs font-mono">
+                              <a href={`/client-requests/${r.id}`} className="text-blue-600 hover:underline" data-testid={`link-referral-${r.id}`}>{r.queryId || `#${r.id}`}</a>
+                            </TableCell>
+                            <TableCell className="text-xs font-medium">{r.name}</TableCell>
+                            <TableCell className="text-xs">{r.phone || "—"}</TableCell>
+                            <TableCell className="text-xs">{r.area || "—"}</TableCell>
+                            <TableCell className="text-xs capitalize">{r.serviceType || "—"}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className={`text-[10px] capitalize ${
+                                r.status === "approved" ? "text-blue-700 bg-blue-50" :
+                                r.status === "completed" ? "text-green-700 bg-green-50" :
+                                r.status === "converted" ? "text-purple-700 bg-purple-50" :
+                                r.status === "rejected" ? "text-red-600 bg-red-50" :
+                                "text-amber-600 bg-amber-50"
+                              }`}>{r.status || "pending"}</Badge>
+                            </TableCell>
+                            <TableCell className="text-xs">{r.requestDate || "—"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </div>
             )}
           </div>

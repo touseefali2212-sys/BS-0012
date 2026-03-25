@@ -185,14 +185,22 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
 
   const [form, setForm] = useState({
     fullName: "", fatherName: "", gender: "", remarks: "",
-    referredBy: "", referredByDetail: "", phone: "", branch: "", area: "", city: "",
+    referredBy: "", referredByDetail: "", referredById: 0, referredByType: "",
+    phone: "", branch: "", area: "", city: "",
     customerType: "", serviceType: "", packageId: 0, staticIp: false, popId: "", requestDate: new Date().toISOString().split("T")[0],
   });
 
   const update = (field: string, value: string | number | boolean) => setForm(prev => ({ ...prev, [field]: value }));
 
   const onReferredByChange = (v: string) => {
-    setForm(prev => ({ ...prev, referredBy: v, referredByDetail: "" }));
+    const typeMap: Record<string, string> = { Customer: "customer", CIR: "cir", Corporate: "corporate", Other: "other" };
+    setForm(prev => ({ ...prev, referredBy: v, referredByDetail: "", referredById: 0, referredByType: typeMap[v] || "" }));
+  };
+
+  const onReferredByDetailSelect = (idName: string, type: string) => {
+    const [idStr, ...nameParts] = idName.split("|");
+    const name = nameParts.join("|");
+    setForm(prev => ({ ...prev, referredByDetail: name, referredById: Number(idStr), referredByType: type }));
   };
 
   const areaOptions = areasData || [];
@@ -218,6 +226,8 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
         remarks: form.remarks || null,
         referredBy: form.referredBy || null,
         referredByDetail: form.referredByDetail || null,
+        referredById: form.referredById || null,
+        referredByType: form.referredByType || null,
         phone: form.phone,
         branch: form.branch || null,
         area: form.area,
@@ -330,11 +340,14 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
               {form.referredBy === "Customer" && (
                 <>
                   <label className={labelClass}>Select Customer</label>
-                  <Select value={form.referredByDetail} onValueChange={v => update("referredByDetail", v)}>
+                  <Select
+                    value={form.referredById ? `${form.referredById}|${form.referredByDetail}` : ""}
+                    onValueChange={v => onReferredByDetailSelect(v, "customer")}
+                  >
                     <SelectTrigger data-testid="select-cr-referred-customer"><SelectValue placeholder="Search and select customer..." /></SelectTrigger>
                     <SelectContent>
                       {(allCustomers || []).map((c: any) => (
-                        <SelectItem key={c.id} value={c.fullName}>
+                        <SelectItem key={c.id} value={`${c.id}|${c.fullName}`}>
                           <span className="font-medium">{c.fullName}</span>
                           {c.customerId && <span className="text-muted-foreground text-xs ml-2">({c.customerId})</span>}
                           {c.phone && <span className="text-muted-foreground text-xs ml-2">· {c.phone}</span>}
@@ -347,11 +360,14 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
               {form.referredBy === "CIR" && (
                 <>
                   <label className={labelClass}>Select CIR Client</label>
-                  <Select value={form.referredByDetail} onValueChange={v => update("referredByDetail", v)}>
+                  <Select
+                    value={form.referredById ? `${form.referredById}|${form.referredByDetail}` : ""}
+                    onValueChange={v => onReferredByDetailSelect(v, "cir")}
+                  >
                     <SelectTrigger data-testid="select-cr-referred-cir"><SelectValue placeholder="Search and select CIR client..." /></SelectTrigger>
                     <SelectContent>
                       {(cirCustomers || []).map((c: any) => (
-                        <SelectItem key={c.id} value={c.companyName}>
+                        <SelectItem key={c.id} value={`${c.id}|${c.companyName}`}>
                           <span className="font-medium">{c.companyName}</span>
                           {c.contactPerson && <span className="text-muted-foreground text-xs ml-2">· {c.contactPerson}</span>}
                           {c.phone && <span className="text-muted-foreground text-xs ml-2">· {c.phone}</span>}
@@ -364,11 +380,14 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
               {form.referredBy === "Corporate" && (
                 <>
                   <label className={labelClass}>Select Corporate Client</label>
-                  <Select value={form.referredByDetail} onValueChange={v => update("referredByDetail", v)}>
+                  <Select
+                    value={form.referredById ? `${form.referredById}|${form.referredByDetail}` : ""}
+                    onValueChange={v => onReferredByDetailSelect(v, "corporate")}
+                  >
                     <SelectTrigger data-testid="select-cr-referred-corporate"><SelectValue placeholder="Search and select corporate client..." /></SelectTrigger>
                     <SelectContent>
                       {(corporateCustomers || []).map((c: any) => (
-                        <SelectItem key={c.id} value={c.companyName}>
+                        <SelectItem key={c.id} value={`${c.id}|${c.companyName}`}>
                           <span className="font-medium">{c.companyName}</span>
                           {c.contactPerson && <span className="text-muted-foreground text-xs ml-2">· {c.contactPerson}</span>}
                           {c.phone && <span className="text-muted-foreground text-xs ml-2">· {c.phone}</span>}

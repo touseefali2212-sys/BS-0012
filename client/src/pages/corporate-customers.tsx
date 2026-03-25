@@ -46,8 +46,14 @@ export default function CorporateCustomersPage() {
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
   const [viewingCorporate, setViewingCorporate] = useState<CorporateCustomer | null>(null);
   const [editingConnection, setEditingConnection] = useState<CorporateConnection | null>(null);
+  const [referralsDialogOpen, setReferralsDialogOpen] = useState(false);
+  const [viewingReferralsCorp, setViewingReferralsCorp] = useState<CorporateCustomer | null>(null);
 
   const { data: corporateCustomers, isLoading } = useQuery<CorporateCustomer[]>({ queryKey: ["/api/corporate-customers"] });
+  const { data: allClientRequests } = useQuery<any[]>({ queryKey: ["/api/customer-queries"] });
+
+  const corpReferralCount = (corpId: number) => (allClientRequests || []).filter((q: any) => q.referredByType === "corporate" && q.referredById === corpId).length;
+  const corpReferrals = (corpId: number) => (allClientRequests || []).filter((q: any) => q.referredByType === "corporate" && q.referredById === corpId);
 
   const { data: connections } = useQuery<CorporateConnection[]>({
     queryKey: ["/api/corporate-connections", viewingCorporate?.id],
@@ -275,6 +281,16 @@ export default function CorporateCustomersPage() {
                             <div>
                               <span className="font-semibold" data-testid={`text-corp-name-${c.id}`}>{c.companyName}</span>
                               {c.ntn && <p className="text-[10px] text-muted-foreground">NTN: {c.ntn}</p>}
+                              {corpReferralCount(c.id) > 0 && (
+                                <button
+                                  onClick={() => { setViewingReferralsCorp(c); setReferralsDialogOpen(true); }}
+                                  className="mt-0.5 flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-medium"
+                                  data-testid={`button-corp-referrals-${c.id}`}
+                                >
+                                  <Users className="h-3 w-3" />
+                                  {corpReferralCount(c.id)} referral{corpReferralCount(c.id) !== 1 ? "s" : ""}
+                                </button>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell><span className="text-sm">{c.industryType || "—"}</span></TableCell>
@@ -528,6 +544,60 @@ export default function CorporateCustomersPage() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={referralsDialogOpen} onOpenChange={setReferralsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-600" />
+              Referrals — {viewingReferralsCorp?.companyName}
+            </DialogTitle>
+          </DialogHeader>
+          {viewingReferralsCorp && (() => {
+            const refs = corpReferrals(viewingReferralsCorp.id);
+            return refs.length === 0 ? (
+              <div className="py-10 text-center text-muted-foreground text-sm">No referred client requests found</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-800">
+                    <TableHead className="text-white text-xs">Request ID</TableHead>
+                    <TableHead className="text-white text-xs">Name</TableHead>
+                    <TableHead className="text-white text-xs">Phone</TableHead>
+                    <TableHead className="text-white text-xs">Area</TableHead>
+                    <TableHead className="text-white text-xs">Service Type</TableHead>
+                    <TableHead className="text-white text-xs">Status</TableHead>
+                    <TableHead className="text-white text-xs">Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {refs.map((r: any, idx: number) => (
+                    <TableRow key={r.id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50"}>
+                      <TableCell className="text-xs font-mono">
+                        <a href={`/client-requests/${r.id}`} className="text-blue-600 hover:underline">{r.queryId || `#${r.id}`}</a>
+                      </TableCell>
+                      <TableCell className="text-xs font-medium">{r.name}</TableCell>
+                      <TableCell className="text-xs">{r.phone || "—"}</TableCell>
+                      <TableCell className="text-xs">{r.area || "—"}</TableCell>
+                      <TableCell className="text-xs capitalize">{r.serviceType || "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary" className={`text-[10px] capitalize ${
+                          r.status === "approved" ? "text-blue-700 bg-blue-50" :
+                          r.status === "completed" ? "text-green-700 bg-green-50" :
+                          r.status === "converted" ? "text-purple-700 bg-purple-50" :
+                          r.status === "rejected" ? "text-red-600 bg-red-50" :
+                          "text-amber-600 bg-amber-50"
+                        }`}>{r.status || "pending"}</Badge>
+                      </TableCell>
+                      <TableCell className="text-xs">{r.requestDate || "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>

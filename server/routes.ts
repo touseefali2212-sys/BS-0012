@@ -2684,6 +2684,18 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/customer-queries/by-referrer", requireAuth, async (req, res) => {
+    try {
+      const { type, id } = req.query;
+      if (!type || !id) return res.status(400).json({ message: "type and id are required" });
+      const all = await storage.getCustomerQueries();
+      const filtered = all.filter((q: any) => q.referredByType === type && q.referredById === Number(id));
+      res.json(filtered);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch referrals" });
+    }
+  });
+
   app.get("/api/customer-queries/:id", requireAuth, async (req, res) => {
     try {
       const q = await storage.getCustomerQuery(Number(req.params.id));

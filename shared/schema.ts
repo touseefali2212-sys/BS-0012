@@ -932,6 +932,8 @@ export const customerQueries = pgTable("customer_queries", {
   phyConnectivity: text("phy_connectivity").default("Pending"),
   referredBy: text("referred_by"),
   referredByDetail: text("referred_by_detail"),
+  referredById: integer("referred_by_id"),
+  referredByType: text("referred_by_type"),
   branch: text("branch"),
   requestDate: text("request_date"),
   staticIp: boolean("static_ip").default(false),
