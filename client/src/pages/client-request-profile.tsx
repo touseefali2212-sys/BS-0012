@@ -226,7 +226,16 @@ export default function ClientRequestProfilePage() {
 
         {/* Section 2: Contact Info */}
         <SectionCard icon={<Phone className="h-4 w-4" />} title="Contact Info">
-          <InfoRow label="Referred By" value={(request as any).referredBy} />
+          <InfoRow
+            label="Referred By"
+            value={
+              (request as any).referredBy
+                ? (request as any).referredByDetail
+                  ? `${(request as any).referredBy}: ${(request as any).referredByDetail}`
+                  : (request as any).referredBy
+                : null
+            }
+          />
           <InfoRow label="Mobile No" value={request.phone} />
           <InfoRow label="Branch" value={(request as any).branch} />
           <InfoRow label="Area" value={request.area} />

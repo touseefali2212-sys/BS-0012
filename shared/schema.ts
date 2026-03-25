@@ -931,6 +931,7 @@ export const customerQueries = pgTable("customer_queries", {
   otcCharge: decimal("otc_charge", { precision: 10, scale: 2 }),
   phyConnectivity: text("phy_connectivity").default("Pending"),
   referredBy: text("referred_by"),
+  referredByDetail: text("referred_by_detail"),
   branch: text("branch"),
   requestDate: text("request_date"),
   staticIp: boolean("static_ip").default(false),

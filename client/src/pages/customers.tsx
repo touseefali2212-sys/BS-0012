@@ -45,6 +45,7 @@ import {
   Clock,
   AlertTriangle,
   ToggleLeft,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -178,14 +179,21 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
   const { data: pkgs } = useQuery<Package[]>({ queryKey: ["/api/packages"] });
   const { data: areasData } = useQuery<any[]>({ queryKey: ["/api/areas"] });
   const { data: branchesData } = useQuery<any[]>({ queryKey: ["/api/branches"] });
+  const { data: allCustomers } = useQuery<any[]>({ queryKey: ["/api/customers"] });
+  const { data: cirCustomers } = useQuery<any[]>({ queryKey: ["/api/cir-customers"] });
+  const { data: corporateCustomers } = useQuery<any[]>({ queryKey: ["/api/corporate-customers"] });
 
   const [form, setForm] = useState({
     fullName: "", fatherName: "", gender: "", remarks: "",
-    referredBy: "", phone: "", branch: "", area: "", city: "",
+    referredBy: "", referredByDetail: "", phone: "", branch: "", area: "", city: "",
     customerType: "", serviceType: "", packageId: 0, staticIp: false, popId: "", requestDate: new Date().toISOString().split("T")[0],
   });
 
   const update = (field: string, value: string | number | boolean) => setForm(prev => ({ ...prev, [field]: value }));
+
+  const onReferredByChange = (v: string) => {
+    setForm(prev => ({ ...prev, referredBy: v, referredByDetail: "" }));
+  };
 
   const areaOptions = areasData || [];
   const branchOptions = branchesData || [];
@@ -209,6 +217,7 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
         gender: form.gender || null,
         remarks: form.remarks || null,
         referredBy: form.referredBy || null,
+        referredByDetail: form.referredByDetail || null,
         phone: form.phone,
         branch: form.branch || null,
         area: form.area,
@@ -299,12 +308,12 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className={fieldClass}>
               <label className={labelClass}>Referred By</label>
-              <Select value={form.referredBy} onValueChange={v => update("referredBy", v)}>
+              <Select value={form.referredBy} onValueChange={onReferredByChange}>
                 <SelectTrigger data-testid="select-cr-referred-by"><SelectValue placeholder="Select referral source" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Any Customer">Any Customer</SelectItem>
+                  <SelectItem value="Customer">Customer</SelectItem>
                   <SelectItem value="CIR">CIR</SelectItem>
-                  <SelectItem value="Corporate Referred">Corporate Referred</SelectItem>
+                  <SelectItem value="Corporate">Corporate</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
@@ -314,6 +323,82 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
               <Input placeholder="03XX-XXXXXXX" value={form.phone} onChange={e => update("phone", e.target.value)} data-testid="input-cr-phone" />
             </div>
           </div>
+
+          {/* Conditional second select based on Referred By choice */}
+          {form.referredBy && form.referredBy !== "" && (
+            <div className={fieldClass}>
+              {form.referredBy === "Customer" && (
+                <>
+                  <label className={labelClass}>Select Customer</label>
+                  <Select value={form.referredByDetail} onValueChange={v => update("referredByDetail", v)}>
+                    <SelectTrigger data-testid="select-cr-referred-customer"><SelectValue placeholder="Search and select customer..." /></SelectTrigger>
+                    <SelectContent>
+                      {(allCustomers || []).map((c: any) => (
+                        <SelectItem key={c.id} value={c.fullName}>
+                          <span className="font-medium">{c.fullName}</span>
+                          {c.customerId && <span className="text-muted-foreground text-xs ml-2">({c.customerId})</span>}
+                          {c.phone && <span className="text-muted-foreground text-xs ml-2">· {c.phone}</span>}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
+              {form.referredBy === "CIR" && (
+                <>
+                  <label className={labelClass}>Select CIR Client</label>
+                  <Select value={form.referredByDetail} onValueChange={v => update("referredByDetail", v)}>
+                    <SelectTrigger data-testid="select-cr-referred-cir"><SelectValue placeholder="Search and select CIR client..." /></SelectTrigger>
+                    <SelectContent>
+                      {(cirCustomers || []).map((c: any) => (
+                        <SelectItem key={c.id} value={c.companyName}>
+                          <span className="font-medium">{c.companyName}</span>
+                          {c.contactPerson && <span className="text-muted-foreground text-xs ml-2">· {c.contactPerson}</span>}
+                          {c.phone && <span className="text-muted-foreground text-xs ml-2">· {c.phone}</span>}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
+              {form.referredBy === "Corporate" && (
+                <>
+                  <label className={labelClass}>Select Corporate Client</label>
+                  <Select value={form.referredByDetail} onValueChange={v => update("referredByDetail", v)}>
+                    <SelectTrigger data-testid="select-cr-referred-corporate"><SelectValue placeholder="Search and select corporate client..." /></SelectTrigger>
+                    <SelectContent>
+                      {(corporateCustomers || []).map((c: any) => (
+                        <SelectItem key={c.id} value={c.companyName}>
+                          <span className="font-medium">{c.companyName}</span>
+                          {c.contactPerson && <span className="text-muted-foreground text-xs ml-2">· {c.contactPerson}</span>}
+                          {c.phone && <span className="text-muted-foreground text-xs ml-2">· {c.phone}</span>}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </>
+              )}
+              {form.referredBy === "Other" && (
+                <>
+                  <label className={labelClass}>Referral Detail</label>
+                  <Input
+                    placeholder="Enter referral name or source..."
+                    value={form.referredByDetail}
+                    onChange={e => update("referredByDetail", e.target.value)}
+                    data-testid="input-cr-referred-other"
+                  />
+                </>
+              )}
+              {form.referredByDetail && (
+                <div className="mt-1.5 flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span>
+                    Referred by <span className="font-semibold">{form.referredBy}</span>: <span className="font-semibold">{form.referredByDetail}</span>
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className={fieldClass}>
               <label className={labelClass}>Branch</label>
