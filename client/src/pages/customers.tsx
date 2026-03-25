@@ -46,6 +46,7 @@ import {
   AlertTriangle,
   ToggleLeft,
   CheckCircle2,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -317,7 +318,19 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
         <div className="p-4 bg-card space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className={fieldClass}>
-              <label className={labelClass}>Referred By</label>
+              <div className="flex items-center justify-between">
+                <label className={labelClass}>Referred By</label>
+                {form.referredBy && (
+                  <button
+                    type="button"
+                    onClick={() => onReferredByChange("")}
+                    data-testid="button-clear-referred-by"
+                    className="text-xs text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors"
+                  >
+                    <X className="h-3 w-3" /> Clear
+                  </button>
+                )}
+              </div>
               <Select value={form.referredBy} onValueChange={onReferredByChange}>
                 <SelectTrigger data-testid="select-cr-referred-by"><SelectValue placeholder="Select referral source" /></SelectTrigger>
                 <SelectContent>
