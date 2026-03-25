@@ -411,12 +411,12 @@ export default function ClientRequestProfilePage() {
           return (
             <button
               key={status}
-              onClick={() => !isCurrent && onClick()}
+              onClick={() => onClick()}
               data-testid={`btn-quick-status-${status.toLowerCase().replace(/\s+/g, "-")}`}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-md border transition-all ${
+              className={`px-3 py-1.5 text-xs font-semibold rounded-md border transition-all cursor-pointer ${
                 isCurrent
-                  ? `${active} cursor-default ring-2 ring-offset-1 ring-current`
-                  : `bg-transparent ${idle} cursor-pointer`
+                  ? `${active} ring-2 ring-offset-1 ring-current`
+                  : `bg-transparent ${idle}`
               }`}
             >
               {status}
