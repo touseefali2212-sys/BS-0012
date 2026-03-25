@@ -503,7 +503,7 @@ function CustomerQueryWizard({ setTab }: { setTab: (v: string) => void }) {
               <Select value={form.packageId ? String(form.packageId) : ""} onValueChange={v => update("packageId", Number(v))}>
                 <SelectTrigger data-testid="select-cr-package"><SelectValue placeholder="Select package" /></SelectTrigger>
                 <SelectContent>
-                  {pkgs?.filter(p => p.status === "active").map(p => (
+                  {pkgs?.filter(p => p.isActive).map(p => (
                     <SelectItem key={p.id} value={String(p.id)}>
                       {p.name}{p.speed ? ` – ${p.speed}` : ""}{p.price ? ` (${p.price} PKR)` : ""}
                     </SelectItem>
