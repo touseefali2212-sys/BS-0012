@@ -359,12 +359,6 @@ export default function ClientRequestProfilePage() {
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide shrink-0 mr-1">Set Status:</span>
         {([
           {
-            status: "Pending",
-            active: "bg-orange-500 text-white border-orange-500",
-            idle: "border-orange-300 text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/30",
-            onClick: () => setSendBackOpen(true),
-          },
-          {
             status: "Approved",
             active: "bg-green-600 text-white border-green-600",
             idle: "border-green-400 text-green-700 hover:bg-green-50 dark:hover:bg-green-950/30",

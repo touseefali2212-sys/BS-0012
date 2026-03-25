@@ -1137,7 +1137,6 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuLabel className="text-xs text-muted-foreground font-semibold px-2 py-1">Set Status</DropdownMenuLabel>
                                 {([
-                                  { status: "Pending", color: "text-orange-500", icon: <Clock className="h-3.5 w-3.5 mr-2" />, dialog: "pending" as const },
                                   { status: "Approved", color: "text-green-600", icon: <CheckCircle2 className="h-3.5 w-3.5 mr-2" />, dialog: "approved" as const },
                                   { status: "Assigned", color: "text-blue-600", icon: <UserCheck className="h-3.5 w-3.5 mr-2" />, dialog: "assigned" as const },
                                   { status: "Under Review", color: "text-purple-600", icon: <ClipboardList className="h-3.5 w-3.5 mr-2" />, dialog: "underReview" as const },
