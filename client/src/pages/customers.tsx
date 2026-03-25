@@ -686,11 +686,26 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
   const [entriesCount, setEntriesCount] = useState(10);
   const [editOpen, setEditOpen] = useState(false);
   const [editingQuery, setEditingQuery] = useState<CustomerQuery | null>(null);
-  const [editForm, setEditForm] = useState({ bandwidthRequired: "", panelUsersCapacity: "", bandwidthVendorId: 0, panelVendorId: 0, packageId: 0 });
+  const [editForm, setEditForm] = useState({
+    name: "", phone: "", email: "", address: "", area: "", city: "",
+    serviceType: "", connectionType: "", remarks: "", popId: "", staticIp: false,
+    bandwidthRequired: "", panelUsersCapacity: "", bandwidthVendorId: 0, panelVendorId: 0, packageId: 0,
+  });
 
   const openEditDialog = (q: CustomerQuery) => {
     setEditingQuery(q);
     setEditForm({
+      name: q.name || "",
+      phone: q.phone || "",
+      email: q.email || "",
+      address: q.address || "",
+      area: q.area || "",
+      city: q.city || "",
+      serviceType: q.serviceType || "",
+      connectionType: q.connectionType || "",
+      remarks: q.remarks || "",
+      popId: q.popId || "",
+      staticIp: q.staticIp || false,
       bandwidthRequired: q.bandwidthRequired || "",
       panelUsersCapacity: q.panelUsersCapacity || "",
       bandwidthVendorId: q.bandwidthVendorId || 0,
@@ -704,7 +719,19 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
     mutationFn: async () => {
       if (!editingQuery) return;
       const ct = editingQuery.customerType;
-      const payload: Record<string, any> = {};
+      const payload: Record<string, any> = {
+        name: editForm.name || null,
+        phone: editForm.phone || null,
+        email: editForm.email || null,
+        address: editForm.address || null,
+        area: editForm.area || null,
+        city: editForm.city || null,
+        serviceType: editForm.serviceType || null,
+        connectionType: editForm.connectionType || null,
+        remarks: editForm.remarks || null,
+        popId: editForm.popId || null,
+        staticIp: editForm.staticIp,
+      };
       if (ct === "CIR" || ct === "Corporate") payload.bandwidthRequired = editForm.bandwidthRequired || null;
       if (ct === "CIR") payload.bandwidthVendorId = editForm.bandwidthVendorId || null;
       if (ct === "Reseller") payload.panelUsersCapacity = editForm.panelUsersCapacity || null;
@@ -713,11 +740,11 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
       await apiRequest("PATCH", `/api/customer-queries/${editingQuery.id}`, payload);
     },
     onSuccess: () => {
-      toast({ title: "Updated", description: "Record updated successfully." });
+      toast({ title: "Updated", description: "Client request updated successfully." });
       queryClient.invalidateQueries({ queryKey: ["/api/customer-queries"] });
       setEditOpen(false);
     },
-    onError: () => toast({ title: "Error", description: "Failed to update record.", variant: "destructive" }),
+    onError: () => toast({ title: "Error", description: "Failed to update client request.", variant: "destructive" }),
   });
 
   const deleteMutation = useMutation({
@@ -1017,9 +1044,14 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild data-testid={`action-view-profile-${q.id}`}>
+                              <Link href={`/client-requests/${q.id}`} className="flex items-center cursor-pointer">
+                                <Eye className="h-4 w-4 mr-2" /> View Client Request Profile
+                              </Link>
+                            </DropdownMenuItem>
                             {canCreate("customers") && (
-                              <DropdownMenuItem onClick={() => openEditDialog(q)} data-testid={`action-edit-pkg-${q.id}`}>
-                                <Edit className="h-4 w-4 mr-2" /> Edit Package / BW / Vendor
+                              <DropdownMenuItem onClick={() => openEditDialog(q)} data-testid={`action-edit-request-${q.id}`}>
+                                <Edit className="h-4 w-4 mr-2" /> Edit Client Request
                               </DropdownMenuItem>
                             )}
                             {canCreate("customers") && (
@@ -1054,85 +1086,169 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
         </CardContent>
       </Card>
 
-      {/* Edit Package / BW / Vendor Dialog */}
+      {/* Edit Client Request Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Package / Bandwidth / Vendor</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-4 w-4" /> Edit Client Request
+            </DialogTitle>
           </DialogHeader>
           {editingQuery && (
-            <div className="space-y-4 py-2">
-              <div className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">{editingQuery.name}</span> — {editingQuery.customerType}
+            <div className="space-y-5 py-2">
+              {/* Section: Personal / Contact */}
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Contact Information</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Full Name <span className="text-red-500">*</span></label>
+                    <Input value={editForm.name} onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))} placeholder="Full name" data-testid="input-edit-name" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Phone <span className="text-red-500">*</span></label>
+                    <Input value={editForm.phone} onChange={e => setEditForm(prev => ({ ...prev, phone: e.target.value }))} placeholder="Phone number" data-testid="input-edit-phone" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Email</label>
+                    <Input value={editForm.email} onChange={e => setEditForm(prev => ({ ...prev, email: e.target.value }))} placeholder="Email address" type="email" data-testid="input-edit-email" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Area</label>
+                    <Input value={editForm.area} onChange={e => setEditForm(prev => ({ ...prev, area: e.target.value }))} placeholder="Area" data-testid="input-edit-area" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">City</label>
+                    <Input value={editForm.city} onChange={e => setEditForm(prev => ({ ...prev, city: e.target.value }))} placeholder="City" data-testid="input-edit-city" />
+                  </div>
+                  <div className="col-span-2 space-y-1.5">
+                    <label className="text-sm font-medium">Address</label>
+                    <Input value={editForm.address} onChange={e => setEditForm(prev => ({ ...prev, address: e.target.value }))} placeholder="Full address" data-testid="input-edit-address" />
+                  </div>
+                </div>
               </div>
-              {(editingQuery.customerType === "CIR" || editingQuery.customerType === "Corporate") && (
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Bandwidth Required</label>
-                  <Input
-                    placeholder="e.g. 100 Mbps, 1 Gbps"
-                    value={editForm.bandwidthRequired}
-                    onChange={e => setEditForm(prev => ({ ...prev, bandwidthRequired: e.target.value }))}
-                    data-testid="input-edit-bandwidth"
-                  />
+
+              {/* Section: Service Details */}
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Service Details</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Customer Type</label>
+                    <Input value={editingQuery.customerType || "—"} disabled className="bg-muted text-muted-foreground" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Service Type</label>
+                    <Select value={editForm.serviceType} onValueChange={v => setEditForm(prev => ({ ...prev, serviceType: v }))}>
+                      <SelectTrigger data-testid="select-edit-service-type"><SelectValue placeholder="Select service type" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Fiber">Fiber</SelectItem>
+                        <SelectItem value="Wireless">Wireless</SelectItem>
+                        <SelectItem value="DSL">DSL</SelectItem>
+                        <SelectItem value="Cable">Cable</SelectItem>
+                        <SelectItem value="VSAT">VSAT</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Connection Type</label>
+                    <Select value={editForm.connectionType} onValueChange={v => setEditForm(prev => ({ ...prev, connectionType: v }))}>
+                      <SelectTrigger data-testid="select-edit-connection-type"><SelectValue placeholder="Select connection type" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="New">New</SelectItem>
+                        <SelectItem value="Migration">Migration</SelectItem>
+                        <SelectItem value="Upgrade">Upgrade</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">POP Location</label>
+                    <Input value={editForm.popId} onChange={e => setEditForm(prev => ({ ...prev, popId: e.target.value }))} placeholder="POP ID / location" data-testid="input-edit-pop" />
+                  </div>
+                  <div className="col-span-2 flex items-center gap-2 pt-1">
+                    <input type="checkbox" id="edit-static-ip" checked={editForm.staticIp} onChange={e => setEditForm(prev => ({ ...prev, staticIp: e.target.checked }))} className="h-4 w-4 cursor-pointer" data-testid="checkbox-edit-static-ip" />
+                    <label htmlFor="edit-static-ip" className="text-sm font-medium cursor-pointer">Static IP Required</label>
+                  </div>
                 </div>
-              )}
-              {editingQuery.customerType === "CIR" && (
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Bandwidth Vendor</label>
-                  <Select value={editForm.bandwidthVendorId ? String(editForm.bandwidthVendorId) : ""} onValueChange={v => setEditForm(prev => ({ ...prev, bandwidthVendorId: Number(v) }))}>
-                    <SelectTrigger data-testid="select-edit-bw-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
-                    <SelectContent>
-                      {(vendorsList || []).map((v: any) => (
-                        <SelectItem key={v.id} value={String(v.id)}>{v.name}{v.serviceType ? ` – ${v.serviceType}` : ""}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              </div>
+
+              {/* Section: Package / Bandwidth / Vendor (context-aware) */}
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  {editingQuery.customerType === "Reseller" ? "Panel Capacity & Vendor" : "Package / Bandwidth"}
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  {(editingQuery.customerType === "CIR" || editingQuery.customerType === "Corporate") && (
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Bandwidth Required</label>
+                      <Input value={editForm.bandwidthRequired} onChange={e => setEditForm(prev => ({ ...prev, bandwidthRequired: e.target.value }))} placeholder="e.g. 100 Mbps, 1 Gbps" data-testid="input-edit-bandwidth" />
+                    </div>
+                  )}
+                  {editingQuery.customerType === "CIR" && (
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Bandwidth Vendor</label>
+                      <Select value={editForm.bandwidthVendorId ? String(editForm.bandwidthVendorId) : ""} onValueChange={v => setEditForm(prev => ({ ...prev, bandwidthVendorId: Number(v) }))}>
+                        <SelectTrigger data-testid="select-edit-bw-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
+                        <SelectContent>
+                          {(vendorsList || []).map((v: any) => (
+                            <SelectItem key={v.id} value={String(v.id)}>{v.name}{v.serviceType ? ` – ${v.serviceType}` : ""}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  {editingQuery.customerType === "Reseller" && (
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Panel Users Capacity</label>
+                      <Input type="number" value={editForm.panelUsersCapacity} onChange={e => setEditForm(prev => ({ ...prev, panelUsersCapacity: e.target.value }))} placeholder="e.g. 500" data-testid="input-edit-capacity" />
+                    </div>
+                  )}
+                  {editingQuery.customerType === "Reseller" && (
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Panel Vendor</label>
+                      <Select value={editForm.panelVendorId ? String(editForm.panelVendorId) : ""} onValueChange={v => setEditForm(prev => ({ ...prev, panelVendorId: Number(v) }))}>
+                        <SelectTrigger data-testid="select-edit-panel-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
+                        <SelectContent>
+                          {(vendorsList || []).map((v: any) => (
+                            <SelectItem key={v.id} value={String(v.id)}>{v.name}{v.serviceType ? ` – ${v.serviceType}` : ""}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  {!["CIR", "Corporate", "Reseller"].includes(editingQuery.customerType || "") && (
+                    <div className="col-span-2 space-y-1.5">
+                      <label className="text-sm font-medium">Package</label>
+                      <Select value={editForm.packageId ? String(editForm.packageId) : ""} onValueChange={v => setEditForm(prev => ({ ...prev, packageId: Number(v) }))}>
+                        <SelectTrigger data-testid="select-edit-package"><SelectValue placeholder="Select package" /></SelectTrigger>
+                        <SelectContent>
+                          {(pkgs || []).filter(p => p.isActive).map(p => (
+                            <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
-              )}
-              {editingQuery.customerType === "Reseller" && (
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Panel Users Capacity</label>
-                  <Input
-                    type="number"
-                    placeholder="e.g. 500"
-                    value={editForm.panelUsersCapacity}
-                    onChange={e => setEditForm(prev => ({ ...prev, panelUsersCapacity: e.target.value }))}
-                    data-testid="input-edit-capacity"
-                  />
-                </div>
-              )}
-              {editingQuery.customerType === "Reseller" && (
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Panel Vendor</label>
-                  <Select value={editForm.panelVendorId ? String(editForm.panelVendorId) : ""} onValueChange={v => setEditForm(prev => ({ ...prev, panelVendorId: Number(v) }))}>
-                    <SelectTrigger data-testid="select-edit-panel-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
-                    <SelectContent>
-                      {(vendorsList || []).map((v: any) => (
-                        <SelectItem key={v.id} value={String(v.id)}>{v.name}{v.serviceType ? ` – ${v.serviceType}` : ""}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              {!["CIR", "Corporate", "Reseller"].includes(editingQuery.customerType || "") && (
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Package</label>
-                  <Select value={editForm.packageId ? String(editForm.packageId) : ""} onValueChange={v => setEditForm(prev => ({ ...prev, packageId: Number(v) }))}>
-                    <SelectTrigger data-testid="select-edit-package"><SelectValue placeholder="Select package" /></SelectTrigger>
-                    <SelectContent>
-                      {(pkgs || []).filter(p => p.isActive).map(p => (
-                        <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              </div>
+
+              {/* Section: Remarks */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Remarks / Notes</label>
+                <textarea
+                  value={editForm.remarks}
+                  onChange={e => setEditForm(prev => ({ ...prev, remarks: e.target.value }))}
+                  placeholder="Any additional notes..."
+                  rows={3}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
+                  data-testid="textarea-edit-remarks"
+                />
+              </div>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="mt-2">
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
-            <Button onClick={() => editMutation.mutate()} disabled={editMutation.isPending} className="bg-[#1c67d4] hover:bg-[#1558b8] text-white" data-testid="button-edit-pkg-save">
-              {editMutation.isPending ? "Saving..." : "Save"}
+            <Button onClick={() => editMutation.mutate()} disabled={editMutation.isPending || !editForm.name || !editForm.phone} className="bg-[#1c67d4] hover:bg-[#1558b8] text-white" data-testid="button-edit-request-save">
+              {editMutation.isPending ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
