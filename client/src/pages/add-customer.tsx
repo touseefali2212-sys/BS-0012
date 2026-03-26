@@ -271,6 +271,13 @@ export default function AddCustomerPage() {
   const [corpActiveTab, setCorpActiveTab] = useState("company");
   const [cirActiveTab, setCirActiveTab] = useState("company");
 
+  // Corp billing helpers (local — affect corpForm.monthlyBilling at save)
+  const [corpMonthlyBase, setCorpMonthlyBase] = useState("0");
+  const [corpBillingDiscount, setCorpBillingDiscount] = useState("0");
+  const [corpOtcEnabled, setCorpOtcEnabled] = useState(false);
+  const [corpOtcAmount, setCorpOtcAmount] = useState("");
+  const [corpLateFeeEnabled, setCorpLateFeeEnabled] = useState(false);
+
   // Corporate form state
   const [corpForm, setCorpForm] = useState({
     companyName: "", registrationNumber: "", ntn: "", industryType: "",
@@ -310,6 +317,10 @@ export default function AddCustomerPage() {
   // Additional devices (extra devices with their charges)
   const [addlDevices, setAddlDevices] = useState<{deviceType: string; deviceDetail: string; deviceCharges: string}[]>([]);
   const addlDevicesTotal = addlDevices.reduce((s, d) => s + (parseFloat(d.deviceCharges) || 0), 0);
+
+  // Corp billing computed values
+  const corpFinalMonthly = Math.max(0, (parseFloat(corpMonthlyBase) || 0) - (parseFloat(corpBillingDiscount) || 0));
+  const corpFirstPayment = corpFinalMonthly + (parseFloat(corpForm.securityDeposit) || 0) + (corpOtcEnabled ? (parseFloat(corpOtcAmount) || 0) : 0);
 
   const [form, setForm] = useState({
     fullName: "", fatherName: "", cnic: "", phone: "", email: "",
@@ -513,6 +524,7 @@ export default function AddCustomerPage() {
         billingAddress: fromQueryData.address || "",
         monthlyBilling: fromQueryData.monthlyCharges || "0",
       }));
+      setCorpMonthlyBase(fromQueryData.monthlyCharges || "0");
     } else if (type === "CIR") {
       setCustomerCategory("cir");
       setCirForm(prev => ({
@@ -855,7 +867,7 @@ export default function AddCustomerPage() {
         status: opts.activate ? "active" : corpForm.status,
         creditLimit: corpForm.creditLimit || "0",
         securityDeposit: corpForm.securityDeposit || "0",
-        monthlyBilling: corpForm.monthlyBilling || "0",
+        monthlyBilling: String(corpFinalMonthly) || "0",
       };
       const res = await apiRequest("POST", "/api/corporate-customers", payload);
       return res.json();
@@ -2477,23 +2489,330 @@ export default function AddCustomerPage() {
             {/* Billing & Terms */}
             {corpActiveTab === "billing" && (
               <Card className="border-border/60 shadow-sm">
-                <CardHeader className="pb-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center"><DollarSign className="h-5 w-5 text-green-600" /></div><div><CardTitle className="text-base">Billing & Payment Terms</CardTitle><CardDescription>Financial settings for this corporate account</CardDescription></div></div></CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Payment Terms</label>
-                      <Select value={corpForm.paymentTerms} onValueChange={v => updateCorp("paymentTerms", v)}><SelectTrigger data-testid="select-corp-payment-terms"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="net_15">Net 15</SelectItem><SelectItem value="net_30">Net 30</SelectItem><SelectItem value="net_45">Net 45</SelectItem><SelectItem value="net_60">Net 60</SelectItem><SelectItem value="advance">Advance</SelectItem></SelectContent></Select>
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                      <DollarSign className="h-5 w-5 text-green-600" />
                     </div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Monthly Billing (Rs.)</label><Input type="number" placeholder="0.00" value={corpForm.monthlyBilling} onChange={e => updateCorp("monthlyBilling", e.target.value)} data-testid="input-corp-monthly-billing" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Credit Limit (Rs.)</label><Input type="number" placeholder="0.00" value={corpForm.creditLimit} onChange={e => updateCorp("creditLimit", e.target.value)} data-testid="input-corp-credit-limit" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Security Deposit (Rs.)</label><Input type="number" placeholder="0.00" value={corpForm.securityDeposit} onChange={e => updateCorp("securityDeposit", e.target.value)} data-testid="input-corp-security-deposit" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Custom Invoice Format</label><Input placeholder="e.g. PDF, Excel" value={corpForm.customInvoiceFormat} onChange={e => updateCorp("customInvoiceFormat", e.target.value)} data-testid="input-corp-invoice-format" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Status</label>
-                      <Select value={corpForm.status} onValueChange={v => updateCorp("status", v)}><SelectTrigger data-testid="select-corp-status"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="suspended">Suspended</SelectItem></SelectContent></Select>
+                    <div>
+                      <CardTitle className="text-base">Billing & Payment Terms</CardTitle>
+                      <CardDescription>Financial settings, charges and invoice configuration for this corporate account</CardDescription>
                     </div>
                   </div>
-                  <div className="flex flex-wrap gap-6">
-                    <div className="flex items-center gap-3"><Switch checked={corpForm.centralizedBilling} onCheckedChange={v => updateCorp("centralizedBilling", v)} data-testid="switch-corp-centralized-billing" /><div><p className="text-sm font-medium">Centralized Billing</p><p className="text-xs text-muted-foreground">Single invoice for all branches</p></div></div>
-                    <div className="flex items-center gap-3"><Switch checked={corpForm.perBranchBilling} onCheckedChange={v => updateCorp("perBranchBilling", v)} data-testid="switch-corp-per-branch-billing" /><div><p className="text-sm font-medium">Per-Branch Billing</p><p className="text-xs text-muted-foreground">Separate invoice per branch</p></div></div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+
+                  {/* ── Account & Status ── */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Account Manager</label>
+                      <Input
+                        placeholder="e.g. Sara Ahmed"
+                        value={corpForm.accountManager}
+                        onChange={e => updateCorp("accountManager", e.target.value)}
+                        data-testid="input-corp-account-manager-billing"
+                      />
+                      <p className="text-[11px] text-muted-foreground">Primary contact managing this account</p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Account Status</label>
+                      <Select value={corpForm.status} onValueChange={v => updateCorp("status", v)}>
+                        <SelectTrigger data-testid="select-corp-status"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="suspended">Suspended</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground">Current billing and service status</p>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* ── Monthly Billing & Terms ── */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <Package className="h-4 w-4 text-green-600" />
+                      <span className="font-semibold text-sm">Monthly Billing & Payment Terms</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Payment Terms</label>
+                        <Select value={corpForm.paymentTerms} onValueChange={v => updateCorp("paymentTerms", v)}>
+                          <SelectTrigger data-testid="select-corp-payment-terms"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="net_15">Net 15 — Due in 15 days</SelectItem>
+                            <SelectItem value="net_30">Net 30 — Due in 30 days</SelectItem>
+                            <SelectItem value="net_45">Net 45 — Due in 45 days</SelectItem>
+                            <SelectItem value="net_60">Net 60 — Due in 60 days</SelectItem>
+                            <SelectItem value="advance">Advance — Pay before service</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-[11px] text-muted-foreground">Invoice due-date policy for this account</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Total Bandwidth</label>
+                        <Input
+                          placeholder="e.g. 500 Mbps"
+                          value={corpForm.totalBandwidth}
+                          onChange={e => updateCorp("totalBandwidth", e.target.value)}
+                          data-testid="input-corp-total-bandwidth"
+                        />
+                        <p className="text-[11px] text-muted-foreground">Aggregate bandwidth for all connections</p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Monthly Billing (Rs.)</label>
+                        <Input
+                          type="number"
+                          placeholder="0.00"
+                          value={corpMonthlyBase}
+                          onChange={e => setCorpMonthlyBase(e.target.value)}
+                          data-testid="input-corp-monthly-billing"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Discount / Adjustment (Rs.)</label>
+                        <Input
+                          type="number"
+                          placeholder="0.00"
+                          value={corpBillingDiscount}
+                          onChange={e => setCorpBillingDiscount(e.target.value)}
+                          data-testid="input-corp-billing-discount"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Final Monthly Billing</label>
+                        <div className="relative">
+                          <Input
+                            type="number"
+                            value={corpFinalMonthly.toFixed(2)}
+                            readOnly
+                            data-testid="input-corp-final-monthly"
+                            className="bg-green-50 dark:bg-green-950/20 border-green-300 dark:border-green-800 text-green-700 dark:text-green-400 font-semibold pr-9"
+                          />
+                          <Calculator className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-600" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Financial Limits */}
+                    <div className="mt-4 rounded-xl border border-dashed border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/20 p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="h-5 w-5 rounded bg-sky-600 flex items-center justify-center">
+                          <Shield className="h-3 w-3 text-white" />
+                        </div>
+                        <span className="text-sm font-semibold text-sky-700 dark:text-sky-400">Financial Limits & Deposits</span>
+                        <span className="text-xs text-muted-foreground ml-1">Credit exposure and security terms</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium text-sky-700 dark:text-sky-400">Credit Limit (Rs.)</label>
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              placeholder="0.00"
+                              value={corpForm.creditLimit}
+                              onChange={e => updateCorp("creditLimit", e.target.value)}
+                              data-testid="input-corp-credit-limit"
+                              className="border-sky-300 dark:border-sky-700 focus-visible:ring-sky-400"
+                            />
+                            <Calculator className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-sky-500" />
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">Maximum outstanding invoice balance allowed</p>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium text-sky-700 dark:text-sky-400">Security Deposit (Rs.)</label>
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              placeholder="0.00"
+                              value={corpForm.securityDeposit}
+                              onChange={e => updateCorp("securityDeposit", e.target.value)}
+                              data-testid="input-corp-security-deposit"
+                              className="border-sky-300 dark:border-sky-700 focus-visible:ring-sky-400"
+                            />
+                            <Calculator className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-sky-500" />
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">One-time refundable security amount</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Invoice Settings */}
+                    <div className="mt-4 rounded-xl border border-dashed border-violet-300 dark:border-violet-700 bg-violet-50 dark:bg-violet-950/20 p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="h-5 w-5 rounded bg-violet-600 flex items-center justify-center">
+                          <FileText className="h-3 w-3 text-white" />
+                        </div>
+                        <span className="text-sm font-semibold text-violet-700 dark:text-violet-400">Invoice Settings</span>
+                        <span className="text-xs text-muted-foreground ml-1">Billing format and distribution rules</span>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-violet-900/20 border border-violet-200 dark:border-violet-700">
+                          <div>
+                            <p className="text-sm font-medium">Centralized Billing</p>
+                            <p className="text-xs text-muted-foreground">Single consolidated invoice for all branches</p>
+                          </div>
+                          <Switch checked={corpForm.centralizedBilling} onCheckedChange={v => updateCorp("centralizedBilling", v)} data-testid="switch-corp-centralized-billing" />
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-violet-900/20 border border-violet-200 dark:border-violet-700">
+                          <div>
+                            <p className="text-sm font-medium">Per-Branch Billing</p>
+                            <p className="text-xs text-muted-foreground">Separate invoice generated for each branch</p>
+                          </div>
+                          <Switch checked={corpForm.perBranchBilling} onCheckedChange={v => updateCorp("perBranchBilling", v)} data-testid="switch-corp-per-branch-billing" />
+                        </div>
+                        <div className="space-y-1.5 pt-1">
+                          <label className="text-sm font-medium text-violet-700 dark:text-violet-400">Custom Invoice Format</label>
+                          <Input
+                            placeholder="e.g. PDF with company letterhead, Excel breakdown"
+                            value={corpForm.customInvoiceFormat}
+                            onChange={e => updateCorp("customInvoiceFormat", e.target.value)}
+                            data-testid="input-corp-invoice-format"
+                            className="border-violet-300 dark:border-violet-700 focus-visible:ring-violet-400"
+                          />
+                          <p className="text-[11px] text-muted-foreground">Specify preferred invoice format or delivery method</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Add-on Charges */}
+                    <div className="mt-4 rounded-xl border border-dashed border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-950/20 p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Zap className="h-4 w-4 text-purple-600" />
+                        <span className="text-sm font-semibold text-purple-700 dark:text-purple-400">Add-on Charges</span>
+                        <span className="text-xs text-muted-foreground ml-1">Optional one-time or recurring charges</span>
+                      </div>
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          data-testid="btn-corp-addon-otc"
+                          onClick={() => setCorpOtcEnabled(v => !v)}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                            corpOtcEnabled
+                              ? "bg-purple-600 border-purple-600 text-white shadow-md"
+                              : "bg-white dark:bg-background border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-400 hover:border-purple-500"
+                          }`}
+                        >
+                          {corpOtcEnabled ? <Check className="h-4 w-4" /> : <span className="font-bold text-base leading-none">+</span>}
+                          OTC / One-Time Charge
+                          {corpOtcEnabled && <Badge className="ml-1 bg-white/20 text-white text-[10px] px-1.5 py-0">Active</Badge>}
+                        </button>
+
+                        <button
+                          type="button"
+                          data-testid="btn-corp-addon-late-fee"
+                          onClick={() => setCorpLateFeeEnabled(v => !v)}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all ${
+                            corpLateFeeEnabled
+                              ? "bg-amber-600 border-amber-600 text-white shadow-md"
+                              : "bg-white dark:bg-background border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:border-amber-500"
+                          }`}
+                        >
+                          {corpLateFeeEnabled ? <Check className="h-4 w-4" /> : <span className="font-bold text-base leading-none">+</span>}
+                          Late Fee Policy
+                          {corpLateFeeEnabled && <Badge className="ml-1 bg-white/20 text-white text-[10px] px-1.5 py-0">Active</Badge>}
+                        </button>
+                      </div>
+
+                      {/* OTC panel */}
+                      {corpOtcEnabled && (
+                        <div className="mt-3 flex items-end gap-3">
+                          <div className="space-y-1.5 flex-1 max-w-xs">
+                            <label className="text-sm font-medium text-purple-700 dark:text-purple-400">
+                              One-Time Charge (Rs.) <span className="text-red-500">*</span>
+                            </label>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                placeholder="0.00"
+                                value={corpOtcAmount}
+                                onChange={e => setCorpOtcAmount(e.target.value)}
+                                data-testid="input-corp-otc-amount"
+                                className="pr-9 border-purple-300 dark:border-purple-700 focus-visible:ring-purple-400"
+                              />
+                              <Calculator className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-purple-500" />
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">Setup fee or one-time activation charge</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCorpOtcEnabled(false)}
+                            className="mb-6 text-xs text-muted-foreground hover:text-red-500 flex items-center gap-1"
+                            data-testid="btn-corp-remove-otc"
+                          >
+                            <X className="h-3.5 w-3.5" /> Remove
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Late Fee panel */}
+                      {corpLateFeeEnabled && (
+                        <div className="mt-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Late Fee Policy</p>
+                            <button
+                              type="button"
+                              onClick={() => setCorpLateFeeEnabled(false)}
+                              className="text-xs text-muted-foreground hover:text-red-500 flex items-center gap-1"
+                              data-testid="btn-corp-remove-late-fee"
+                            >
+                              <X className="h-3.5 w-3.5" /> Remove
+                            </button>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-amber-700 dark:text-amber-400">Policy Description</label>
+                            <textarea
+                              placeholder="e.g. 2% per week after 7-day grace period"
+                              value={corpForm.notes}
+                              onChange={e => updateCorp("notes", e.target.value)}
+                              data-testid="textarea-corp-late-fee-policy"
+                              rows={2}
+                              className="w-full rounded-md border border-amber-300 dark:border-amber-700 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+                            />
+                            <p className="text-[11px] text-muted-foreground">Describe late payment penalties and grace period</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Grand Total — First Invoice */}
+                    <div className="mt-4 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 p-4 shadow-md">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center">
+                          <Calculator className="h-4 w-4 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-white">First Invoice Total</p>
+                          <p className="text-[11px] text-green-200 space-x-1">
+                            <span>Rs. {corpFinalMonthly.toFixed(2)} monthly</span>
+                            {parseFloat(corpForm.securityDeposit) > 0 && (
+                              <><span>+</span><span>Rs. {parseFloat(corpForm.securityDeposit).toFixed(2)} security deposit</span></>
+                            )}
+                            {corpOtcEnabled && parseFloat(corpOtcAmount) > 0 && (
+                              <><span>+</span><span>Rs. {parseFloat(corpOtcAmount).toFixed(2)} OTC</span></>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-green-700 pointer-events-none">Rs.</span>
+                        <Input
+                          type="number"
+                          value={corpFirstPayment.toFixed(2)}
+                          readOnly
+                          data-testid="input-corp-first-payment"
+                          className="pl-12 text-lg font-bold text-green-700 dark:text-green-700 bg-white border-0 h-12 shadow-inner"
+                        />
+                      </div>
+                      <p className="text-[11px] text-green-200 mt-1.5 text-right">Auto-calculated from monthly + deposit + OTC charges</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
