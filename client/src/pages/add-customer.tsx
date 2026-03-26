@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
@@ -315,8 +315,12 @@ export default function AddCustomerPage() {
   const addlPkgsTotal = addlPkgs.reduce((s, p) => s + (parseFloat(p.bill) || 0), 0);
 
   // Additional devices (extra devices with their charges)
-  const [addlDevices, setAddlDevices] = useState<{deviceType: string; deviceDetail: string; deviceCharges: string}[]>([]);
+  const [addlDevices, setAddlDevices] = useState<{deviceType: string; deviceDetail: string; deviceCharges: string; installmentEnabled: boolean}[]>([]);
   const addlDevicesTotal = addlDevices.reduce((s, d) => s + (parseFloat(d.deviceCharges) || 0), 0);
+
+  // Per-item installment toggles (main device + installation)
+  const [mainDeviceInstallmentEnabled, setMainDeviceInstallmentEnabled] = useState(false);
+  const [installationInstallmentEnabled, setInstallationInstallmentEnabled] = useState(false);
 
   // Corp billing computed values
   const corpFinalMonthly = Math.max(0, (parseFloat(corpMonthlyBase) || 0) - (parseFloat(corpBillingDiscount) || 0));
@@ -542,6 +546,31 @@ export default function AddCustomerPage() {
       }));
     }
   }, [fromQueryData]);
+
+  // Auto-compute installment total from per-item toggles
+  useEffect(() => {
+    const anyEnabled = mainDeviceInstallmentEnabled || installationInstallmentEnabled || addlDevices.some(d => d.installmentEnabled);
+    if (!anyEnabled) return;
+    let total = 0;
+    if (mainDeviceInstallmentEnabled) total += parseFloat(form.deviceCharges) || 0;
+    addlDevices.forEach(d => { if (d.installmentEnabled) total += parseFloat(d.deviceCharges) || 0; });
+    if (installationInstallmentEnabled) total += parseFloat(form.finalInstallationCharges) || 0;
+    // Determine auto installment type label
+    const hasDevice = mainDeviceInstallmentEnabled || addlDevices.some(d => d.installmentEnabled);
+    const hasInstall = installationInstallmentEnabled;
+    const autoType = hasDevice && hasInstall ? "Device" : hasDevice ? "Device" : "Installation";
+    setForm(prev => {
+      const months = parseInt(prev.installmentMonths, 10) || 1;
+      const monthly = total > 0 && months > 0 ? (total / months).toFixed(2) : "0";
+      return {
+        ...prev,
+        installmentEnabled: true,
+        installmentType: autoType,
+        installmentTotalAmount: total > 0 ? total.toFixed(2) : "",
+        installmentMonthlyAmount: monthly,
+      };
+    });
+  }, [mainDeviceInstallmentEnabled, installationInstallmentEnabled, addlDevices, form.deviceCharges, form.finalInstallationCharges, form.installmentMonths]);
 
   const handlePackageChange = (pkgId: string) => {
     const pkg = packages?.find(p => String(p.id) === pkgId);
@@ -1588,63 +1617,115 @@ export default function AddCustomerPage() {
                       </div>
                     </div>
 
+                    {/* Main device installment toggle */}
+                    {parseFloat(form.deviceCharges) > 0 && (
+                      <div className="mt-3 flex items-center gap-3">
+                        <button
+                          type="button"
+                          data-testid="btn-main-device-installment"
+                          onClick={() => {
+                            const next = !mainDeviceInstallmentEnabled;
+                            setMainDeviceInstallmentEnabled(next);
+                            if (!next && !installationInstallmentEnabled && !addlDevices.some(d => d.installmentEnabled)) {
+                              update("installmentEnabled", false);
+                            }
+                          }}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 text-xs font-semibold transition-all ${
+                            mainDeviceInstallmentEnabled
+                              ? "bg-amber-500 border-amber-500 text-white shadow-sm"
+                              : "bg-white dark:bg-background border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:border-amber-500"
+                          }`}
+                        >
+                          {mainDeviceInstallmentEnabled ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                          Installment Allow
+                          {mainDeviceInstallmentEnabled && (
+                            <span className="ml-1 text-[10px] bg-white/25 rounded px-1">PKR {parseFloat(form.deviceCharges).toFixed(2)}</span>
+                          )}
+                        </button>
+                        {mainDeviceInstallmentEnabled && (
+                          <span className="text-[11px] text-amber-600 dark:text-amber-400">Device charge added to installment plan</span>
+                        )}
+                      </div>
+                    )}
+
                     {/* Additional Devices */}
                     {addlDevices.length > 0 && (
                       <div className="mt-3 space-y-2">
                         <p className="text-xs font-medium text-sky-600 dark:text-sky-400">Additional Devices</p>
                         {addlDevices.map((ad, idx) => (
-                          <div key={idx} className="flex items-center gap-2 bg-white dark:bg-sky-900/20 rounded-lg border border-sky-200 dark:border-sky-700 p-2">
-                            <div className="flex-1 min-w-0">
-                              <select
-                                data-testid={`select-addl-device-type-${idx}`}
-                                value={ad.deviceType}
-                                onChange={e => setAddlDevices(prev => prev.map((x, i) => i === idx ? { ...x, deviceType: e.target.value } : x))}
-                                className="w-full h-8 rounded-md border border-sky-300 dark:border-sky-600 bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
-                              >
-                                <option value="">-- Device Type --</option>
-                                <option value="ONT">ONT</option>
-                                <option value="Router">Router</option>
-                                <option value="Wireless Router">Wireless Router</option>
-                                <option value="Switch">Switch</option>
-                                <option value="Media Converter">Media Converter</option>
-                                <option value="OLT">OLT</option>
-                                <option value="GPON">GPON</option>
-                                <option value="Set Top Box">Set Top Box</option>
-                                <option value="Android Box">Android Box</option>
-                                <option value="Other">Other</option>
-                              </select>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <Input
-                                type="text"
-                                data-testid={`input-addl-device-detail-${idx}`}
-                                placeholder="Model / S/N"
-                                value={ad.deviceDetail}
-                                onChange={e => setAddlDevices(prev => prev.map((x, i) => i === idx ? { ...x, deviceDetail: e.target.value } : x))}
-                                className="h-8 text-sm border-sky-300 dark:border-sky-600 focus-visible:ring-sky-400"
-                              />
-                            </div>
-                            <div className="w-28 shrink-0">
-                              <div className="relative">
-                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-sky-600 font-semibold pointer-events-none">PKR</span>
+                          <div key={idx} className="bg-white dark:bg-sky-900/20 rounded-lg border border-sky-200 dark:border-sky-700 p-2 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 min-w-0">
+                                <select
+                                  data-testid={`select-addl-device-type-${idx}`}
+                                  value={ad.deviceType}
+                                  onChange={e => setAddlDevices(prev => prev.map((x, i) => i === idx ? { ...x, deviceType: e.target.value } : x))}
+                                  className="w-full h-8 rounded-md border border-sky-300 dark:border-sky-600 bg-background px-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                                >
+                                  <option value="">-- Device Type --</option>
+                                  <option value="ONT">ONT</option>
+                                  <option value="Router">Router</option>
+                                  <option value="Wireless Router">Wireless Router</option>
+                                  <option value="Switch">Switch</option>
+                                  <option value="Media Converter">Media Converter</option>
+                                  <option value="OLT">OLT</option>
+                                  <option value="GPON">GPON</option>
+                                  <option value="Set Top Box">Set Top Box</option>
+                                  <option value="Android Box">Android Box</option>
+                                  <option value="Other">Other</option>
+                                </select>
+                              </div>
+                              <div className="flex-1 min-w-0">
                                 <Input
-                                  type="number"
-                                  data-testid={`input-addl-device-charges-${idx}`}
-                                  placeholder="0.00"
-                                  value={ad.deviceCharges}
-                                  onChange={e => setAddlDevices(prev => prev.map((x, i) => i === idx ? { ...x, deviceCharges: e.target.value } : x))}
-                                  className="pl-10 h-8 text-sm border-sky-300 dark:border-sky-600 focus-visible:ring-sky-400"
+                                  type="text"
+                                  data-testid={`input-addl-device-detail-${idx}`}
+                                  placeholder="Model / S/N"
+                                  value={ad.deviceDetail}
+                                  onChange={e => setAddlDevices(prev => prev.map((x, i) => i === idx ? { ...x, deviceDetail: e.target.value } : x))}
+                                  className="h-8 text-sm border-sky-300 dark:border-sky-600 focus-visible:ring-sky-400"
                                 />
                               </div>
+                              <div className="w-28 shrink-0">
+                                <div className="relative">
+                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-sky-600 font-semibold pointer-events-none">PKR</span>
+                                  <Input
+                                    type="number"
+                                    data-testid={`input-addl-device-charges-${idx}`}
+                                    placeholder="0.00"
+                                    value={ad.deviceCharges}
+                                    onChange={e => setAddlDevices(prev => prev.map((x, i) => i === idx ? { ...x, deviceCharges: e.target.value } : x))}
+                                    className="pl-10 h-8 text-sm border-sky-300 dark:border-sky-600 focus-visible:ring-sky-400"
+                                  />
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                data-testid={`btn-remove-addl-device-${idx}`}
+                                onClick={() => setAddlDevices(prev => prev.filter((_, i) => i !== idx))}
+                                className="shrink-0 h-7 w-7 flex items-center justify-center rounded-md text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              data-testid={`btn-remove-addl-device-${idx}`}
-                              onClick={() => setAddlDevices(prev => prev.filter((_, i) => i !== idx))}
-                              className="shrink-0 h-7 w-7 flex items-center justify-center rounded-md text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
-                            >
-                              <X className="h-4 w-4" />
-                            </button>
+                            {/* Per-device installment toggle */}
+                            {parseFloat(ad.deviceCharges) > 0 && (
+                              <div className="flex items-center gap-2 pl-1">
+                                <button
+                                  type="button"
+                                  data-testid={`btn-addl-device-installment-${idx}`}
+                                  onClick={() => setAddlDevices(prev => prev.map((x, i) => i === idx ? { ...x, installmentEnabled: !x.installmentEnabled } : x))}
+                                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md border text-[11px] font-semibold transition-all ${
+                                    ad.installmentEnabled
+                                      ? "bg-amber-500 border-amber-500 text-white"
+                                      : "bg-amber-50 dark:bg-transparent border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:border-amber-500"
+                                  }`}
+                                >
+                                  {ad.installmentEnabled ? <Check className="h-3 w-3" /> : <Plus className="h-3 w-3" />}
+                                  Installment Allow
+                                  {ad.installmentEnabled && <span className="text-[10px] bg-white/25 rounded px-1">PKR {parseFloat(ad.deviceCharges).toFixed(2)}</span>}
+                                </button>
+                              </div>
+                            )}
                           </div>
                         ))}
                         {addlDevicesTotal > 0 && (
@@ -1659,7 +1740,7 @@ export default function AddCustomerPage() {
                       <button
                         type="button"
                         data-testid="btn-add-device"
-                        onClick={() => setAddlDevices(prev => [...prev, { deviceType: "", deviceDetail: "", deviceCharges: "" }])}
+                        onClick={() => setAddlDevices(prev => [...prev, { deviceType: "", deviceDetail: "", deviceCharges: "", installmentEnabled: false }])}
                         className="flex items-center gap-1.5 rounded-lg border border-sky-400 bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-sky-700 transition-colors"
                       >
                         <Plus className="h-3.5 w-3.5" />
@@ -1703,6 +1784,37 @@ export default function AddCustomerPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Installation charges installment toggle */}
+                  {parseFloat(form.finalInstallationCharges) > 0 && (
+                    <div className="flex items-center gap-3 mt-2">
+                      <button
+                        type="button"
+                        data-testid="btn-installation-installment"
+                        onClick={() => {
+                          const next = !installationInstallmentEnabled;
+                          setInstallationInstallmentEnabled(next);
+                          if (!next && !mainDeviceInstallmentEnabled && !addlDevices.some(d => d.installmentEnabled)) {
+                            update("installmentEnabled", false);
+                          }
+                        }}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 text-xs font-semibold transition-all ${
+                          installationInstallmentEnabled
+                            ? "bg-amber-500 border-amber-500 text-white shadow-sm"
+                            : "bg-white dark:bg-background border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:border-amber-500"
+                        }`}
+                      >
+                        {installationInstallmentEnabled ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                        Installment Allow
+                        {installationInstallmentEnabled && (
+                          <span className="ml-1 text-[10px] bg-white/25 rounded px-1">PKR {parseFloat(form.finalInstallationCharges).toFixed(2)}</span>
+                        )}
+                      </button>
+                      {installationInstallmentEnabled && (
+                        <span className="text-[11px] text-amber-600 dark:text-amber-400">Installation charge added to installment plan</span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Add-on Services */}
                   <div className="mt-4 rounded-xl border border-dashed border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-950/20 p-4">
@@ -1783,35 +1895,71 @@ export default function AddCustomerPage() {
                           <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Installment Plan Details</p>
                           <button
                             type="button"
-                            onClick={() => update("installmentEnabled", false)}
+                            onClick={() => {
+                              update("installmentEnabled", false);
+                              setMainDeviceInstallmentEnabled(false);
+                              setInstallationInstallmentEnabled(false);
+                              setAddlDevices(prev => prev.map(d => ({ ...d, installmentEnabled: false })));
+                            }}
                             className="text-xs text-muted-foreground hover:text-red-500 flex items-center gap-1"
                             data-testid="btn-remove-installment"
                           >
                             <X className="h-3.5 w-3.5" /> Remove
                           </button>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-1">
-                          <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-amber-700 dark:text-amber-400">
-                              Installment For <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                              value={form.installmentType}
-                              onChange={e => update("installmentType", e.target.value)}
-                              data-testid="select-installment-type"
-                              className="w-full h-9 rounded-md border border-amber-300 dark:border-amber-700 bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-                            >
-                              <option value="">-- Select Type --</option>
-                              <option value="Device">Device</option>
-                              <option value="Installation">Installation</option>
-                            </select>
-                            <p className="text-[11px] text-muted-foreground">
-                              {form.installmentType === "Installation"
-                                ? "Total will auto-fill from Final Installation Charges"
-                                : "Enter the device cost to be recovered in installments"}
-                            </p>
+
+                        {/* Auto-source breakdown */}
+                        {(mainDeviceInstallmentEnabled || installationInstallmentEnabled || addlDevices.some(d => d.installmentEnabled)) ? (
+                          <div className="rounded-lg bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 p-3 space-y-1.5">
+                            <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide">Auto-computed from selected items</p>
+                            {mainDeviceInstallmentEnabled && parseFloat(form.deviceCharges) > 0 && (
+                              <div className="flex justify-between text-xs text-amber-800 dark:text-amber-300">
+                                <span>Main Device ({form.deviceType || "Device"})</span>
+                                <span className="font-semibold">PKR {parseFloat(form.deviceCharges).toFixed(2)}</span>
+                              </div>
+                            )}
+                            {addlDevices.filter(d => d.installmentEnabled && parseFloat(d.deviceCharges) > 0).map((d, i) => (
+                              <div key={i} className="flex justify-between text-xs text-amber-800 dark:text-amber-300">
+                                <span>Additional Device {i + 1} ({d.deviceType || "Device"})</span>
+                                <span className="font-semibold">PKR {parseFloat(d.deviceCharges).toFixed(2)}</span>
+                              </div>
+                            ))}
+                            {installationInstallmentEnabled && parseFloat(form.finalInstallationCharges) > 0 && (
+                              <div className="flex justify-between text-xs text-amber-800 dark:text-amber-300">
+                                <span>Installation Charges</span>
+                                <span className="font-semibold">PKR {parseFloat(form.finalInstallationCharges).toFixed(2)}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between text-xs font-bold text-amber-900 dark:text-amber-200 pt-1 border-t border-amber-300 dark:border-amber-600">
+                              <span>Total</span>
+                              <span>PKR {form.installmentTotalAmount || "0.00"}</span>
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-1">
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium text-amber-700 dark:text-amber-400">
+                                Installment For <span className="text-red-500">*</span>
+                              </label>
+                              <select
+                                value={form.installmentType}
+                                onChange={e => update("installmentType", e.target.value)}
+                                data-testid="select-installment-type"
+                                className="w-full h-9 rounded-md border border-amber-300 dark:border-amber-700 bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                              >
+                                <option value="">-- Select Type --</option>
+                                <option value="Device">Device</option>
+                                <option value="Installation">Installation</option>
+                              </select>
+                              <p className="text-[11px] text-muted-foreground">
+                                {form.installmentType === "Installation"
+                                  ? "Total will auto-fill from Final Installation Charges"
+                                  : "Or use Installment Allow buttons above to auto-fill"}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                           <div className="space-y-1.5">
                             <label className="text-sm font-medium text-amber-700 dark:text-amber-400">
@@ -1821,13 +1969,15 @@ export default function AddCustomerPage() {
                               type="number"
                               placeholder="e.g. 12000"
                               value={form.installmentTotalAmount}
-                              readOnly={form.installmentType === "Installation"}
+                              readOnly={mainDeviceInstallmentEnabled || installationInstallmentEnabled || addlDevices.some(d => d.installmentEnabled) || form.installmentType === "Installation"}
                               onChange={e => update("installmentTotalAmount", e.target.value)}
                               data-testid="input-installment-total"
-                              className={`border-amber-300 dark:border-amber-700 focus-visible:ring-amber-400 ${form.installmentType === "Installation" ? "bg-amber-100 dark:bg-amber-900/30 cursor-not-allowed" : ""}`}
+                              className={`border-amber-300 dark:border-amber-700 focus-visible:ring-amber-400 ${(mainDeviceInstallmentEnabled || installationInstallmentEnabled || addlDevices.some(d => d.installmentEnabled) || form.installmentType === "Installation") ? "bg-amber-100 dark:bg-amber-900/30 cursor-not-allowed" : ""}`}
                             />
                             <p className="text-[11px] text-muted-foreground">
-                              {form.installmentType === "Installation" ? "Auto-filled from Final Installation Charges" : "Device / installation cost to recover"}
+                              {(mainDeviceInstallmentEnabled || installationInstallmentEnabled || addlDevices.some(d => d.installmentEnabled))
+                                ? "Auto-filled from Installment Allow selections above"
+                                : form.installmentType === "Installation" ? "Auto-filled from Final Installation Charges" : "Device / installation cost to recover"}
                             </p>
                           </div>
                           <div className="space-y-1.5">
