@@ -48,6 +48,7 @@ const CORP_AUTO_STEPS = [
 
 export default function CorporateCustomersPage() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<CorporateCustomer | null>(null);
   const [search, setSearch] = useState("");
@@ -354,7 +355,7 @@ export default function CorporateCustomersPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={openCreate} data-testid="button-add-corp" className="bg-gradient-to-r from-[#002B5B] to-[#005EFF] hover:from-[#001f42] hover:to-[#0044cc]">
+            <Button onClick={() => setLocation("/add-customer?type=corporate")} data-testid="button-add-corp" className="bg-gradient-to-r from-[#002B5B] to-[#005EFF] hover:from-[#001f42] hover:to-[#0044cc]">
               <Plus className="h-4 w-4 mr-1" />Add Corporate Customer
             </Button>
           </div>
