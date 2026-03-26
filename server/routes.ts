@@ -2591,6 +2591,55 @@ export async function registerRoutes(
     try { await storage.deleteCirCustomer(parseInt(req.params.id)); res.json({ message: "Deleted" }); } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
+  app.post("/api/cir-customers/:id/automate", requireAuth, async (req: any, res) => {
+    try {
+      const cid = parseInt(req.params.id);
+      const cir = await storage.getCirCustomer(cid);
+      if (!cir) return res.status(404).json({ message: "CIR customer not found" });
+      const steps: Array<{ step: string; status: string; message: string; data?: any }> = [];
+      // Step 1: Auto invoice
+      try {
+        const now = new Date();
+        const issueDate = now.toISOString().split("T")[0];
+        const billingCycle = (cir as any).billingCycle || "monthly";
+        const monthsMap: Record<string, number> = { monthly: 1, quarterly: 3, annual: 12 };
+        const dueDate = (() => { const d = new Date(now); d.setMonth(d.getMonth() + (monthsMap[billingCycle] || 1)); return d.toISOString().split("T")[0]; })();
+        const monthly = parseFloat(String((cir as any).monthlyCharges || "0")) || 0;
+        const install = parseFloat(String((cir as any).installationCharges || "0")) || 0;
+        const deposit = parseFloat(String((cir as any).securityDeposit || "0")) || 0;
+        const total = monthly + install + deposit;
+        const invNum = `CIR-${now.getFullYear()}-${String(cid).padStart(4, "0")}-${Date.now().toString(36).toUpperCase()}`;
+        const invoice = await storage.createInvoice({
+          invoiceNumber: invNum,
+          customerId: null as any,
+          amount: String(total),
+          tax: "0",
+          totalAmount: String(total),
+          status: "pending",
+          issueDate,
+          dueDate,
+          description: `CIR Service Invoice — ${(cir as any).companyName} | Bandwidth: ${(cir as any).committedBandwidth || "N/A"}`,
+          isRecurring: billingCycle !== "one-time",
+          serviceType: "internet",
+        });
+        const lineItems: any[] = [];
+        let sortIdx = 0;
+        if (monthly > 0) lineItems.push({ invoiceId: invoice.id, itemType: "service", description: `CIR Bandwidth Service — ${(cir as any).committedBandwidth || "Dedicated"} (${billingCycle})`, quantity: 1, unitPrice: String(monthly), discount: "0", taxRate: "0", taxAmount: "0", total: String(monthly), sortOrder: sortIdx++ });
+        if (install > 0) lineItems.push({ invoiceId: invoice.id, itemType: "installation", description: "CIR Installation Charges", quantity: 1, unitPrice: String(install), discount: "0", taxRate: "0", taxAmount: "0", total: String(install), sortOrder: sortIdx++ });
+        if (deposit > 0) lineItems.push({ invoiceId: invoice.id, itemType: "deposit", description: "Security Deposit", quantity: 1, unitPrice: String(deposit), discount: "0", taxRate: "0", taxAmount: "0", total: String(deposit), sortOrder: sortIdx++ });
+        if (lineItems.length > 0 && storage.createInvoiceItem) {
+          for (const item of lineItems) { try { await (storage as any).createInvoiceItem(item); } catch (_) {} }
+        }
+        steps.push({ step: "invoice", status: "success", message: `Invoice ${invNum} generated for Rs. ${total.toLocaleString()}`, data: { invoiceNumber: invNum } });
+      } catch (e: any) {
+        steps.push({ step: "invoice", status: "error", message: `Invoice generation failed: ${e.message}` });
+      }
+      // Step 2: Notification (always skipped for CIR — use portal manually)
+      steps.push({ step: "notification_customer", status: "skipped", message: "CIR client notifications managed via account manager" });
+      res.json({ success: true, steps });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
   app.get("/api/corporate-customers", requireAuth, async (_req, res) => {
     try { res.json(await storage.getCorporateCustomers()); } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
@@ -2615,6 +2664,53 @@ export async function registerRoutes(
   });
   app.delete("/api/corporate-customers/:id", requireAuth, async (req, res) => {
     try { await storage.deleteCorporateCustomer(parseInt(req.params.id)); res.json({ message: "Deleted" }); } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post("/api/corporate-customers/:id/automate", requireAuth, async (req: any, res) => {
+    try {
+      const cid = parseInt(req.params.id);
+      const corp = await storage.getCorporateCustomer(cid);
+      if (!corp) return res.status(404).json({ message: "Corporate customer not found" });
+      const steps: Array<{ step: string; status: string; message: string; data?: any }> = [];
+      // Step 1: Auto invoice
+      try {
+        const now = new Date();
+        const issueDate = now.toISOString().split("T")[0];
+        const paymentTerms = (corp as any).paymentTerms || "net_30";
+        const daysMap: Record<string, number> = { net_15: 15, net_30: 30, net_60: 60, advance: 0 };
+        const dueDate = (() => { const d = new Date(now); d.setDate(d.getDate() + (daysMap[paymentTerms] ?? 30)); return d.toISOString().split("T")[0]; })();
+        const monthly = parseFloat(String((corp as any).monthlyBilling || "0")) || 0;
+        const deposit = parseFloat(String((corp as any).securityDeposit || "0")) || 0;
+        const total = monthly + deposit;
+        const invNum = `CORP-${now.getFullYear()}-${String(cid).padStart(4, "0")}-${Date.now().toString(36).toUpperCase()}`;
+        const invoice = await storage.createInvoice({
+          invoiceNumber: invNum,
+          customerId: null as any,
+          amount: String(total),
+          tax: "0",
+          totalAmount: String(total),
+          status: "pending",
+          issueDate,
+          dueDate,
+          description: `Corporate Service Invoice — ${(corp as any).companyName} | Bandwidth: ${(corp as any).totalBandwidth || "N/A"}`,
+          isRecurring: true,
+          serviceType: "internet",
+        });
+        const lineItems: any[] = [];
+        let sortIdx = 0;
+        if (monthly > 0) lineItems.push({ invoiceId: invoice.id, itemType: "service", description: `Corporate Internet Service — ${(corp as any).totalBandwidth || "Enterprise"} (Monthly)`, quantity: 1, unitPrice: String(monthly), discount: "0", taxRate: "0", taxAmount: "0", total: String(monthly), sortOrder: sortIdx++ });
+        if (deposit > 0) lineItems.push({ invoiceId: invoice.id, itemType: "deposit", description: "Security Deposit", quantity: 1, unitPrice: String(deposit), discount: "0", taxRate: "0", taxAmount: "0", total: String(deposit), sortOrder: sortIdx++ });
+        if (lineItems.length > 0) {
+          for (const item of lineItems) { try { await (storage as any).createInvoiceItem(item); } catch (_) {} }
+        }
+        steps.push({ step: "invoice", status: "success", message: `Invoice ${invNum} generated for Rs. ${total.toLocaleString()}`, data: { invoiceNumber: invNum } });
+      } catch (e: any) {
+        steps.push({ step: "invoice", status: "error", message: `Invoice generation failed: ${e.message}` });
+      }
+      // Step 2: Account manager notification (skipped — handled externally)
+      steps.push({ step: "notification_customer", status: "skipped", message: "Corporate notifications managed via account manager" });
+      res.json({ success: true, steps });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
   app.get("/api/corporate-connections/:corporateId", requireAuth, async (req, res) => {

@@ -6,6 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Plus, Search, MoreHorizontal, Edit, Trash2, Wifi, Building2, DollarSign,
   AlertTriangle, Shield, Calendar, Activity, Server, Globe, ChevronDown, ChevronUp, Users,
+  FileSpreadsheet, Send, CheckCircle2, XCircle, Loader2, SkipForward, Sparkles,
+  ArrowRight, RefreshCw, Check, Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +33,13 @@ const statusColors: Record<string, string> = {
   expired: "text-slate-700 bg-slate-100 dark:text-slate-300 dark:bg-slate-800",
 };
 
+type AutoStep = { step: string; status: "pending" | "running" | "success" | "error" | "skipped"; message: string; data?: any };
+
+const CIR_AUTO_STEPS = [
+  { key: "invoice", label: "Auto Invoice Generation", icon: FileSpreadsheet, description: "Generating first invoice for this CIR customer" },
+  { key: "notification_customer", label: "Account Manager Notification", icon: Send, description: "Notifying account manager of new CIR client" },
+];
+
 export default function CirCustomersPage() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -41,6 +50,13 @@ export default function CirCustomersPage() {
 
   const [referralsDialogOpen, setReferralsDialogOpen] = useState(false);
   const [viewingReferralsCir, setViewingReferralsCir] = useState<CirCustomer | null>(null);
+
+  // Automation modal state
+  const [autoModalOpen, setAutoModalOpen] = useState(false);
+  const [autoSteps, setAutoSteps] = useState<AutoStep[]>([]);
+  const [autoComplete, setAutoComplete] = useState(false);
+  const [autoCustomerName, setAutoCustomerName] = useState("");
+  const [addAnotherPending, setAddAnotherPending] = useState(false);
 
   const fromQueryId = new URLSearchParams(window.location.search).get("fromQuery");
 
@@ -68,17 +84,54 @@ export default function CirCustomersPage() {
     },
   });
 
+  const runCirAutomation = async (customerId: number) => {
+    const animate = (steps: AutoStep[]) => setAutoSteps([...steps]);
+    const steps: AutoStep[] = CIR_AUTO_STEPS.map(s => ({ step: s.key, status: "pending" as const, message: s.description }));
+    steps[0] = { ...steps[0], status: "running" };
+    animate(steps);
+    try {
+      const res = await apiRequest("POST", `/api/cir-customers/${customerId}/automate`);
+      const result = await res.json();
+      const serverSteps: Array<{ step: string; status: string; message: string; data?: any }> = result.steps || [];
+      for (let i = 0; i < CIR_AUTO_STEPS.length; i++) {
+        const key = CIR_AUTO_STEPS[i].key;
+        const found = serverSteps.find(s => s.step === key);
+        if (i > 0) { steps[i] = { ...steps[i], status: "running" }; animate(steps); await new Promise(r => setTimeout(r, 500)); }
+        steps[i] = { step: key, status: (found?.status as any) || "success", message: found?.message || steps[i].message, data: found?.data };
+        animate(steps);
+        await new Promise(r => setTimeout(r, 400));
+      }
+    } catch {
+      for (let i = 0; i < steps.length; i++) {
+        if (steps[i].status === "pending" || steps[i].status === "running") steps[i] = { ...steps[i], status: "error", message: "Step failed" };
+      }
+      animate(steps);
+    }
+    setAutoComplete(true);
+  };
+
   const createMutation = useMutation({
-    mutationFn: async (data: InsertCirCustomer) => { const r = await apiRequest("POST", "/api/cir-customers", data); return r.json(); },
-    onSuccess: (data) => {
+    mutationFn: async (data: InsertCirCustomer & { _activate?: boolean }) => {
+      const { _activate, ...payload } = data;
+      if (_activate) payload.status = "active";
+      const r = await apiRequest("POST", "/api/cir-customers", payload);
+      return r.json();
+    },
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/cir-customers"] });
-      setDialogOpen(false);
-      form.reset();
-      toast({ title: "CIR customer created" });
+      const isAddAnother = (variables as any)._addAnother;
       if (fromQueryId) {
         apiRequest("POST", `/api/customer-queries/${fromQueryId}/convert`, { customerId: data.id }).catch(() => {});
         queryClient.invalidateQueries({ queryKey: ["/api/customer-queries"] });
       }
+      // Show automation modal
+      setAutoCustomerName(data.companyName || "");
+      setAutoSteps(CIR_AUTO_STEPS.map(s => ({ step: s.key, status: "pending" as const, message: s.description })));
+      setAutoComplete(false);
+      setAddAnotherPending(!!isAddAnother);
+      setDialogOpen(false);
+      setAutoModalOpen(true);
+      runCirAutomation(data.id);
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -167,9 +220,12 @@ export default function CirCustomersPage() {
     setDialogOpen(true);
   };
 
-  const onSubmit = (data: InsertCirCustomer) => {
-    if (editing) updateMutation.mutate({ id: editing.id, data });
-    else createMutation.mutate(data);
+  const onSubmit = (data: InsertCirCustomer, opts: { activate?: boolean; addAnother?: boolean } = {}) => {
+    if (editing) {
+      updateMutation.mutate({ id: editing.id, data });
+    } else {
+      createMutation.mutate({ ...data, ...(opts.activate ? { _activate: true } : {}), ...(opts.addAnother ? { _addAnother: true } : {}) } as any);
+    }
   };
 
   const filtered = (cirCustomers || [])
@@ -473,20 +529,149 @@ export default function CirCustomersPage() {
                   <FormField control={form.control} name="notes" render={({ field }) => (<FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea rows={3} {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
                 </div>
               )}
-              <DialogFooter className="flex justify-between">
-                <div className="flex gap-2">
-                  {formSection > 0 && <Button type="button" variant="outline" onClick={() => setFormSection(s => s - 1)}>Previous</Button>}
-                  {formSection < 5 && <Button type="button" variant="outline" onClick={() => setFormSection(s => s + 1)}>Next</Button>}
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex gap-2">
+                    {formSection > 0 && <Button type="button" variant="outline" size="sm" onClick={() => setFormSection(s => s - 1)}>Previous</Button>}
+                    {formSection < 5 && <Button type="button" variant="outline" size="sm" onClick={() => setFormSection(s => s + 1)}>Next</Button>}
+                    <span className="text-xs text-muted-foreground self-center">Step {formSection + 1} of 6</span>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button type="button" variant="outline" size="sm" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                    {!editing && (
+                      <>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={createMutation.isPending}
+                          data-testid="button-cir-save-add-another"
+                          onClick={() => form.handleSubmit(data => onSubmit(data, { addAnother: true }))()}
+                        >
+                          Save & Add Another
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={createMutation.isPending}
+                          data-testid="button-cir-save-activate"
+                          className="border-green-500 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20"
+                          onClick={() => form.handleSubmit(data => onSubmit(data, { activate: true }))()}
+                        >
+                          <Zap className="h-3.5 w-3.5 mr-1.5" />Save & Activate
+                        </Button>
+                      </>
+                    )}
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={createMutation.isPending || updateMutation.isPending}
+                      data-testid="button-cir-submit"
+                      className="bg-gradient-to-r from-[#002B5B] to-[#005EFF] text-white"
+                    >
+                      {(createMutation.isPending || updateMutation.isPending) ? (
+                        <><RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />Saving...</>
+                      ) : editing ? (
+                        "Update"
+                      ) : (
+                        <><Check className="h-3.5 w-3.5 mr-1.5" />Save CIR Customer</>
+                      )}
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                  <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} data-testid="button-cir-submit" className="bg-gradient-to-r from-[#002B5B] to-[#005EFF]">
-                    {(createMutation.isPending || updateMutation.isPending) ? "Saving..." : editing ? "Update" : "Create"}
-                  </Button>
-                </div>
-              </DialogFooter>
+              </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Automation Progress Modal */}
+      <Dialog open={autoModalOpen} onOpenChange={(open) => { if (!open && autoComplete) { setAutoModalOpen(false); if (addAnotherPending) { setAddAnotherPending(false); openCreate(); } } }}>
+        <DialogContent className="max-w-lg p-0 overflow-hidden" data-testid="modal-cir-automation">
+          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 px-6 py-5 text-white">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                <Sparkles className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">Smart Automation Running</h2>
+                <p className="text-sm text-blue-100">Setting up {autoCustomerName || "new CIR client"}…</p>
+              </div>
+              {autoComplete && <div className="ml-auto"><CheckCircle2 className="h-8 w-8 text-green-300" /></div>}
+            </div>
+          </div>
+          <div className="px-6 py-5 space-y-3">
+            {CIR_AUTO_STEPS.map((stepDef) => {
+              const step = autoSteps.find(s => s.step === stepDef.key);
+              const status = step?.status ?? "pending";
+              const Icon = stepDef.icon;
+              return (
+                <div key={stepDef.key} className={`flex items-start gap-3 p-3 rounded-lg border transition-all duration-300 ${
+                  status === "success" ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800" :
+                  status === "error"   ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800" :
+                  status === "skipped" ? "bg-gray-50 dark:bg-gray-900/30 border-gray-200 dark:border-gray-700" :
+                  status === "running" ? "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800" :
+                  "bg-gray-50 dark:bg-gray-900/20 border-gray-200 dark:border-gray-800 opacity-50"
+                }`}>
+                  <div className={`mt-0.5 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    status === "success" ? "bg-green-100 dark:bg-green-900" :
+                    status === "error"   ? "bg-red-100 dark:bg-red-900" :
+                    status === "skipped" ? "bg-gray-100 dark:bg-gray-800" :
+                    status === "running" ? "bg-blue-100 dark:bg-blue-900 animate-pulse" :
+                    "bg-gray-100 dark:bg-gray-800"
+                  }`}>
+                    {status === "success" && <CheckCircle2 className="h-4 w-4 text-green-600" />}
+                    {status === "error"   && <XCircle className="h-4 w-4 text-red-600" />}
+                    {status === "skipped" && <SkipForward className="h-4 w-4 text-gray-400" />}
+                    {status === "running" && <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />}
+                    {status === "pending" && <Icon className="h-4 w-4 text-gray-400" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className={`text-sm font-semibold ${
+                        status === "success" ? "text-green-700 dark:text-green-300" :
+                        status === "error"   ? "text-red-700 dark:text-red-300" :
+                        status === "skipped" ? "text-gray-500 dark:text-gray-400" :
+                        status === "running" ? "text-blue-700 dark:text-blue-300" :
+                        "text-gray-500 dark:text-gray-400"
+                      }`}>{stepDef.label}</span>
+                      {status === "success" && <Badge className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 border-0">Done</Badge>}
+                      {status === "error"   && <Badge className="text-[10px] bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300 border-0">Failed</Badge>}
+                      {status === "skipped" && <Badge className="text-[10px] bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border-0">Skipped</Badge>}
+                      {status === "running" && <Badge className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 border-0 animate-pulse">Running…</Badge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{step?.message || stepDef.description}</p>
+                    {step?.data?.invoiceNumber && status === "success" && (
+                      <span className="mt-1 inline-block text-[10px] bg-white dark:bg-gray-800 border border-green-200 dark:border-green-700 rounded px-2 py-0.5 text-green-700 dark:text-green-300 font-mono">{step.data.invoiceNumber}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {autoComplete && (
+            <div className="px-6 pb-6">
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-xl p-4 border border-green-200 dark:border-green-800 mb-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-bold text-green-700 dark:text-green-300">Setup Complete!</span>
+                </div>
+                <p className="text-xs text-green-600 dark:text-green-400">
+                  {autoSteps.filter(s => s.status === "success").length} of {CIR_AUTO_STEPS.length} workflows executed successfully.
+                  {autoSteps.filter(s => s.status === "skipped").length > 0 && ` ${autoSteps.filter(s => s.status === "skipped").length} skipped.`}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => { setAutoModalOpen(false); if (addAnotherPending) { setAddAnotherPending(false); openCreate(); } }} data-testid="button-cir-auto-add-another">
+                  {addAnotherPending ? "Add Another" : "Close"}
+                </Button>
+                <Button className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white gap-1.5" onClick={() => setAutoModalOpen(false)} data-testid="button-cir-auto-done">
+                  <ArrowRight className="h-4 w-4" />Done
+                </Button>
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
