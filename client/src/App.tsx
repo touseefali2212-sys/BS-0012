@@ -124,6 +124,7 @@ function Router() {
       <Route path="/" component={DashboardPage} />
       <Route path="/customers" component={CustomersPage} />
       <Route path="/customers/add" component={AddCustomerPage} />
+      <Route path="/add-customer" component={AddCustomerPage} />
       <Route path="/customers/:id/edit" component={EditCustomerPage} />
       <Route path="/customers/:id" component={CustomerProfilePage} />
       <Route path="/client-requests/:id" component={ClientRequestProfilePage} />
