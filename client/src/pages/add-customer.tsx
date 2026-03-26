@@ -7,7 +7,8 @@ import {
   AlertCircle, Camera, Calculator, Phone, Mail, Shield,
   Building2, Zap, Package, UserCheck, Image, X,
   CheckCircle2, XCircle, Loader2, SkipForward, FileSpreadsheet,
-  ClipboardList, Send, Users, Radio, Sparkles, ArrowRight, LocateFixed, Plus, Tv
+  ClipboardList, Send, Users, Radio, Sparkles, ArrowRight, LocateFixed, Plus, Tv,
+  Network, Activity, DollarSign, Globe,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,32 @@ const AUTOMATION_STEPS: Array<{ key: string; label: string; icon: any; descripti
   { key: "notification_customer", label: "Customer Notification",       icon: Send,            description: "Sending welcome message to customer" },
   { key: "notification_employee", label: "Employee Notification",       icon: Users,           description: "Notifying assigned employee" },
 ];
+
+const CORP_ADD_STEPS: Array<{ key: string; label: string; icon: any; description: string }> = [
+  { key: "invoice", label: "Auto Invoice Generation", icon: FileSpreadsheet, description: "Generating first invoice for this Corporate customer" },
+  { key: "notification_customer", label: "Account Manager Notification", icon: Send, description: "Notifying account manager of new corporate client" },
+];
+
+const CIR_ADD_STEPS: Array<{ key: string; label: string; icon: any; description: string }> = [
+  { key: "invoice", label: "Auto Invoice Generation", icon: FileSpreadsheet, description: "Generating first invoice for this CIR customer" },
+  { key: "notification_customer", label: "Account Manager Notification", icon: Send, description: "Notifying account manager of new CIR client" },
+];
+
+const corpTabItems = [
+  { id: "company",  label: "Company Info",         icon: Building2 },
+  { id: "billing",  label: "Billing & Terms",       icon: DollarSign },
+  { id: "sla",      label: "Contract & SLA",        icon: Shield },
+  { id: "services", label: "Value-Added Services",  icon: Zap },
+];
+
+const cirTabItems = [
+  { id: "company",    label: "Company Info",    icon: Building2 },
+  { id: "network",    label: "Network Details", icon: Network },
+  { id: "billing",    label: "SLA & Billing",   icon: DollarSign },
+  { id: "monitoring", label: "Monitoring",      icon: Activity },
+];
+
+const industryOptions = ["Technology", "Finance", "Healthcare", "Manufacturing", "Education", "Retail", "Government", "Telecom", "Real Estate", "Other"];
 
 function generatePassword(length = 12) {
   const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
@@ -236,6 +263,43 @@ export default function AddCustomerPage() {
   const [autoCustomerName, setAutoCustomerName] = useState("");
   const [savedCustomerId, setSavedCustomerId] = useState<number | null>(null);
 
+  // Customer type category
+  const [customerCategory, setCustomerCategory] = useState<"normal" | "corporate" | "cir">("normal");
+  const [corpActiveTab, setCorpActiveTab] = useState("company");
+  const [cirActiveTab, setCirActiveTab] = useState("company");
+
+  // Corporate form state
+  const [corpForm, setCorpForm] = useState({
+    companyName: "", registrationNumber: "", ntn: "", industryType: "",
+    headOfficeAddress: "", billingAddress: "", accountManager: "", email: "", phone: "",
+    centralizedBilling: true, perBranchBilling: false, customInvoiceFormat: "",
+    paymentTerms: "net_30", creditLimit: "0", securityDeposit: "0",
+    contractDuration: "", customSla: "", dedicatedAccountManager: "", customPricingAgreement: "",
+    managedRouter: false, firewall: false, loadBalancer: false, dedicatedSupport: false,
+    backupLink: false, monitoringSla: false,
+    totalBandwidth: "", monthlyBilling: "0", status: "active", notes: "",
+  });
+
+  // CIR form state
+  const [cirForm, setCirForm] = useState({
+    companyName: "", contactPerson: "", cnic: "", ntn: "", email: "", phone: "",
+    address: "", city: "", branch: "", vendorId: "", vendorPort: "",
+    committedBandwidth: "", burstBandwidth: "", uploadSpeed: "", downloadSpeed: "",
+    contentionRatio: "", vlanId: "", onuDevice: "", staticIp: "", subnetMask: "",
+    gateway: "", dns: "", publicIpBlock: "",
+    contractStartDate: "", contractEndDate: "", slaLevel: "", slaPenaltyClause: "",
+    autoRenewal: false, monthlyCharges: "0", installationCharges: "0",
+    securityDeposit: "0", billingCycle: "monthly", invoiceType: "tax", lateFeePolicy: "",
+    radiusProfile: "", bandwidthProfileName: "", monitoringEnabled: false,
+    snmpMonitoring: false, trafficAlerts: false, status: "active", notes: "",
+  });
+
+  const updateCorp = (field: string, value: string | boolean) =>
+    setCorpForm(prev => ({ ...prev, [field]: value }));
+
+  const updateCir = (field: string, value: string | boolean) =>
+    setCirForm(prev => ({ ...prev, [field]: value }));
+
   // Additional packages (IPTV, Cable TV, OTT, etc.)
   const [addlPkgs, setAddlPkgs] = useState<{packageId: string; bill: string}[]>([]);
   const addlPkgsTotal = addlPkgs.reduce((s, p) => s + (parseFloat(p.bill) || 0), 0);
@@ -430,6 +494,37 @@ export default function AddCustomerPage() {
       notes: q.remarks || prev.notes,
     }));
   }, [fromQueryData, branches]);
+
+  // Auto-detect customer category from query data
+  useEffect(() => {
+    if (!fromQueryData) return;
+    const type = fromQueryData.customerType;
+    if (type === "Corporate") {
+      setCustomerCategory("corporate");
+      setCorpForm(prev => ({
+        ...prev,
+        companyName: fromQueryData.name || "",
+        email: fromQueryData.email || "",
+        phone: fromQueryData.phone || "",
+        headOfficeAddress: fromQueryData.address || "",
+        billingAddress: fromQueryData.address || "",
+        monthlyBilling: fromQueryData.monthlyCharges || "0",
+      }));
+    } else if (type === "CIR") {
+      setCustomerCategory("cir");
+      setCirForm(prev => ({
+        ...prev,
+        companyName: fromQueryData.name || "",
+        contactPerson: fromQueryData.name || "",
+        email: fromQueryData.email || "",
+        phone: fromQueryData.phone || "",
+        address: fromQueryData.address || "",
+        city: fromQueryData.city || "",
+        monthlyCharges: fromQueryData.monthlyCharges || "0",
+        committedBandwidth: fromQueryData.bandwidthRequired ? `${fromQueryData.bandwidthRequired} Mbps` : "",
+      }));
+    }
+  }, [fromQueryData]);
 
   const handlePackageChange = (pkgId: string) => {
     const pkg = packages?.find(p => String(p.id) === pkgId);
@@ -704,6 +799,126 @@ export default function AddCustomerPage() {
     saveMutation.mutate(options ?? {});
   };
 
+  // Corporate automation runner
+  const runCorpAddAutomation = async (customerId: number, initialSteps: AutoStep[]) => {
+    const animate = (steps: AutoStep[]) => setAutoSteps([...steps]);
+    const steps = [...initialSteps];
+    steps[0] = { ...steps[0], status: "running" };
+    animate(steps);
+    try {
+      const res = await apiRequest("POST", `/api/corporate-customers/${customerId}/automate`);
+      const result = await res.json();
+      const serverSteps: Array<{ step: string; status: string; message: string; data?: any }> = result.steps || [];
+      for (let i = 0; i < CORP_ADD_STEPS.length; i++) {
+        const key = CORP_ADD_STEPS[i].key;
+        const found = serverSteps.find(s => s.step === key);
+        if (i > 0) { steps[i] = { ...steps[i], status: "running" }; animate(steps); await new Promise(r => setTimeout(r, 500)); }
+        steps[i] = { step: key, status: (found?.status as any) || "success", message: found?.message || steps[i].message, data: found?.data };
+        animate(steps);
+        await new Promise(r => setTimeout(r, 400));
+      }
+    } catch { steps.forEach((s, i) => { if (s.status === "pending" || s.status === "running") steps[i] = { ...s, status: "error", message: "Step failed" }; }); animate(steps); }
+    setAutoComplete(true);
+  };
+
+  // CIR automation runner
+  const runCirAddAutomation = async (customerId: number, initialSteps: AutoStep[]) => {
+    const animate = (steps: AutoStep[]) => setAutoSteps([...steps]);
+    const steps = [...initialSteps];
+    steps[0] = { ...steps[0], status: "running" };
+    animate(steps);
+    try {
+      const res = await apiRequest("POST", `/api/cir-customers/${customerId}/automate`);
+      const result = await res.json();
+      const serverSteps: Array<{ step: string; status: string; message: string; data?: any }> = result.steps || [];
+      for (let i = 0; i < CIR_ADD_STEPS.length; i++) {
+        const key = CIR_ADD_STEPS[i].key;
+        const found = serverSteps.find(s => s.step === key);
+        if (i > 0) { steps[i] = { ...steps[i], status: "running" }; animate(steps); await new Promise(r => setTimeout(r, 500)); }
+        steps[i] = { step: key, status: (found?.status as any) || "success", message: found?.message || steps[i].message, data: found?.data };
+        animate(steps);
+        await new Promise(r => setTimeout(r, 400));
+      }
+    } catch { steps.forEach((s, i) => { if (s.status === "pending" || s.status === "running") steps[i] = { ...s, status: "error", message: "Step failed" }; }); animate(steps); }
+    setAutoComplete(true);
+  };
+
+  // Corporate save mutation
+  const saveCorpMutation = useMutation({
+    mutationFn: async (opts: { activate?: boolean } = {}) => {
+      const payload = {
+        ...corpForm,
+        vendorId: undefined,
+        status: opts.activate ? "active" : corpForm.status,
+        creditLimit: corpForm.creditLimit || "0",
+        securityDeposit: corpForm.securityDeposit || "0",
+        monthlyBilling: corpForm.monthlyBilling || "0",
+      };
+      const res = await apiRequest("POST", "/api/corporate-customers", payload);
+      return res.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/corporate-customers"] });
+      setAutoCustomerName(data.companyName || corpForm.companyName);
+      const steps = CORP_ADD_STEPS.map(s => ({ step: s.key, status: "pending" as const, message: s.description }));
+      setAutoSteps(steps);
+      setAutoComplete(false);
+      setSavedCustomerId(data.id);
+      setAutoModalOpen(true);
+      runCorpAddAutomation(data.id, steps);
+      if (fromQueryId) {
+        apiRequest("POST", `/api/customer-queries/${fromQueryId}/convert`, { customerId: data.id }).catch(() => {});
+        queryClient.invalidateQueries({ queryKey: ["/api/customer-queries"] });
+      }
+    },
+    onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
+  // CIR save mutation
+  const saveCirMutation = useMutation({
+    mutationFn: async (opts: { activate?: boolean } = {}) => {
+      const payload = {
+        ...cirForm,
+        vendorId: cirForm.vendorId ? parseInt(cirForm.vendorId) : null,
+        status: opts.activate ? "active" : cirForm.status,
+        monthlyCharges: cirForm.monthlyCharges || "0",
+        installationCharges: cirForm.installationCharges || "0",
+        securityDeposit: cirForm.securityDeposit || "0",
+      };
+      const res = await apiRequest("POST", "/api/cir-customers", payload);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cir-customers"] });
+      setAutoCustomerName(data.companyName || cirForm.companyName);
+      const steps = CIR_ADD_STEPS.map(s => ({ step: s.key, status: "pending" as const, message: s.description }));
+      setAutoSteps(steps);
+      setAutoComplete(false);
+      setSavedCustomerId(data.id);
+      setAutoModalOpen(true);
+      runCirAddAutomation(data.id, steps);
+      if (fromQueryId) {
+        apiRequest("POST", `/api/customer-queries/${fromQueryId}/convert`, { customerId: data.id }).catch(() => {});
+        queryClient.invalidateQueries({ queryKey: ["/api/customer-queries"] });
+      }
+    },
+    onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
+  const handleCorpSave = (opts: { activate?: boolean } = {}) => {
+    if (!corpForm.companyName || corpForm.companyName.trim().length < 2) {
+      toast({ title: "Company Name required", description: "Please enter the company name", variant: "destructive" }); return;
+    }
+    saveCorpMutation.mutate(opts);
+  };
+
+  const handleCirSave = (opts: { activate?: boolean } = {}) => {
+    if (!cirForm.companyName || cirForm.companyName.trim().length < 2) {
+      toast({ title: "Company Name required", description: "Please enter the company name", variant: "destructive" }); return;
+    }
+    saveCirMutation.mutate(opts);
+  };
+
   const tabIndex = tabItems.findIndex(t => t.id === activeTab);
   const isLastTab = tabIndex === tabItems.length - 1;
   const isFirstTab = tabIndex === 0;
@@ -715,30 +930,70 @@ export default function AddCustomerPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setLocation("/customers")}
+            onClick={() => setLocation(customerCategory === "corporate" ? "/corporate-customers" : customerCategory === "cir" ? "/cir-customers" : "/customers")}
             className="gap-2 text-muted-foreground hover:text-foreground"
             data-testid="button-back-customers"
           >
             <ChevronLeft className="h-4 w-4" />
-            Back to Customers
+            {customerCategory === "corporate" ? "Back to Corporate Customers" : customerCategory === "cir" ? "Back to CIR Customers" : "Back to Customers"}
           </Button>
           <Separator orientation="vertical" className="h-5" />
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-md">
-              <UserCheck className="h-5 w-5 text-white" />
+            <div className={`h-9 w-9 rounded-xl flex items-center justify-center shadow-md ${
+              customerCategory === "corporate" ? "bg-gradient-to-br from-[#002B5B] to-[#005EFF]" :
+              customerCategory === "cir" ? "bg-gradient-to-br from-purple-600 to-indigo-600" :
+              "bg-gradient-to-br from-blue-600 to-indigo-600"
+            }`}>
+              {customerCategory === "corporate" ? <Building2 className="h-5 w-5 text-white" /> :
+               customerCategory === "cir" ? <Globe className="h-5 w-5 text-white" /> :
+               <UserCheck className="h-5 w-5 text-white" />}
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">
-                Add New {fromQueryId && form.customerType && form.customerType !== "Normal" ? `${form.customerType} ` : ""}Customer
+                {customerCategory === "corporate" ? "Add Corporate Customer" : customerCategory === "cir" ? "Add CIR Customer" : "Add New Customer"}
               </h1>
               <p className="text-xs text-muted-foreground">
-                {fromQueryId && form.customerType && form.customerType !== "Normal"
-                  ? `${form.customerType} customer onboarding form`
-                  : "Complete customer onboarding form"}
+                {customerCategory === "corporate" ? "Enterprise multi-branch client onboarding" : customerCategory === "cir" ? "Committed Information Rate dedicated link" : "Complete customer onboarding form"}
               </p>
             </div>
           </div>
         </div>
+
+        {/* Customer Type Selector */}
+        {!fromQueryId && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {([
+              { id: "normal",    label: "Customer",          sub: "Standard internet subscriber",        icon: User,      grad: "from-blue-600 to-indigo-600" },
+              { id: "corporate", label: "Corporate Customer", sub: "Enterprise multi-branch client",      icon: Building2, grad: "from-[#002B5B] to-[#005EFF]" },
+              { id: "cir",       label: "CIR Customer",       sub: "Committed Information Rate link",     icon: Globe,     grad: "from-purple-600 to-indigo-600" },
+            ] as const).map(({ id, label, sub, icon: Icon, grad }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setCustomerCategory(id)}
+                data-testid={`type-select-${id}`}
+                className={`group relative flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all duration-200 ${
+                  customerCategory === id
+                    ? "border-transparent shadow-lg ring-2 ring-offset-1 ring-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30"
+                    : "border-border/60 bg-white dark:bg-slate-900 hover:border-blue-300 hover:shadow-md"
+                }`}
+              >
+                <div className={`h-11 w-11 rounded-xl bg-gradient-to-br ${grad} flex items-center justify-center flex-shrink-0 shadow-md group-hover:scale-105 transition-transform`}>
+                  <Icon className="h-5 w-5 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-semibold leading-tight ${customerCategory === id ? "text-blue-700 dark:text-blue-300" : "text-foreground"}`}>{label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{sub}</p>
+                </div>
+                {customerCategory === id && (
+                  <div className="h-5 w-5 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                    <Check className="h-3 w-3 text-white" />
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
 
         {fromQueryId && (
           <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-sm">
@@ -754,6 +1009,7 @@ export default function AddCustomerPage() {
           </div>
         )}
 
+        {customerCategory === "normal" && (
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="sticky top-0 z-10 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md rounded-2xl border border-border/60 shadow-sm p-1.5">
             <TabsList className="w-full bg-transparent gap-1 h-auto flex-wrap">
@@ -2172,86 +2428,338 @@ export default function AddCustomerPage() {
             </Card>
           </TabsContent>
         </Tabs>
+        )}
+
+        {/* ─── Corporate Customer Form ─── */}
+        {customerCategory === "corporate" && (
+          <div className="space-y-4">
+            <div className="sticky top-0 z-10 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md rounded-2xl border border-border/60 shadow-sm p-1.5">
+              <div className="flex gap-1 flex-wrap">
+                {corpTabItems.map((tab, i) => {
+                  const Icon = tab.icon;
+                  const isActive = corpActiveTab === tab.id;
+                  return (
+                    <button key={tab.id} type="button" onClick={() => setCorpActiveTab(tab.id)} data-testid={`corp-tab-${tab.id}`}
+                      className={`flex-1 min-w-fit flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${isActive ? "bg-gradient-to-br from-[#002B5B] to-[#005EFF] text-white shadow-md" : "text-muted-foreground hover:bg-muted/60"}`}>
+                      <Icon className="h-4 w-4" /><span className="hidden sm:inline">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Company Info */}
+            {corpActiveTab === "company" && (
+              <Card className="border-border/60 shadow-sm">
+                <CardHeader className="pb-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center"><Building2 className="h-5 w-5 text-blue-600" /></div><div><CardTitle className="text-base">Company Information</CardTitle><CardDescription>Enterprise identity and contact details</CardDescription></div></div></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Company Name <span className="text-red-500">*</span></label><Input placeholder="Acme Corporation" value={corpForm.companyName} onChange={e => updateCorp("companyName", e.target.value)} data-testid="input-corp-company-name" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Registration Number</label><Input placeholder="REG-XXXX-XXXX" value={corpForm.registrationNumber} onChange={e => updateCorp("registrationNumber", e.target.value)} data-testid="input-corp-reg-number" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">NTN / Tax Number</label><Input placeholder="XXXXXXX-X" value={corpForm.ntn} onChange={e => updateCorp("ntn", e.target.value)} data-testid="input-corp-ntn" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Industry Type</label>
+                      <Select value={corpForm.industryType} onValueChange={v => updateCorp("industryType", v)}><SelectTrigger data-testid="select-corp-industry"><SelectValue placeholder="Select industry" /></SelectTrigger><SelectContent>{industryOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Email</label><Input type="email" placeholder="accounts@company.com" value={corpForm.email} onChange={e => updateCorp("email", e.target.value)} data-testid="input-corp-email" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Phone</label><Input placeholder="021-XXXXXXXX" value={corpForm.phone} onChange={e => updateCorp("phone", e.target.value)} data-testid="input-corp-phone" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Account Manager</label><Input placeholder="Manager name" value={corpForm.accountManager} onChange={e => updateCorp("accountManager", e.target.value)} data-testid="input-corp-account-manager" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Total Bandwidth</label><Input placeholder="e.g. 1 Gbps" value={corpForm.totalBandwidth} onChange={e => updateCorp("totalBandwidth", e.target.value)} data-testid="input-corp-bandwidth" /></div>
+                  </div>
+                  <div className="space-y-1.5"><label className="text-sm font-medium">Head Office Address</label><Textarea rows={2} placeholder="Full head office address" value={corpForm.headOfficeAddress} onChange={e => updateCorp("headOfficeAddress", e.target.value)} data-testid="input-corp-head-address" /></div>
+                  <div className="space-y-1.5"><label className="text-sm font-medium">Billing Address</label><Textarea rows={2} placeholder="Billing address (if different)" value={corpForm.billingAddress} onChange={e => updateCorp("billingAddress", e.target.value)} data-testid="input-corp-billing-address" /></div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Billing & Terms */}
+            {corpActiveTab === "billing" && (
+              <Card className="border-border/60 shadow-sm">
+                <CardHeader className="pb-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center"><DollarSign className="h-5 w-5 text-green-600" /></div><div><CardTitle className="text-base">Billing & Payment Terms</CardTitle><CardDescription>Financial settings for this corporate account</CardDescription></div></div></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Payment Terms</label>
+                      <Select value={corpForm.paymentTerms} onValueChange={v => updateCorp("paymentTerms", v)}><SelectTrigger data-testid="select-corp-payment-terms"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="net_15">Net 15</SelectItem><SelectItem value="net_30">Net 30</SelectItem><SelectItem value="net_45">Net 45</SelectItem><SelectItem value="net_60">Net 60</SelectItem><SelectItem value="advance">Advance</SelectItem></SelectContent></Select>
+                    </div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Monthly Billing (Rs.)</label><Input type="number" placeholder="0.00" value={corpForm.monthlyBilling} onChange={e => updateCorp("monthlyBilling", e.target.value)} data-testid="input-corp-monthly-billing" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Credit Limit (Rs.)</label><Input type="number" placeholder="0.00" value={corpForm.creditLimit} onChange={e => updateCorp("creditLimit", e.target.value)} data-testid="input-corp-credit-limit" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Security Deposit (Rs.)</label><Input type="number" placeholder="0.00" value={corpForm.securityDeposit} onChange={e => updateCorp("securityDeposit", e.target.value)} data-testid="input-corp-security-deposit" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Custom Invoice Format</label><Input placeholder="e.g. PDF, Excel" value={corpForm.customInvoiceFormat} onChange={e => updateCorp("customInvoiceFormat", e.target.value)} data-testid="input-corp-invoice-format" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Status</label>
+                      <Select value={corpForm.status} onValueChange={v => updateCorp("status", v)}><SelectTrigger data-testid="select-corp-status"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="suspended">Suspended</SelectItem></SelectContent></Select>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-6">
+                    <div className="flex items-center gap-3"><Switch checked={corpForm.centralizedBilling} onCheckedChange={v => updateCorp("centralizedBilling", v)} data-testid="switch-corp-centralized-billing" /><div><p className="text-sm font-medium">Centralized Billing</p><p className="text-xs text-muted-foreground">Single invoice for all branches</p></div></div>
+                    <div className="flex items-center gap-3"><Switch checked={corpForm.perBranchBilling} onCheckedChange={v => updateCorp("perBranchBilling", v)} data-testid="switch-corp-per-branch-billing" /><div><p className="text-sm font-medium">Per-Branch Billing</p><p className="text-xs text-muted-foreground">Separate invoice per branch</p></div></div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Contract & SLA */}
+            {corpActiveTab === "sla" && (
+              <Card className="border-border/60 shadow-sm">
+                <CardHeader className="pb-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center"><Shield className="h-5 w-5 text-purple-600" /></div><div><CardTitle className="text-base">Contract & SLA</CardTitle><CardDescription>Service level agreement and contract details</CardDescription></div></div></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Contract Duration</label><Input placeholder="e.g. 24 months" value={corpForm.contractDuration} onChange={e => updateCorp("contractDuration", e.target.value)} data-testid="input-corp-contract-duration" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Dedicated Account Manager</label><Input placeholder="Manager name" value={corpForm.dedicatedAccountManager} onChange={e => updateCorp("dedicatedAccountManager", e.target.value)} data-testid="input-corp-dedicated-manager" /></div>
+                  </div>
+                  <div className="space-y-1.5"><label className="text-sm font-medium">Custom SLA</label><Textarea rows={2} placeholder="e.g. 99.9% uptime, 4hr response" value={corpForm.customSla} onChange={e => updateCorp("customSla", e.target.value)} data-testid="input-corp-custom-sla" /></div>
+                  <div className="space-y-1.5"><label className="text-sm font-medium">Custom Pricing Agreement</label><Textarea rows={2} placeholder="Special pricing notes or agreement details" value={corpForm.customPricingAgreement} onChange={e => updateCorp("customPricingAgreement", e.target.value)} data-testid="input-corp-pricing-agreement" /></div>
+                  <div className="space-y-1.5"><label className="text-sm font-medium">Notes</label><Textarea rows={3} placeholder="Additional notes..." value={corpForm.notes} onChange={e => updateCorp("notes", e.target.value)} data-testid="input-corp-notes" /></div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Value-Added Services */}
+            {corpActiveTab === "services" && (
+              <Card className="border-border/60 shadow-sm">
+                <CardHeader className="pb-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center"><Zap className="h-5 w-5 text-amber-600" /></div><div><CardTitle className="text-base">Value-Added Services</CardTitle><CardDescription>Enterprise add-on services for this account</CardDescription></div></div></CardHeader>
+                <CardContent className="space-y-3">
+                  {[
+                    { key: "managedRouter",   label: "Managed Router",    desc: "ISP-managed router with remote support" },
+                    { key: "firewall",         label: "Firewall",          desc: "Hardware firewall protection" },
+                    { key: "loadBalancer",     label: "Load Balancer",     desc: "Traffic distribution across links" },
+                    { key: "dedicatedSupport", label: "Dedicated Support",  desc: "24/7 dedicated support line" },
+                    { key: "backupLink",       label: "Backup Link",        desc: "Secondary redundant connection" },
+                    { key: "monitoringSla",    label: "SLA Monitoring",     desc: "Active monitoring with SLA guarantees" },
+                  ].map(({ key, label, desc }) => (
+                    <div key={key} className="flex items-center justify-between p-3 rounded-xl border bg-muted/20">
+                      <div><p className="text-sm font-medium">{label}</p><p className="text-xs text-muted-foreground">{desc}</p></div>
+                      <Switch checked={corpForm[key as keyof typeof corpForm] as boolean} onCheckedChange={v => updateCorp(key, v)} data-testid={`switch-corp-${key}`} />
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* ─── CIR Customer Form ─── */}
+        {customerCategory === "cir" && (
+          <div className="space-y-4">
+            <div className="sticky top-0 z-10 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md rounded-2xl border border-border/60 shadow-sm p-1.5">
+              <div className="flex gap-1 flex-wrap">
+                {cirTabItems.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = cirActiveTab === tab.id;
+                  return (
+                    <button key={tab.id} type="button" onClick={() => setCirActiveTab(tab.id)} data-testid={`cir-tab-${tab.id}`}
+                      className={`flex-1 min-w-fit flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${isActive ? "bg-gradient-to-br from-purple-600 to-indigo-600 text-white shadow-md" : "text-muted-foreground hover:bg-muted/60"}`}>
+                      <Icon className="h-4 w-4" /><span className="hidden sm:inline">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Company Info */}
+            {cirActiveTab === "company" && (
+              <Card className="border-border/60 shadow-sm">
+                <CardHeader className="pb-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center"><Building2 className="h-5 w-5 text-purple-600" /></div><div><CardTitle className="text-base">Company Information</CardTitle><CardDescription>CIR client identity and contact details</CardDescription></div></div></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Company Name <span className="text-red-500">*</span></label><Input placeholder="Company name" value={cirForm.companyName} onChange={e => updateCir("companyName", e.target.value)} data-testid="input-cir-company-name" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Contact Person</label><Input placeholder="Primary contact name" value={cirForm.contactPerson} onChange={e => updateCir("contactPerson", e.target.value)} data-testid="input-cir-contact-person" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">CNIC / NID</label><Input placeholder="XXXXX-XXXXXXX-X" value={cirForm.cnic} onChange={e => updateCir("cnic", e.target.value)} data-testid="input-cir-cnic" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">NTN</label><Input placeholder="XXXXXXX-X" value={cirForm.ntn} onChange={e => updateCir("ntn", e.target.value)} data-testid="input-cir-ntn" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Email</label><Input type="email" placeholder="contact@company.com" value={cirForm.email} onChange={e => updateCir("email", e.target.value)} data-testid="input-cir-email" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Phone</label><Input placeholder="Phone number" value={cirForm.phone} onChange={e => updateCir("phone", e.target.value)} data-testid="input-cir-phone" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">City</label><Input placeholder="City" value={cirForm.city} onChange={e => updateCir("city", e.target.value)} data-testid="input-cir-city" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Branch</label>
+                      <Select value={cirForm.branch} onValueChange={v => updateCir("branch", v)}><SelectTrigger data-testid="select-cir-branch"><SelectValue placeholder="Select branch" /></SelectTrigger><SelectContent>{(branches || []).map(b => <SelectItem key={b.id} value={b.name || String(b.id)}>{b.name}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5"><label className="text-sm font-medium">Address</label><Textarea rows={2} placeholder="Full address" value={cirForm.address} onChange={e => updateCir("address", e.target.value)} data-testid="input-cir-address" /></div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Network Details */}
+            {cirActiveTab === "network" && (
+              <Card className="border-border/60 shadow-sm">
+                <CardHeader className="pb-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center"><Network className="h-5 w-5 text-blue-600" /></div><div><CardTitle className="text-base">Network Details</CardTitle><CardDescription>CIR connection and IP configuration</CardDescription></div></div></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Vendor</label>
+                      <Select value={cirForm.vendorId} onValueChange={v => updateCir("vendorId", v)}><SelectTrigger data-testid="select-cir-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger><SelectContent>{(vendors || []).map(v => <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>)}</SelectContent></Select>
+                    </div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Vendor Port</label><Input placeholder="Port identifier" value={cirForm.vendorPort} onChange={e => updateCir("vendorPort", e.target.value)} data-testid="input-cir-vendor-port" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Committed Bandwidth</label><Input placeholder="e.g. 100 Mbps" value={cirForm.committedBandwidth} onChange={e => updateCir("committedBandwidth", e.target.value)} data-testid="input-cir-committed-bw" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Burst Bandwidth</label><Input placeholder="e.g. 200 Mbps" value={cirForm.burstBandwidth} onChange={e => updateCir("burstBandwidth", e.target.value)} data-testid="input-cir-burst-bw" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Upload Speed</label><Input placeholder="e.g. 100 Mbps" value={cirForm.uploadSpeed} onChange={e => updateCir("uploadSpeed", e.target.value)} data-testid="input-cir-upload-speed" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Download Speed</label><Input placeholder="e.g. 100 Mbps" value={cirForm.downloadSpeed} onChange={e => updateCir("downloadSpeed", e.target.value)} data-testid="input-cir-download-speed" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Contention Ratio</label><Input placeholder="e.g. 1:1" value={cirForm.contentionRatio} onChange={e => updateCir("contentionRatio", e.target.value)} data-testid="input-cir-contention-ratio" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">VLAN ID</label><Input placeholder="e.g. 100" value={cirForm.vlanId} onChange={e => updateCir("vlanId", e.target.value)} data-testid="input-cir-vlan-id" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">ONU Device</label><Input placeholder="ONU serial/model" value={cirForm.onuDevice} onChange={e => updateCir("onuDevice", e.target.value)} data-testid="input-cir-onu-device" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Static IP</label><Input placeholder="e.g. 192.168.1.1" value={cirForm.staticIp} onChange={e => updateCir("staticIp", e.target.value)} data-testid="input-cir-static-ip" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Subnet Mask</label><Input placeholder="e.g. 255.255.255.0" value={cirForm.subnetMask} onChange={e => updateCir("subnetMask", e.target.value)} data-testid="input-cir-subnet-mask" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Gateway</label><Input placeholder="e.g. 192.168.1.254" value={cirForm.gateway} onChange={e => updateCir("gateway", e.target.value)} data-testid="input-cir-gateway" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">DNS</label><Input placeholder="e.g. 8.8.8.8" value={cirForm.dns} onChange={e => updateCir("dns", e.target.value)} data-testid="input-cir-dns" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Public IP Block</label><Input placeholder="e.g. 203.0.113.0/28" value={cirForm.publicIpBlock} onChange={e => updateCir("publicIpBlock", e.target.value)} data-testid="input-cir-public-ip-block" /></div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* SLA & Billing */}
+            {cirActiveTab === "billing" && (
+              <Card className="border-border/60 shadow-sm">
+                <CardHeader className="pb-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center"><DollarSign className="h-5 w-5 text-green-600" /></div><div><CardTitle className="text-base">SLA & Billing</CardTitle><CardDescription>Service level agreement and financial terms</CardDescription></div></div></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Contract Start Date</label><Input type="date" value={cirForm.contractStartDate} onChange={e => updateCir("contractStartDate", e.target.value)} data-testid="input-cir-contract-start" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Contract End Date</label><Input type="date" value={cirForm.contractEndDate} onChange={e => updateCir("contractEndDate", e.target.value)} data-testid="input-cir-contract-end" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">SLA Level</label><Input placeholder="e.g. 99.99% uptime" value={cirForm.slaLevel} onChange={e => updateCir("slaLevel", e.target.value)} data-testid="input-cir-sla-level" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Late Fee Policy</label><Input placeholder="e.g. 2% per month" value={cirForm.lateFeePolicy} onChange={e => updateCir("lateFeePolicy", e.target.value)} data-testid="input-cir-late-fee" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Monthly Charges (Rs.)</label><Input type="number" placeholder="0.00" value={cirForm.monthlyCharges} onChange={e => updateCir("monthlyCharges", e.target.value)} data-testid="input-cir-monthly-charges" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Installation Charges (Rs.)</label><Input type="number" placeholder="0.00" value={cirForm.installationCharges} onChange={e => updateCir("installationCharges", e.target.value)} data-testid="input-cir-installation-charges" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Security Deposit (Rs.)</label><Input type="number" placeholder="0.00" value={cirForm.securityDeposit} onChange={e => updateCir("securityDeposit", e.target.value)} data-testid="input-cir-security-deposit" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Billing Cycle</label>
+                      <Select value={cirForm.billingCycle} onValueChange={v => updateCir("billingCycle", v)}><SelectTrigger data-testid="select-cir-billing-cycle"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="monthly">Monthly</SelectItem><SelectItem value="quarterly">Quarterly</SelectItem><SelectItem value="semi-annual">Semi-Annual</SelectItem><SelectItem value="annual">Annual</SelectItem></SelectContent></Select>
+                    </div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Invoice Type</label>
+                      <Select value={cirForm.invoiceType} onValueChange={v => updateCir("invoiceType", v)}><SelectTrigger data-testid="select-cir-invoice-type"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="tax">Tax Invoice</SelectItem><SelectItem value="non-tax">Non-Tax</SelectItem></SelectContent></Select>
+                    </div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Status</label>
+                      <Select value={cirForm.status} onValueChange={v => updateCir("status", v)}><SelectTrigger data-testid="select-cir-status"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem><SelectItem value="suspended">Suspended</SelectItem></SelectContent></Select>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5"><label className="text-sm font-medium">SLA Penalty Clause</label><Textarea rows={2} placeholder="Describe the SLA penalty clause" value={cirForm.slaPenaltyClause} onChange={e => updateCir("slaPenaltyClause", e.target.value)} data-testid="input-cir-sla-penalty" /></div>
+                  <div className="flex items-center gap-3"><Switch checked={cirForm.autoRenewal} onCheckedChange={v => updateCir("autoRenewal", v)} data-testid="switch-cir-auto-renewal" /><div><p className="text-sm font-medium">Auto Renewal</p><p className="text-xs text-muted-foreground">Automatically renew contract at expiry</p></div></div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Monitoring */}
+            {cirActiveTab === "monitoring" && (
+              <Card className="border-border/60 shadow-sm">
+                <CardHeader className="pb-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center"><Activity className="h-5 w-5 text-orange-600" /></div><div><CardTitle className="text-base">Monitoring & Network Profiles</CardTitle><CardDescription>Network monitoring and provisioning settings</CardDescription></div></div></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Radius Profile</label><Input placeholder="Radius profile name" value={cirForm.radiusProfile} onChange={e => updateCir("radiusProfile", e.target.value)} data-testid="input-cir-radius-profile" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Bandwidth Profile Name</label><Input placeholder="Bandwidth profile" value={cirForm.bandwidthProfileName} onChange={e => updateCir("bandwidthProfileName", e.target.value)} data-testid="input-cir-bw-profile" /></div>
+                  </div>
+                  <div className="space-y-3">
+                    {[
+                      { key: "monitoringEnabled", label: "Monitoring Enabled",  desc: "Enable active monitoring for this CIR link" },
+                      { key: "snmpMonitoring",    label: "SNMP Monitoring",      desc: "Monitor via SNMP protocol" },
+                      { key: "trafficAlerts",     label: "Traffic Alerts",       desc: "Send alerts on bandwidth threshold breach" },
+                    ].map(({ key, label, desc }) => (
+                      <div key={key} className="flex items-center justify-between p-3 rounded-xl border bg-muted/20">
+                        <div><p className="text-sm font-medium">{label}</p><p className="text-xs text-muted-foreground">{desc}</p></div>
+                        <Switch checked={cirForm[key as keyof typeof cirForm] as boolean} onCheckedChange={v => updateCir(key, v)} data-testid={`switch-cir-${key}`} />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-1.5"><label className="text-sm font-medium">Notes</label><Textarea rows={3} placeholder="Additional notes..." value={cirForm.notes} onChange={e => updateCir("notes", e.target.value)} data-testid="input-cir-notes" /></div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
 
         <div className="sticky bottom-4 z-20">
           <div className="bg-white/90 dark:bg-slate-950/90 backdrop-blur-md rounded-2xl border border-border/60 shadow-xl p-4">
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                {!isFirstTab && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setActiveTab(tabItems[tabIndex - 1].id)}
-                    className="gap-2"
-                    data-testid="button-prev-tab"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Previous
-                  </Button>
-                )}
-                {!isLastTab && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setActiveTab(tabItems[tabIndex + 1].id)}
-                    className="gap-2"
-                    data-testid="button-next-tab"
-                  >
-                    Next
-                    <ChevronLeft className="h-4 w-4 rotate-180" />
-                  </Button>
-                )}
-                <div className="text-xs text-muted-foreground hidden sm:block">
-                  Step {tabIndex + 1} of {tabItems.length} — {tabItems[tabIndex].label}
-                </div>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap justify-end">
-                {/* Required-fields hint */}
-                {!isFormReady && (
-                  <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md px-2.5 py-1.5" data-testid="hint-required-fields">
-                    <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span>
-                      {totalMissingCount} required field{totalMissingCount > 1 ? "s" : ""} missing in{" "}
-                      {Object.entries(missingByTab)
-                        .filter(([, fields]) => fields.length > 0)
-                        .map(([tab]) => tab)
-                        .join(", ")}
-                    </span>
-                  </div>
-                )}
-                <Button
-                  variant="outline"
-                  onClick={() => handleSave({ addAnother: true })}
-                  disabled={!isFormReady || saveMutation.isPending}
-                  data-testid="button-save-add-another"
-                  className="text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={!isFormReady ? `${totalMissingCount} required field(s) missing — complete Basic Info, Connection & Documents tabs` : "Save & add another customer"}
-                >
-                  Save & Add Another
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => handleSave({ activate: true })}
-                  disabled={!isFormReady || saveMutation.isPending}
-                  data-testid="button-save-activate"
-                  className="text-sm border-green-500 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={!isFormReady ? `${totalMissingCount} required field(s) missing — complete Basic Info, Connection & Documents tabs` : "Save and activate connection"}
-                >
-                  <Zap className="h-3.5 w-3.5 mr-1.5" />
-                  Save & Activate
-                </Button>
-                <Button
-                  onClick={() => handleSave()}
-                  disabled={!isFormReady || saveMutation.isPending}
-                  data-testid="button-save-customer"
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title={!isFormReady ? `${totalMissingCount} required field(s) missing — complete Basic Info, Connection & Documents tabs` : "Save customer"}
-                >
-                  {saveMutation.isPending ? (
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Check className="h-4 w-4" />
+
+              {/* Normal customer: tab nav on the left */}
+              {customerCategory === "normal" && (
+                <div className="flex items-center gap-3">
+                  {!isFirstTab && (
+                    <Button variant="outline" onClick={() => setActiveTab(tabItems[tabIndex - 1].id)} className="gap-2" data-testid="button-prev-tab">
+                      <ChevronLeft className="h-4 w-4" />Previous
+                    </Button>
                   )}
-                  Save Customer
-                </Button>
+                  {!isLastTab && (
+                    <Button variant="outline" onClick={() => setActiveTab(tabItems[tabIndex + 1].id)} className="gap-2" data-testid="button-next-tab">
+                      Next<ChevronLeft className="h-4 w-4 rotate-180" />
+                    </Button>
+                  )}
+                  <div className="text-xs text-muted-foreground hidden sm:block">
+                    Step {tabIndex + 1} of {tabItems.length} — {tabItems[tabIndex].label}
+                  </div>
+                </div>
+              )}
+
+              {/* Corporate/CIR: tab nav (company / billing / ...) */}
+              {customerCategory === "corporate" && (
+                <div className="flex items-center gap-3">
+                  {corpTabItems.findIndex(t => t.id === corpActiveTab) > 0 && (
+                    <Button variant="outline" onClick={() => { const i = corpTabItems.findIndex(t => t.id === corpActiveTab); setCorpActiveTab(corpTabItems[i-1].id); }} className="gap-2" data-testid="button-corp-prev-tab">
+                      <ChevronLeft className="h-4 w-4" />Previous
+                    </Button>
+                  )}
+                  {corpTabItems.findIndex(t => t.id === corpActiveTab) < corpTabItems.length - 1 && (
+                    <Button variant="outline" onClick={() => { const i = corpTabItems.findIndex(t => t.id === corpActiveTab); setCorpActiveTab(corpTabItems[i+1].id); }} className="gap-2" data-testid="button-corp-next-tab">
+                      Next<ChevronLeft className="h-4 w-4 rotate-180" />
+                    </Button>
+                  )}
+                  <div className="text-xs text-muted-foreground hidden sm:block">
+                    Step {corpTabItems.findIndex(t => t.id === corpActiveTab) + 1} of {corpTabItems.length} — {corpTabItems.find(t => t.id === corpActiveTab)?.label}
+                  </div>
+                </div>
+              )}
+              {customerCategory === "cir" && (
+                <div className="flex items-center gap-3">
+                  {cirTabItems.findIndex(t => t.id === cirActiveTab) > 0 && (
+                    <Button variant="outline" onClick={() => { const i = cirTabItems.findIndex(t => t.id === cirActiveTab); setCirActiveTab(cirTabItems[i-1].id); }} className="gap-2" data-testid="button-cir-prev-tab">
+                      <ChevronLeft className="h-4 w-4" />Previous
+                    </Button>
+                  )}
+                  {cirTabItems.findIndex(t => t.id === cirActiveTab) < cirTabItems.length - 1 && (
+                    <Button variant="outline" onClick={() => { const i = cirTabItems.findIndex(t => t.id === cirActiveTab); setCirActiveTab(cirTabItems[i+1].id); }} className="gap-2" data-testid="button-cir-next-tab">
+                      Next<ChevronLeft className="h-4 w-4 rotate-180" />
+                    </Button>
+                  )}
+                  <div className="text-xs text-muted-foreground hidden sm:block">
+                    Step {cirTabItems.findIndex(t => t.id === cirActiveTab) + 1} of {cirTabItems.length} — {cirTabItems.find(t => t.id === cirActiveTab)?.label}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                {customerCategory === "normal" && (
+                  <>
+                    {!isFormReady && (
+                      <div className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md px-2.5 py-1.5" data-testid="hint-required-fields">
+                        <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span>{totalMissingCount} required field{totalMissingCount > 1 ? "s" : ""} missing</span>
+                      </div>
+                    )}
+                    <Button variant="outline" onClick={() => handleSave({ addAnother: true })} disabled={!isFormReady || saveMutation.isPending} data-testid="button-save-add-another" className="text-sm disabled:opacity-50">Save & Add Another</Button>
+                    <Button variant="outline" onClick={() => handleSave({ activate: true })} disabled={!isFormReady || saveMutation.isPending} data-testid="button-save-activate" className="text-sm border-green-500 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 disabled:opacity-50">
+                      <Zap className="h-3.5 w-3.5 mr-1.5" />Save & Activate
+                    </Button>
+                    <Button onClick={() => handleSave()} disabled={!isFormReady || saveMutation.isPending} data-testid="button-save-customer" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md gap-2 disabled:opacity-50">
+                      {saveMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                      Save Customer
+                    </Button>
+                  </>
+                )}
+                {customerCategory === "corporate" && (
+                  <>
+                    <Button variant="outline" onClick={() => handleCorpSave({ activate: true })} disabled={saveCorpMutation.isPending} data-testid="button-corp-save-activate" className="text-sm border-green-500 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 disabled:opacity-50">
+                      <Zap className="h-3.5 w-3.5 mr-1.5" />Save & Activate
+                    </Button>
+                    <Button onClick={() => handleCorpSave()} disabled={saveCorpMutation.isPending} data-testid="button-corp-save" className="bg-gradient-to-br from-[#002B5B] to-[#005EFF] hover:opacity-90 text-white shadow-md gap-2 disabled:opacity-50">
+                      {saveCorpMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                      Save Corporate Customer
+                    </Button>
+                  </>
+                )}
+                {customerCategory === "cir" && (
+                  <>
+                    <Button variant="outline" onClick={() => handleCirSave({ activate: true })} disabled={saveCirMutation.isPending} data-testid="button-cir-save-activate" className="text-sm border-green-500 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 disabled:opacity-50">
+                      <Zap className="h-3.5 w-3.5 mr-1.5" />Save & Activate
+                    </Button>
+                    <Button onClick={() => handleCirSave()} disabled={saveCirMutation.isPending} data-testid="button-cir-save" className="bg-gradient-to-br from-purple-600 to-indigo-600 hover:opacity-90 text-white shadow-md gap-2 disabled:opacity-50">
+                      {saveCirMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                      Save CIR Customer
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -2280,7 +2788,7 @@ export default function AddCustomerPage() {
           </div>
 
           <div className="px-6 py-5 space-y-3">
-            {AUTOMATION_STEPS.map((stepDef) => {
+            {(customerCategory === "corporate" ? CORP_ADD_STEPS : customerCategory === "cir" ? CIR_ADD_STEPS : AUTOMATION_STEPS).map((stepDef) => {
               const step = autoSteps.find(s => s.step === stepDef.key);
               const status = step?.status ?? "pending";
               const Icon = stepDef.icon;
@@ -2347,7 +2855,7 @@ export default function AddCustomerPage() {
                   <span className="text-sm font-bold text-green-700 dark:text-green-300">Automation Complete!</span>
                 </div>
                 <p className="text-xs text-green-600 dark:text-green-400">
-                  {autoSteps.filter(s => s.status === "success").length} of {AUTOMATION_STEPS.length} workflows executed successfully.{" "}
+                  {autoSteps.filter(s => s.status === "success").length} of {autoSteps.length} workflows executed successfully.{" "}
                   {autoSteps.filter(s => s.status === "skipped").length > 0 && `${autoSteps.filter(s => s.status === "skipped").length} skipped.`}
                 </p>
               </div>
@@ -2357,17 +2865,17 @@ export default function AddCustomerPage() {
                   className="flex-1"
                   onClick={() => {
                     setAutoModalOpen(false);
-                    setLocation("/customers");
+                    setLocation(customerCategory === "corporate" ? "/corporate-customers" : customerCategory === "cir" ? "/cir-customers" : "/customers");
                   }}
                   data-testid="button-auto-go-customers"
                 >
-                  View All Customers
+                  {customerCategory === "corporate" ? "View Corporate Customers" : customerCategory === "cir" ? "View CIR Customers" : "View All Customers"}
                 </Button>
                 <Button
                   className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white gap-1.5"
                   onClick={() => {
                     setAutoModalOpen(false);
-                    if (savedCustomerId) setLocation(`/customers`);
+                    setLocation(customerCategory === "corporate" ? "/corporate-customers" : customerCategory === "cir" ? "/cir-customers" : "/customers");
                   }}
                   data-testid="button-auto-view-customer"
                 >
