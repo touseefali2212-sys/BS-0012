@@ -251,6 +251,7 @@ export default function AddCustomerPage() {
 
   // Pre-fill from client request query
   const fromQueryId = new URLSearchParams(window.location.search).get("fromQuery");
+  const typeParam = new URLSearchParams(window.location.search).get("type");
   const { data: fromQueryData } = useQuery<any>({
     queryKey: ["/api/customer-queries", fromQueryId],
     enabled: !!fromQueryId,
@@ -263,8 +264,10 @@ export default function AddCustomerPage() {
   const [autoCustomerName, setAutoCustomerName] = useState("");
   const [savedCustomerId, setSavedCustomerId] = useState<number | null>(null);
 
-  // Customer type category
-  const [customerCategory, setCustomerCategory] = useState<"normal" | "corporate" | "cir">("normal");
+  // Customer type category — pre-set from ?type= URL param when converting from a client request
+  const [customerCategory, setCustomerCategory] = useState<"normal" | "corporate" | "cir">(
+    typeParam === "corporate" ? "corporate" : typeParam === "cir" ? "cir" : "normal"
+  );
   const [corpActiveTab, setCorpActiveTab] = useState("company");
   const [cirActiveTab, setCirActiveTab] = useState("company");
 
@@ -959,8 +962,8 @@ export default function AddCustomerPage() {
           </div>
         </div>
 
-        {/* Customer Type Selector */}
-        {!fromQueryId && (
+        {/* Customer Type Selector — hidden when converting from a client request */}
+        {!fromQueryId && !typeParam && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {([
               { id: "normal",    label: "Customer",          sub: "Standard internet subscriber",        icon: User,      grad: "from-blue-600 to-indigo-600" },
@@ -1001,8 +1004,8 @@ export default function AddCustomerPage() {
             <span>
               Converting client request <strong>#{fromQueryId}</strong>
               {fromQueryData && <> — <strong>{fromQueryData.name}</strong></>}
-              {form.customerType && form.customerType !== "Normal" && (
-                <> &bull; <span className="font-semibold">{form.customerType}</span> customer type</>
+              {customerCategory !== "normal" && (
+                <> &bull; <span className="font-semibold">{customerCategory === "corporate" ? "Corporate" : "CIR"}</span> customer type</>
               )}
               . Review the details below and save to complete the conversion.
             </span>

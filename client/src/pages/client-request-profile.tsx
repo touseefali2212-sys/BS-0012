@@ -342,10 +342,10 @@ export default function ClientRequestProfilePage() {
           {request.status === "Final Approved" && (
             <Button size="sm" className="bg-[#1c67d4] hover:bg-[#1558b8] text-white" onClick={() => {
               const ct = request.customerType;
-              if (ct === "CIR") setLocation(`/cir-customers?add=true&fromQuery=${id}`);
-              else if (ct === "Corporate") setLocation(`/corporate-customers?add=true&fromQuery=${id}`);
+              if (ct === "CIR") setLocation(`/add-customer?type=cir&fromQuery=${id}`);
+              else if (ct === "Corporate") setLocation(`/add-customer?type=corporate&fromQuery=${id}`);
               else if (ct === "Reseller") setLocation(`/resellers?tab=add&fromQuery=${id}`);
-              else setLocation(`/customers/add?fromQuery=${id}`);
+              else setLocation(`/add-customer?fromQuery=${id}`);
             }} data-testid="button-convert">
               <Users className="h-4 w-4 mr-1" /> Convert to {request.customerType && request.customerType !== "Normal" ? `${request.customerType} ` : ""}Customer
             </Button>
@@ -405,10 +405,10 @@ export default function ClientRequestProfilePage() {
             idle: "border-slate-400 text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800/30",
             onClick: () => {
               const ct = request.customerType;
-              if (ct === "CIR") setLocation(`/cir-customers?add=true&fromQuery=${id}`);
-              else if (ct === "Corporate") setLocation(`/corporate-customers?add=true&fromQuery=${id}`);
+              if (ct === "CIR") setLocation(`/add-customer?type=cir&fromQuery=${id}`);
+              else if (ct === "Corporate") setLocation(`/add-customer?type=corporate&fromQuery=${id}`);
               else if (ct === "Reseller") setLocation(`/resellers?tab=add&fromQuery=${id}`);
-              else setLocation(`/customers/add?fromQuery=${id}`);
+              else setLocation(`/add-customer?fromQuery=${id}`);
             },
           },
         ] as { status: string; active: string; idle: string; onClick: () => void }[]).map(({ status, active, idle, onClick }) => {
