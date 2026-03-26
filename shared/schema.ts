@@ -2038,6 +2038,7 @@ export type CirCustomer = typeof cirCustomers.$inferSelect;
 export const corporateCustomers = pgTable("corporate_customers", {
   id: serial("id").primaryKey(),
   companyName: text("company_name").notNull(),
+  contactFullName: text("contact_full_name"),
   registrationNumber: text("registration_number"),
   ntn: text("ntn"),
   industryType: text("industry_type"),
@@ -2045,6 +2046,7 @@ export const corporateCustomers = pgTable("corporate_customers", {
   billingAddress: text("billing_address"),
   accountManager: text("account_manager"),
   email: text("email"),
+  mobileNo: text("mobile_no"),
   phone: text("phone"),
   centralizedBilling: boolean("centralized_billing").default(true),
   perBranchBilling: boolean("per_branch_billing").default(false),
