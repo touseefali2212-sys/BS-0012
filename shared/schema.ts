@@ -2048,6 +2048,8 @@ export const corporateCustomers = pgTable("corporate_customers", {
   email: text("email"),
   mobileNo: text("mobile_no"),
   phone: text("phone"),
+  branch: text("branch"),
+  city: text("city"),
   centralizedBilling: boolean("centralized_billing").default(true),
   perBranchBilling: boolean("per_branch_billing").default(false),
   customInvoiceFormat: text("custom_invoice_format"),

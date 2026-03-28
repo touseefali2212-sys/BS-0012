@@ -282,6 +282,7 @@ export default function AddCustomerPage() {
   const [corpForm, setCorpForm] = useState({
     companyName: "", contactFullName: "", registrationNumber: "", ntn: "", industryType: "",
     headOfficeAddress: "", billingAddress: "", accountManager: "", email: "", mobileNo: "", phone: "",
+    branch: "", city: "",
     centralizedBilling: true, perBranchBilling: false, customInvoiceFormat: "",
     paymentTerms: "net_30", creditLimit: "0", securityDeposit: "0",
     contractDuration: "", customSla: "", dedicatedAccountManager: "", customPricingAgreement: "",
@@ -954,6 +955,30 @@ export default function AddCustomerPage() {
   const handleCorpSave = (opts: { activate?: boolean } = {}) => {
     if (!corpForm.companyName || corpForm.companyName.trim().length < 2) {
       toast({ title: "Company Name required", description: "Please enter the company name", variant: "destructive" }); return;
+    }
+    if (!corpForm.contactFullName || corpForm.contactFullName.trim().length < 2) {
+      toast({ title: "Full Name required", description: "Please enter the contact person's full name", variant: "destructive" }); return;
+    }
+    if (!corpForm.mobileNo || corpForm.mobileNo.trim().length < 5) {
+      toast({ title: "Mobile No. required", description: "Please enter a valid mobile number", variant: "destructive" }); return;
+    }
+    if (!corpForm.email || !corpForm.email.includes("@")) {
+      toast({ title: "Email required", description: "Please enter a valid email address", variant: "destructive" }); return;
+    }
+    if (!corpForm.industryType) {
+      toast({ title: "Industry Type required", description: "Please select an industry type", variant: "destructive" }); return;
+    }
+    if (!corpForm.billingAddress || corpForm.billingAddress.trim().length < 3) {
+      toast({ title: "Billing Address required", description: "Please enter the billing address", variant: "destructive" }); return;
+    }
+    if (!corpForm.headOfficeAddress || corpForm.headOfficeAddress.trim().length < 3) {
+      toast({ title: "Head Office Address required", description: "Please enter the head office address", variant: "destructive" }); return;
+    }
+    if (!corpForm.branch) {
+      toast({ title: "Branch required", description: "Please select a branch", variant: "destructive" }); return;
+    }
+    if (!corpForm.city || corpForm.city.trim().length < 2) {
+      toast({ title: "City required", description: "Please enter the city", variant: "destructive" }); return;
     }
     saveCorpMutation.mutate(opts);
   };
@@ -2631,7 +2656,6 @@ export default function AddCustomerPage() {
                 </CardHeader>
                 <CardContent className="space-y-6">
 
-                  {/* ── Primary Fields ── */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium">Company Name <span className="text-red-500">*</span></label>
@@ -2665,34 +2689,46 @@ export default function AddCustomerPage() {
 
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium">Mobile No. <span className="text-red-500">*</span></label>
-                      <Input
-                        type="tel"
-                        placeholder="03XX-XXXXXXX"
-                        value={corpForm.mobileNo}
-                        onChange={e => updateCorp("mobileNo", e.target.value)}
-                        data-testid="input-corp-mobile"
-                      />
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="tel"
+                          placeholder="03XX-XXXXXXX"
+                          value={corpForm.mobileNo}
+                          onChange={e => updateCorp("mobileNo", e.target.value)}
+                          data-testid="input-corp-mobile"
+                          className="pl-9"
+                        />
+                      </div>
                     </div>
 
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium">Phone No.</label>
-                      <Input
-                        placeholder="021-XXXXXXXX"
-                        value={corpForm.phone}
-                        onChange={e => updateCorp("phone", e.target.value)}
-                        data-testid="input-corp-phone"
-                      />
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="021-XXXXXXXX"
+                          value={corpForm.phone}
+                          onChange={e => updateCorp("phone", e.target.value)}
+                          data-testid="input-corp-phone"
+                          className="pl-9"
+                        />
+                      </div>
                     </div>
 
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium">Email <span className="text-red-500">*</span></label>
-                      <Input
-                        type="email"
-                        placeholder="accounts@company.com"
-                        value={corpForm.email}
-                        onChange={e => updateCorp("email", e.target.value)}
-                        data-testid="input-corp-email"
-                      />
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="email"
+                          placeholder="accounts@company.com"
+                          value={corpForm.email}
+                          onChange={e => updateCorp("email", e.target.value)}
+                          data-testid="input-corp-email"
+                          className="pl-9"
+                        />
+                      </div>
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
@@ -2708,48 +2744,44 @@ export default function AddCustomerPage() {
 
                   <Separator />
 
-                  {/* ── Additional Details ── */}
                   <div>
                     <div className="flex items-center gap-2 mb-4">
-                      <Building2 className="h-4 w-4 text-blue-600" />
-                      <span className="font-semibold text-sm">Additional Details</span>
+                      <MapPin className="h-4 w-4 text-blue-600" />
+                      <span className="font-semibold text-sm">Address & Location</span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-medium">Registration Number</label>
-                        <Input
-                          placeholder="REG-XXXX-XXXX"
-                          value={corpForm.registrationNumber}
-                          onChange={e => updateCorp("registrationNumber", e.target.value)}
-                          data-testid="input-corp-reg-number"
-                        />
+                      <div className="space-y-1.5 md:col-span-2">
+                        <label className="text-sm font-medium">Billing Address <span className="text-red-500">*</span></label>
+                        <Textarea rows={2} placeholder="Full billing address" value={corpForm.billingAddress} onChange={e => updateCorp("billingAddress", e.target.value)} data-testid="input-corp-billing-address" />
+                      </div>
+                      <div className="space-y-1.5 md:col-span-2">
+                        <label className="text-sm font-medium">Head Office Address <span className="text-red-500">*</span></label>
+                        <Textarea rows={2} placeholder="Full head office address" value={corpForm.headOfficeAddress} onChange={e => updateCorp("headOfficeAddress", e.target.value)} data-testid="input-corp-head-address" />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-sm font-medium">Account Manager</label>
-                        <Input
-                          placeholder="Assigned account manager"
-                          value={corpForm.accountManager}
-                          onChange={e => updateCorp("accountManager", e.target.value)}
-                          data-testid="input-corp-account-manager"
-                        />
+                        <label className="text-sm font-medium">Branch <span className="text-red-500">*</span></label>
+                        <Select value={corpForm.branch} onValueChange={v => {
+                          updateCorp("branch", v);
+                          const selectedBr = branches?.find(b => b.name === v);
+                          if (selectedBr?.city) updateCorp("city", selectedBr.city);
+                        }}>
+                          <SelectTrigger data-testid="select-corp-branch"><SelectValue placeholder="Select branch" /></SelectTrigger>
+                          <SelectContent>
+                            {branches?.map(b => (
+                              <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-sm font-medium">Total Bandwidth</label>
+                        <label className="text-sm font-medium">City <span className="text-red-500">*</span></label>
                         <Input
-                          placeholder="e.g. 1 Gbps"
-                          value={corpForm.totalBandwidth}
-                          onChange={e => updateCorp("totalBandwidth", e.target.value)}
-                          data-testid="input-corp-bandwidth"
+                          placeholder="e.g. Karachi"
+                          value={corpForm.city}
+                          onChange={e => updateCorp("city", e.target.value)}
+                          data-testid="input-corp-city"
                         />
                       </div>
-                    </div>
-                    <div className="space-y-1.5 mt-4">
-                      <label className="text-sm font-medium">Head Office Address</label>
-                      <Textarea rows={2} placeholder="Full head office address" value={corpForm.headOfficeAddress} onChange={e => updateCorp("headOfficeAddress", e.target.value)} data-testid="input-corp-head-address" />
-                    </div>
-                    <div className="space-y-1.5 mt-4">
-                      <label className="text-sm font-medium">Billing Address</label>
-                      <Textarea rows={2} placeholder="Billing address (if different from head office)" value={corpForm.billingAddress} onChange={e => updateCorp("billingAddress", e.target.value)} data-testid="input-corp-billing-address" />
                     </div>
                   </div>
                 </CardContent>
