@@ -58,6 +58,7 @@ const cirTabItems = [
   { id: "network",    label: "Network Details", icon: Network },
   { id: "billing",    label: "Billing & Terms", icon: DollarSign },
   { id: "contract",   label: "Contract & SLA",  icon: Shield },
+  { id: "services",   label: "Value-Added Services", icon: Zap },
   { id: "monitoring", label: "Monitoring",      icon: Activity },
 ];
 
@@ -327,6 +328,8 @@ export default function AddCustomerPage() {
     securityDeposit: "0", billingCycle: "monthly", invoiceType: "tax", lateFeePolicy: "",
     cnicFrontFile: "", cnicBackFile: "", contractFile: "",
     dedicatedAccountManager: "", customSla: "", customPricingAgreement: "",
+    managedRouter: false, firewall: false, loadBalancer: false,
+    dedicatedSupport: false, backupLink: false, monitoringSla: false,
     radiusProfile: "", bandwidthProfileName: "", monitoringEnabled: false,
     snmpMonitoring: false, trafficAlerts: false, status: "active", notes: "",
   });
@@ -4515,6 +4518,28 @@ export default function AddCustomerPage() {
                   <div className="space-y-1.5"><label className="text-sm font-medium">Custom Pricing Agreement</label><Textarea rows={2} placeholder="Special pricing notes or agreement details" value={cirForm.customPricingAgreement} onChange={e => updateCir("customPricingAgreement", e.target.value)} data-testid="input-cir-pricing-agreement" /></div>
                   <div className="flex items-center gap-3"><Switch checked={cirForm.autoRenewal} onCheckedChange={v => updateCir("autoRenewal", v)} data-testid="switch-cir-auto-renewal" /><div><p className="text-sm font-medium">Auto Renewal</p><p className="text-xs text-muted-foreground">Automatically renew contract at expiry</p></div></div>
                   <div className="space-y-1.5"><label className="text-sm font-medium">Notes</label><Textarea rows={3} placeholder="Additional notes..." value={cirForm.notes} onChange={e => updateCir("notes", e.target.value)} data-testid="input-cir-notes" /></div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Value-Added Services */}
+            {cirActiveTab === "services" && (
+              <Card className="border-border/60 shadow-sm">
+                <CardHeader className="pb-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center"><Zap className="h-5 w-5 text-amber-600" /></div><div><CardTitle className="text-base">Value-Added Services</CardTitle><CardDescription>Enterprise add-on services for this CIR account</CardDescription></div></div></CardHeader>
+                <CardContent className="space-y-3">
+                  {[
+                    { key: "managedRouter",   label: "Managed Router",    desc: "ISP-managed router with remote support" },
+                    { key: "firewall",         label: "Firewall",          desc: "Hardware firewall protection" },
+                    { key: "loadBalancer",     label: "Load Balancer",     desc: "Traffic distribution across links" },
+                    { key: "dedicatedSupport", label: "Dedicated Support",  desc: "24/7 dedicated support line" },
+                    { key: "backupLink",       label: "Backup Link",        desc: "Secondary redundant connection" },
+                    { key: "monitoringSla",    label: "SLA Monitoring",     desc: "Active monitoring with SLA guarantees" },
+                  ].map(({ key, label, desc }) => (
+                    <div key={key} className="flex items-center justify-between p-3 rounded-xl border bg-muted/20">
+                      <div><p className="text-sm font-medium">{label}</p><p className="text-xs text-muted-foreground">{desc}</p></div>
+                      <Switch checked={cirForm[key as keyof typeof cirForm] as boolean} onCheckedChange={v => updateCir(key, v)} data-testid={`switch-cir-${key}`} />
+                    </div>
+                  ))}
                 </CardContent>
               </Card>
             )}
