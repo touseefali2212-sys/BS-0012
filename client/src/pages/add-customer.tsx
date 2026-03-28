@@ -285,6 +285,7 @@ export default function AddCustomerPage() {
     branch: "", city: "",
     mapLatitude: "", mapLongitude: "",
     billingMode: "fixed", perMbpsRate: "0", bandwidthMbps: "0",
+    taxEnabled: false, whTaxPercent: "0", aitTaxPercent: "0", extraFeeTaxPercent: "0",
     centralizedBilling: true, perBranchBilling: false, customInvoiceFormat: "",
     paymentTerms: "net_30", creditLimit: "0", securityDeposit: "0",
     contractDuration: "", customSla: "", dedicatedAccountManager: "", customPricingAgreement: "",
@@ -328,7 +329,12 @@ export default function AddCustomerPage() {
   // Corp billing computed values
   const corpPerMbpsCalculated = (parseFloat(corpForm.bandwidthMbps) || 0) * (parseFloat(corpForm.perMbpsRate) || 0);
   const corpEffectiveBase = corpForm.billingMode === "per_mbps" ? corpPerMbpsCalculated : (parseFloat(corpMonthlyBase) || 0);
-  const corpFinalMonthly = Math.max(0, corpEffectiveBase - (parseFloat(corpBillingDiscount) || 0));
+  const corpSubtotalBeforeTax = Math.max(0, corpEffectiveBase - (parseFloat(corpBillingDiscount) || 0));
+  const corpWhTaxAmount = corpForm.taxEnabled ? (corpSubtotalBeforeTax * (parseFloat(corpForm.whTaxPercent) || 0)) / 100 : 0;
+  const corpAitTaxAmount = corpForm.taxEnabled ? (corpSubtotalBeforeTax * (parseFloat(corpForm.aitTaxPercent) || 0)) / 100 : 0;
+  const corpExtraFeeTaxAmount = corpForm.taxEnabled ? (corpSubtotalBeforeTax * (parseFloat(corpForm.extraFeeTaxPercent) || 0)) / 100 : 0;
+  const corpTotalTax = corpWhTaxAmount + corpAitTaxAmount + corpExtraFeeTaxAmount;
+  const corpFinalMonthly = corpSubtotalBeforeTax + corpTotalTax;
   const corpFirstPayment = corpFinalMonthly + (parseFloat(corpForm.securityDeposit) || 0) + (corpOtcEnabled ? (parseFloat(corpOtcAmount) || 0) : 0);
 
   const [form, setForm] = useState({
@@ -3092,6 +3098,125 @@ export default function AddCustomerPage() {
                         </div>
                       </div>
                     )}
+
+                    {/* Tax Section */}
+                    <div className="mt-4 rounded-xl border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20 p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-5 w-5 rounded bg-amber-600 flex items-center justify-center">
+                            <Calculator className="h-3 w-3 text-white" />
+                          </div>
+                          <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">Tax & Fees</span>
+                          <span className="text-xs text-muted-foreground ml-1">Apply tax rates from packages</span>
+                        </div>
+                        <Switch
+                          checked={corpForm.taxEnabled as boolean}
+                          onCheckedChange={v => updateCorp("taxEnabled", v)}
+                          data-testid="switch-corp-tax-enabled"
+                        />
+                      </div>
+
+                      {corpForm.taxEnabled && (
+                        <div className="space-y-4">
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-amber-700 dark:text-amber-400">Auto-fill from Package</label>
+                            <Select onValueChange={v => {
+                              const pkg = packages?.find(p => String(p.id) === v);
+                              if (pkg) {
+                                updateCorp("whTaxPercent", pkg.whTax || "0");
+                                updateCorp("aitTaxPercent", pkg.aitTax || "0");
+                              }
+                            }}>
+                              <SelectTrigger data-testid="select-corp-tax-package" className="border-amber-300 dark:border-amber-700 focus-visible:ring-amber-400">
+                                <SelectValue placeholder="Select package to auto-fill tax rates" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {packages?.filter(p => p.isActive).map(p => (
+                                  <SelectItem key={p.id} value={String(p.id)}>
+                                    {p.name} — WHT: {p.whTax || "0"}% / AIT: {p.aitTax || "0"}%
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <p className="text-[11px] text-muted-foreground">Select a package to auto-fill WHT and AIT tax rates</p>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium text-amber-700 dark:text-amber-400">WHT (%)</label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={corpForm.whTaxPercent}
+                                onChange={e => updateCorp("whTaxPercent", e.target.value)}
+                                data-testid="input-corp-wh-tax"
+                                className="border-amber-300 dark:border-amber-700 focus-visible:ring-amber-400"
+                              />
+                              <p className="text-[11px] text-muted-foreground">Withholding Tax</p>
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium text-amber-700 dark:text-amber-400">AIT (%)</label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={corpForm.aitTaxPercent}
+                                onChange={e => updateCorp("aitTaxPercent", e.target.value)}
+                                data-testid="input-corp-ait-tax"
+                                className="border-amber-300 dark:border-amber-700 focus-visible:ring-amber-400"
+                              />
+                              <p className="text-[11px] text-muted-foreground">Advance Income Tax</p>
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium text-amber-700 dark:text-amber-400">Extra Fee Tax (%)</label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={corpForm.extraFeeTaxPercent}
+                                onChange={e => updateCorp("extraFeeTaxPercent", e.target.value)}
+                                data-testid="input-corp-extra-fee-tax"
+                                className="border-amber-300 dark:border-amber-700 focus-visible:ring-amber-400"
+                              />
+                              <p className="text-[11px] text-muted-foreground">Additional fees or surcharges</p>
+                            </div>
+                          </div>
+
+                          {corpSubtotalBeforeTax > 0 && (
+                            <div className="mt-3 rounded-lg bg-white dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 p-3">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Tax Breakdown</p>
+                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Subtotal</p>
+                                  <p className="font-medium">Rs. {corpSubtotalBeforeTax.toFixed(2)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground text-xs">WHT ({corpForm.whTaxPercent}%)</p>
+                                  <p className="font-medium text-amber-700 dark:text-amber-400">Rs. {corpWhTaxAmount.toFixed(2)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground text-xs">AIT ({corpForm.aitTaxPercent}%)</p>
+                                  <p className="font-medium text-amber-700 dark:text-amber-400">Rs. {corpAitTaxAmount.toFixed(2)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-muted-foreground text-xs">Extra Fee ({corpForm.extraFeeTaxPercent}%)</p>
+                                  <p className="font-medium text-amber-700 dark:text-amber-400">Rs. {corpExtraFeeTaxAmount.toFixed(2)}</p>
+                                </div>
+                              </div>
+                              <div className="mt-2 pt-2 border-t border-amber-200 dark:border-amber-700 flex justify-between items-center">
+                                <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Total Tax</p>
+                                <p className="text-sm font-bold text-amber-700 dark:text-amber-400">Rs. {corpTotalTax.toFixed(2)}</p>
+                              </div>
+                              <div className="mt-1 flex justify-between items-center">
+                                <p className="text-sm font-semibold text-green-700 dark:text-green-400">Final Monthly (incl. Tax)</p>
+                                <p className="text-sm font-bold text-green-700 dark:text-green-400">Rs. {corpFinalMonthly.toFixed(2)}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
                     {/* Financial Limits */}
                     <div className="mt-4 rounded-xl border border-dashed border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/20 p-4">
