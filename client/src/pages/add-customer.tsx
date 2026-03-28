@@ -24,7 +24,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Package as PackageType, Vendor, Area, Branch, Employee } from "@shared/schema";
+import type { Package as PackageType, Vendor, Area, Branch, Employee, Setting } from "@shared/schema";
 
 type AutoStep = { step: string; status: "pending" | "running" | "success" | "error" | "skipped"; message: string; data?: any };
 
@@ -277,6 +277,8 @@ export default function AddCustomerPage() {
   const [corpOtcEnabled, setCorpOtcEnabled] = useState(false);
   const [corpOtcAmount, setCorpOtcAmount] = useState("");
   const [corpLateFeeEnabled, setCorpLateFeeEnabled] = useState(false);
+  const [corpSelectedTaxIds, setCorpSelectedTaxIds] = useState<number[]>([]);
+  const [corpTaxDropdownOpen, setCorpTaxDropdownOpen] = useState(false);
 
   // Corporate form state
   const [corpForm, setCorpForm] = useState({
@@ -330,12 +332,6 @@ export default function AddCustomerPage() {
   const corpPerMbpsCalculated = (parseFloat(corpForm.bandwidthMbps) || 0) * (parseFloat(corpForm.perMbpsRate) || 0);
   const corpEffectiveBase = corpForm.billingMode === "per_mbps" ? corpPerMbpsCalculated : (parseFloat(corpMonthlyBase) || 0);
   const corpSubtotalBeforeTax = Math.max(0, corpEffectiveBase - (parseFloat(corpBillingDiscount) || 0));
-  const corpWhTaxAmount = corpForm.taxEnabled ? (corpSubtotalBeforeTax * (parseFloat(corpForm.whTaxPercent) || 0)) / 100 : 0;
-  const corpAitTaxAmount = corpForm.taxEnabled ? (corpSubtotalBeforeTax * (parseFloat(corpForm.aitTaxPercent) || 0)) / 100 : 0;
-  const corpExtraFeeTaxAmount = corpForm.taxEnabled ? (corpSubtotalBeforeTax * (parseFloat(corpForm.extraFeeTaxPercent) || 0)) / 100 : 0;
-  const corpTotalTax = corpWhTaxAmount + corpAitTaxAmount + corpExtraFeeTaxAmount;
-  const corpFinalMonthly = corpSubtotalBeforeTax + corpTotalTax;
-  const corpFirstPayment = corpFinalMonthly + (parseFloat(corpForm.securityDeposit) || 0) + (corpOtcEnabled ? (parseFloat(corpOtcAmount) || 0) : 0);
 
   const [form, setForm] = useState({
     fullName: "", fatherName: "", cnic: "", phone: "", email: "",
@@ -425,6 +421,25 @@ export default function AddCustomerPage() {
   const { data: areas } = useQuery<Area[]>({ queryKey: ["/api/areas"] });
   const { data: branches } = useQuery<Branch[]>({ queryKey: ["/api/branches"] });
   const { data: employees } = useQuery<Employee[]>({ queryKey: ["/api/employees"] });
+  const { data: allSettings } = useQuery<Setting[]>({ queryKey: ["/api/settings"] });
+  const billingTaxSettings = (allSettings || []).filter(s => s.category === "billing");
+
+  const parseTaxMeta = (desc: string | null | undefined) => {
+    try { return JSON.parse(desc || "{}"); }
+    catch { return { type: "unknown", name: desc || "", applyTo: "all" }; }
+  };
+
+  const corpSelectedTaxes = billingTaxSettings.filter(s => corpSelectedTaxIds.includes(s.id));
+  const corpTaxLineItems = corpSelectedTaxes.map(s => {
+    const meta = parseTaxMeta(s.description);
+    const val = parseFloat(s.value) || 0;
+    const isPercent = meta.type !== "extra_fee";
+    const amount = isPercent ? (corpSubtotalBeforeTax * val) / 100 : val;
+    return { id: s.id, name: meta.name || s.key, type: meta.type, rate: val, isPercent, amount };
+  });
+  const corpTotalTax = corpTaxLineItems.reduce((sum, t) => sum + t.amount, 0);
+  const corpFinalMonthly = corpSubtotalBeforeTax + corpTotalTax;
+  const corpFirstPayment = corpFinalMonthly + (parseFloat(corpForm.securityDeposit) || 0) + (corpOtcEnabled ? (parseFloat(corpOtcAmount) || 0) : 0);
 
   const filteredPackages = packages?.filter(p =>
     !form.vendorId || String(p.vendorId) === form.vendorId
@@ -931,6 +946,7 @@ export default function AddCustomerPage() {
         creditLimit: corpForm.creditLimit || "0",
         securityDeposit: corpForm.securityDeposit || "0",
         monthlyBilling: String(corpFinalMonthly) || "0",
+        appliedTaxIds: corpSelectedTaxIds.length > 0 ? JSON.stringify(corpSelectedTaxIds) : null,
       };
       const res = await apiRequest("POST", "/api/corporate-customers", payload);
       return res.json();
@@ -3099,7 +3115,7 @@ export default function AddCustomerPage() {
                       </div>
                     )}
 
-                    {/* Tax Section */}
+                    {/* Tax & Fees Section */}
                     <div className="mt-4 rounded-xl border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20 p-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
@@ -3107,114 +3123,121 @@ export default function AddCustomerPage() {
                             <Calculator className="h-3 w-3 text-white" />
                           </div>
                           <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">Tax & Fees</span>
-                          <span className="text-xs text-muted-foreground ml-1">Apply tax rates from packages</span>
+                          <span className="text-xs text-muted-foreground ml-1">Select taxes from Package Module</span>
                         </div>
-                        <Switch
-                          checked={corpForm.taxEnabled as boolean}
-                          onCheckedChange={v => updateCorp("taxEnabled", v)}
-                          data-testid="switch-corp-tax-enabled"
-                        />
-                      </div>
-
-                      {corpForm.taxEnabled && (
-                        <div className="space-y-4">
-                          <div className="space-y-1.5">
-                            <label className="text-sm font-medium text-amber-700 dark:text-amber-400">Auto-fill from Package</label>
-                            <Select onValueChange={v => {
-                              const pkg = packages?.find(p => String(p.id) === v);
-                              if (pkg) {
-                                updateCorp("whTaxPercent", pkg.whTax || "0");
-                                updateCorp("aitTaxPercent", pkg.aitTax || "0");
-                              }
-                            }}>
-                              <SelectTrigger data-testid="select-corp-tax-package" className="border-amber-300 dark:border-amber-700 focus-visible:ring-amber-400">
-                                <SelectValue placeholder="Select package to auto-fill tax rates" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {packages?.filter(p => p.isActive).map(p => (
-                                  <SelectItem key={p.id} value={String(p.id)}>
-                                    {p.name} — WHT: {p.whTax || "0"}% / AIT: {p.aitTax || "0"}%
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <p className="text-[11px] text-muted-foreground">Select a package to auto-fill WHT and AIT tax rates</p>
-                          </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            <div className="space-y-1.5">
-                              <label className="text-sm font-medium text-amber-700 dark:text-amber-400">WHT (%)</label>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                placeholder="0.00"
-                                value={corpForm.whTaxPercent}
-                                onChange={e => updateCorp("whTaxPercent", e.target.value)}
-                                data-testid="input-corp-wh-tax"
-                                className="border-amber-300 dark:border-amber-700 focus-visible:ring-amber-400"
-                              />
-                              <p className="text-[11px] text-muted-foreground">Withholding Tax</p>
-                            </div>
-                            <div className="space-y-1.5">
-                              <label className="text-sm font-medium text-amber-700 dark:text-amber-400">AIT (%)</label>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                placeholder="0.00"
-                                value={corpForm.aitTaxPercent}
-                                onChange={e => updateCorp("aitTaxPercent", e.target.value)}
-                                data-testid="input-corp-ait-tax"
-                                className="border-amber-300 dark:border-amber-700 focus-visible:ring-amber-400"
-                              />
-                              <p className="text-[11px] text-muted-foreground">Advance Income Tax</p>
-                            </div>
-                            <div className="space-y-1.5">
-                              <label className="text-sm font-medium text-amber-700 dark:text-amber-400">Extra Fee Tax (%)</label>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                placeholder="0.00"
-                                value={corpForm.extraFeeTaxPercent}
-                                onChange={e => updateCorp("extraFeeTaxPercent", e.target.value)}
-                                data-testid="input-corp-extra-fee-tax"
-                                className="border-amber-300 dark:border-amber-700 focus-visible:ring-amber-400"
-                              />
-                              <p className="text-[11px] text-muted-foreground">Additional fees or surcharges</p>
-                            </div>
-                          </div>
-
-                          {corpSubtotalBeforeTax > 0 && (
-                            <div className="mt-3 rounded-lg bg-white dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 p-3">
-                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Tax Breakdown</p>
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                                <div>
-                                  <p className="text-muted-foreground text-xs">Subtotal</p>
-                                  <p className="font-medium">Rs. {corpSubtotalBeforeTax.toFixed(2)}</p>
-                                </div>
-                                <div>
-                                  <p className="text-muted-foreground text-xs">WHT ({corpForm.whTaxPercent}%)</p>
-                                  <p className="font-medium text-amber-700 dark:text-amber-400">Rs. {corpWhTaxAmount.toFixed(2)}</p>
-                                </div>
-                                <div>
-                                  <p className="text-muted-foreground text-xs">AIT ({corpForm.aitTaxPercent}%)</p>
-                                  <p className="font-medium text-amber-700 dark:text-amber-400">Rs. {corpAitTaxAmount.toFixed(2)}</p>
-                                </div>
-                                <div>
-                                  <p className="text-muted-foreground text-xs">Extra Fee ({corpForm.extraFeeTaxPercent}%)</p>
-                                  <p className="font-medium text-amber-700 dark:text-amber-400">Rs. {corpExtraFeeTaxAmount.toFixed(2)}</p>
-                                </div>
-                              </div>
-                              <div className="mt-2 pt-2 border-t border-amber-200 dark:border-amber-700 flex justify-between items-center">
-                                <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Total Tax</p>
-                                <p className="text-sm font-bold text-amber-700 dark:text-amber-400">Rs. {corpTotalTax.toFixed(2)}</p>
-                              </div>
-                              <div className="mt-1 flex justify-between items-center">
-                                <p className="text-sm font-semibold text-green-700 dark:text-green-400">Final Monthly (incl. Tax)</p>
-                                <p className="text-sm font-bold text-green-700 dark:text-green-400">Rs. {corpFinalMonthly.toFixed(2)}</p>
+                        <div className="relative">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-8 gap-1.5 text-xs border-amber-400 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-950"
+                            onClick={() => setCorpTaxDropdownOpen(v => !v)}
+                            data-testid="button-corp-add-tax"
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                            Add Tax
+                          </Button>
+                          {corpTaxDropdownOpen && (
+                            <div className="absolute right-0 top-full mt-1 z-20 w-72 max-h-60 overflow-y-auto rounded-xl border border-amber-200 dark:border-amber-700 bg-white dark:bg-slate-900 shadow-lg p-2 space-y-1">
+                              {billingTaxSettings.length === 0 ? (
+                                <p className="text-xs text-muted-foreground text-center py-4">No taxes configured. Add taxes in Package Module → Tax & Extra Fee.</p>
+                              ) : (
+                                billingTaxSettings.map(s => {
+                                  const meta = parseTaxMeta(s.description);
+                                  const isSelected = corpSelectedTaxIds.includes(s.id);
+                                  const isPercent = meta.type !== "extra_fee";
+                                  return (
+                                    <button
+                                      key={s.id}
+                                      type="button"
+                                      data-testid={`btn-corp-tax-option-${s.id}`}
+                                      onClick={() => {
+                                        if (isSelected) {
+                                          setCorpSelectedTaxIds(prev => prev.filter(id => id !== s.id));
+                                        } else {
+                                          setCorpSelectedTaxIds(prev => [...prev, s.id]);
+                                        }
+                                      }}
+                                      className={`w-full flex items-center gap-3 p-2.5 rounded-lg text-left text-sm transition-all ${
+                                        isSelected
+                                          ? "bg-amber-100 dark:bg-amber-900/30 border border-amber-400 dark:border-amber-600"
+                                          : "hover:bg-gray-50 dark:hover:bg-slate-800 border border-transparent"
+                                      }`}
+                                    >
+                                      <div className={`h-4 w-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${
+                                        isSelected ? "border-amber-600 bg-amber-600" : "border-gray-400"
+                                      }`}>
+                                        {isSelected && <Check className="h-2.5 w-2.5 text-white" />}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-foreground truncate">{meta.name || s.key}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                          {isPercent ? `${s.value}%` : `Rs. ${Number(s.value).toLocaleString()}`}
+                                          {meta.type && <span className="ml-1 text-amber-600">({meta.type.replace(/_/g, " ")})</span>}
+                                        </p>
+                                      </div>
+                                    </button>
+                                  );
+                                })
+                              )}
+                              <div className="pt-1 border-t border-gray-100 dark:border-slate-700">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="w-full h-7 text-xs"
+                                  onClick={() => setCorpTaxDropdownOpen(false)}
+                                  data-testid="button-corp-tax-done"
+                                >
+                                  Done
+                                </Button>
                               </div>
                             </div>
                           )}
                         </div>
+                      </div>
+
+                      {corpSelectedTaxIds.length > 0 && (
+                        <div className="space-y-2">
+                          {corpTaxLineItems.map(item => (
+                            <div key={item.id} className="flex items-center justify-between p-2.5 rounded-lg bg-white dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{item.type.replace(/_/g, " ")}</Badge>
+                                <span className="text-sm font-medium">{item.name}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  ({item.isPercent ? `${item.rate}%` : `Rs. ${item.rate.toLocaleString()}`})
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">
+                                  Rs. {item.amount.toFixed(2)}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setCorpSelectedTaxIds(prev => prev.filter(id => id !== item.id))}
+                                  className="text-muted-foreground hover:text-red-500 transition-colors"
+                                  data-testid={`btn-corp-remove-tax-${item.id}`}
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+
+                          <div className="mt-2 pt-2 border-t border-amber-200 dark:border-amber-700 flex justify-between items-center">
+                            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Total Tax & Fees</p>
+                            <p className="text-sm font-bold text-amber-700 dark:text-amber-400">Rs. {corpTotalTax.toFixed(2)}</p>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <p className="text-sm font-semibold text-green-700 dark:text-green-400">Final Monthly (incl. Tax)</p>
+                            <p className="text-sm font-bold text-green-700 dark:text-green-400">Rs. {corpFinalMonthly.toFixed(2)}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {corpSelectedTaxIds.length === 0 && (
+                        <p className="text-xs text-muted-foreground text-center py-2">
+                          No taxes applied. Click "Add Tax" to select from configured taxes.
+                        </p>
                       )}
                     </div>
 

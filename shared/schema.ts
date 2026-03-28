@@ -2059,6 +2059,7 @@ export const corporateCustomers = pgTable("corporate_customers", {
   whTaxPercent: decimal("wh_tax_percent", { precision: 5, scale: 2 }).default("0"),
   aitTaxPercent: decimal("ait_tax_percent", { precision: 5, scale: 2 }).default("0"),
   extraFeeTaxPercent: decimal("extra_fee_tax_percent", { precision: 5, scale: 2 }).default("0"),
+  appliedTaxIds: text("applied_tax_ids"),
   centralizedBilling: boolean("centralized_billing").default(true),
   perBranchBilling: boolean("per_branch_billing").default(false),
   customInvoiceFormat: text("custom_invoice_format"),
