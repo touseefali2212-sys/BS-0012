@@ -290,7 +290,9 @@ export default function AddCustomerPage() {
     taxEnabled: false, whTaxPercent: "0", aitTaxPercent: "0", extraFeeTaxPercent: "0",
     centralizedBilling: true, perBranchBilling: false, customInvoiceFormat: "",
     paymentTerms: "net_30", creditLimit: "0", securityDeposit: "0",
-    contractDuration: "", customSla: "", dedicatedAccountManager: "", customPricingAgreement: "",
+    contractDuration: "", contractStartDate: "", contractExpiryDate: "",
+    contractFile: "", cnicFrontFile: "", cnicBackFile: "",
+    customSla: "", dedicatedAccountManager: "", customPricingAgreement: "",
     managedRouter: false, firewall: false, loadBalancer: false, dedicatedSupport: false,
     backupLink: false, monitoringSla: false,
     totalBandwidth: "", monthlyBilling: "0", status: "active", notes: "",
@@ -1026,6 +1028,12 @@ export default function AddCustomerPage() {
     }
     if (!corpForm.city || corpForm.city.trim().length < 2) {
       toast({ title: "City required", description: "Please enter the city", variant: "destructive" }); return;
+    }
+    if (!corpForm.cnicFrontFile) {
+      toast({ title: "CNIC Front required", description: "Please upload the CNIC front image", variant: "destructive" }); return;
+    }
+    if (!corpForm.cnicBackFile) {
+      toast({ title: "CNIC Back required", description: "Please upload the CNIC back image", variant: "destructive" }); return;
     }
     saveCorpMutation.mutate(opts);
   };
@@ -3437,10 +3445,124 @@ export default function AddCustomerPage() {
             {/* Contract & SLA */}
             {corpActiveTab === "sla" && (
               <Card className="border-border/60 shadow-sm">
-                <CardHeader className="pb-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center"><Shield className="h-5 w-5 text-purple-600" /></div><div><CardTitle className="text-base">Contract & SLA</CardTitle><CardDescription>Service level agreement and contract details</CardDescription></div></div></CardHeader>
-                <CardContent className="space-y-4">
+                <CardHeader className="pb-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center"><Shield className="h-5 w-5 text-purple-600" /></div><div><CardTitle className="text-base">Contract & SLA</CardTitle><CardDescription>Service level agreement, contract details and document uploads</CardDescription></div></div></CardHeader>
+                <CardContent className="space-y-6">
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Contract Duration</label>
+                      <Select value={corpForm.contractDuration} onValueChange={v => updateCorp("contractDuration", v)}>
+                        <SelectTrigger data-testid="select-corp-contract-duration"><SelectValue placeholder="Select duration" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="6_months">6 Months</SelectItem>
+                          <SelectItem value="12_months">12 Months (1 Year)</SelectItem>
+                          <SelectItem value="18_months">18 Months</SelectItem>
+                          <SelectItem value="24_months">24 Months (2 Years)</SelectItem>
+                          <SelectItem value="36_months">36 Months (3 Years)</SelectItem>
+                          <SelectItem value="48_months">48 Months (4 Years)</SelectItem>
+                          <SelectItem value="60_months">60 Months (5 Years)</SelectItem>
+                          <SelectItem value="custom">Custom</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Contract Start Date</label>
+                      <Input type="date" value={corpForm.contractStartDate} onChange={e => {
+                        updateCorp("contractStartDate", e.target.value);
+                        if (e.target.value && corpForm.contractDuration && corpForm.contractDuration !== "custom") {
+                          const months = parseInt(corpForm.contractDuration);
+                          if (!isNaN(months)) {
+                            const start = new Date(e.target.value);
+                            start.setMonth(start.getMonth() + months);
+                            updateCorp("contractExpiryDate", start.toISOString().split("T")[0]);
+                          }
+                        }
+                      }} data-testid="input-corp-contract-start" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Contract Expiry Date</label>
+                      <Input type="date" value={corpForm.contractExpiryDate} onChange={e => updateCorp("contractExpiryDate", e.target.value)} data-testid="input-corp-contract-expiry" />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <Upload className="h-4 w-4 text-purple-600" />
+                      Document Uploads
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {([
+                        { key: "cnicFrontFile", label: "CNIC Front", required: true, accept: "image/*,.pdf", testId: "upload-corp-cnic-front" },
+                        { key: "cnicBackFile", label: "CNIC Back", required: true, accept: "image/*,.pdf", testId: "upload-corp-cnic-back" },
+                        { key: "contractFile", label: "Contract Form", required: false, accept: "image/*,.pdf,.doc,.docx", testId: "upload-corp-contract" },
+                      ] as const).map(({ key, label, required, accept, testId }) => (
+                        <div key={key} className="space-y-1.5">
+                          <label className="text-sm font-medium">
+                            {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+                          </label>
+                          <div className={`relative rounded-xl border-2 border-dashed p-4 text-center transition-all ${
+                            (corpForm as any)[key]
+                              ? "border-green-400 bg-green-50 dark:bg-green-950/20"
+                              : "border-border/60 bg-muted/10 hover:border-purple-400 hover:bg-purple-50/30 dark:hover:bg-purple-950/10"
+                          }`}>
+                            {(corpForm as any)[key] ? (
+                              <div className="flex flex-col items-center gap-2">
+                                {(corpForm as any)[key].match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                  <img src={(corpForm as any)[key]} alt={label} className="h-16 w-auto rounded-lg object-cover border" />
+                                ) : (
+                                  <div className="h-12 w-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                    <FileText className="h-6 w-6 text-green-600" />
+                                  </div>
+                                )}
+                                <p className="text-xs text-green-700 dark:text-green-400 font-medium">Uploaded</p>
+                                <button
+                                  type="button"
+                                  onClick={() => updateCorp(key, "")}
+                                  className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+                                  data-testid={`btn-remove-${testId}`}
+                                >
+                                  <X className="h-3 w-3" /> Remove
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="cursor-pointer flex flex-col items-center gap-2">
+                                <div className="h-10 w-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                                  <Upload className="h-5 w-5 text-purple-600" />
+                                </div>
+                                <p className="text-xs text-muted-foreground">Click to upload</p>
+                                <input
+                                  type="file"
+                                  className="hidden"
+                                  accept={accept}
+                                  data-testid={testId}
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    try {
+                                      const formData = new FormData();
+                                      formData.append("file", file);
+                                      const res = await fetch("/api/upload/document", { method: "POST", body: formData, credentials: "include" });
+                                      if (!res.ok) throw new Error("Upload failed");
+                                      const data = await res.json();
+                                      updateCorp(key, data.url);
+                                    } catch {
+                                      updateCorp(key, "");
+                                    }
+                                  }}
+                                />
+                              </label>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Separator />
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Contract Duration</label><Input placeholder="e.g. 24 months" value={corpForm.contractDuration} onChange={e => updateCorp("contractDuration", e.target.value)} data-testid="input-corp-contract-duration" /></div>
                     <div className="space-y-1.5"><label className="text-sm font-medium">Dedicated Account Manager</label><Input placeholder="Manager name" value={corpForm.dedicatedAccountManager} onChange={e => updateCorp("dedicatedAccountManager", e.target.value)} data-testid="input-corp-dedicated-manager" /></div>
                   </div>
                   <div className="space-y-1.5"><label className="text-sm font-medium">Custom SLA</label><Textarea rows={2} placeholder="e.g. 99.9% uptime, 4hr response" value={corpForm.customSla} onChange={e => updateCorp("customSla", e.target.value)} data-testid="input-corp-custom-sla" /></div>
