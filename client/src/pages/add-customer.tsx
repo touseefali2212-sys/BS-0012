@@ -8,7 +8,7 @@ import {
   Building2, Zap, Package, UserCheck, Image, X,
   CheckCircle2, XCircle, Loader2, SkipForward, FileSpreadsheet,
   ClipboardList, Send, Users, Radio, Sparkles, ArrowRight, LocateFixed, Plus, Tv,
-  Network, Activity, DollarSign, Globe,
+  Network, Activity, DollarSign, Globe, Settings, Gauge,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -303,10 +303,11 @@ export default function AddCustomerPage() {
     companyName: "", contactPerson: "", cnic: "", ntn: "", email: "", phone: "",
     mobileNo2: "", address: "", city: "", branch: "",
     mapLatitude: "", mapLongitude: "",
-    vendorId: "", vendorPort: "",
+    customerType: "", serviceType: "", vendorId: "", linkType: "", uplinkPort: "", media: "",
+    vendorPort: "",
     committedBandwidth: "", burstBandwidth: "", uploadSpeed: "", downloadSpeed: "",
     contentionRatio: "", vlanId: "", onuDevice: "", staticIp: "", subnetMask: "",
-    gateway: "", dns: "", publicIpBlock: "",
+    gateway: "", dns: "", dns2: "", publicIpBlock: "",
     contractStartDate: "", contractEndDate: "", slaLevel: "", slaPenaltyClause: "",
     autoRenewal: false, monthlyCharges: "0", installationCharges: "0",
     securityDeposit: "0", billingCycle: "monthly", invoiceType: "tax", lateFeePolicy: "",
@@ -1107,7 +1108,19 @@ export default function AddCustomerPage() {
     !!cirForm.email && cirForm.email.includes("@") &&
     !!cirForm.branch &&
     (cirForm.city?.trim().length ?? 0) >= 2 &&
-    (cirForm.address?.trim().length ?? 0) >= 3;
+    (cirForm.address?.trim().length ?? 0) >= 3 &&
+    !!cirForm.customerType &&
+    !!cirForm.serviceType &&
+    !!cirForm.vendorId &&
+    !!cirForm.linkType &&
+    (cirForm.uplinkPort?.trim().length ?? 0) >= 1 &&
+    !!cirForm.media &&
+    (cirForm.committedBandwidth?.trim().length ?? 0) >= 1 &&
+    (cirForm.staticIp?.trim().length ?? 0) >= 5 &&
+    (cirForm.subnetMask?.trim().length ?? 0) >= 5 &&
+    (cirForm.gateway?.trim().length ?? 0) >= 5 &&
+    (cirForm.dns?.trim().length ?? 0) >= 3 &&
+    (cirForm.dns2?.trim().length ?? 0) >= 3;
 
   const handleCirSave = (opts: { activate?: boolean } = {}) => {
     if (!cirForm.companyName || cirForm.companyName.trim().length < 2) {
@@ -3815,24 +3828,135 @@ export default function AddCustomerPage() {
             {cirActiveTab === "network" && (
               <Card className="border-border/60 shadow-sm">
                 <CardHeader className="pb-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center"><Network className="h-5 w-5 text-blue-600" /></div><div><CardTitle className="text-base">Network Details</CardTitle><CardDescription>CIR connection and IP configuration</CardDescription></div></div></CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Vendor</label>
-                      <Select value={cirForm.vendorId} onValueChange={v => updateCir("vendorId", v)}><SelectTrigger data-testid="select-cir-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger><SelectContent>{(vendors || []).map(v => <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>)}</SelectContent></Select>
+                <CardContent className="space-y-6">
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <Settings className="h-4 w-4 text-blue-600" />
+                      Connection Configuration
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Customer Type<span className="text-red-500 ml-0.5">*</span></label>
+                        <Select value={cirForm.customerType} onValueChange={v => updateCir("customerType", v)}>
+                          <SelectTrigger data-testid="select-cir-customer-type"><SelectValue placeholder="Select type" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Corporate">Corporate</SelectItem>
+                            <SelectItem value="Enterprise">Enterprise</SelectItem>
+                            <SelectItem value="SME">SME</SelectItem>
+                            <SelectItem value="Government">Government</SelectItem>
+                            <SelectItem value="ISP">ISP</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Service Type<span className="text-red-500 ml-0.5">*</span></label>
+                        <Select value={cirForm.serviceType} onValueChange={v => updateCir("serviceType", v)}>
+                          <SelectTrigger data-testid="select-cir-service-type"><SelectValue placeholder="Select service" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Internet">Internet</SelectItem>
+                            <SelectItem value="MPLS">MPLS</SelectItem>
+                            <SelectItem value="P2P">P2P</SelectItem>
+                            <SelectItem value="IPLC">IPLC</SelectItem>
+                            <SelectItem value="Dark Fiber">Dark Fiber</SelectItem>
+                            <SelectItem value="Colocation">Colocation</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Vendor<span className="text-red-500 ml-0.5">*</span></label>
+                        <Select value={cirForm.vendorId} onValueChange={v => updateCir("vendorId", v)}>
+                          <SelectTrigger data-testid="select-cir-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
+                          <SelectContent>{(vendors || []).map(v => <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Link Type<span className="text-red-500 ml-0.5">*</span></label>
+                        <Select value={cirForm.linkType} onValueChange={v => updateCir("linkType", v)}>
+                          <SelectTrigger data-testid="select-cir-link-type"><SelectValue placeholder="Select link type" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Primary">Primary</SelectItem>
+                            <SelectItem value="Secondary">Secondary</SelectItem>
+                            <SelectItem value="Backup">Backup</SelectItem>
+                            <SelectItem value="Redundant">Redundant</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Uplink Port<span className="text-red-500 ml-0.5">*</span></label>
+                        <Input placeholder="e.g. GE0/0/1" value={cirForm.uplinkPort} onChange={e => updateCir("uplinkPort", e.target.value)} data-testid="input-cir-uplink-port" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Media<span className="text-red-500 ml-0.5">*</span></label>
+                        <Select value={cirForm.media} onValueChange={v => updateCir("media", v)}>
+                          <SelectTrigger data-testid="select-cir-media"><SelectValue placeholder="Select media" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Fiber">Fiber</SelectItem>
+                            <SelectItem value="Copper">Copper</SelectItem>
+                            <SelectItem value="Wireless">Wireless</SelectItem>
+                            <SelectItem value="Microwave">Microwave</SelectItem>
+                            <SelectItem value="Satellite">Satellite</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Vendor Port</label><Input placeholder="Port identifier" value={cirForm.vendorPort} onChange={e => updateCir("vendorPort", e.target.value)} data-testid="input-cir-vendor-port" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Committed Bandwidth</label><Input placeholder="e.g. 100 Mbps" value={cirForm.committedBandwidth} onChange={e => updateCir("committedBandwidth", e.target.value)} data-testid="input-cir-committed-bw" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Burst Bandwidth</label><Input placeholder="e.g. 200 Mbps" value={cirForm.burstBandwidth} onChange={e => updateCir("burstBandwidth", e.target.value)} data-testid="input-cir-burst-bw" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Upload Speed</label><Input placeholder="e.g. 100 Mbps" value={cirForm.uploadSpeed} onChange={e => updateCir("uploadSpeed", e.target.value)} data-testid="input-cir-upload-speed" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Download Speed</label><Input placeholder="e.g. 100 Mbps" value={cirForm.downloadSpeed} onChange={e => updateCir("downloadSpeed", e.target.value)} data-testid="input-cir-download-speed" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Contention Ratio</label><Input placeholder="e.g. 1:1" value={cirForm.contentionRatio} onChange={e => updateCir("contentionRatio", e.target.value)} data-testid="input-cir-contention-ratio" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">VLAN ID</label><Input placeholder="e.g. 100" value={cirForm.vlanId} onChange={e => updateCir("vlanId", e.target.value)} data-testid="input-cir-vlan-id" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">ONU Device</label><Input placeholder="ONU serial/model" value={cirForm.onuDevice} onChange={e => updateCir("onuDevice", e.target.value)} data-testid="input-cir-onu-device" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Static IP</label><Input placeholder="e.g. 192.168.1.1" value={cirForm.staticIp} onChange={e => updateCir("staticIp", e.target.value)} data-testid="input-cir-static-ip" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Subnet Mask</label><Input placeholder="e.g. 255.255.255.0" value={cirForm.subnetMask} onChange={e => updateCir("subnetMask", e.target.value)} data-testid="input-cir-subnet-mask" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Gateway</label><Input placeholder="e.g. 192.168.1.254" value={cirForm.gateway} onChange={e => updateCir("gateway", e.target.value)} data-testid="input-cir-gateway" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">DNS</label><Input placeholder="e.g. 8.8.8.8" value={cirForm.dns} onChange={e => updateCir("dns", e.target.value)} data-testid="input-cir-dns" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Public IP Block</label><Input placeholder="e.g. 203.0.113.0/28" value={cirForm.publicIpBlock} onChange={e => updateCir("publicIpBlock", e.target.value)} data-testid="input-cir-public-ip-block" /></div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <Gauge className="h-4 w-4 text-blue-600" />
+                      Bandwidth & Speed
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Bandwidth (Mbps)<span className="text-red-500 ml-0.5">*</span></label>
+                        <Input placeholder="e.g. 100" value={cirForm.committedBandwidth} onChange={e => updateCir("committedBandwidth", e.target.value)} data-testid="input-cir-committed-bw" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Upload Speed</label>
+                        <Input placeholder="e.g. 100 Mbps" value={cirForm.uploadSpeed} onChange={e => updateCir("uploadSpeed", e.target.value)} data-testid="input-cir-upload-speed" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Download Speed</label>
+                        <Input placeholder="e.g. 100 Mbps" value={cirForm.downloadSpeed} onChange={e => updateCir("downloadSpeed", e.target.value)} data-testid="input-cir-download-speed" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Vlan ID</label>
+                        <Input placeholder="e.g. 100" value={cirForm.vlanId} onChange={e => updateCir("vlanId", e.target.value)} data-testid="input-cir-vlan-id" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-blue-600" />
+                      IP Configuration
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Static IP Address<span className="text-red-500 ml-0.5">*</span></label>
+                        <Input placeholder="e.g. 192.168.1.1" value={cirForm.staticIp} onChange={e => updateCir("staticIp", e.target.value)} data-testid="input-cir-static-ip" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Subnet Mask<span className="text-red-500 ml-0.5">*</span></label>
+                        <Input placeholder="e.g. 255.255.255.0" value={cirForm.subnetMask} onChange={e => updateCir("subnetMask", e.target.value)} data-testid="input-cir-subnet-mask" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Gateway<span className="text-red-500 ml-0.5">*</span></label>
+                        <Input placeholder="e.g. 192.168.1.254" value={cirForm.gateway} onChange={e => updateCir("gateway", e.target.value)} data-testid="input-cir-gateway" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">DNS1<span className="text-red-500 ml-0.5">*</span></label>
+                        <Input placeholder="e.g. 8.8.8.8" value={cirForm.dns} onChange={e => updateCir("dns", e.target.value)} data-testid="input-cir-dns" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">DNS2<span className="text-red-500 ml-0.5">*</span></label>
+                        <Input placeholder="e.g. 8.8.4.4" value={cirForm.dns2} onChange={e => updateCir("dns2", e.target.value)} data-testid="input-cir-dns2" />
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
