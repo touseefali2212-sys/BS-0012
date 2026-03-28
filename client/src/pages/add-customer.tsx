@@ -678,6 +678,27 @@ export default function AddCustomerPage() {
     );
   };
 
+  const handleCirGetGps = () => {
+    if (!navigator.geolocation) {
+      toast({ title: "Geolocation not supported", description: "Your browser does not support GPS.", variant: "destructive" });
+      return;
+    }
+    setGpsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        updateCir("mapLatitude",  String(pos.coords.latitude));
+        updateCir("mapLongitude", String(pos.coords.longitude));
+        setGpsLocating(false);
+        toast({ title: "Location detected", description: `Lat: ${pos.coords.latitude.toFixed(6)}, Lng: ${pos.coords.longitude.toFixed(6)}` });
+      },
+      (err) => {
+        setGpsLocating(false);
+        toast({ title: "GPS error", description: err.message, variant: "destructive" });
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
   const handleJoiningDateChange = (date: string) => {
     setForm(prev => {
       const expire = selectedPackage
@@ -3744,43 +3765,47 @@ export default function AddCustomerPage() {
                   <Separator />
 
                   <div>
-                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-purple-600" />
-                      GPS Coordinates
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-medium">Latitude</label>
-                        <Input placeholder="e.g. 31.5204" value={cirForm.mapLatitude} onChange={e => updateCir("mapLatitude", e.target.value)} data-testid="input-cir-latitude" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-medium">Longitude</label>
-                        <Input placeholder="e.g. 74.3587" value={cirForm.mapLongitude} onChange={e => updateCir("mapLongitude", e.target.value)} data-testid="input-cir-longitude" />
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-3">
-                      <Button type="button" variant="outline" size="sm" className="gap-1.5 text-xs"
+                    <div className="flex items-center gap-2 mb-4">
+                      <MapPin className="h-4 w-4 text-green-600" />
+                      <span className="font-semibold text-sm">GPS Coordinates</span>
+                      <Badge variant="outline" className="text-xs">Optional</Badge>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="ml-auto h-7 gap-1.5 text-xs border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-950"
+                        onClick={handleCirGetGps}
+                        disabled={gpsLocating}
                         data-testid="btn-cir-get-gps"
-                        onClick={() => {
-                          if (navigator.geolocation) {
-                            navigator.geolocation.getCurrentPosition(
-                              pos => { updateCir("mapLatitude", String(pos.coords.latitude)); updateCir("mapLongitude", String(pos.coords.longitude)); },
-                              () => {}
-                            );
-                          }
-                        }}
                       >
-                        <LocateFixed className="h-3.5 w-3.5" /> Get GPS Location
+                        <LocateFixed className={`h-3.5 w-3.5 ${gpsLocating ? "animate-pulse" : ""}`} />
+                        {gpsLocating ? "Detecting…" : "Get GPS Location"}
                       </Button>
-                      {cirForm.mapLatitude && cirForm.mapLongitude && (
-                        <Button type="button" variant="outline" size="sm" className="gap-1.5 text-xs"
-                          data-testid="btn-cir-view-map"
-                          onClick={() => window.open(`https://www.google.com/maps?q=${cirForm.mapLatitude},${cirForm.mapLongitude}`, "_blank")}
-                        >
-                          <MapPin className="h-3.5 w-3.5" /> View on Map
-                        </Button>
-                      )}
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Map Latitude</label>
+                        <Input
+                          placeholder="e.g. 33.7294"
+                          value={cirForm.mapLatitude}
+                          onChange={e => updateCir("mapLatitude", e.target.value)}
+                          data-testid="input-cir-latitude"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Map Longitude</label>
+                        <Input
+                          placeholder="e.g. 73.0931"
+                          value={cirForm.mapLongitude}
+                          onChange={e => updateCir("mapLongitude", e.target.value)}
+                          data-testid="input-cir-longitude"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
+                      <MapPin className="h-3.5 w-3.5" />
+                      Enter GPS coordinates manually or click "Get GPS Location" to auto-detect
+                    </p>
                   </div>
                 </CardContent>
               </Card>
