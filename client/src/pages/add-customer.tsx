@@ -284,6 +284,7 @@ export default function AddCustomerPage() {
     headOfficeAddress: "", billingAddress: "", accountManager: "", email: "", mobileNo: "", phone: "",
     branch: "", city: "",
     mapLatitude: "", mapLongitude: "",
+    billingMode: "fixed", perMbpsRate: "0", bandwidthMbps: "0",
     centralizedBilling: true, perBranchBilling: false, customInvoiceFormat: "",
     paymentTerms: "net_30", creditLimit: "0", securityDeposit: "0",
     contractDuration: "", customSla: "", dedicatedAccountManager: "", customPricingAgreement: "",
@@ -325,7 +326,9 @@ export default function AddCustomerPage() {
   const [installationInstallmentEnabled, setInstallationInstallmentEnabled] = useState(false);
 
   // Corp billing computed values
-  const corpFinalMonthly = Math.max(0, (parseFloat(corpMonthlyBase) || 0) - (parseFloat(corpBillingDiscount) || 0));
+  const corpPerMbpsCalculated = (parseFloat(corpForm.bandwidthMbps) || 0) * (parseFloat(corpForm.perMbpsRate) || 0);
+  const corpEffectiveBase = corpForm.billingMode === "per_mbps" ? corpPerMbpsCalculated : (parseFloat(corpMonthlyBase) || 0);
+  const corpFinalMonthly = Math.max(0, corpEffectiveBase - (parseFloat(corpBillingDiscount) || 0));
   const corpFirstPayment = corpFinalMonthly + (parseFloat(corpForm.securityDeposit) || 0) + (corpOtcEnabled ? (parseFloat(corpOtcAmount) || 0) : 0);
 
   const [form, setForm] = useState({
@@ -2891,12 +2894,14 @@ export default function AddCustomerPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium">Account Manager</label>
-                      <Input
-                        placeholder="e.g. Sara Ahmed"
-                        value={corpForm.accountManager}
-                        onChange={e => updateCorp("accountManager", e.target.value)}
-                        data-testid="input-corp-account-manager-billing"
-                      />
+                      <Select value={corpForm.accountManager} onValueChange={v => updateCorp("accountManager", v)}>
+                        <SelectTrigger data-testid="select-corp-account-manager-billing"><SelectValue placeholder="Select account manager" /></SelectTrigger>
+                        <SelectContent>
+                          {employees?.map(emp => (
+                            <SelectItem key={emp.id} value={emp.fullName}>{emp.fullName} — {emp.designation}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <p className="text-[11px] text-muted-foreground">Primary contact managing this account</p>
                     </div>
                     <div className="space-y-1.5">
@@ -2950,41 +2955,143 @@ export default function AddCustomerPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-medium">Monthly Billing (Rs.)</label>
-                        <Input
-                          type="number"
-                          placeholder="0.00"
-                          value={corpMonthlyBase}
-                          onChange={e => setCorpMonthlyBase(e.target.value)}
-                          data-testid="input-corp-monthly-billing"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-medium">Discount / Adjustment (Rs.)</label>
-                        <Input
-                          type="number"
-                          placeholder="0.00"
-                          value={corpBillingDiscount}
-                          onChange={e => setCorpBillingDiscount(e.target.value)}
-                          data-testid="input-corp-billing-discount"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-sm font-medium">Final Monthly Billing</label>
-                        <div className="relative">
-                          <Input
-                            type="number"
-                            value={corpFinalMonthly.toFixed(2)}
-                            readOnly
-                            data-testid="input-corp-final-monthly"
-                            className="bg-green-50 dark:bg-green-950/20 border-green-300 dark:border-green-800 text-green-700 dark:text-green-400 font-semibold pr-9"
-                          />
-                          <Calculator className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-600" />
-                        </div>
+                    <div className="mb-4">
+                      <label className="text-sm font-medium mb-2 block">Billing Mode</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {([
+                          { id: "fixed", label: "Fixed MRC", desc: "Fixed monthly recurring charge" },
+                          { id: "per_mbps", label: "Per Mbps Rate", desc: "Bandwidth × rate per Mbps" },
+                        ] as const).map(({ id, label, desc }) => (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => updateCorp("billingMode", id)}
+                            data-testid={`btn-corp-billing-mode-${id}`}
+                            className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
+                              corpForm.billingMode === id
+                                ? "border-green-500 bg-green-50 dark:bg-green-950/20 shadow-md ring-1 ring-green-400"
+                                : "border-border/60 bg-white dark:bg-slate-900 hover:border-green-300"
+                            }`}
+                          >
+                            <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                              corpForm.billingMode === id ? "border-green-600 bg-green-600" : "border-gray-400"
+                            }`}>
+                              {corpForm.billingMode === id && <Check className="h-2.5 w-2.5 text-white" />}
+                            </div>
+                            <div>
+                              <p className={`text-sm font-semibold ${corpForm.billingMode === id ? "text-green-700 dark:text-green-400" : "text-foreground"}`}>{label}</p>
+                              <p className="text-xs text-muted-foreground">{desc}</p>
+                            </div>
+                          </button>
+                        ))}
                       </div>
                     </div>
+
+                    {corpForm.billingMode === "fixed" && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium">Monthly Billing (Rs.)</label>
+                          <Input
+                            type="number"
+                            placeholder="0.00"
+                            value={corpMonthlyBase}
+                            onChange={e => setCorpMonthlyBase(e.target.value)}
+                            data-testid="input-corp-monthly-billing"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium">Discount / Adjustment (Rs.)</label>
+                          <Input
+                            type="number"
+                            placeholder="0.00"
+                            value={corpBillingDiscount}
+                            onChange={e => setCorpBillingDiscount(e.target.value)}
+                            data-testid="input-corp-billing-discount"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium">Final Monthly Billing</label>
+                          <div className="relative">
+                            <Input
+                              type="number"
+                              value={corpFinalMonthly.toFixed(2)}
+                              readOnly
+                              data-testid="input-corp-final-monthly"
+                              className="bg-green-50 dark:bg-green-950/20 border-green-300 dark:border-green-800 text-green-700 dark:text-green-400 font-semibold pr-9"
+                            />
+                            <Calculator className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-600" />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {corpForm.billingMode === "per_mbps" && (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium">Bandwidth (Mbps)</label>
+                            <Input
+                              type="number"
+                              placeholder="e.g. 100"
+                              value={corpForm.bandwidthMbps}
+                              onChange={e => updateCorp("bandwidthMbps", e.target.value)}
+                              data-testid="input-corp-bandwidth-mbps"
+                            />
+                            <p className="text-[11px] text-muted-foreground">Total allocated bandwidth in Mbps</p>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium">Rate per Mbps (Rs.)</label>
+                            <Input
+                              type="number"
+                              placeholder="e.g. 250"
+                              value={corpForm.perMbpsRate}
+                              onChange={e => updateCorp("perMbpsRate", e.target.value)}
+                              data-testid="input-corp-per-mbps-rate"
+                            />
+                            <p className="text-[11px] text-muted-foreground">Monthly charge per Mbps</p>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium">Calculated MRC</label>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                value={corpPerMbpsCalculated.toFixed(2)}
+                                readOnly
+                                data-testid="input-corp-per-mbps-calculated"
+                                className="bg-blue-50 dark:bg-blue-950/20 border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-400 font-semibold pr-9"
+                              />
+                              <Calculator className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-600" />
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">{corpForm.bandwidthMbps || "0"} Mbps × Rs. {corpForm.perMbpsRate || "0"} = Rs. {corpPerMbpsCalculated.toFixed(2)}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium">Discount / Adjustment (Rs.)</label>
+                            <Input
+                              type="number"
+                              placeholder="0.00"
+                              value={corpBillingDiscount}
+                              onChange={e => setCorpBillingDiscount(e.target.value)}
+                              data-testid="input-corp-billing-discount-mbps"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium">Final Monthly Billing</label>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                value={corpFinalMonthly.toFixed(2)}
+                                readOnly
+                                data-testid="input-corp-final-monthly-mbps"
+                                className="bg-green-50 dark:bg-green-950/20 border-green-300 dark:border-green-800 text-green-700 dark:text-green-400 font-semibold pr-9"
+                              />
+                              <Calculator className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-600" />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Financial Limits */}
                     <div className="mt-4 rounded-xl border border-dashed border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/20 p-4">
