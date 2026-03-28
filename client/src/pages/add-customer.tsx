@@ -56,7 +56,8 @@ const corpTabItems = [
 const cirTabItems = [
   { id: "company",    label: "Company Info",    icon: Building2 },
   { id: "network",    label: "Network Details", icon: Network },
-  { id: "billing",    label: "SLA & Billing",   icon: DollarSign },
+  { id: "billing",    label: "Billing & Terms", icon: DollarSign },
+  { id: "contract",   label: "Contract & SLA",  icon: Shield },
   { id: "monitoring", label: "Monitoring",      icon: Activity },
 ];
 
@@ -280,6 +281,14 @@ export default function AddCustomerPage() {
   const [corpSelectedTaxIds, setCorpSelectedTaxIds] = useState<number[]>([]);
   const [corpTaxDropdownOpen, setCorpTaxDropdownOpen] = useState(false);
 
+  const [cirMonthlyBase, setCirMonthlyBase] = useState("0");
+  const [cirBillingDiscount, setCirBillingDiscount] = useState("0");
+  const [cirOtcEnabled, setCirOtcEnabled] = useState(false);
+  const [cirOtcAmount, setCirOtcAmount] = useState("");
+  const [cirLateFeeEnabled, setCirLateFeeEnabled] = useState(false);
+  const [cirSelectedTaxIds, setCirSelectedTaxIds] = useState<number[]>([]);
+  const [cirTaxDropdownOpen, setCirTaxDropdownOpen] = useState(false);
+
   // Corporate form state
   const [corpForm, setCorpForm] = useState({
     companyName: "", contactFullName: "", registrationNumber: "", ntn: "", industryType: "",
@@ -308,9 +317,16 @@ export default function AddCustomerPage() {
     committedBandwidth: "", burstBandwidth: "", uploadSpeed: "", downloadSpeed: "",
     contentionRatio: "", vlanId: "", onuDevice: "", staticIp: "", subnetMask: "",
     gateway: "", dns: "", dns2: "", publicIpBlock: "",
-    contractStartDate: "", contractEndDate: "", slaLevel: "", slaPenaltyClause: "",
+    paymentTerms: "", billingMode: "", bandwidthMbps: "", perMbpsRate: "",
+    monthlyBilling: "0", billingDiscount: "0", otcAmount: "",
+    appliedTaxIds: "", accountManager: "", creditLimit: "0",
+    centralizedBilling: false, perBranchBilling: false, customInvoiceFormat: "",
+    contractDuration: "", contractStartDate: "", contractEndDate: "",
+    contractExpiryDate: "", slaLevel: "", slaPenaltyClause: "",
     autoRenewal: false, monthlyCharges: "0", installationCharges: "0",
     securityDeposit: "0", billingCycle: "monthly", invoiceType: "tax", lateFeePolicy: "",
+    cnicFrontFile: "", cnicBackFile: "", contractFile: "",
+    dedicatedAccountManager: "", customSla: "", customPricingAgreement: "",
     radiusProfile: "", bandwidthProfileName: "", monitoringEnabled: false,
     snmpMonitoring: false, trafficAlerts: false, status: "active", notes: "",
   });
@@ -337,6 +353,10 @@ export default function AddCustomerPage() {
   const corpPerMbpsCalculated = (parseFloat(corpForm.bandwidthMbps) || 0) * (parseFloat(corpForm.perMbpsRate) || 0);
   const corpEffectiveBase = corpForm.billingMode === "per_mbps" ? corpPerMbpsCalculated : (parseFloat(corpMonthlyBase) || 0);
   const corpSubtotalBeforeTax = Math.max(0, corpEffectiveBase - (parseFloat(corpBillingDiscount) || 0));
+
+  const cirPerMbpsCalculated = (parseFloat(cirForm.bandwidthMbps) || 0) * (parseFloat(cirForm.perMbpsRate) || 0);
+  const cirEffectiveBase = cirForm.billingMode === "per_mbps" ? cirPerMbpsCalculated : (parseFloat(cirMonthlyBase) || 0);
+  const cirSubtotalBeforeTax = Math.max(0, cirEffectiveBase - (parseFloat(cirBillingDiscount) || 0));
 
   const [form, setForm] = useState({
     fullName: "", fatherName: "", cnic: "", phone: "", email: "",
@@ -445,6 +465,18 @@ export default function AddCustomerPage() {
   const corpTotalTax = corpTaxLineItems.reduce((sum, t) => sum + t.amount, 0);
   const corpFinalMonthly = corpSubtotalBeforeTax + corpTotalTax;
   const corpFirstPayment = corpFinalMonthly + (parseFloat(corpForm.securityDeposit) || 0) + (corpOtcEnabled ? (parseFloat(corpOtcAmount) || 0) : 0);
+
+  const cirSelectedTaxes = billingTaxSettings.filter(s => cirSelectedTaxIds.includes(s.id));
+  const cirTaxLineItems = cirSelectedTaxes.map(s => {
+    const meta = parseTaxMeta(s.description);
+    const val = parseFloat(s.value) || 0;
+    const isPercent = meta.type !== "extra_fee";
+    const amount = isPercent ? (cirSubtotalBeforeTax * val) / 100 : val;
+    return { id: s.id, name: meta.name || s.key, type: meta.type, rate: val, isPercent, amount };
+  });
+  const cirTotalTax = cirTaxLineItems.reduce((sum, t) => sum + t.amount, 0);
+  const cirFinalMonthly = cirSubtotalBeforeTax + cirTotalTax;
+  const cirFirstPayment = cirFinalMonthly + (parseFloat(cirForm.securityDeposit) || 0) + (cirOtcEnabled ? (parseFloat(cirOtcAmount) || 0) : 0);
 
   const filteredPackages = packages?.filter(p =>
     !form.vendorId || String(p.vendorId) === form.vendorId
@@ -1004,6 +1036,11 @@ export default function AddCustomerPage() {
         monthlyCharges: cirForm.monthlyCharges || "0",
         installationCharges: cirForm.installationCharges || "0",
         securityDeposit: cirForm.securityDeposit || "0",
+        creditLimit: cirForm.creditLimit || "0",
+        monthlyBilling: String(cirFinalMonthly) || "0",
+        billingDiscount: cirBillingDiscount || "0",
+        otcAmount: cirOtcEnabled ? (cirOtcAmount || "0") : "0",
+        appliedTaxIds: cirSelectedTaxIds.length > 0 ? JSON.stringify(cirSelectedTaxIds) : null,
       };
       const res = await apiRequest("POST", "/api/cir-customers", payload);
       return res.json();
@@ -1120,7 +1157,16 @@ export default function AddCustomerPage() {
     (cirForm.subnetMask?.trim().length ?? 0) >= 5 &&
     (cirForm.gateway?.trim().length ?? 0) >= 5 &&
     (cirForm.dns?.trim().length ?? 0) >= 3 &&
-    (cirForm.dns2?.trim().length ?? 0) >= 3;
+    (cirForm.dns2?.trim().length ?? 0) >= 3 &&
+    !!cirForm.paymentTerms &&
+    !!cirForm.billingMode &&
+    parseFloat(cirForm.bandwidthMbps) > 0 &&
+    (cirForm.billingMode === "fixed"
+      ? parseFloat(cirMonthlyBase) > 0
+      : parseFloat(cirForm.perMbpsRate) > 0) &&
+    (cirOtcEnabled ? parseFloat(cirOtcAmount) > 0 : true) &&
+    !!cirForm.cnicFrontFile &&
+    !!cirForm.cnicBackFile;
 
   const handleCirSave = (opts: { activate?: boolean } = {}) => {
     if (!cirForm.companyName || cirForm.companyName.trim().length < 2) {
@@ -3962,31 +4008,513 @@ export default function AddCustomerPage() {
               </Card>
             )}
 
-            {/* SLA & Billing */}
+            {/* Billing & Terms */}
             {cirActiveTab === "billing" && (
               <Card className="border-border/60 shadow-sm">
-                <CardHeader className="pb-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center"><DollarSign className="h-5 w-5 text-green-600" /></div><div><CardTitle className="text-base">SLA & Billing</CardTitle><CardDescription>Service level agreement and financial terms</CardDescription></div></div></CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Contract Start Date</label><Input type="date" value={cirForm.contractStartDate} onChange={e => updateCir("contractStartDate", e.target.value)} data-testid="input-cir-contract-start" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Contract End Date</label><Input type="date" value={cirForm.contractEndDate} onChange={e => updateCir("contractEndDate", e.target.value)} data-testid="input-cir-contract-end" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">SLA Level</label><Input placeholder="e.g. 99.99% uptime" value={cirForm.slaLevel} onChange={e => updateCir("slaLevel", e.target.value)} data-testid="input-cir-sla-level" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Late Fee Policy</label><Input placeholder="e.g. 2% per month" value={cirForm.lateFeePolicy} onChange={e => updateCir("lateFeePolicy", e.target.value)} data-testid="input-cir-late-fee" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Monthly Charges (Rs.)</label><Input type="number" placeholder="0.00" value={cirForm.monthlyCharges} onChange={e => updateCir("monthlyCharges", e.target.value)} data-testid="input-cir-monthly-charges" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Installation Charges (Rs.)</label><Input type="number" placeholder="0.00" value={cirForm.installationCharges} onChange={e => updateCir("installationCharges", e.target.value)} data-testid="input-cir-installation-charges" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Security Deposit (Rs.)</label><Input type="number" placeholder="0.00" value={cirForm.securityDeposit} onChange={e => updateCir("securityDeposit", e.target.value)} data-testid="input-cir-security-deposit" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Billing Cycle</label>
-                      <Select value={cirForm.billingCycle} onValueChange={v => updateCir("billingCycle", v)}><SelectTrigger data-testid="select-cir-billing-cycle"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="monthly">Monthly</SelectItem><SelectItem value="quarterly">Quarterly</SelectItem><SelectItem value="semi-annual">Semi-Annual</SelectItem><SelectItem value="annual">Annual</SelectItem></SelectContent></Select>
+                <CardHeader className="pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                      <DollarSign className="h-5 w-5 text-green-600" />
                     </div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Invoice Type</label>
-                      <Select value={cirForm.invoiceType} onValueChange={v => updateCir("invoiceType", v)}><SelectTrigger data-testid="select-cir-invoice-type"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="tax">Tax Invoice</SelectItem><SelectItem value="non-tax">Non-Tax</SelectItem></SelectContent></Select>
-                    </div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Status</label>
-                      <Select value={cirForm.status} onValueChange={v => updateCir("status", v)}><SelectTrigger data-testid="select-cir-status"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem><SelectItem value="suspended">Suspended</SelectItem></SelectContent></Select>
+                    <div>
+                      <CardTitle className="text-base">Billing & Payment Terms</CardTitle>
+                      <CardDescription>Financial settings, charges and invoice configuration for this CIR account</CardDescription>
                     </div>
                   </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Account Manager</label>
+                      <Select value={cirForm.accountManager} onValueChange={v => updateCir("accountManager", v)}>
+                        <SelectTrigger data-testid="select-cir-account-manager"><SelectValue placeholder="Select account manager" /></SelectTrigger>
+                        <SelectContent>
+                          {employees?.map(emp => (
+                            <SelectItem key={emp.id} value={emp.fullName}>{emp.fullName} — {emp.designation}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground">Primary contact managing this account</p>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Account Status</label>
+                      <Select value={cirForm.status} onValueChange={v => updateCir("status", v)}>
+                        <SelectTrigger data-testid="select-cir-status"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="suspended">Suspended</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-muted-foreground">Current billing and service status</p>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <Package className="h-4 w-4 text-green-600" />
+                      <span className="font-semibold text-sm">Monthly Billing & Payment Terms</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Payment Terms<span className="text-red-500 ml-0.5">*</span></label>
+                        <Select value={cirForm.paymentTerms} onValueChange={v => updateCir("paymentTerms", v)}>
+                          <SelectTrigger data-testid="select-cir-payment-terms"><SelectValue placeholder="Select terms" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="net_15">Net 15 — Due in 15 days</SelectItem>
+                            <SelectItem value="net_30">Net 30 — Due in 30 days</SelectItem>
+                            <SelectItem value="net_45">Net 45 — Due in 45 days</SelectItem>
+                            <SelectItem value="net_60">Net 60 — Due in 60 days</SelectItem>
+                            <SelectItem value="advance">Advance — Pay before service</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <p className="text-[11px] text-muted-foreground">Invoice due-date policy for this account</p>
+                      </div>
+                    </div>
+
+                    <div className="mb-4">
+                      <label className="text-sm font-medium mb-2 block">Billing Mode<span className="text-red-500 ml-0.5">*</span></label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {([
+                          { id: "fixed", label: "Fixed MRC", desc: "Fixed monthly recurring charge" },
+                          { id: "per_mbps", label: "Per Mbps Rate", desc: "Bandwidth × rate per Mbps" },
+                        ] as const).map(({ id, label, desc }) => (
+                          <button
+                            key={id}
+                            type="button"
+                            onClick={() => updateCir("billingMode", id)}
+                            data-testid={`btn-cir-billing-mode-${id}`}
+                            className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${
+                              cirForm.billingMode === id
+                                ? "border-green-500 bg-green-50 dark:bg-green-950/20 shadow-md ring-1 ring-green-400"
+                                : "border-border/60 bg-white dark:bg-slate-900 hover:border-green-300"
+                            }`}
+                          >
+                            <div className={`h-4 w-4 rounded-full border-2 flex items-center justify-center ${
+                              cirForm.billingMode === id ? "border-green-600 bg-green-600" : "border-gray-400"
+                            }`}>
+                              {cirForm.billingMode === id && <Check className="h-2.5 w-2.5 text-white" />}
+                            </div>
+                            <div>
+                              <p className={`text-sm font-semibold ${cirForm.billingMode === id ? "text-green-700 dark:text-green-400" : "text-foreground"}`}>{label}</p>
+                              <p className="text-xs text-muted-foreground">{desc}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      {cirForm.billingMode === "fixed" && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium">Bandwidth (Mbps)<span className="text-red-500 ml-0.5">*</span></label>
+                            <Input type="number" placeholder="e.g. 100" value={cirForm.bandwidthMbps} onChange={e => updateCir("bandwidthMbps", e.target.value)} data-testid="input-cir-bandwidth-mbps" />
+                            <p className="text-[11px] text-muted-foreground">Total allocated bandwidth in Mbps</p>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium">Monthly Billing (Rs.)<span className="text-red-500 ml-0.5">*</span></label>
+                            <Input type="number" placeholder="0.00" value={cirMonthlyBase} onChange={e => setCirMonthlyBase(e.target.value)} data-testid="input-cir-monthly-billing" />
+                            <p className="text-[11px] text-muted-foreground">Fixed monthly recurring charge amount</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {cirForm.billingMode === "per_mbps" && (
+                        <>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Bandwidth (Mbps)<span className="text-red-500 ml-0.5">*</span></label>
+                              <Input type="number" placeholder="e.g. 100" value={cirForm.bandwidthMbps} onChange={e => updateCir("bandwidthMbps", e.target.value)} data-testid="input-cir-bandwidth-mbps" />
+                              <p className="text-[11px] text-muted-foreground">Total allocated bandwidth in Mbps</p>
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Rate per Mbps (Rs.)<span className="text-red-500 ml-0.5">*</span></label>
+                              <Input type="number" placeholder="e.g. 250" value={cirForm.perMbpsRate} onChange={e => updateCir("perMbpsRate", e.target.value)} data-testid="input-cir-per-mbps-rate" />
+                              <p className="text-[11px] text-muted-foreground">Monthly charge per Mbps</p>
+                            </div>
+                          </div>
+                          {cirPerMbpsCalculated > 0 && (
+                            <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 p-3">
+                              <p className="text-xs text-muted-foreground mb-1">Calculated MRC</p>
+                              <p className="text-sm font-semibold text-blue-700 dark:text-blue-400">
+                                {cirForm.bandwidthMbps || "0"} Mbps × Rs. {cirForm.perMbpsRate || "0"} = Rs. {cirPerMbpsCalculated.toFixed(2)}
+                              </p>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium">Discount / Adjustment (Rs.)</label>
+                          <Input type="number" placeholder="0.00" value={cirBillingDiscount} onChange={e => setCirBillingDiscount(e.target.value)} data-testid="input-cir-billing-discount" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium">Final Monthly Billing</label>
+                          <div className="relative">
+                            <Input type="number" value={cirFinalMonthly.toFixed(2)} readOnly data-testid="input-cir-final-monthly" className="bg-green-50 dark:bg-green-950/20 border-green-300 dark:border-green-800 text-green-700 dark:text-green-400 font-semibold pr-9" />
+                            <Calculator className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-600" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tax & Fees Section */}
+                    <div className="mt-4 rounded-xl border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20 p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="h-5 w-5 rounded bg-amber-600 flex items-center justify-center">
+                            <Calculator className="h-3 w-3 text-white" />
+                          </div>
+                          <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">Tax & Fees</span>
+                          <span className="text-xs text-muted-foreground ml-1">Select taxes from Package Module</span>
+                        </div>
+                        <div className="relative">
+                          <Button type="button" size="sm" variant="outline" className="h-8 gap-1.5 text-xs border-amber-400 text-amber-700 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-400 dark:hover:bg-amber-950" onClick={() => setCirTaxDropdownOpen(v => !v)} data-testid="button-cir-add-tax">
+                            <Plus className="h-3.5 w-3.5" /> Add Tax
+                          </Button>
+                          {cirTaxDropdownOpen && (
+                            <div className="absolute right-0 top-full mt-1 z-20 w-72 max-h-60 overflow-y-auto rounded-xl border border-amber-200 dark:border-amber-700 bg-white dark:bg-slate-900 shadow-lg p-2 space-y-1">
+                              {billingTaxSettings.length === 0 ? (
+                                <p className="text-xs text-muted-foreground text-center py-4">No taxes configured. Add taxes in Package Module → Tax & Extra Fee.</p>
+                              ) : (
+                                billingTaxSettings.map(s => {
+                                  const meta = parseTaxMeta(s.description);
+                                  const isSelected = cirSelectedTaxIds.includes(s.id);
+                                  const isPercent = meta.type !== "extra_fee";
+                                  return (
+                                    <button key={s.id} type="button" data-testid={`btn-cir-tax-option-${s.id}`}
+                                      onClick={() => {
+                                        if (isSelected) { setCirSelectedTaxIds(prev => prev.filter(id => id !== s.id)); }
+                                        else { setCirSelectedTaxIds(prev => [...prev, s.id]); }
+                                      }}
+                                      className={`w-full flex items-center gap-3 p-2.5 rounded-lg text-left text-sm transition-all ${isSelected ? "bg-amber-100 dark:bg-amber-900/30 border border-amber-400 dark:border-amber-600" : "hover:bg-gray-50 dark:hover:bg-slate-800 border border-transparent"}`}
+                                    >
+                                      <div className={`h-4 w-4 rounded border-2 flex items-center justify-center flex-shrink-0 ${isSelected ? "border-amber-600 bg-amber-600" : "border-gray-400"}`}>
+                                        {isSelected && <Check className="h-2.5 w-2.5 text-white" />}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-foreground truncate">{meta.name || s.key}</p>
+                                        <p className="text-xs text-muted-foreground">{isPercent ? `${s.value}%` : `Rs. ${Number(s.value).toLocaleString()}`}{meta.type && <span className="ml-1 text-amber-600">({meta.type.replace(/_/g, " ")})</span>}</p>
+                                      </div>
+                                    </button>
+                                  );
+                                })
+                              )}
+                              <div className="pt-1 border-t border-gray-100 dark:border-slate-700">
+                                <Button type="button" size="sm" className="w-full h-7 text-xs" onClick={() => setCirTaxDropdownOpen(false)} data-testid="button-cir-tax-done">Done</Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {cirSelectedTaxIds.length > 0 && (
+                        <div className="space-y-2">
+                          {cirTaxLineItems.map(item => (
+                            <div key={item.id} className="flex items-center justify-between p-2.5 rounded-lg bg-white dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{item.type.replace(/_/g, " ")}</Badge>
+                                <span className="text-sm font-medium">{item.name}</span>
+                                <span className="text-xs text-muted-foreground">({item.isPercent ? `${item.rate}%` : `Rs. ${item.rate.toLocaleString()}`})</span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">Rs. {item.amount.toFixed(2)}</span>
+                                <button type="button" onClick={() => setCirSelectedTaxIds(prev => prev.filter(id => id !== item.id))} className="text-muted-foreground hover:text-red-500 transition-colors" data-testid={`btn-cir-remove-tax-${item.id}`}>
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                          <div className="mt-2 pt-2 border-t border-amber-200 dark:border-amber-700 flex justify-between items-center">
+                            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Total Tax & Fees</p>
+                            <p className="text-sm font-bold text-amber-700 dark:text-amber-400">Rs. {cirTotalTax.toFixed(2)}</p>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <p className="text-sm font-semibold text-green-700 dark:text-green-400">Final Monthly (incl. Tax)</p>
+                            <p className="text-sm font-bold text-green-700 dark:text-green-400">Rs. {cirFinalMonthly.toFixed(2)}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {cirSelectedTaxIds.length === 0 && (
+                        <p className="text-xs text-muted-foreground text-center py-2">No taxes applied. Click "Add Tax" to select from configured taxes.</p>
+                      )}
+                    </div>
+
+                    {/* Financial Limits */}
+                    <div className="mt-4 rounded-xl border border-dashed border-sky-300 dark:border-sky-700 bg-sky-50 dark:bg-sky-950/20 p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="h-5 w-5 rounded bg-sky-600 flex items-center justify-center">
+                          <Shield className="h-3 w-3 text-white" />
+                        </div>
+                        <span className="text-sm font-semibold text-sky-700 dark:text-sky-400">Financial Limits & Deposits</span>
+                        <span className="text-xs text-muted-foreground ml-1">Credit exposure and security terms</span>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium text-sky-700 dark:text-sky-400">Credit Limit (Rs.)</label>
+                          <div className="relative">
+                            <Input type="number" placeholder="0.00" value={cirForm.creditLimit} onChange={e => updateCir("creditLimit", e.target.value)} data-testid="input-cir-credit-limit" className="border-sky-300 dark:border-sky-700 focus-visible:ring-sky-400" />
+                            <Calculator className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-sky-500" />
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">Maximum outstanding invoice balance allowed</p>
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium text-sky-700 dark:text-sky-400">Security Deposit (Rs.)</label>
+                          <div className="relative">
+                            <Input type="number" placeholder="0.00" value={cirForm.securityDeposit} onChange={e => updateCir("securityDeposit", e.target.value)} data-testid="input-cir-security-deposit" className="border-sky-300 dark:border-sky-700 focus-visible:ring-sky-400" />
+                            <Calculator className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-sky-500" />
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">One-time refundable security amount</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Invoice Settings */}
+                    <div className="mt-4 rounded-xl border border-dashed border-violet-300 dark:border-violet-700 bg-violet-50 dark:bg-violet-950/20 p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="h-5 w-5 rounded bg-violet-600 flex items-center justify-center">
+                          <FileText className="h-3 w-3 text-white" />
+                        </div>
+                        <span className="text-sm font-semibold text-violet-700 dark:text-violet-400">Invoice Settings</span>
+                        <span className="text-xs text-muted-foreground ml-1">Billing format and distribution rules</span>
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-violet-900/20 border border-violet-200 dark:border-violet-700">
+                          <div>
+                            <p className="text-sm font-medium">Centralized Billing</p>
+                            <p className="text-xs text-muted-foreground">Single consolidated invoice for all branches</p>
+                          </div>
+                          <Switch checked={cirForm.centralizedBilling} onCheckedChange={v => updateCir("centralizedBilling", v)} data-testid="switch-cir-centralized-billing" />
+                        </div>
+                        <div className="flex items-center justify-between p-3 rounded-lg bg-white dark:bg-violet-900/20 border border-violet-200 dark:border-violet-700">
+                          <div>
+                            <p className="text-sm font-medium">Per-Branch Billing</p>
+                            <p className="text-xs text-muted-foreground">Separate invoice generated for each branch</p>
+                          </div>
+                          <Switch checked={cirForm.perBranchBilling} onCheckedChange={v => updateCir("perBranchBilling", v)} data-testid="switch-cir-per-branch-billing" />
+                        </div>
+                        <div className="space-y-1.5 pt-1">
+                          <label className="text-sm font-medium text-violet-700 dark:text-violet-400">Custom Invoice Format</label>
+                          <Input placeholder="e.g. PDF with company letterhead, Excel breakdown" value={cirForm.customInvoiceFormat} onChange={e => updateCir("customInvoiceFormat", e.target.value)} data-testid="input-cir-invoice-format" className="border-violet-300 dark:border-violet-700 focus-visible:ring-violet-400" />
+                          <p className="text-[11px] text-muted-foreground">Specify preferred invoice format or delivery method</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Add-on Charges */}
+                    <div className="mt-4 rounded-xl border border-dashed border-purple-300 dark:border-purple-700 bg-purple-50 dark:bg-purple-950/20 p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Zap className="h-4 w-4 text-purple-600" />
+                        <span className="text-sm font-semibold text-purple-700 dark:text-purple-400">Add-on Charges</span>
+                        <span className="text-xs text-muted-foreground ml-1">Optional one-time or recurring charges</span>
+                      </div>
+                      <div className="flex flex-wrap gap-3">
+                        <button type="button" data-testid="btn-cir-addon-otc" onClick={() => setCirOtcEnabled(v => !v)}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all ${cirOtcEnabled ? "bg-purple-600 border-purple-600 text-white shadow-md" : "bg-white dark:bg-background border-purple-300 dark:border-purple-700 text-purple-700 dark:text-purple-400 hover:border-purple-500"}`}>
+                          {cirOtcEnabled ? <Check className="h-4 w-4" /> : <span className="font-bold text-base leading-none">+</span>}
+                          OTC / One-Time Charge
+                          {cirOtcEnabled && <Badge className="ml-1 bg-white/20 text-white text-[10px] px-1.5 py-0">Active</Badge>}
+                        </button>
+                        <button type="button" data-testid="btn-cir-addon-late-fee" onClick={() => setCirLateFeeEnabled(v => !v)}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all ${cirLateFeeEnabled ? "bg-amber-600 border-amber-600 text-white shadow-md" : "bg-white dark:bg-background border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400 hover:border-amber-500"}`}>
+                          {cirLateFeeEnabled ? <Check className="h-4 w-4" /> : <span className="font-bold text-base leading-none">+</span>}
+                          Late Fee Policy
+                          {cirLateFeeEnabled && <Badge className="ml-1 bg-white/20 text-white text-[10px] px-1.5 py-0">Active</Badge>}
+                        </button>
+                      </div>
+
+                      {cirOtcEnabled && (
+                        <div className="mt-3 flex items-end gap-3">
+                          <div className="space-y-1.5 flex-1 max-w-xs">
+                            <label className="text-sm font-medium text-purple-700 dark:text-purple-400">One-Time Charge (Rs.) <span className="text-red-500">*</span></label>
+                            <div className="relative">
+                              <Input type="number" placeholder="0.00" value={cirOtcAmount} onChange={e => setCirOtcAmount(e.target.value)} data-testid="input-cir-otc-amount" className="pr-9 border-purple-300 dark:border-purple-700 focus-visible:ring-purple-400" />
+                              <Calculator className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-purple-500" />
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">Setup fee or one-time activation charge</p>
+                          </div>
+                          <button type="button" onClick={() => setCirOtcEnabled(false)} className="mb-6 text-xs text-muted-foreground hover:text-red-500 flex items-center gap-1" data-testid="btn-cir-remove-otc">
+                            <X className="h-3.5 w-3.5" /> Remove
+                          </button>
+                        </div>
+                      )}
+
+                      {cirLateFeeEnabled && (
+                        <div className="mt-4 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/20 p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Late Fee Policy</p>
+                            <button type="button" onClick={() => setCirLateFeeEnabled(false)} className="text-xs text-muted-foreground hover:text-red-500 flex items-center gap-1" data-testid="btn-cir-remove-late-fee">
+                              <X className="h-3.5 w-3.5" /> Remove
+                            </button>
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-sm font-medium text-amber-700 dark:text-amber-400">Policy Description</label>
+                            <textarea placeholder="e.g. 2% per week after 7-day grace period" value={cirForm.lateFeePolicy} onChange={e => updateCir("lateFeePolicy", e.target.value)} data-testid="textarea-cir-late-fee-policy" rows={2}
+                              className="w-full rounded-md border border-amber-300 dark:border-amber-700 bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none" />
+                            <p className="text-[11px] text-muted-foreground">Describe late payment penalties and grace period</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Grand Total — First Invoice */}
+                    <div className="mt-4 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 p-4 shadow-md">
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center">
+                          <Calculator className="h-4 w-4 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-white">First Invoice Total</p>
+                          <p className="text-[11px] text-green-200 space-x-1">
+                            <span>Rs. {cirFinalMonthly.toFixed(2)} monthly</span>
+                            {parseFloat(cirForm.securityDeposit) > 0 && (
+                              <><span>+</span><span>Rs. {parseFloat(cirForm.securityDeposit).toFixed(2)} security deposit</span></>
+                            )}
+                            {cirOtcEnabled && parseFloat(cirOtcAmount) > 0 && (
+                              <><span>+</span><span>Rs. {parseFloat(cirOtcAmount).toFixed(2)} OTC</span></>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-green-700 pointer-events-none">Rs.</span>
+                        <Input type="number" value={cirFirstPayment.toFixed(2)} readOnly data-testid="input-cir-first-payment" className="pl-12 text-lg font-bold text-green-700 dark:text-green-700 bg-white border-0 h-12 shadow-inner" />
+                      </div>
+                      <p className="text-[11px] text-green-200 mt-1.5 text-right">Auto-calculated from monthly + deposit + OTC charges</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Contract & SLA */}
+            {cirActiveTab === "contract" && (
+              <Card className="border-border/60 shadow-sm">
+                <CardHeader className="pb-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center"><Shield className="h-5 w-5 text-purple-600" /></div><div><CardTitle className="text-base">Contract & SLA</CardTitle><CardDescription>Service level agreement, contract details and document uploads</CardDescription></div></div></CardHeader>
+                <CardContent className="space-y-6">
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Contract Duration</label>
+                      <Select value={cirForm.contractDuration} onValueChange={v => updateCir("contractDuration", v)}>
+                        <SelectTrigger data-testid="select-cir-contract-duration"><SelectValue placeholder="Select duration" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="6_months">6 Months</SelectItem>
+                          <SelectItem value="12_months">12 Months (1 Year)</SelectItem>
+                          <SelectItem value="18_months">18 Months</SelectItem>
+                          <SelectItem value="24_months">24 Months (2 Years)</SelectItem>
+                          <SelectItem value="36_months">36 Months (3 Years)</SelectItem>
+                          <SelectItem value="48_months">48 Months (4 Years)</SelectItem>
+                          <SelectItem value="60_months">60 Months (5 Years)</SelectItem>
+                          <SelectItem value="custom">Custom</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Contract Start Date</label>
+                      <Input type="date" value={cirForm.contractStartDate} onChange={e => {
+                        updateCir("contractStartDate", e.target.value);
+                        if (e.target.value && cirForm.contractDuration && cirForm.contractDuration !== "custom") {
+                          const months = parseInt(cirForm.contractDuration);
+                          if (!isNaN(months)) {
+                            const start = new Date(e.target.value);
+                            start.setMonth(start.getMonth() + months);
+                            updateCir("contractExpiryDate", start.toISOString().split("T")[0]);
+                          }
+                        }
+                      }} data-testid="input-cir-contract-start" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Contract Expiry Date</label>
+                      <Input type="date" value={cirForm.contractExpiryDate} onChange={e => updateCir("contractExpiryDate", e.target.value)} data-testid="input-cir-contract-expiry" />
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <Upload className="h-4 w-4 text-purple-600" />
+                      Document Uploads
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {([
+                        { key: "cnicFrontFile", label: "CNIC Front", required: true, accept: "image/*,.pdf", testId: "upload-cir-cnic-front" },
+                        { key: "cnicBackFile", label: "CNIC Back", required: true, accept: "image/*,.pdf", testId: "upload-cir-cnic-back" },
+                        { key: "contractFile", label: "Contract Form", required: false, accept: "image/*,.pdf,.doc,.docx", testId: "upload-cir-contract" },
+                      ] as const).map(({ key, label, required, accept, testId }) => (
+                        <div key={key} className="space-y-1.5">
+                          <label className="text-sm font-medium">
+                            {label}{required && <span className="text-red-500 ml-0.5">*</span>}
+                          </label>
+                          <div className={`relative rounded-xl border-2 border-dashed p-4 text-center transition-all ${
+                            (cirForm as any)[key]
+                              ? "border-green-400 bg-green-50 dark:bg-green-950/20"
+                              : "border-border/60 bg-muted/10 hover:border-purple-400 hover:bg-purple-50/30 dark:hover:bg-purple-950/10"
+                          }`}>
+                            {(cirForm as any)[key] ? (
+                              <div className="flex flex-col items-center gap-2">
+                                {(cirForm as any)[key].match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                  <img src={(cirForm as any)[key]} alt={label} className="h-16 w-auto rounded-lg object-cover border" />
+                                ) : (
+                                  <div className="h-12 w-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                                    <FileText className="h-6 w-6 text-green-600" />
+                                  </div>
+                                )}
+                                <p className="text-xs text-green-700 dark:text-green-400 font-medium">Uploaded</p>
+                                <button type="button" onClick={() => updateCir(key, "")} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1" data-testid={`btn-remove-${testId}`}>
+                                  <X className="h-3 w-3" /> Remove
+                                </button>
+                              </div>
+                            ) : (
+                              <label className="cursor-pointer flex flex-col items-center gap-2">
+                                <div className="h-10 w-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                                  <Upload className="h-5 w-5 text-purple-600" />
+                                </div>
+                                <p className="text-xs text-muted-foreground">Click to upload</p>
+                                <input type="file" className="hidden" accept={accept} data-testid={testId}
+                                  onChange={async (e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    try {
+                                      const formData = new FormData();
+                                      formData.append("file", file);
+                                      const res = await fetch("/api/upload/document", { method: "POST", body: formData, credentials: "include" });
+                                      if (!res.ok) throw new Error("Upload failed");
+                                      const data = await res.json();
+                                      updateCir(key, data.url);
+                                    } catch {
+                                      updateCir(key, "");
+                                    }
+                                  }}
+                                />
+                              </label>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Dedicated Account Manager</label><Input placeholder="Manager name" value={cirForm.dedicatedAccountManager} onChange={e => updateCir("dedicatedAccountManager", e.target.value)} data-testid="input-cir-dedicated-manager" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">SLA Level</label><Input placeholder="e.g. 99.99% uptime" value={cirForm.slaLevel} onChange={e => updateCir("slaLevel", e.target.value)} data-testid="input-cir-sla-level" /></div>
+                  </div>
+                  <div className="space-y-1.5"><label className="text-sm font-medium">Custom SLA</label><Textarea rows={2} placeholder="e.g. 99.9% uptime, 4hr response" value={cirForm.customSla} onChange={e => updateCir("customSla", e.target.value)} data-testid="input-cir-custom-sla" /></div>
                   <div className="space-y-1.5"><label className="text-sm font-medium">SLA Penalty Clause</label><Textarea rows={2} placeholder="Describe the SLA penalty clause" value={cirForm.slaPenaltyClause} onChange={e => updateCir("slaPenaltyClause", e.target.value)} data-testid="input-cir-sla-penalty" /></div>
+                  <div className="space-y-1.5"><label className="text-sm font-medium">Custom Pricing Agreement</label><Textarea rows={2} placeholder="Special pricing notes or agreement details" value={cirForm.customPricingAgreement} onChange={e => updateCir("customPricingAgreement", e.target.value)} data-testid="input-cir-pricing-agreement" /></div>
                   <div className="flex items-center gap-3"><Switch checked={cirForm.autoRenewal} onCheckedChange={v => updateCir("autoRenewal", v)} data-testid="switch-cir-auto-renewal" /><div><p className="text-sm font-medium">Auto Renewal</p><p className="text-xs text-muted-foreground">Automatically renew contract at expiry</p></div></div>
+                  <div className="space-y-1.5"><label className="text-sm font-medium">Notes</label><Textarea rows={3} placeholder="Additional notes..." value={cirForm.notes} onChange={e => updateCir("notes", e.target.value)} data-testid="input-cir-notes" /></div>
                 </CardContent>
               </Card>
             )}
