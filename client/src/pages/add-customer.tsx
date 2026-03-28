@@ -301,7 +301,9 @@ export default function AddCustomerPage() {
   // CIR form state
   const [cirForm, setCirForm] = useState({
     companyName: "", contactPerson: "", cnic: "", ntn: "", email: "", phone: "",
-    address: "", city: "", branch: "", vendorId: "", vendorPort: "",
+    mobileNo2: "", address: "", city: "", branch: "",
+    mapLatitude: "", mapLongitude: "",
+    vendorId: "", vendorPort: "",
     committedBandwidth: "", burstBandwidth: "", uploadSpeed: "", downloadSpeed: "",
     contentionRatio: "", vlanId: "", onuDevice: "", staticIp: "", subnetMask: "",
     gateway: "", dns: "", publicIpBlock: "",
@@ -1076,9 +1078,40 @@ export default function AddCustomerPage() {
     saveCorpMutation.mutate(opts);
   };
 
+  const cirRequiredComplete =
+    (cirForm.companyName?.trim().length ?? 0) >= 2 &&
+    (cirForm.contactPerson?.trim().length ?? 0) >= 2 &&
+    (cirForm.cnic?.trim().length ?? 0) >= 5 &&
+    (cirForm.phone?.trim().length ?? 0) >= 5 &&
+    !!cirForm.email && cirForm.email.includes("@") &&
+    !!cirForm.branch &&
+    (cirForm.city?.trim().length ?? 0) >= 2 &&
+    (cirForm.address?.trim().length ?? 0) >= 3;
+
   const handleCirSave = (opts: { activate?: boolean } = {}) => {
     if (!cirForm.companyName || cirForm.companyName.trim().length < 2) {
       toast({ title: "Company Name required", description: "Please enter the company name", variant: "destructive" }); return;
+    }
+    if (!cirForm.contactPerson || cirForm.contactPerson.trim().length < 2) {
+      toast({ title: "Full Name required", description: "Please enter the contact person's full name", variant: "destructive" }); return;
+    }
+    if (!cirForm.cnic || cirForm.cnic.trim().length < 5) {
+      toast({ title: "CNIC No required", description: "Please enter a valid CNIC number", variant: "destructive" }); return;
+    }
+    if (!cirForm.phone || cirForm.phone.trim().length < 5) {
+      toast({ title: "Mobile No required", description: "Please enter a valid mobile number", variant: "destructive" }); return;
+    }
+    if (!cirForm.email || !cirForm.email.includes("@")) {
+      toast({ title: "Email required", description: "Please enter a valid email address", variant: "destructive" }); return;
+    }
+    if (!cirForm.branch) {
+      toast({ title: "Branch required", description: "Please select a branch", variant: "destructive" }); return;
+    }
+    if (!cirForm.city || cirForm.city.trim().length < 2) {
+      toast({ title: "City required", description: "Please enter the city", variant: "destructive" }); return;
+    }
+    if (!cirForm.address || cirForm.address.trim().length < 3) {
+      toast({ title: "Address required", description: "Please enter the address", variant: "destructive" }); return;
     }
     saveCirMutation.mutate(opts);
   };
@@ -3658,18 +3691,97 @@ export default function AddCustomerPage() {
                 <CardHeader className="pb-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center"><Building2 className="h-5 w-5 text-purple-600" /></div><div><CardTitle className="text-base">Company Information</CardTitle><CardDescription>CIR client identity and contact details</CardDescription></div></div></CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Company Name <span className="text-red-500">*</span></label><Input placeholder="Company name" value={cirForm.companyName} onChange={e => updateCir("companyName", e.target.value)} data-testid="input-cir-company-name" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Contact Person</label><Input placeholder="Primary contact name" value={cirForm.contactPerson} onChange={e => updateCir("contactPerson", e.target.value)} data-testid="input-cir-contact-person" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">CNIC / NID</label><Input placeholder="XXXXX-XXXXXXX-X" value={cirForm.cnic} onChange={e => updateCir("cnic", e.target.value)} data-testid="input-cir-cnic" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">NTN</label><Input placeholder="XXXXXXX-X" value={cirForm.ntn} onChange={e => updateCir("ntn", e.target.value)} data-testid="input-cir-ntn" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Email</label><Input type="email" placeholder="contact@company.com" value={cirForm.email} onChange={e => updateCir("email", e.target.value)} data-testid="input-cir-email" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Phone</label><Input placeholder="Phone number" value={cirForm.phone} onChange={e => updateCir("phone", e.target.value)} data-testid="input-cir-phone" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">City</label><Input placeholder="City" value={cirForm.city} onChange={e => updateCir("city", e.target.value)} data-testid="input-cir-city" /></div>
-                    <div className="space-y-1.5"><label className="text-sm font-medium">Branch</label>
-                      <Select value={cirForm.branch} onValueChange={v => updateCir("branch", v)}><SelectTrigger data-testid="select-cir-branch"><SelectValue placeholder="Select branch" /></SelectTrigger><SelectContent>{(branches || []).map(b => <SelectItem key={b.id} value={b.name || String(b.id)}>{b.name}</SelectItem>)}</SelectContent></Select>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Company Name<span className="text-red-500 ml-0.5">*</span></label>
+                      <Input placeholder="Company name" value={cirForm.companyName} onChange={e => updateCir("companyName", e.target.value)} data-testid="input-cir-company-name" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">NTN No</label>
+                      <Input placeholder="XXXXXXX-X" value={cirForm.ntn} onChange={e => updateCir("ntn", e.target.value)} data-testid="input-cir-ntn" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Full Name<span className="text-red-500 ml-0.5">*</span></label>
+                      <Input placeholder="Primary contact full name" value={cirForm.contactPerson} onChange={e => updateCir("contactPerson", e.target.value)} data-testid="input-cir-contact-person" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">CNIC No<span className="text-red-500 ml-0.5">*</span></label>
+                      <Input placeholder="XXXXX-XXXXXXX-X" value={cirForm.cnic} onChange={e => updateCir("cnic", e.target.value)} data-testid="input-cir-cnic" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Mobile No<span className="text-red-500 ml-0.5">*</span></label>
+                      <Input placeholder="03XX-XXXXXXX" value={cirForm.phone} onChange={e => updateCir("phone", e.target.value)} data-testid="input-cir-phone" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Mobile No 2</label>
+                      <Input placeholder="03XX-XXXXXXX" value={cirForm.mobileNo2} onChange={e => updateCir("mobileNo2", e.target.value)} data-testid="input-cir-mobile-no-2" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Email<span className="text-red-500 ml-0.5">*</span></label>
+                      <Input type="email" placeholder="contact@company.com" value={cirForm.email} onChange={e => updateCir("email", e.target.value)} data-testid="input-cir-email" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Branch<span className="text-red-500 ml-0.5">*</span></label>
+                      <Select value={cirForm.branch} onValueChange={v => {
+                        updateCir("branch", v);
+                        const selectedB = branches?.find(b => (b.name || String(b.id)) === v);
+                        if (selectedB?.city) updateCir("city", selectedB.city);
+                      }}>
+                        <SelectTrigger data-testid="select-cir-branch"><SelectValue placeholder="Select branch" /></SelectTrigger>
+                        <SelectContent>{(branches || []).map(b => <SelectItem key={b.id} value={b.name || String(b.id)}>{b.name}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">City<span className="text-red-500 ml-0.5">*</span></label>
+                      <Input placeholder="City" value={cirForm.city} onChange={e => updateCir("city", e.target.value)} data-testid="input-cir-city" />
                     </div>
                   </div>
-                  <div className="space-y-1.5"><label className="text-sm font-medium">Address</label><Textarea rows={2} placeholder="Full address" value={cirForm.address} onChange={e => updateCir("address", e.target.value)} data-testid="input-cir-address" /></div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Address<span className="text-red-500 ml-0.5">*</span></label>
+                    <Textarea rows={2} placeholder="Full address" value={cirForm.address} onChange={e => updateCir("address", e.target.value)} data-testid="input-cir-address" />
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-purple-600" />
+                      GPS Coordinates
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Latitude</label>
+                        <Input placeholder="e.g. 31.5204" value={cirForm.mapLatitude} onChange={e => updateCir("mapLatitude", e.target.value)} data-testid="input-cir-latitude" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Longitude</label>
+                        <Input placeholder="e.g. 74.3587" value={cirForm.mapLongitude} onChange={e => updateCir("mapLongitude", e.target.value)} data-testid="input-cir-longitude" />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <Button type="button" variant="outline" size="sm" className="gap-1.5 text-xs"
+                        data-testid="btn-cir-get-gps"
+                        onClick={() => {
+                          if (navigator.geolocation) {
+                            navigator.geolocation.getCurrentPosition(
+                              pos => { updateCir("mapLatitude", String(pos.coords.latitude)); updateCir("mapLongitude", String(pos.coords.longitude)); },
+                              () => {}
+                            );
+                          }
+                        }}
+                      >
+                        <LocateFixed className="h-3.5 w-3.5" /> Get GPS Location
+                      </Button>
+                      {cirForm.mapLatitude && cirForm.mapLongitude && (
+                        <Button type="button" variant="outline" size="sm" className="gap-1.5 text-xs"
+                          data-testid="btn-cir-view-map"
+                          onClick={() => window.open(`https://www.google.com/maps?q=${cirForm.mapLatitude},${cirForm.mapLongitude}`, "_blank")}
+                        >
+                          <MapPin className="h-3.5 w-3.5" /> View on Map
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -3849,10 +3961,10 @@ export default function AddCustomerPage() {
                 )}
                 {customerCategory === "cir" && (
                   <>
-                    <Button variant="outline" onClick={() => handleCirSave({ activate: true })} disabled={saveCirMutation.isPending} data-testid="button-cir-save-activate" className="text-sm border-green-500 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 disabled:opacity-50">
+                    <Button variant="outline" onClick={() => handleCirSave({ activate: true })} disabled={!cirRequiredComplete || saveCirMutation.isPending} data-testid="button-cir-save-activate" className="text-sm border-green-500 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 disabled:opacity-50">
                       <Zap className="h-3.5 w-3.5 mr-1.5" />Save & Activate
                     </Button>
-                    <Button onClick={() => handleCirSave()} disabled={saveCirMutation.isPending} data-testid="button-cir-save" className="bg-gradient-to-br from-purple-600 to-indigo-600 hover:opacity-90 text-white shadow-md gap-2 disabled:opacity-50">
+                    <Button onClick={() => handleCirSave()} disabled={!cirRequiredComplete || saveCirMutation.isPending} data-testid="button-cir-save" className="bg-gradient-to-br from-purple-600 to-indigo-600 hover:opacity-90 text-white shadow-md gap-2 disabled:opacity-50">
                       {saveCirMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                       Save CIR Customer
                     </Button>
