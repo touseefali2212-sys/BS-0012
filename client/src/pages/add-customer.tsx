@@ -1012,7 +1012,14 @@ export default function AddCustomerPage() {
     !!corpForm.branch &&
     (corpForm.city?.trim().length ?? 0) >= 2 &&
     !!corpForm.cnicFrontFile &&
-    !!corpForm.cnicBackFile;
+    !!corpForm.cnicBackFile &&
+    !!corpForm.paymentTerms &&
+    !!corpForm.billingMode &&
+    parseFloat(corpForm.bandwidthMbps) > 0 &&
+    (corpForm.billingMode === "fixed"
+      ? parseFloat(corpMonthlyBase) > 0
+      : parseFloat(corpForm.perMbpsRate) > 0) &&
+    (corpOtcEnabled ? parseFloat(corpOtcAmount) > 0 : true);
 
   const handleCorpSave = (opts: { activate?: boolean } = {}) => {
     if (!corpForm.companyName || corpForm.companyName.trim().length < 2) {
@@ -1047,6 +1054,24 @@ export default function AddCustomerPage() {
     }
     if (!corpForm.cnicBackFile) {
       toast({ title: "CNIC Back required", description: "Please upload the CNIC back image", variant: "destructive" }); return;
+    }
+    if (!corpForm.paymentTerms) {
+      toast({ title: "Payment Terms required", description: "Please select payment terms", variant: "destructive" }); return;
+    }
+    if (!corpForm.billingMode) {
+      toast({ title: "Billing Mode required", description: "Please select a billing mode", variant: "destructive" }); return;
+    }
+    if (!(parseFloat(corpForm.bandwidthMbps) > 0)) {
+      toast({ title: "Bandwidth required", description: "Please enter the bandwidth in Mbps", variant: "destructive" }); return;
+    }
+    if (corpForm.billingMode === "fixed" && !(parseFloat(corpMonthlyBase) > 0)) {
+      toast({ title: "Monthly Billing required", description: "Please enter the monthly billing amount", variant: "destructive" }); return;
+    }
+    if (corpForm.billingMode === "per_mbps" && !(parseFloat(corpForm.perMbpsRate) > 0)) {
+      toast({ title: "Rate per Mbps required", description: "Please enter the rate per Mbps", variant: "destructive" }); return;
+    }
+    if (corpOtcEnabled && !(parseFloat(corpOtcAmount) > 0)) {
+      toast({ title: "OTC Amount required", description: "Please enter the one-time charge amount", variant: "destructive" }); return;
     }
     saveCorpMutation.mutate(opts);
   };
@@ -2973,7 +2998,7 @@ export default function AddCustomerPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div className="space-y-1.5">
-                        <label className="text-sm font-medium">Payment Terms</label>
+                        <label className="text-sm font-medium">Payment Terms<span className="text-red-500 ml-0.5">*</span></label>
                         <Select value={corpForm.paymentTerms} onValueChange={v => updateCorp("paymentTerms", v)}>
                           <SelectTrigger data-testid="select-corp-payment-terms"><SelectValue /></SelectTrigger>
                           <SelectContent>
@@ -2989,7 +3014,7 @@ export default function AddCustomerPage() {
                     </div>
 
                     <div className="mb-4">
-                      <label className="text-sm font-medium mb-2 block">Billing Mode</label>
+                      <label className="text-sm font-medium mb-2 block">Billing Mode<span className="text-red-500 ml-0.5">*</span></label>
                       <div className="grid grid-cols-2 gap-3">
                         {([
                           { id: "fixed", label: "Fixed MRC", desc: "Fixed monthly recurring charge" },
@@ -3024,7 +3049,7 @@ export default function AddCustomerPage() {
                       {corpForm.billingMode === "fixed" && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="space-y-1.5">
-                            <label className="text-sm font-medium">Bandwidth (Mbps)</label>
+                            <label className="text-sm font-medium">Bandwidth (Mbps)<span className="text-red-500 ml-0.5">*</span></label>
                             <Input
                               type="number"
                               placeholder="e.g. 100"
@@ -3035,7 +3060,7 @@ export default function AddCustomerPage() {
                             <p className="text-[11px] text-muted-foreground">Total allocated bandwidth in Mbps</p>
                           </div>
                           <div className="space-y-1.5">
-                            <label className="text-sm font-medium">Monthly Billing (Rs.)</label>
+                            <label className="text-sm font-medium">Monthly Billing (Rs.)<span className="text-red-500 ml-0.5">*</span></label>
                             <Input
                               type="number"
                               placeholder="0.00"
@@ -3052,7 +3077,7 @@ export default function AddCustomerPage() {
                         <>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                              <label className="text-sm font-medium">Bandwidth (Mbps)</label>
+                              <label className="text-sm font-medium">Bandwidth (Mbps)<span className="text-red-500 ml-0.5">*</span></label>
                               <Input
                                 type="number"
                                 placeholder="e.g. 100"
@@ -3063,7 +3088,7 @@ export default function AddCustomerPage() {
                               <p className="text-[11px] text-muted-foreground">Total allocated bandwidth in Mbps</p>
                             </div>
                             <div className="space-y-1.5">
-                              <label className="text-sm font-medium">Rate per Mbps (Rs.)</label>
+                              <label className="text-sm font-medium">Rate per Mbps (Rs.)<span className="text-red-500 ml-0.5">*</span></label>
                               <Input
                                 type="number"
                                 placeholder="e.g. 250"
