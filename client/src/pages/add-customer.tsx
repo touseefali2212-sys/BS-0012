@@ -1001,6 +1001,19 @@ export default function AddCustomerPage() {
     onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
+  const corpRequiredComplete =
+    (corpForm.companyName?.trim().length ?? 0) >= 2 &&
+    (corpForm.contactFullName?.trim().length ?? 0) >= 2 &&
+    (corpForm.mobileNo?.trim().length ?? 0) >= 5 &&
+    !!corpForm.email && corpForm.email.includes("@") &&
+    !!corpForm.industryType &&
+    (corpForm.billingAddress?.trim().length ?? 0) >= 3 &&
+    (corpForm.headOfficeAddress?.trim().length ?? 0) >= 3 &&
+    !!corpForm.branch &&
+    (corpForm.city?.trim().length ?? 0) >= 2 &&
+    !!corpForm.cnicFrontFile &&
+    !!corpForm.cnicBackFile;
+
   const handleCorpSave = (opts: { activate?: boolean } = {}) => {
     if (!corpForm.companyName || corpForm.companyName.trim().length < 2) {
       toast({ title: "Company Name required", description: "Please enter the company name", variant: "destructive" }); return;
@@ -3800,10 +3813,10 @@ export default function AddCustomerPage() {
                 )}
                 {customerCategory === "corporate" && (
                   <>
-                    <Button variant="outline" onClick={() => handleCorpSave({ activate: true })} disabled={saveCorpMutation.isPending} data-testid="button-corp-save-activate" className="text-sm border-green-500 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 disabled:opacity-50">
+                    <Button variant="outline" onClick={() => handleCorpSave({ activate: true })} disabled={!corpRequiredComplete || saveCorpMutation.isPending} data-testid="button-corp-save-activate" className="text-sm border-green-500 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 disabled:opacity-50">
                       <Zap className="h-3.5 w-3.5 mr-1.5" />Save & Activate
                     </Button>
-                    <Button onClick={() => handleCorpSave()} disabled={saveCorpMutation.isPending} data-testid="button-corp-save" className="bg-gradient-to-br from-[#002B5B] to-[#005EFF] hover:opacity-90 text-white shadow-md gap-2 disabled:opacity-50">
+                    <Button onClick={() => handleCorpSave()} disabled={!corpRequiredComplete || saveCorpMutation.isPending} data-testid="button-corp-save" className="bg-gradient-to-br from-[#002B5B] to-[#005EFF] hover:opacity-90 text-white shadow-md gap-2 disabled:opacity-50">
                       {saveCorpMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                       Save Corporate Customer
                     </Button>
