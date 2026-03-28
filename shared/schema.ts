@@ -2050,6 +2050,8 @@ export const corporateCustomers = pgTable("corporate_customers", {
   phone: text("phone"),
   branch: text("branch"),
   city: text("city"),
+  mapLatitude: text("map_latitude"),
+  mapLongitude: text("map_longitude"),
   centralizedBilling: boolean("centralized_billing").default(true),
   perBranchBilling: boolean("per_branch_billing").default(false),
   customInvoiceFormat: text("custom_invoice_format"),
