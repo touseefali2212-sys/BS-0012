@@ -8,6 +8,7 @@ import {
   AlertTriangle, Shield, Calendar, Activity, Server, Globe, ChevronDown, ChevronUp, Users,
   FileSpreadsheet, Send, CheckCircle2, XCircle, Loader2, SkipForward, Sparkles,
   ArrowRight, RefreshCw, Check, Zap, Eye, Phone, Mail, MapPin, Network, Lock,
+  MessageSquare, CalendarClock, Power,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -330,69 +331,70 @@ export default function CirCustomersPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gradient-to-r from-slate-800 to-slate-700">
-                    <TableHead className="text-white">Company</TableHead>
-                    <TableHead className="text-white">Bandwidth</TableHead>
-                    <TableHead className="text-white">Vendor</TableHead>
-                    <TableHead className="text-white">Static IP</TableHead>
-                    <TableHead className="text-white">Monthly Charges</TableHead>
-                    <TableHead className="text-white">Contract Expiry</TableHead>
-                    <TableHead className="text-white">SLA</TableHead>
-                    <TableHead className="text-white">Status</TableHead>
-                    <TableHead className="text-white w-10"></TableHead>
+                    <TableHead className="text-white text-xs whitespace-nowrap">Customer Code</TableHead>
+                    <TableHead className="text-white text-xs whitespace-nowrap">Company Name</TableHead>
+                    <TableHead className="text-white text-xs whitespace-nowrap">Customer Name</TableHead>
+                    <TableHead className="text-white text-xs whitespace-nowrap">Mobile No</TableHead>
+                    <TableHead className="text-white text-xs whitespace-nowrap">Email</TableHead>
+                    <TableHead className="text-white text-xs whitespace-nowrap">IP Address</TableHead>
+                    <TableHead className="text-white text-xs whitespace-nowrap">Branch</TableHead>
+                    <TableHead className="text-white text-xs whitespace-nowrap">Vendor</TableHead>
+                    <TableHead className="text-white text-xs whitespace-nowrap">Connection Type</TableHead>
+                    <TableHead className="text-white text-xs whitespace-nowrap">Current Bandwidth</TableHead>
+                    <TableHead className="text-white text-xs whitespace-nowrap">M Bill</TableHead>
+                    <TableHead className="text-white text-xs whitespace-nowrap">B Status</TableHead>
+                    <TableHead className="text-white text-xs whitespace-nowrap">Contract Status</TableHead>
+                    <TableHead className="text-white text-xs w-10">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.map((c, idx) => {
                     const vendor = (vendors || []).find(v => v.id === c.vendorId);
                     const daysLeft = c.contractEndDate ? Math.ceil((new Date(c.contractEndDate).getTime() - Date.now()) / 86400000) : null;
+                    const contractStatus = !c.contractEndDate ? "No Contract"
+                      : daysLeft !== null && daysLeft < 0 ? "Expired"
+                      : daysLeft !== null && daysLeft <= 30 ? `Expiring (${daysLeft}d)`
+                      : "Active";
+                    const contractColor = contractStatus === "Expired" ? "text-red-600 bg-red-50"
+                      : contractStatus.startsWith("Expiring") ? "text-orange-600 bg-orange-50"
+                      : contractStatus === "Active" ? "text-green-700 bg-green-50"
+                      : "text-slate-500 bg-slate-100";
                     return (
                       <TableRow key={c.id} data-testid={`row-cir-${c.id}`} className={idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"}>
-                        <TableCell>
-                          <div>
-                            <span className="font-semibold" data-testid={`text-cir-name-${c.id}`}>{c.companyName}</span>
-                            {c.contactPerson && <p className="text-xs text-muted-foreground">{c.contactPerson}</p>}
-                            {cirReferralCount(c.id) > 0 && (
-                              <button
-                                onClick={() => { setViewingReferralsCir(c); setReferralsDialogOpen(true); }}
-                                className="mt-0.5 flex items-center gap-1 text-[10px] text-blue-600 hover:text-blue-800 font-medium"
-                                data-testid={`button-cir-referrals-${c.id}`}
-                              >
-                                <Users className="h-3 w-3" />
-                                {cirReferralCount(c.id)} referral{cirReferralCount(c.id) !== 1 ? "s" : ""}
-                              </button>
-                            )}
+                        <TableCell className="text-xs font-mono font-semibold text-blue-700 dark:text-blue-400 whitespace-nowrap">CIR-{String(c.id).padStart(4, "0")}</TableCell>
+                        <TableCell className="text-xs font-semibold whitespace-nowrap" data-testid={`text-cir-name-${c.id}`}>{c.companyName}</TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">{c.contactPerson || "—"}</TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">{c.phone || c.mobileNo2 || "—"}</TableCell>
+                        <TableCell className="text-xs max-w-[140px] truncate">{c.email || "—"}</TableCell>
+                        <TableCell><code className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded whitespace-nowrap">{c.staticIp || "—"}</code></TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">{c.branch || "—"}</TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">{vendor?.name || "—"}</TableCell>
+                        <TableCell className="text-xs whitespace-nowrap">{c.linkType || c.serviceType || "CIR"}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <div className="flex items-center gap-1">
+                            <Wifi className="h-3 w-3 text-teal-600 shrink-0" />
+                            <span className="text-xs font-semibold text-teal-700 dark:text-teal-400">{c.committedBandwidth || "—"}</span>
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1.5">
-                            <Wifi className="h-3.5 w-3.5 text-teal-600" />
-                            <span className="font-medium text-teal-700 dark:text-teal-400">{c.committedBandwidth || "—"}</span>
-                          </div>
-                          {c.burstBandwidth && <p className="text-[10px] text-muted-foreground">Burst: {c.burstBandwidth}</p>}
-                        </TableCell>
-                        <TableCell><span className="text-sm">{vendor?.name || "—"}</span></TableCell>
-                        <TableCell><code className="text-xs bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">{c.staticIp || "—"}</code></TableCell>
-                        <TableCell><span className="text-sm font-semibold text-right block">Rs. {parseFloat(c.monthlyCharges || "0").toLocaleString()}</span></TableCell>
-                        <TableCell>
-                          {c.contractEndDate ? (
-                            <div>
-                              <span className="text-xs">{c.contractEndDate}</span>
-                              {daysLeft !== null && daysLeft <= 30 && daysLeft >= 0 && (
-                                <Badge variant="secondary" className="no-default-active-elevate ml-1 text-[9px] text-orange-700 bg-orange-50 dark:text-orange-300 dark:bg-orange-950">{daysLeft}d left</Badge>
-                              )}
-                            </div>
-                          ) : <span className="text-xs text-muted-foreground">—</span>}
-                        </TableCell>
-                        <TableCell><span className="text-sm font-medium">{c.slaLevel ? `${c.slaLevel}%` : "—"}</span></TableCell>
+                        <TableCell className="text-xs font-semibold whitespace-nowrap">Rs. {parseFloat(c.monthlyCharges || "0").toLocaleString()}</TableCell>
                         <TableCell>
                           <Badge variant="secondary" className={`no-default-active-elevate text-[10px] capitalize ${statusColors[c.status] || ""}`}>{c.status}</Badge>
                         </TableCell>
                         <TableCell>
+                          <Badge variant="secondary" className={`no-default-active-elevate text-[10px] whitespace-nowrap ${contractColor}`}>{contractStatus}</Badge>
+                        </TableCell>
+                        <TableCell>
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" data-testid={`button-cir-actions-${c.id}`}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setLocation(`/cir-customers/${c.id}`)} data-testid={`button-cir-details-${c.id}`}><Eye className="h-4 w-4 mr-2" />View Profile</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openEdit(c)}><Edit className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>
+                            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`button-cir-actions-${c.id}`}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44">
+                              <DropdownMenuItem onClick={() => setLocation(`/cir-customers/${c.id}`)} data-testid={`button-cir-details-${c.id}`}><Eye className="h-4 w-4 mr-2 text-blue-600" />View Profile</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openEdit(c)}><Edit className="h-4 w-4 mr-2 text-amber-600" />Edit Profile</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => toast({ title: "Send SMS", description: `SMS to ${c.companyName}` })}><MessageSquare className="h-4 w-4 mr-2 text-green-600" />Send SMS</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => toast({ title: "Service Scheduler", description: `Schedule service for ${c.companyName}` })}><CalendarClock className="h-4 w-4 mr-2 text-purple-600" />Service Scheduler</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => updateMutation.mutate({ id: c.id, data: { status: c.status === "active" ? "suspended" : "active" } })}>
+                                <Power className={`h-4 w-4 mr-2 ${c.status === "active" ? "text-red-500" : "text-green-500"}`} />
+                                {c.status === "active" ? "Suspend" : "Activate"}
+                              </DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive" onClick={() => deleteMutation.mutate(c.id)}><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
