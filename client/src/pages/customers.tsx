@@ -2577,55 +2577,35 @@ function CustomerListView({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4" data-testid="customer-stats-cards">
-        <div className="rounded-xl p-4 text-white" style={{ background: "linear-gradient(135deg, #0057FF 0%, #00A3FF 100%)" }}>
-          <div className="flex items-center gap-3">
-            <div className="bg-white/20 rounded-full p-2"><Wifi className="h-5 w-5" /></div>
-            <div>
-              <div className="text-lg font-bold" data-testid="stat-running-clients">{runningClients}</div>
-              <div className="text-xs font-semibold opacity-90">Running Clients</div>
-              <div className="text-[10px] opacity-70">Number of clients without LeftOut status</div>
-            </div>
-          </div>
+        <div className="rounded-xl p-4 text-white bg-gradient-to-br from-blue-500 to-blue-700 relative overflow-hidden shadow-md" data-testid="card-running-customers">
+          <div className="absolute right-3 top-3 opacity-20"><Wifi className="h-12 w-12" /></div>
+          <p className="text-3xl font-bold" data-testid="stat-running-clients">{runningClients}</p>
+          <p className="font-semibold text-sm mt-1">Running Customers</p>
+          <p className="text-xs opacity-80 mt-0.5">Number of clients without LeftOut status</p>
         </div>
-        <div className="rounded-xl p-4 text-white" style={{ background: "linear-gradient(135deg, #00B894 0%, #00CEC9 100%)" }}>
-          <div className="flex items-center gap-3">
-            <div className="bg-white/20 rounded-full p-2"><UserPlus className="h-5 w-5" /></div>
-            <div>
-              <div className="text-lg font-bold" data-testid="stat-new-clients">{newClients}</div>
-              <div className="text-xs font-semibold opacity-90">New Clients</div>
-              <div className="text-[10px] opacity-70">Monthly number of clients those are new</div>
-            </div>
-          </div>
+        <div className="rounded-xl p-4 text-white bg-gradient-to-br from-emerald-400 to-teal-600 relative overflow-hidden shadow-md" data-testid="card-new-customers">
+          <div className="absolute right-3 top-3 opacity-20"><UserPlus className="h-12 w-12" /></div>
+          <p className="text-3xl font-bold" data-testid="stat-new-clients">{newClients}</p>
+          <p className="font-semibold text-sm mt-1">New Customers</p>
+          <p className="text-xs opacity-80 mt-0.5">Monthly number of clients those are new</p>
         </div>
-        <div className="rounded-xl p-4 text-white" style={{ background: "linear-gradient(135deg, #E17055 0%, #FDCB6E 100%)" }}>
-          <div className="flex items-center gap-3">
-            <div className="bg-white/20 rounded-full p-2"><RefreshCw className="h-5 w-5" /></div>
-            <div>
-              <div className="text-lg font-bold" data-testid="stat-renewed-clients">{renewedClients}</div>
-              <div className="text-xs font-semibold opacity-90">Renewed Clients</div>
-              <div className="text-[10px] opacity-70">Monthly number of newly renewed clients</div>
-            </div>
-          </div>
+        <div className="rounded-xl p-4 text-white bg-gradient-to-br from-orange-400 to-orange-600 relative overflow-hidden shadow-md" data-testid="card-renewed-customers">
+          <div className="absolute right-3 top-3 opacity-20"><RefreshCw className="h-12 w-12" /></div>
+          <p className="text-3xl font-bold" data-testid="stat-renewed-clients">{renewedClients}</p>
+          <p className="font-semibold text-sm mt-1">Renewed Customers</p>
+          <p className="text-xs opacity-80 mt-0.5">Monthly number of newly renewed clients</p>
         </div>
-        <div className="rounded-xl p-4 text-white" style={{ background: "linear-gradient(135deg, #636E72 0%, #B2BEC3 100%)" }}>
-          <div className="flex items-center gap-3">
-            <div className="bg-white/20 rounded-full p-2"><Users className="h-5 w-5" /></div>
-            <div>
-              <div className="text-lg font-bold" data-testid="stat-other-clients">{otherClients}</div>
-              <div className="text-xs font-semibold opacity-90">Other Clients</div>
-              <div className="text-[10px] opacity-70">Number of clients those are free/personal</div>
-            </div>
-          </div>
+        <div className="rounded-xl p-4 text-white bg-gradient-to-br from-slate-500 to-slate-700 relative overflow-hidden shadow-md" data-testid="card-bill-paid">
+          <div className="absolute right-3 top-3 opacity-20"><CreditCard className="h-12 w-12" /></div>
+          <p className="text-3xl font-bold" data-testid="stat-other-clients">{otherClients}</p>
+          <p className="font-semibold text-sm mt-1">Bill Paid</p>
+          <p className="text-xs opacity-80 mt-0.5">Customers with cleared invoices</p>
         </div>
-        <div className="rounded-xl p-4 text-white" style={{ background: "linear-gradient(135deg, #D63031 0%, #E17055 100%)" }}>
-          <div className="flex items-center gap-3">
-            <div className="bg-white/20 rounded-full p-2"><XCircle className="h-5 w-5" /></div>
-            <div>
-              <div className="text-lg font-bold" data-testid="stat-closed-clients">{closedClients}</div>
-              <div className="text-xs font-semibold opacity-90">Closed Clients</div>
-              <div className="text-[10px] opacity-70">Number of clients those are closed & terminate</div>
-            </div>
-          </div>
+        <div className="rounded-xl p-4 text-white bg-gradient-to-br from-red-500 to-red-700 relative overflow-hidden shadow-md" data-testid="card-pending-bill">
+          <div className="absolute right-3 top-3 opacity-20"><Clock className="h-12 w-12" /></div>
+          <p className="text-3xl font-bold" data-testid="stat-closed-clients">{closedClients}</p>
+          <p className="font-semibold text-sm mt-1">Pending Bill</p>
+          <p className="text-xs opacity-80 mt-0.5">Customers with outstanding dues</p>
         </div>
       </div>
 
