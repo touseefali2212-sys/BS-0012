@@ -29,7 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Vendor, Branch, Area } from "@shared/schema";
 
-type Package = { id: number; name: string; speed?: string; dataLimit?: string; vendorId?: number; price?: string; billingCycle?: string };
+type VendorPkg = { id: number; vendorId: number; packageName: string; speed?: string; dataLimit?: string; vendorPrice: string; ispSellingPrice: string; resellerPrice?: string; validity?: string; isActive: boolean };
 type ResellerType = { id: number; key: string; label: string; defaultCommissionRate?: string };
 
 const tabItems = [
@@ -219,7 +219,7 @@ export default function AddResellerPage() {
   });
 
   const { data: vendors } = useQuery<Vendor[]>({ queryKey: ["/api/vendors"] });
-  const { data: packagesList } = useQuery<Package[]>({ queryKey: ["/api/packages"] });
+  const { data: vendorPackagesList } = useQuery<VendorPkg[]>({ queryKey: ["/api/vendor-packages"] });
   const { data: resellerTypesList } = useQuery<ResellerType[]>({ queryKey: ["/api/reseller-types"] });
   const { data: branches } = useQuery<Branch[]>({ queryKey: ["/api/branches"] });
   const { data: areas } = useQuery<Area[]>({ queryKey: ["/api/areas"] });
@@ -422,14 +422,14 @@ export default function AddResellerPage() {
     if (!pkgForm.packageId || !pkgForm.vendorId) {
       toast({ title: "Please select a vendor and package", variant: "destructive" }); return;
     }
-    const pkg = (packagesList || []).find(p => String(p.id) === pkgForm.packageId);
+    const pkg = (vendorPackagesList || []).find(p => String(p.id) === pkgForm.packageId);
     if (!pkg) return;
     if (addedPackages.some(p => p.packageId === pkg.id)) {
       toast({ title: "Package already added", variant: "destructive" }); return;
     }
     const vendor = (vendors || []).find(v => String(v.id) === pkgForm.vendorId);
     setAddedPackages(prev => [...prev, {
-      packageId: pkg.id, packageName: pkg.name,
+      packageId: pkg.id, packageName: pkg.packageName,
       speed: pkg.speed || "",
       vendorId: pkgForm.vendorId,
       vendorName: vendor?.name || "",
@@ -911,15 +911,13 @@ export default function AddResellerPage() {
                           value={pkgForm.vendorId}
                           onValueChange={v => setPkgForm(prev => ({ ...prev, vendorId: v, packageId: "", vendorPrice: "0" }))}
                         >
-                          <SelectTrigger data-testid="select-package-vendor"><SelectValue placeholder="Select panel vendor" /></SelectTrigger>
+                          <SelectTrigger data-testid="select-package-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
                           <SelectContent>
-                            {(vendors || []).filter(v => v.panelUrl).length > 0
-                              ? (vendors || []).filter(v => v.panelUrl).map(v => (
-                                  <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>
-                                ))
-                              : (vendors || []).map(v => (
-                                  <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>
-                                ))
+                            {(vendors || [])
+                              .filter(v => (vendorPackagesList || []).some(vp => vp.vendorId === v.id && vp.isActive))
+                              .map(v => (
+                                <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>
+                              ))
                             }
                           </SelectContent>
                         </Select>
@@ -929,21 +927,21 @@ export default function AddResellerPage() {
                           value={pkgForm.packageId}
                           disabled={!pkgForm.vendorId}
                           onValueChange={v => {
-                            const pkg = (packagesList || []).find(p => String(p.id) === v);
+                            const pkg = (vendorPackagesList || []).find(p => String(p.id) === v);
                             setPkgForm(prev => ({
                               ...prev,
                               packageId: v,
-                              vendorPrice: pkg?.price || "0",
+                              vendorPrice: pkg?.vendorPrice || "0",
                             }));
                           }}
                         >
                           <SelectTrigger data-testid="select-package"><SelectValue placeholder={pkgForm.vendorId ? "Choose package" : "Select vendor first"} /></SelectTrigger>
                           <SelectContent>
-                            {(packagesList || [])
-                              .filter(p => !pkgForm.vendorId || String(p.vendorId) === pkgForm.vendorId || p.vendorId == null)
+                            {(vendorPackagesList || [])
+                              .filter(p => p.isActive && String(p.vendorId) === pkgForm.vendorId)
                               .map(p => (
                                 <SelectItem key={p.id} value={String(p.id)}>
-                                  {p.name}{p.speed ? ` — ${p.speed}` : ""}
+                                  {p.packageName}{p.speed ? ` — ${p.speed}` : ""}
                                 </SelectItem>
                               ))}
                           </SelectContent>
