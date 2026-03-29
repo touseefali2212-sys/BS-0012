@@ -1561,7 +1561,7 @@ export default function ResellersPage() {
                             key={reseller.id}
                             data-testid={`row-reseller-${reseller.id}`}
                             className={`border-b border-slate-100 dark:border-slate-800 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 transition-colors cursor-pointer ${idx % 2 === 0 ? "bg-white dark:bg-slate-950" : "bg-slate-50/60 dark:bg-slate-900/60"}`}
-                            onClick={() => { setDetailReseller(reseller); setDetailTab("profile"); }}
+                            onClick={() => setLocation(`/resellers/${reseller.id}`)}
                           >
                             <td className="px-3 py-2.5">
                               <div className="flex items-center gap-2">
@@ -1622,7 +1622,7 @@ export default function ResellersPage() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-52">
-                                  <DropdownMenuItem onClick={() => { setDetailReseller(reseller); setDetailTab("profile"); }} data-testid={`action-view-${reseller.id}`}>
+                                  <DropdownMenuItem onClick={() => setLocation(`/resellers/${reseller.id}`)} data-testid={`action-view-${reseller.id}`}>
                                     <Eye className="h-4 w-4 mr-2" /> View Details
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => setLocation(`/resellers/${reseller.id}/edit`)} data-testid={`button-edit-${reseller.id}`}>
