@@ -480,17 +480,6 @@ export default function ResellerProfilePage() {
                   </div>
                 </div>
 
-                <SectionHeader title="IP & Service Settings" />
-                <div className="bg-card border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="IP Assignment" value={reseller.ipAssignment} capitalize />
-                    <InfoRow label="NAS ID" value={<span className="font-mono">{reseller.nasId}</span>} />
-                    <InfoRow label="Service Zone" value={reseller.serviceZone} />
-                    <InfoRow label="Vendor" value={vendor?.name} />
-                    <InfoRow label="VLAN ID Allowed" value={<BoolValue v={reseller.vlanIdAllowed} />} />
-                    <InfoRow label="Vendor Panel Allowed" value={<BoolValue v={reseller.vendorPanelAllowed} />} />
-                  </div>
-                </div>
               </div>
             )}
 
