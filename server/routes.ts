@@ -2591,6 +2591,25 @@ export async function registerRoutes(
     try { await storage.deleteCirCustomer(parseInt(req.params.id)); res.json({ message: "Deleted" }); } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
+  app.get("/api/cir-customers/:id/invoices", requireAuth, async (req, res) => {
+    try { res.json(await storage.getInvoicesByCirCustomer(parseInt(req.params.id))); } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get("/api/cir-customers/:id/tickets", requireAuth, async (req, res) => {
+    try { res.json(await storage.getTicketsByCirCustomer(parseInt(req.params.id))); } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get("/api/cir-customers/:id/bandwidth-history", requireAuth, async (req, res) => {
+    try { res.json(await storage.getBandwidthHistory("cir", parseInt(req.params.id))); } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post("/api/cir-customers/:id/bandwidth-history", requireAuth, async (req, res) => {
+    try {
+      const record = await storage.createBandwidthHistory({ ...req.body, customerType: "cir", customerId: parseInt(req.params.id) });
+      res.json(record);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
   app.post("/api/cir-customers/:id/automate", requireAuth, async (req: any, res) => {
     try {
       const cid = parseInt(req.params.id);
@@ -2664,6 +2683,25 @@ export async function registerRoutes(
   });
   app.delete("/api/corporate-customers/:id", requireAuth, async (req, res) => {
     try { await storage.deleteCorporateCustomer(parseInt(req.params.id)); res.json({ message: "Deleted" }); } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get("/api/corporate-customers/:id/invoices", requireAuth, async (req, res) => {
+    try { res.json(await storage.getInvoicesByCorporateCustomer(parseInt(req.params.id))); } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get("/api/corporate-customers/:id/tickets", requireAuth, async (req, res) => {
+    try { res.json(await storage.getTicketsByCorporateCustomer(parseInt(req.params.id))); } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get("/api/corporate-customers/:id/bandwidth-history", requireAuth, async (req, res) => {
+    try { res.json(await storage.getBandwidthHistory("corporate", parseInt(req.params.id))); } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post("/api/corporate-customers/:id/bandwidth-history", requireAuth, async (req, res) => {
+    try {
+      const record = await storage.createBandwidthHistory({ ...req.body, customerType: "corporate", customerId: parseInt(req.params.id) });
+      res.json(record);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
   app.post("/api/corporate-customers/:id/automate", requireAuth, async (req: any, res) => {

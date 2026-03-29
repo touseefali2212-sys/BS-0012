@@ -179,6 +179,8 @@ import {
   type OnuDevice, type InsertOnuDevice,
   p2pLinks,
   type P2pLink, type InsertP2pLink,
+  bandwidthHistory,
+  type BandwidthHistory, type InsertBandwidthHistory,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -230,6 +232,8 @@ export interface IStorage {
   getInvoices(): Promise<(Invoice & { customerName?: string; customerCode?: string; customerPhone?: string; customerArea?: string; customerZone?: string; customerType?: string; connectionType?: string; packageName?: string; packageSpeed?: string; customerServer?: string; customerUsernameIp?: string; customerExpireDate?: string; customerMonthlyBill?: string; customerBillingStatus?: string; customerStatus?: string })[]>;
   getInvoice(id: number): Promise<Invoice | undefined>;
   getInvoicesByCustomer(customerId: number): Promise<Invoice[]>;
+  getInvoicesByCirCustomer(cirCustomerId: number): Promise<Invoice[]>;
+  getInvoicesByCorporateCustomer(corporateCustomerId: number): Promise<Invoice[]>;
   createInvoice(i: InsertInvoice): Promise<Invoice>;
   updateInvoice(id: number, i: Partial<InsertInvoice>): Promise<Invoice | undefined>;
   deleteInvoice(id: number): Promise<void>;
@@ -243,9 +247,13 @@ export interface IStorage {
   getTickets(): Promise<(Ticket & { customerName?: string; customerCode?: string; customerPhone?: string; customerArea?: string })[]>;
   getTicket(id: number): Promise<Ticket | undefined>;
   getTicketsByCustomer(customerId: number): Promise<Ticket[]>;
+  getTicketsByCirCustomer(cirCustomerId: number): Promise<Ticket[]>;
+  getTicketsByCorporateCustomer(corporateCustomerId: number): Promise<Ticket[]>;
   createTicket(t: InsertTicket): Promise<Ticket>;
   updateTicket(id: number, t: Partial<InsertTicket>): Promise<Ticket | undefined>;
   deleteTicket(id: number): Promise<void>;
+  getBandwidthHistory(customerType: string, customerId: number): Promise<BandwidthHistory[]>;
+  createBandwidthHistory(data: InsertBandwidthHistory): Promise<BandwidthHistory>;
 
   getAreas(): Promise<Area[]>;
   getArea(id: number): Promise<Area | undefined>;
@@ -1161,6 +1169,14 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(invoices).where(eq(invoices.customerId, customerId)).orderBy(desc(invoices.id));
   }
 
+  async getInvoicesByCirCustomer(cirCustomerId: number): Promise<Invoice[]> {
+    return db.select().from(invoices).where(eq(invoices.cirCustomerId, cirCustomerId)).orderBy(desc(invoices.id));
+  }
+
+  async getInvoicesByCorporateCustomer(corporateCustomerId: number): Promise<Invoice[]> {
+    return db.select().from(invoices).where(eq(invoices.corporateCustomerId, corporateCustomerId)).orderBy(desc(invoices.id));
+  }
+
   async createInvoice(i: InsertInvoice): Promise<Invoice> {
     const [created] = await db.insert(invoices).values(i).returning();
     return created;
@@ -1236,6 +1252,25 @@ export class DatabaseStorage implements IStorage {
 
   async getTicketsByCustomer(customerId: number): Promise<Ticket[]> {
     return db.select().from(tickets).where(eq(tickets.customerId, customerId)).orderBy(desc(tickets.id));
+  }
+
+  async getTicketsByCirCustomer(cirCustomerId: number): Promise<Ticket[]> {
+    return db.select().from(tickets).where(eq(tickets.cirCustomerId, cirCustomerId)).orderBy(desc(tickets.id));
+  }
+
+  async getTicketsByCorporateCustomer(corporateCustomerId: number): Promise<Ticket[]> {
+    return db.select().from(tickets).where(eq(tickets.corporateCustomerId, corporateCustomerId)).orderBy(desc(tickets.id));
+  }
+
+  async getBandwidthHistory(customerType: string, customerId: number): Promise<BandwidthHistory[]> {
+    return db.select().from(bandwidthHistory)
+      .where(and(eq(bandwidthHistory.customerType, customerType), eq(bandwidthHistory.customerId, customerId)))
+      .orderBy(desc(bandwidthHistory.id));
+  }
+
+  async createBandwidthHistory(data: InsertBandwidthHistory): Promise<BandwidthHistory> {
+    const [created] = await db.insert(bandwidthHistory).values(data).returning();
+    return created;
   }
 
   async createTicket(t: InsertTicket): Promise<Ticket> {

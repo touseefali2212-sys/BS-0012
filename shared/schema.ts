@@ -167,6 +167,8 @@ export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
   invoiceNumber: text("invoice_number").notNull().unique(),
   customerId: integer("customer_id").notNull(),
+  cirCustomerId: integer("cir_customer_id"),
+  corporateCustomerId: integer("corporate_customer_id"),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   tax: decimal("tax", { precision: 10, scale: 2 }).default("0"),
   totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
@@ -183,6 +185,8 @@ export const tickets = pgTable("tickets", {
   id: serial("id").primaryKey(),
   ticketNumber: text("ticket_number").notNull().unique(),
   customerId: integer("customer_id").notNull(),
+  cirCustomerId: integer("cir_customer_id"),
+  corporateCustomerId: integer("corporate_customer_id"),
   subject: text("subject").notNull(),
   description: text("description"),
   priority: text("priority").notNull().default("medium"),
@@ -3543,3 +3547,21 @@ export const p2pLinks = pgTable("p2p_links", {
 export const insertP2pLinkSchema = createInsertSchema(p2pLinks).omit({ id: true });
 export type InsertP2pLink = z.infer<typeof insertP2pLinkSchema>;
 export type P2pLink = typeof p2pLinks.$inferSelect;
+
+export const bandwidthHistory = pgTable("bandwidth_history", {
+  id: serial("id").primaryKey(),
+  customerType: text("customer_type").notNull(),
+  customerId: integer("customer_id").notNull(),
+  changeType: text("change_type").notNull().default("upgrade"),
+  previousBandwidth: text("previous_bandwidth").notNull(),
+  newBandwidth: text("new_bandwidth").notNull(),
+  changedBy: text("changed_by"),
+  reason: text("reason"),
+  effectiveDate: text("effective_date"),
+  notes: text("notes"),
+  createdAt: text("created_at").default(sql`now()`),
+});
+
+export const insertBandwidthHistorySchema = createInsertSchema(bandwidthHistory).omit({ id: true });
+export type InsertBandwidthHistory = z.infer<typeof insertBandwidthHistorySchema>;
+export type BandwidthHistory = typeof bandwidthHistory.$inferSelect;
