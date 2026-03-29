@@ -233,7 +233,7 @@ export default function AddResellerPage() {
     // Agreement
     agreementType: "standard", agreementStartDate: "", agreementEndDate: "", autoRenewal: false,
     // Documents
-    cnicPicture: "", registrationFormPicture: "",
+    cnicPicture: "", registrationFormPicture: "", agreementFile: "",
   });
 
   const update = (field: string, value: string | boolean | number) =>
@@ -365,6 +365,7 @@ export default function AddResellerPage() {
           : null,
         cnicPicture: form.cnicPicture || null,
         registrationFormPicture: form.registrationFormPicture || null,
+        agreementFile: form.agreementFile || null,
       };
       const res = await apiRequest("POST", "/api/resellers", payload);
       return res.json();
@@ -1087,6 +1088,33 @@ export default function AddResellerPage() {
                     </CardContent>
                   </Card>
                 )}
+
+                {/* Upload Agreement */}
+                <Card>
+                  <SectionHeader icon={ScrollText} title="Upload Agreement" description="Attach the signed agreement document (PDF or image)" />
+                  <CardContent>
+                    <FileUploadPreview
+                      label="Agreement Document"
+                      value={form.agreementFile}
+                      onChange={url => update("agreementFile", url)}
+                      testId="upload-agreement-file"
+                    />
+                    {form.agreementFile && (
+                      <div className="mt-3 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 dark:bg-green-950/20 dark:border-green-800 px-3 py-2 text-sm text-green-800 dark:text-green-200">
+                        <CheckCircle2 className="h-4 w-4 shrink-0" />
+                        <span>Agreement document uploaded successfully.</span>
+                        <a
+                          href={form.agreementFile}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-auto text-xs underline font-medium"
+                        >
+                          View
+                        </a>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </div>
             )}
 
