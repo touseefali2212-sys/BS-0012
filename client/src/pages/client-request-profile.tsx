@@ -344,7 +344,7 @@ export default function ClientRequestProfilePage() {
               const ct = request.customerType;
               if (ct === "CIR") setLocation(`/add-customer?type=cir&fromQuery=${id}`);
               else if (ct === "Corporate") setLocation(`/add-customer?type=corporate&fromQuery=${id}`);
-              else if (ct === "Reseller") setLocation(`/resellers?tab=add&fromQuery=${id}`);
+              else if (ct === "Reseller") setLocation(`/resellers/add?fromQuery=${id}`);
               else setLocation(`/add-customer?fromQuery=${id}`);
             }} data-testid="button-convert">
               <Users className="h-4 w-4 mr-1" /> Convert to {request.customerType && request.customerType !== "Normal" ? `${request.customerType} ` : ""}Customer
@@ -407,7 +407,7 @@ export default function ClientRequestProfilePage() {
               const ct = request.customerType;
               if (ct === "CIR") setLocation(`/add-customer?type=cir&fromQuery=${id}`);
               else if (ct === "Corporate") setLocation(`/add-customer?type=corporate&fromQuery=${id}`);
-              else if (ct === "Reseller") setLocation(`/resellers?tab=add&fromQuery=${id}`);
+              else if (ct === "Reseller") setLocation(`/resellers/add?fromQuery=${id}`);
               else setLocation(`/add-customer?fromQuery=${id}`);
             },
           },

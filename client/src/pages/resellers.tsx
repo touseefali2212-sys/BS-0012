@@ -103,6 +103,7 @@ import {
 } from "@/components/ui/table";
 import { useTab } from "@/hooks/use-tab";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   insertResellerSchema,
@@ -171,6 +172,7 @@ const statusColors: Record<string, string> = {
 
 export default function ResellersPage() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [tab, changeTab] = useTab("list");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -575,7 +577,7 @@ export default function ResellersPage() {
           </p>
         </div>
         {tab === "list" && (
-          <Button onClick={() => changeTab("add")} data-testid="button-add-reseller">
+          <Button onClick={() => setLocation("/resellers/add")} data-testid="button-add-reseller" className="bg-gradient-to-r from-[#002B5B] to-[#005EFF] hover:from-[#001f42] hover:to-[#0044cc]">
             <Plus className="h-4 w-4 mr-1" />
             Add Reseller
           </Button>

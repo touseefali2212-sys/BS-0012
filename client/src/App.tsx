@@ -23,6 +23,7 @@ import TicketsPage from "@/pages/tickets";
 import AreasPage from "@/pages/areas";
 import VendorsPage from "@/pages/vendors";
 import ResellersPage from "@/pages/resellers";
+import AddResellerPage from "@/pages/add-reseller";
 import AccountingPage from "@/pages/accounting";
 import TransactionsPage from "@/pages/transactions";
 import TasksPage from "@/pages/tasks";
@@ -139,6 +140,7 @@ function Router() {
       <Route path="/tickets" component={TicketsPage} />
       <Route path="/areas" component={AreasPage} />
       <Route path="/vendors" component={VendorsPage} />
+      <Route path="/resellers/add" component={AddResellerPage} />
       <Route path="/resellers" component={ResellersPage} />
       <Route path="/accounting" component={AccountingPage} />
       <Route path="/transactions" component={TransactionsPage} />

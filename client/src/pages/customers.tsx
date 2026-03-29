@@ -748,7 +748,7 @@ function CustomerQueryList({ setTab }: { setTab: (v: string) => void }) {
       const ct = (q as any).customerType;
       if (ct === "CIR") setLocation(`/add-customer?type=cir&fromQuery=${q.id}`);
       else if (ct === "Corporate") setLocation(`/add-customer?type=corporate&fromQuery=${q.id}`);
-      else if (ct === "Reseller") setLocation(`/resellers?tab=add&fromQuery=${q.id}`);
+      else if (ct === "Reseller") setLocation(`/resellers/add?fromQuery=${q.id}`);
       else setLocation(`/add-customer?fromQuery=${q.id}`);
       return;
     }
