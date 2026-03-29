@@ -21,7 +21,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Vendor } from "@shared/schema";
+import type { Vendor, Branch, Area } from "@shared/schema";
 
 type Package = { id: number; name: string; speed?: string; dataLimit?: string; vendorId?: number; price?: string; billingCycle?: string };
 type ResellerType = { id: number; key: string; label: string; defaultCommissionRate?: string };
@@ -203,6 +203,8 @@ export default function AddResellerPage() {
   const { data: vendors } = useQuery<Vendor[]>({ queryKey: ["/api/vendors"] });
   const { data: packagesList } = useQuery<Package[]>({ queryKey: ["/api/packages"] });
   const { data: resellerTypesList } = useQuery<ResellerType[]>({ queryKey: ["/api/reseller-types"] });
+  const { data: branches } = useQuery<Branch[]>({ queryKey: ["/api/branches"] });
+  const { data: areas } = useQuery<Area[]>({ queryKey: ["/api/areas"] });
 
   const [form, setForm] = useState({
     // Basic Info
@@ -334,7 +336,7 @@ export default function AddResellerPage() {
         supportLevel: form.supportLevel,
         maxCustomerLimit: parseInt(form.maxCustomerLimit) || 0,
         notes: form.notes || null, profilePicture: form.profilePicture || null,
-        branch: form.branch || null,
+        branch: selectedBranch?.name || form.branch || null,
         phone: form.phone, secondaryPhone: form.secondaryPhone || null,
         email: form.email || null, address: form.address || null,
         city: form.city || null, area: form.area || null, territory: form.territory || null,
@@ -437,6 +439,24 @@ export default function AddResellerPage() {
     form.area.trim().length >= 1 &&
     form.city.trim().length >= 1 &&
     form.address.trim().length >= 5;
+
+  // Branch / Area / City derived logic
+  const selectedBranch = branches?.find(b => String(b.id) === form.branch);
+  const filteredAreas = areas?.filter(a =>
+    !selectedBranch || a.branch === selectedBranch.name
+  );
+  const handleBranchChange = (branchId: string) => {
+    const branch = branches?.find(b => String(b.id) === branchId);
+    setForm(prev => ({
+      ...prev,
+      branch: branchId,
+      area: "",
+      city: branch?.city || prev.city,
+    }));
+  };
+  const handleAreaChange = (areaName: string) => {
+    setForm(prev => ({ ...prev, area: areaName }));
+  };
 
   const tabIndex = tabItems.findIndex(t => t.id === activeTab);
   const isLastTab = tabIndex === tabItems.length - 1;
@@ -621,34 +641,54 @@ export default function AddResellerPage() {
                         />
                       </Field>
                       <Field label="Branch" required error={errors.branch}>
-                        <Input
+                        <Select
                           value={form.branch}
-                          onChange={e => update("branch", e.target.value)}
-                          placeholder="e.g. Main Branch, Lahore"
-                          data-testid="input-branch"
-                          className={errors.branch ? "border-red-500" : ""}
-                        />
+                          onValueChange={handleBranchChange}
+                          data-testid="select-branch"
+                        >
+                          <SelectTrigger className={errors.branch ? "border-red-500" : ""}>
+                            <SelectValue placeholder="Select branch..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(branches || []).filter(b => b.status === "active").map(b => (
+                              <SelectItem key={b.id} value={String(b.id)}>
+                                {b.name}{b.code ? ` (${b.code})` : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </Field>
                     </FieldGroup>
 
                     {/* Row 5: Area | City */}
                     <FieldGroup>
                       <Field label="Area" required error={errors.area}>
-                        <Input
+                        <Select
                           value={form.area}
-                          onChange={e => update("area", e.target.value)}
-                          placeholder="e.g. Gulberg, DHA"
-                          data-testid="input-area"
-                          className={errors.area ? "border-red-500" : ""}
-                        />
+                          onValueChange={handleAreaChange}
+                          disabled={!form.branch}
+                          data-testid="select-area"
+                        >
+                          <SelectTrigger className={errors.area ? "border-red-500" : ""}>
+                            <SelectValue placeholder={form.branch ? "Select area..." : "Select branch first"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {(filteredAreas || []).filter(a => a.status === "active").map(a => (
+                              <SelectItem key={a.id} value={a.name}>
+                                {a.name}{a.mainArea ? ` — ${a.mainArea}` : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </Field>
                       <Field label="City" required error={errors.city}>
                         <Input
                           value={form.city}
                           onChange={e => update("city", e.target.value)}
-                          placeholder="e.g. Lahore, Karachi"
+                          placeholder="Auto-filled from branch"
                           data-testid="input-city"
-                          className={errors.city ? "border-red-500" : ""}
+                          className={`${errors.city ? "border-red-500" : ""} ${selectedBranch?.city ? "bg-muted/50" : ""}`}
+                          readOnly={!!selectedBranch?.city}
                         />
                       </Field>
                     </FieldGroup>
