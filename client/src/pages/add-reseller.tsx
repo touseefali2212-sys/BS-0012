@@ -1002,28 +1002,6 @@ export default function AddResellerPage() {
                     </FieldGroup>
                   </CardContent>
                 </Card>
-
-                <Card>
-                  <SectionHeader icon={Building2} title="Bank Account Details" description="Banking information for commission payments" />
-                  <CardContent className="space-y-4">
-                    <FieldGroup>
-                      <Field label="Bank Name">
-                        <Input value={form.bankName} onChange={e => update("bankName", e.target.value)} placeholder="e.g. HBL, UBL, MCB" data-testid="input-bank-name" />
-                      </Field>
-                      <Field label="Account Title">
-                        <Input value={form.bankAccountTitle} onChange={e => update("bankAccountTitle", e.target.value)} placeholder="Account holder name" data-testid="input-bank-title" />
-                      </Field>
-                    </FieldGroup>
-                    <FieldGroup>
-                      <Field label="Account Number">
-                        <Input value={form.bankAccountNumber} onChange={e => update("bankAccountNumber", e.target.value)} placeholder="Bank account number" data-testid="input-bank-account" />
-                      </Field>
-                      <Field label="Branch Code / IBAN">
-                        <Input value={form.bankBranchCode} onChange={e => update("bankBranchCode", e.target.value)} placeholder="Branch code or IBAN" data-testid="input-branch-code" />
-                      </Field>
-                    </FieldGroup>
-                  </CardContent>
-                </Card>
               </div>
             )}
 
