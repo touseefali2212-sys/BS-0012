@@ -428,6 +428,16 @@ export default function AddResellerPage() {
 
   const totalMissingRequired = Object.values(missingByTab).flat().length;
 
+  const canSave =
+    form.name.trim().length >= 2 &&
+    form.phone.trim().length >= 10 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email) &&
+    form.cnic.trim().length >= 5 &&
+    form.branch.trim().length >= 1 &&
+    form.area.trim().length >= 1 &&
+    form.city.trim().length >= 1 &&
+    form.address.trim().length >= 5;
+
   const tabIndex = tabItems.findIndex(t => t.id === activeTab);
   const isLastTab = tabIndex === tabItems.length - 1;
   const isFirstTab = tabIndex === 0;
@@ -1224,10 +1234,11 @@ export default function AddResellerPage() {
             <div className="flex items-center gap-3">
               <Button
                 type="button"
-                disabled={createMutation.isPending}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 shadow-md"
+                disabled={!canSave || createMutation.isPending}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleSave}
                 data-testid="button-submit-reseller"
+                title={!canSave ? "Please fill all required fields on the Basic Info tab" : undefined}
               >
                 {createMutation.isPending ? "Saving..." : "Save Reseller"}
               </Button>
