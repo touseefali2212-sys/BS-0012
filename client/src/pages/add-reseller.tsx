@@ -1,54 +1,40 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
   User, Wifi, FileText, MapPin, CreditCard, Globe, Tag,
   ChevronLeft, Upload, Check, Eye, EyeOff, RefreshCw,
-  Camera, Phone, Mail, Shield, Building2, Package, X,
-  CheckCircle2, Trash2, Plus, ScrollText, Landmark, Network,
-  Wallet, Percent, Store, Briefcase, Image, AlertCircle,
-  KeyRound, CalendarClock, Settings,
+  Camera, Phone, Mail, Shield, Building2, X,
+  CheckCircle2, Trash2, Plus, ScrollText, Network,
+  Wallet, Store, Image, AlertCircle, LocateFixed,
+  CalendarClock, Settings, DollarSign, Briefcase,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import {
-  Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
-} from "@/components/ui/form";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { insertResellerSchema } from "@shared/schema";
-import type { InsertReseller, Vendor } from "@shared/schema";
-import { z } from "zod";
+import type { Vendor } from "@shared/schema";
 
-type Package = { id: number; name: string; speed?: string; dataLimit?: string; vendorId?: number; price?: string };
-
-const resellerFormSchema = insertResellerSchema.extend({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  phone: z.string().min(10, "Phone number is required"),
-});
+type Package = { id: number; name: string; speed?: string; dataLimit?: string; vendorId?: number; price?: string; billingCycle?: string };
+type ResellerType = { id: number; key: string; label: string; defaultCommissionRate?: string };
 
 const tabItems = [
-  { id: "basic",      label: "Basic Info",          icon: User },
-  { id: "contact",    label: "Contact & Location",  icon: Phone },
-  { id: "network",    label: "Network & Service",   icon: Wifi },
-  { id: "packages",   label: "Packages",            icon: Tag },
-  { id: "panels",     label: "Vendor Panels",       icon: Globe },
-  { id: "billing",    label: "Billing & Finance",   icon: CreditCard },
-  { id: "agreement",  label: "Agreement",           icon: ScrollText },
-  { id: "documents",  label: "Documents",           icon: Image },
+  { id: "basic",     label: "Basic Info",         icon: User },
+  { id: "contact",   label: "Contact & Location", icon: Phone },
+  { id: "network",   label: "Network & Service",  icon: Wifi },
+  { id: "packages",  label: "Packages",           icon: Tag },
+  { id: "panels",    label: "Vendor Panels",      icon: Globe },
+  { id: "billing",   label: "Billing & Finance",  icon: CreditCard },
+  { id: "agreement", label: "Agreement",          icon: ScrollText },
+  { id: "documents", label: "Documents",          icon: Image },
 ];
 
 function SectionHeader({ icon: Icon, title }: { icon: any; title: string }) {
@@ -56,6 +42,26 @@ function SectionHeader({ icon: Icon, title }: { icon: any; title: string }) {
     <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#1c67d4] to-[#1a5bbf] text-white rounded-t-lg">
       <Icon className="h-4 w-4" />
       <span className="text-sm font-semibold tracking-wide uppercase">{title}</span>
+    </div>
+  );
+}
+
+function FieldGroup({ children, cols = 2 }: { children: React.ReactNode; cols?: number }) {
+  return (
+    <div className={`grid gap-4 ${cols === 1 ? "" : cols === 3 ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 sm:grid-cols-2"}`}>
+      {children}
+    </div>
+  );
+}
+
+function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-sm font-medium text-foreground">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      {children}
+      {error && <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{error}</p>}
     </div>
   );
 }
@@ -85,7 +91,7 @@ function FileUploadPreview({ label, required, value, onChange, testId }: {
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <label className="text-sm font-medium text-foreground">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
@@ -122,7 +128,7 @@ function FileUploadPreview({ label, required, value, onChange, testId }: {
               <Upload className="h-5 w-5 text-blue-600" />
             </div>
             <div>
-              <p className="text-sm font-medium text-foreground">{uploading ? "Uploading..." : "Click to upload"}</p>
+              <p className="text-sm font-medium">{uploading ? "Uploading..." : "Click to upload"}</p>
               <p className="text-xs text-muted-foreground mt-0.5">JPG, PNG or PDF</p>
             </div>
           </div>
@@ -147,11 +153,8 @@ function ProfilePhotoUpload({ value, onChange }: { value: string; onChange: (url
       if (!res.ok) throw new Error("Upload failed");
       const data = await res.json();
       onChange(data.url);
-    } catch {
-      onChange("");
-    } finally {
-      setUploading(false);
-    }
+    } catch { onChange(""); }
+    finally { setUploading(false); }
   };
 
   return (
@@ -164,54 +167,26 @@ function ProfilePhotoUpload({ value, onChange }: { value: string; onChange: (url
         {value ? (
           <img src={value} alt="Profile" className="h-full w-full object-cover" />
         ) : (
-          <User className="h-12 w-12 text-blue-300" />
+          <Store className="h-12 w-12 text-blue-300" />
         )}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
           <Camera className="h-6 w-6 text-white" />
         </div>
         <input ref={inputRef} type="file" className="hidden" accept="image/*" onChange={handleUpload} disabled={uploading} />
       </div>
-      <p className="text-xs text-muted-foreground">{uploading ? "Uploading..." : "Click to upload photo"}</p>
+      <p className="text-xs text-muted-foreground">{uploading ? "Uploading..." : "Click to upload logo / photo"}</p>
     </div>
   );
 }
-
-const resellerDefaults: InsertReseller = {
-  name: "", resellerType: "authorized_dealer", gender: "", occupation: "", dateOfBirth: "",
-  fatherName: "", contactName: "", phone: "", secondaryPhone: "", email: "", cnic: "", ntn: "",
-  registrationFormNo: "", address: "", city: "", area: "", territory: "",
-  profilePicture: "", cnicPicture: "", registrationFormPicture: "",
-  vendorId: undefined, packageId: undefined, assignedPackages: "",
-  commissionRate: "10", commissionPaymentMethod: "wallet",
-  commissionPaymentFrequency: "monthly", walletBalance: "0", creditLimit: "0",
-  securityDeposit: "0", totalCustomers: 0, agreementStartDate: "", agreementEndDate: "",
-  agreementType: "standard", autoRenewal: false,
-  joinDate: "", uplinkType: "", uplink: "", exchangeTowerPopName: "", portId: "", vlanId: "",
-  media: "", vendorPanelAllowed: false, panelUrl: "", panelUsername: "", panelPassword: "",
-  assignedVendorPanels: "", vlanIdAllowed: false, vlanIdNote: "",
-  connectionType: "", bandwidthPlan: "", ipAssignment: "dynamic", nasId: "", serviceZone: "",
-  bankName: "", bankAccountTitle: "", bankAccountNumber: "", bankBranchCode: "",
-  billingCycle: "monthly", paymentMethod: "cash", openingBalance: "0",
-  supportLevel: "standard", maxCustomerLimit: 0, notes: "", status: "active",
-};
 
 export default function AddResellerPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("basic");
   const [showPassword, setShowPassword] = useState(false);
-
-  const [addedPackages, setAddedPackages] = useState<Array<{
-    packageId: number; packageName: string; speed: string; dataLimit: string;
-    vendorId: string; vendorPrice: string; resellerPrice: string; profit: string;
-  }>>([]);
-  const [pkgForm, setPkgForm] = useState({ packageId: "", vendorId: "", vendorPrice: "0", resellerPrice: "0" });
-
-  const [addedVendorPanels, setAddedVendorPanels] = useState<Array<{
-    vendorId: number; vendorName: string; panelUrl: string; panelUsername: string; panelPassword: string;
-  }>>([]);
-  const [vpForm, setVpForm] = useState({ vendorId: "", panelUrl: "", panelUsername: "", panelPassword: "" });
   const [showVpPassword, setShowVpPassword] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [gpsLocating, setGpsLocating] = useState(false);
 
   const fromQueryId = new URLSearchParams(window.location.search).get("fromQuery");
   const { data: fromQueryData } = useQuery<any>({
@@ -221,22 +196,165 @@ export default function AddResellerPage() {
 
   const { data: vendors } = useQuery<Vendor[]>({ queryKey: ["/api/vendors"] });
   const { data: packagesList } = useQuery<Package[]>({ queryKey: ["/api/packages"] });
-  const { data: resellerTypesList } = useQuery<any[]>({ queryKey: ["/api/reseller-types"] });
+  const { data: resellerTypesList } = useQuery<ResellerType[]>({ queryKey: ["/api/reseller-types"] });
 
-  const form = useForm<InsertReseller>({
-    resolver: zodResolver(resellerFormSchema),
-    defaultValues: { ...resellerDefaults },
+  const [form, setForm] = useState({
+    // Basic Info
+    name: "", contactName: "", resellerType: "authorized_dealer",
+    gender: "", occupation: "", dateOfBirth: "", fatherName: "",
+    cnic: "", ntn: "", registrationFormNo: "",
+    status: "active", joinDate: new Date().toISOString().split("T")[0],
+    supportLevel: "standard", maxCustomerLimit: "0",
+    notes: "", profilePicture: "",
+    // Contact & Location
+    phone: "", secondaryPhone: "", email: "",
+    address: "", city: "", area: "", territory: "",
+    mapLatitude: "", mapLongitude: "",
+    // Network & Service
+    uplinkType: "", uplink: "", exchangeTowerPopName: "",
+    portId: "", vlanId: "", media: "", connectionType: "",
+    bandwidthPlan: "", ipAssignment: "dynamic", nasId: "", serviceZone: "",
+    vlanIdAllowed: false, vlanIdNote: "",
+    // Vendor Panels
+    vendorPanelAllowed: false,
+    // Billing & Finance
+    walletBalance: "0", creditLimit: "0", securityDeposit: "0",
+    openingBalance: "0", billingCycle: "monthly", paymentMethod: "cash",
+    bankName: "", bankAccountTitle: "", bankAccountNumber: "", bankBranchCode: "",
+    // Commission
+    commissionRate: "10", commissionPaymentMethod: "wallet",
+    commissionPaymentFrequency: "monthly",
+    // Agreement
+    agreementType: "standard", agreementStartDate: "", agreementEndDate: "", autoRenewal: false,
+    // Documents
+    cnicPicture: "", registrationFormPicture: "",
   });
 
+  const update = (field: string, value: string | boolean | number) =>
+    setForm(prev => ({ ...prev, [field]: value }));
+
+  const [addedPackages, setAddedPackages] = useState<Array<{
+    packageId: number; packageName: string; speed: string;
+    vendorId: string; vendorPrice: string; resellerPrice: string; profit: string;
+  }>>([]);
+  const [pkgForm, setPkgForm] = useState({ packageId: "", vendorId: "", vendorPrice: "0", resellerPrice: "0" });
+  const pkgProfit = (parseFloat(pkgForm.resellerPrice || "0") - parseFloat(pkgForm.vendorPrice || "0")).toFixed(2);
+
+  const [addedVendorPanels, setAddedVendorPanels] = useState<Array<{
+    vendorId: string; vendorName: string; panelUrl: string; panelUsername: string; panelPassword: string;
+  }>>([]);
+  const [vpForm, setVpForm] = useState({ vendorId: "", panelUrl: "", panelUsername: "", panelPassword: "" });
+
+  // Pre-fill from client request
+  useEffect(() => {
+    if (!fromQueryData) return;
+    const q = fromQueryData;
+    setForm(prev => ({
+      ...prev,
+      name: q.name || prev.name,
+      phone: q.phone || prev.phone,
+      email: q.email || prev.email,
+      address: q.address || prev.address,
+      city: q.city || prev.city,
+      area: q.area || prev.area,
+      fatherName: q.fatherName || prev.fatherName,
+      gender: q.gender || prev.gender,
+      cnic: q.nidNumber || prev.cnic,
+      notes: q.remarks || prev.notes,
+    }));
+  }, [fromQueryData]);
+
+  // Auto-fill commission rate from reseller type
+  useEffect(() => {
+    if (!resellerTypesList || !form.resellerType) return;
+    const rt = resellerTypesList.find(r => r.key === form.resellerType);
+    if (rt?.defaultCommissionRate) update("commissionRate", rt.defaultCommissionRate);
+  }, [form.resellerType, resellerTypesList]);
+
+  const GPS = () => {
+    if (!navigator.geolocation) {
+      toast({ title: "Geolocation not supported", variant: "destructive" });
+      return;
+    }
+    setGpsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        update("mapLatitude", String(pos.coords.latitude));
+        update("mapLongitude", String(pos.coords.longitude));
+        setGpsLocating(false);
+        toast({ title: "Location detected", description: `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}` });
+      },
+      (err) => { setGpsLocating(false); toast({ title: "GPS error", description: err.message, variant: "destructive" }); },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  const validate = (): boolean => {
+    const errs: Record<string, string> = {};
+    if (!form.name || form.name.trim().length < 2) errs.name = "Reseller name must be at least 2 characters";
+    if (!form.phone || form.phone.trim().length < 10) errs.phone = "Valid phone number required";
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Invalid email address";
+    setErrors(errs);
+    if (errs.name || errs.phone) setActiveTab("basic");
+    else if (errs.email) setActiveTab("contact");
+    return Object.keys(errs).length === 0;
+  };
+
+  // Missing fields tracker per tab for sidebar indicators
+  const missingByTab: Record<string, string[]> = { "Basic Info": [], "Contact & Location": [] };
+  if (!form.name || form.name.trim().length < 2) missingByTab["Basic Info"].push("Reseller Name");
+  if (!form.phone || form.phone.trim().length < 10) missingByTab["Contact & Location"].push("Phone");
+
   const createMutation = useMutation({
-    mutationFn: async (data: InsertReseller) => {
-      const res = await apiRequest("POST", "/api/resellers", data);
+    mutationFn: async () => {
+      const payload = {
+        name: form.name, contactName: form.contactName, resellerType: form.resellerType,
+        gender: form.gender || null, occupation: form.occupation || null,
+        dateOfBirth: form.dateOfBirth || null, fatherName: form.fatherName || null,
+        cnic: form.cnic || null, ntn: form.ntn || null,
+        registrationFormNo: form.registrationFormNo || null,
+        status: form.status, joinDate: form.joinDate || null,
+        supportLevel: form.supportLevel,
+        maxCustomerLimit: parseInt(form.maxCustomerLimit) || 0,
+        notes: form.notes || null, profilePicture: form.profilePicture || null,
+        phone: form.phone, secondaryPhone: form.secondaryPhone || null,
+        email: form.email || null, address: form.address || null,
+        city: form.city || null, area: form.area || null, territory: form.territory || null,
+        uplinkType: form.uplinkType || null, uplink: form.uplink || null,
+        exchangeTowerPopName: form.exchangeTowerPopName || null,
+        portId: form.portId || null, vlanId: form.vlanId || null,
+        media: form.media || null, connectionType: form.connectionType || null,
+        bandwidthPlan: form.bandwidthPlan || null,
+        ipAssignment: form.ipAssignment, nasId: form.nasId || null,
+        serviceZone: form.serviceZone || null,
+        vlanIdAllowed: form.vlanIdAllowed, vlanIdNote: form.vlanIdNote || null,
+        vendorPanelAllowed: form.vendorPanelAllowed,
+        assignedVendorPanels: addedVendorPanels.length > 0 ? JSON.stringify(addedVendorPanels) : null,
+        walletBalance: form.walletBalance, creditLimit: form.creditLimit,
+        securityDeposit: form.securityDeposit, openingBalance: form.openingBalance,
+        billingCycle: form.billingCycle, paymentMethod: form.paymentMethod,
+        bankName: form.bankName || null, bankAccountTitle: form.bankAccountTitle || null,
+        bankAccountNumber: form.bankAccountNumber || null, bankBranchCode: form.bankBranchCode || null,
+        commissionRate: form.commissionRate,
+        commissionPaymentMethod: form.commissionPaymentMethod,
+        commissionPaymentFrequency: form.commissionPaymentFrequency,
+        agreementType: form.agreementType,
+        agreementStartDate: form.agreementStartDate || null,
+        agreementEndDate: form.agreementEndDate || null,
+        autoRenewal: form.autoRenewal,
+        assignedPackages: addedPackages.length > 0
+          ? addedPackages.map(p => p.packageId).join(",")
+          : null,
+        cnicPicture: form.cnicPicture || null,
+        registrationFormPicture: form.registrationFormPicture || null,
+      };
+      const res = await apiRequest("POST", "/api/resellers", payload);
       return res.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/resellers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-      toast({ title: "Reseller created successfully" });
+      toast({ title: "Reseller created successfully", description: `${form.name} has been added.` });
       if (fromQueryId) {
         apiRequest("POST", `/api/customer-queries/${fromQueryId}/convert`, { customerId: data.id }).catch(() => {});
         queryClient.invalidateQueries({ queryKey: ["/api/customer-queries"] });
@@ -244,62 +362,46 @@ export default function AddResellerPage() {
       setLocation("/resellers");
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error creating reseller", description: error.message, variant: "destructive" });
     },
   });
 
-  // Pre-fill from client request
-  useEffect(() => {
-    if (!fromQueryData) return;
-    const q = fromQueryData;
-    form.reset({
-      ...resellerDefaults,
-      name: q.name || "",
-      phone: q.phone || "",
-      email: q.email || "",
-      address: q.address || "",
-      city: q.city || "",
-      area: q.area || "",
-      fatherName: q.fatherName || "",
-      gender: q.gender || "",
-      cnic: q.nidNumber || "",
-      notes: q.remarks || "",
-    });
-  }, [fromQueryData]);
-
-  const selectedPkg = (packagesList || []).find(p => String(p.id) === pkgForm.packageId);
-  const pkgProfit = (parseFloat(pkgForm.resellerPrice || "0") - parseFloat(pkgForm.vendorPrice || "0")).toFixed(2);
+  const handleSave = () => {
+    if (!validate()) return;
+    createMutation.mutate();
+  };
 
   const handleAddPackage = () => {
-    if (!selectedPkg) return;
-    if (addedPackages.some(p => p.packageId === selectedPkg.id)) return;
-    const vendorName = (vendors || []).find(v => String(v.id) === pkgForm.vendorId)?.name || pkgForm.vendorId;
+    if (!pkgForm.packageId) return;
+    const pkg = (packagesList || []).find(p => String(p.id) === pkgForm.packageId);
+    if (!pkg) return;
+    if (addedPackages.some(p => p.packageId === pkg.id)) {
+      toast({ title: "Package already added", variant: "destructive" }); return;
+    }
+    const vendor = (vendors || []).find(v => String(v.id) === pkgForm.vendorId);
     setAddedPackages(prev => [...prev, {
-      packageId: selectedPkg.id, packageName: selectedPkg.name,
-      speed: selectedPkg.speed || "N/A", dataLimit: selectedPkg.dataLimit || "Unlimited",
-      vendorId: vendorName, vendorPrice: pkgForm.vendorPrice || "0",
-      resellerPrice: pkgForm.resellerPrice || "0", profit: pkgProfit,
+      packageId: pkg.id, packageName: pkg.name,
+      speed: pkg.speed || "", vendorId: pkgForm.vendorId,
+      vendorPrice: pkgForm.vendorPrice, resellerPrice: pkgForm.resellerPrice,
+      profit: pkgProfit,
     }]);
-    const ids = [...addedPackages.map(p => p.packageId), selectedPkg.id].join(",");
-    form.setValue("assignedPackages", ids);
-    form.setValue("packageId", selectedPkg.id);
     setPkgForm({ packageId: "", vendorId: "", vendorPrice: "0", resellerPrice: "0" });
   };
 
-  const handleRemovePackage = (pkgId: number) => {
-    const updated = addedPackages.filter(p => p.packageId !== pkgId);
-    setAddedPackages(updated);
-    form.setValue("assignedPackages", updated.map(p => p.packageId).join(","));
+  const handleAddVendorPanel = () => {
+    if (!vpForm.vendorId || !vpForm.panelUrl) return;
+    const vendor = (vendors || []).find(v => String(v.id) === vpForm.vendorId);
+    setAddedVendorPanels(prev => [...prev, {
+      vendorId: vpForm.vendorId,
+      vendorName: vendor?.name || "",
+      panelUrl: vpForm.panelUrl,
+      panelUsername: vpForm.panelUsername,
+      panelPassword: vpForm.panelPassword,
+    }]);
+    setVpForm({ vendorId: "", panelUrl: "", panelUsername: "", panelPassword: "" });
   };
 
-  const onSubmit = (data: InsertReseller) => {
-    createMutation.mutate(data);
-  };
-
-  const w = form.watch;
-  const vendorPanelAllowedVal = w("vendorPanelAllowed");
-  const vlanIdAllowedVal = w("vlanIdAllowed");
-  const autoRenewalVal = w("autoRenewal");
+  const totalMissingRequired = Object.values(missingByTab).flat().length;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -307,38 +409,42 @@ export default function AddResellerPage() {
       <div className="sticky top-0 z-40 bg-[#1a2332] border-b border-[#243447] shadow-lg">
         <div className="flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-4">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+            <Button type="button" variant="ghost" size="sm"
               className="text-white hover:text-white hover:bg-white/10"
               onClick={() => setLocation("/resellers")}
               data-testid="button-back-to-resellers"
             >
-              <ChevronLeft className="h-4 w-4 mr-1" /> Back
+              <ChevronLeft className="h-4 w-4 mr-1" /> Back to Resellers
             </Button>
             <Separator orientation="vertical" className="h-6 bg-white/20" />
             <div>
               <h1 className="text-lg font-bold text-white">Add New Reseller</h1>
-              <p className="text-xs text-blue-200/70">Fill in reseller details across all sections</p>
+              <p className="text-xs text-blue-200/70">Complete all sections for full reseller profile</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
+            {totalMissingRequired > 0 && (
+              <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs">
+                <AlertCircle className="h-3 w-3 mr-1" />
+                {totalMissingRequired} required field{totalMissingRequired !== 1 ? "s" : ""} missing
+              </Badge>
+            )}
+            <Button type="button" variant="ghost" size="sm"
               className="text-white/70 hover:text-white hover:bg-white/10"
-              onClick={() => { form.reset(); setAddedPackages([]); setAddedVendorPanels([]); }}
-              data-testid="button-reset-reseller-form"
+              onClick={() => {
+                setForm(prev => ({ ...prev, name: "", contactName: "", phone: "", email: "" }));
+                setAddedPackages([]);
+                setAddedVendorPanels([]);
+                setErrors({});
+              }}
+              data-testid="button-reset-reseller"
             >
               <RefreshCw className="h-4 w-4 mr-1" /> Reset
             </Button>
             <Button
-              type="button"
               size="sm"
               className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow"
-              onClick={() => form.handleSubmit(onSubmit)()}
+              onClick={handleSave}
               disabled={createMutation.isPending}
               data-testid="button-save-reseller"
             >
@@ -348,1010 +454,903 @@ export default function AddResellerPage() {
         </div>
       </div>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-1 overflow-hidden">
-          {/* Left sidebar */}
-          <aside className="w-64 shrink-0 bg-gradient-to-b from-[#1a2332] to-[#243447] border-r border-[#2d3f55] flex flex-col">
-            <div className="p-4 flex-1 overflow-y-auto">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-300/60 mb-3 px-2">Sections</p>
-              <nav className="space-y-1">
-                {tabItems.map(tab => {
-                  const Icon = tab.icon;
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      type="button"
-                      onClick={() => setActiveTab(tab.id)}
-                      data-testid={`tab-${tab.id}`}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left ${
-                        isActive
-                          ? "bg-blue-600 text-white shadow-md shadow-blue-900/30"
-                          : "text-blue-100/70 hover:bg-white/5 hover:text-white"
-                      }`}
-                    >
-                      <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-white" : "text-blue-300/60"}`} />
-                      {tab.label}
-                    </button>
-                  );
-                })}
-              </nav>
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left sidebar */}
+        <aside className="w-64 shrink-0 bg-gradient-to-b from-[#1a2332] to-[#243447] border-r border-[#2d3f55] flex flex-col sticky top-[57px] h-[calc(100vh-57px)]">
+          <div className="p-4 flex-1 overflow-y-auto">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-300/60 mb-3 px-2">Sections</p>
+            <nav className="space-y-1">
+              {tabItems.map(tab => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                const missing = missingByTab[tab.label]?.length ?? 0;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    data-testid={`tab-${tab.id}`}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left ${
+                      isActive
+                        ? "bg-blue-600 text-white shadow-md shadow-blue-900/30"
+                        : "text-blue-100/70 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-white" : "text-blue-300/60"}`} />
+                    <span className="flex-1">{tab.label}</span>
+                    {missing > 0 && (
+                      <span className="text-[10px] bg-amber-500/30 text-amber-300 rounded-full px-1.5 py-0.5 leading-none">
+                        {missing}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+
+          {/* Sidebar footer summary */}
+          <div className="p-4 border-t border-[#2d3f55]">
+            <div className="bg-white/5 rounded-lg p-3 space-y-1.5 text-xs text-blue-200/70">
+              <div className="flex items-center justify-between">
+                <span>Packages</span>
+                <span className="font-semibold text-white">{addedPackages.length}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Vendor Panels</span>
+                <span className="font-semibold text-white">{addedVendorPanels.length}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Commission</span>
+                <span className="font-semibold text-white">{form.commissionRate}%</span>
+              </div>
             </div>
-          </aside>
+          </div>
+        </aside>
 
-          {/* Main content */}
-          <main className="flex-1 overflow-y-auto bg-muted/30">
-            <div className="p-6 max-w-5xl space-y-6">
+        {/* Main content */}
+        <main className="flex-1 overflow-y-auto bg-muted/30">
+          <div className="p-6 max-w-5xl space-y-6">
 
-              {/* ── BASIC INFO ── */}
-              {activeTab === "basic" && (
-                <div className="space-y-5">
-                  {/* Profile photo */}
-                  <Card>
-                    <SectionHeader icon={User} title="Profile Photo" />
-                    <CardContent className="pt-6 flex items-center gap-6">
-                      <ProfilePhotoUpload
-                        value={w("profilePicture") || ""}
-                        onChange={(url) => form.setValue("profilePicture", url)}
+            {/* ── BASIC INFO ── */}
+            {activeTab === "basic" && (
+              <div className="space-y-5">
+                {/* Profile Photo */}
+                <Card>
+                  <SectionHeader icon={User} title="Profile Photo & Identity" />
+                  <CardContent className="pt-6 flex items-start gap-8">
+                    <ProfilePhotoUpload
+                      value={form.profilePicture}
+                      onChange={(url) => update("profilePicture", url)}
+                    />
+                    <div className="flex-1 space-y-4">
+                      <FieldGroup>
+                        <Field label="Reseller / Company Name" required error={errors.name}>
+                          <Input
+                            value={form.name}
+                            onChange={e => update("name", e.target.value)}
+                            placeholder="e.g. SpeedNet Resellers"
+                            data-testid="input-reseller-name"
+                            className={errors.name ? "border-red-500" : ""}
+                          />
+                        </Field>
+                        <Field label="Contact Person Name">
+                          <Input
+                            value={form.contactName}
+                            onChange={e => update("contactName", e.target.value)}
+                            placeholder="Primary contact name"
+                            data-testid="input-contact-name"
+                          />
+                        </Field>
+                      </FieldGroup>
+                      <FieldGroup>
+                        <Field label="Reseller Type">
+                          <Select value={form.resellerType} onValueChange={v => update("resellerType", v)}>
+                            <SelectTrigger data-testid="select-reseller-type"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="authorized_dealer">Authorized Dealer</SelectItem>
+                              <SelectItem value="sub_reseller">Sub-Reseller</SelectItem>
+                              <SelectItem value="franchise">Franchise</SelectItem>
+                              <SelectItem value="white_label">White Label</SelectItem>
+                              {(resellerTypesList || []).filter(rt =>
+                                !["authorized_dealer","sub_reseller","franchise","white_label"].includes(rt.key)
+                              ).map(rt => (
+                                <SelectItem key={rt.id} value={rt.key}>{rt.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                        <Field label="Status">
+                          <Select value={form.status} onValueChange={v => update("status", v)}>
+                            <SelectTrigger data-testid="select-status"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="active">Active</SelectItem>
+                              <SelectItem value="inactive">Inactive</SelectItem>
+                              <SelectItem value="suspended">Suspended</SelectItem>
+                              <SelectItem value="terminated">Terminated</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </Field>
+                      </FieldGroup>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Personal Details */}
+                <Card>
+                  <SectionHeader icon={Briefcase} title="Personal Details" />
+                  <CardContent className="pt-5 space-y-4">
+                    <FieldGroup>
+                      <Field label="Gender">
+                        <Select value={form.gender || ""} onValueChange={v => update("gender", v)}>
+                          <SelectTrigger data-testid="select-gender"><SelectValue placeholder="Select gender" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="male">Male</SelectItem>
+                            <SelectItem value="female">Female</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="Date of Birth">
+                        <Input type="date" value={form.dateOfBirth} onChange={e => update("dateOfBirth", e.target.value)} data-testid="input-dob" />
+                      </Field>
+                    </FieldGroup>
+                    <FieldGroup>
+                      <Field label="Father Name">
+                        <Input value={form.fatherName} onChange={e => update("fatherName", e.target.value)} placeholder="Father's full name" data-testid="input-father-name" />
+                      </Field>
+                      <Field label="Occupation">
+                        <Input value={form.occupation} onChange={e => update("occupation", e.target.value)} placeholder="e.g. ISP Dealer, IT Entrepreneur" data-testid="input-occupation" />
+                      </Field>
+                    </FieldGroup>
+                  </CardContent>
+                </Card>
+
+                {/* Identification */}
+                <Card>
+                  <SectionHeader icon={Shield} title="Identification & Registration" />
+                  <CardContent className="pt-5 space-y-4">
+                    <FieldGroup>
+                      <Field label="CNIC / NID">
+                        <Input value={form.cnic} onChange={e => update("cnic", e.target.value)} placeholder="XXXXX-XXXXXXX-X" data-testid="input-cnic" />
+                      </Field>
+                      <Field label="NTN Number">
+                        <Input value={form.ntn} onChange={e => update("ntn", e.target.value)} placeholder="National Tax Number" data-testid="input-ntn" />
+                      </Field>
+                    </FieldGroup>
+                    <FieldGroup>
+                      <Field label="Registration Form No.">
+                        <Input value={form.registrationFormNo} onChange={e => update("registrationFormNo", e.target.value)} placeholder="Reg form reference" data-testid="input-reg-form" />
+                      </Field>
+                      <Field label="Join Date">
+                        <Input type="date" value={form.joinDate} onChange={e => update("joinDate", e.target.value)} data-testid="input-join-date" />
+                      </Field>
+                    </FieldGroup>
+                  </CardContent>
+                </Card>
+
+                {/* Account Settings */}
+                <Card>
+                  <SectionHeader icon={Settings} title="Account Settings" />
+                  <CardContent className="pt-5 space-y-4">
+                    <FieldGroup>
+                      <Field label="Support Level">
+                        <Select value={form.supportLevel} onValueChange={v => update("supportLevel", v)}>
+                          <SelectTrigger data-testid="select-support-level"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="basic">Basic</SelectItem>
+                            <SelectItem value="standard">Standard</SelectItem>
+                            <SelectItem value="premium">Premium</SelectItem>
+                            <SelectItem value="enterprise">Enterprise</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="Max Customer Limit">
+                        <Input
+                          type="number" min="0"
+                          value={form.maxCustomerLimit}
+                          onChange={e => update("maxCustomerLimit", e.target.value)}
+                          placeholder="0 = Unlimited"
+                          data-testid="input-max-customer-limit"
+                        />
+                      </Field>
+                    </FieldGroup>
+                    <Field label="Notes / Remarks">
+                      <Textarea
+                        value={form.notes}
+                        onChange={e => update("notes", e.target.value)}
+                        placeholder="Internal notes about this reseller..."
+                        className="min-h-[80px]"
+                        data-testid="input-notes"
                       />
-                      <div className="text-sm text-muted-foreground space-y-1">
-                        <p className="font-medium text-foreground">Reseller Profile Photo</p>
-                        <p>Upload a clear headshot or company logo.</p>
-                        <p>Supported: JPG, PNG — Max 5MB</p>
-                      </div>
-                    </CardContent>
-                  </Card>
+                    </Field>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
-                  {/* Personal details */}
-                  <Card>
-                    <SectionHeader icon={User} title="Personal Details" />
-                    <CardContent className="pt-5 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="name" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Full Name <span className="text-red-500">*</span></FormLabel>
-                            <FormControl><Input placeholder="Enter full name" data-testid="input-reseller-name" {...field} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="contactName" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Contact Person Name</FormLabel>
-                            <FormControl><Input placeholder="Primary contact person" data-testid="input-reseller-contact-name" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField control={form.control} name="gender" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Gender</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}>
-                              <FormControl><SelectTrigger data-testid="select-reseller-gender"><SelectValue placeholder="Select gender" /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                <SelectItem value="male">Male</SelectItem>
-                                <SelectItem value="female">Female</SelectItem>
-                                <SelectItem value="other">Other</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="dateOfBirth" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Date of Birth</FormLabel>
-                            <FormControl><Input type="date" data-testid="input-reseller-dob" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="occupation" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Occupation</FormLabel>
-                            <FormControl><Input placeholder="e.g. Entrepreneur" data-testid="input-reseller-occupation" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="fatherName" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Father Name</FormLabel>
-                            <FormControl><Input placeholder="Father's full name" data-testid="input-reseller-father-name" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="cnic" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>CNIC / National ID</FormLabel>
-                            <FormControl><Input placeholder="XXXXX-XXXXXXX-X" data-testid="input-reseller-cnic" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="ntn" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>NTN (National Tax Number)</FormLabel>
-                            <FormControl><Input placeholder="NTN number" data-testid="input-reseller-ntn" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="registrationFormNo" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Registration Form No</FormLabel>
-                            <FormControl><Input placeholder="Form number" data-testid="input-reseller-reg-form-no" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
-                    </CardContent>
-                  </Card>
+            {/* ── CONTACT & LOCATION ── */}
+            {activeTab === "contact" && (
+              <div className="space-y-5">
+                <Card>
+                  <SectionHeader icon={Phone} title="Contact Information" />
+                  <CardContent className="pt-5 space-y-4">
+                    <FieldGroup>
+                      <Field label="Primary Phone" required error={errors.phone}>
+                        <Input
+                          value={form.phone}
+                          onChange={e => update("phone", e.target.value)}
+                          placeholder="03XX-XXXXXXX"
+                          data-testid="input-phone"
+                          className={errors.phone ? "border-red-500" : ""}
+                        />
+                      </Field>
+                      <Field label="Secondary Phone">
+                        <Input value={form.secondaryPhone} onChange={e => update("secondaryPhone", e.target.value)} placeholder="Alternate number" data-testid="input-secondary-phone" />
+                      </Field>
+                    </FieldGroup>
+                    <Field label="Email Address" error={errors.email}>
+                      <Input
+                        type="email"
+                        value={form.email}
+                        onChange={e => update("email", e.target.value)}
+                        placeholder="reseller@company.pk"
+                        data-testid="input-email"
+                        className={errors.email ? "border-red-500" : ""}
+                      />
+                    </Field>
+                  </CardContent>
+                </Card>
 
-                  {/* Business Settings */}
-                  <Card>
-                    <SectionHeader icon={Briefcase} title="Business Settings" />
-                    <CardContent className="pt-5 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="resellerType" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Reseller Type <span className="text-red-500">*</span></FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || "authorized_dealer"}>
-                              <FormControl><SelectTrigger data-testid="select-reseller-type"><SelectValue /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                <SelectItem value="authorized_dealer">Authorized Dealer</SelectItem>
-                                <SelectItem value="franchisee">Franchisee</SelectItem>
-                                <SelectItem value="agent">Agent</SelectItem>
-                                <SelectItem value="sub_reseller">Sub Reseller</SelectItem>
-                                <SelectItem value="wholesaler">Wholesaler</SelectItem>
-                                {(resellerTypesList || []).map(t => (
-                                  <SelectItem key={t.id} value={t.key}>{t.label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="status" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Status</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || "active"}>
-                              <FormControl><SelectTrigger data-testid="select-reseller-status"><SelectValue /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                <SelectItem value="active">Active</SelectItem>
-                                <SelectItem value="inactive">Inactive</SelectItem>
-                                <SelectItem value="suspended">Suspended</SelectItem>
-                                <SelectItem value="blocked">Blocked</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField control={form.control} name="joinDate" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Join Date</FormLabel>
-                            <FormControl><Input type="date" data-testid="input-reseller-join-date" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="supportLevel" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Support Level</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || "standard"}>
-                              <FormControl><SelectTrigger data-testid="select-reseller-support-level"><SelectValue /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                <SelectItem value="basic">Basic</SelectItem>
-                                <SelectItem value="standard">Standard</SelectItem>
-                                <SelectItem value="premium">Premium</SelectItem>
-                                <SelectItem value="dedicated">Dedicated</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="maxCustomerLimit" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Max Customer Limit</FormLabel>
-                            <FormControl><Input type="number" min="0" placeholder="0 = unlimited" data-testid="input-reseller-max-customers" {...field} value={field.value ?? 0} onChange={(e) => field.onChange(parseInt(e.target.value) || 0)} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
-                      <FormField control={form.control} name="notes" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Remarks / Notes</FormLabel>
-                          <FormControl><Textarea placeholder="Any special notes or remarks..." rows={3} data-testid="input-reseller-notes" {...field} value={field.value || ""} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
+                <Card>
+                  <SectionHeader icon={MapPin} title="Location & Address" />
+                  <CardContent className="pt-5 space-y-4">
+                    <Field label="Full Address">
+                      <Textarea
+                        value={form.address}
+                        onChange={e => update("address", e.target.value)}
+                        placeholder="Street, block, building..."
+                        className="min-h-[70px]"
+                        data-testid="input-address"
+                      />
+                    </Field>
+                    <FieldGroup cols={3}>
+                      <Field label="City">
+                        <Input value={form.city} onChange={e => update("city", e.target.value)} placeholder="e.g. Lahore" data-testid="input-city" />
+                      </Field>
+                      <Field label="Area">
+                        <Input value={form.area} onChange={e => update("area", e.target.value)} placeholder="e.g. Gulberg" data-testid="input-area" />
+                      </Field>
+                      <Field label="Territory">
+                        <Input value={form.territory} onChange={e => update("territory", e.target.value)} placeholder="Covered territory" data-testid="input-territory" />
+                      </Field>
+                    </FieldGroup>
 
-              {/* ── CONTACT & LOCATION ── */}
-              {activeTab === "contact" && (
-                <div className="space-y-5">
-                  <Card>
-                    <SectionHeader icon={Phone} title="Contact Information" />
-                    <CardContent className="pt-5 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="phone" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Primary Phone <span className="text-red-500">*</span></FormLabel>
-                            <FormControl><Input placeholder="03XX-XXXXXXX" data-testid="input-reseller-phone" {...field} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="secondaryPhone" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Secondary Phone</FormLabel>
-                            <FormControl><Input placeholder="Secondary number" data-testid="input-reseller-secondary-phone" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
+                    <Separator />
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">GPS Coordinates</p>
+                        <Button
+                          type="button" variant="outline" size="sm"
+                          onClick={GPS} disabled={gpsLocating}
+                          data-testid="button-get-gps"
+                          className="gap-1.5"
+                        >
+                          <LocateFixed className="h-3.5 w-3.5" />
+                          {gpsLocating ? "Detecting..." : "Detect My Location"}
+                        </Button>
                       </div>
-                      <FormField control={form.control} name="email" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email Address</FormLabel>
-                          <FormControl><Input type="email" placeholder="reseller@email.com" data-testid="input-reseller-email" {...field} value={field.value || ""} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-                    </CardContent>
-                  </Card>
+                      <FieldGroup>
+                        <Field label="Latitude">
+                          <Input value={form.mapLatitude} onChange={e => update("mapLatitude", e.target.value)} placeholder="e.g. 31.5204" data-testid="input-latitude" />
+                        </Field>
+                        <Field label="Longitude">
+                          <Input value={form.mapLongitude} onChange={e => update("mapLongitude", e.target.value)} placeholder="e.g. 74.3587" data-testid="input-longitude" />
+                        </Field>
+                      </FieldGroup>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
-                  <Card>
-                    <SectionHeader icon={MapPin} title="Location Details" />
-                    <CardContent className="pt-5 space-y-4">
-                      <FormField control={form.control} name="address" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Full Address</FormLabel>
-                          <FormControl><Textarea placeholder="Complete address..." rows={2} data-testid="input-reseller-address" {...field} value={field.value || ""} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField control={form.control} name="city" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>City</FormLabel>
-                            <FormControl><Input placeholder="City" data-testid="input-reseller-city" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="area" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Area</FormLabel>
-                            <FormControl><Input placeholder="Area / locality" data-testid="input-reseller-area" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="territory" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Territory</FormLabel>
-                            <FormControl><Input placeholder="Coverage territory" data-testid="input-reseller-territory" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
+            {/* ── NETWORK & SERVICE ── */}
+            {activeTab === "network" && (
+              <div className="space-y-5">
+                <Card>
+                  <SectionHeader icon={Network} title="Uplink & Connectivity" />
+                  <CardContent className="pt-5 space-y-4">
+                    <FieldGroup>
+                      <Field label="Uplink Type">
+                        <Select value={form.uplinkType || ""} onValueChange={v => update("uplinkType", v)}>
+                          <SelectTrigger data-testid="select-uplink-type"><SelectValue placeholder="Select uplink type" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="fiber">Fiber</SelectItem>
+                            <SelectItem value="wireless">Wireless</SelectItem>
+                            <SelectItem value="coaxial">Coaxial</SelectItem>
+                            <SelectItem value="ethernet">Ethernet</SelectItem>
+                            <SelectItem value="dsl">DSL</SelectItem>
+                            <SelectItem value="leased_line">Leased Line</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="Uplink / Media Name">
+                        <Input value={form.uplink} onChange={e => update("uplink", e.target.value)} placeholder="e.g. FiberLink-Main" data-testid="input-uplink" />
+                      </Field>
+                    </FieldGroup>
+                    <FieldGroup>
+                      <Field label="Exchange / Tower / POP Name">
+                        <Input value={form.exchangeTowerPopName} onChange={e => update("exchangeTowerPopName", e.target.value)} placeholder="Exchange or POP name" data-testid="input-exchange" />
+                      </Field>
+                      <Field label="Port ID">
+                        <Input value={form.portId} onChange={e => update("portId", e.target.value)} placeholder="Port identifier" data-testid="input-port-id" />
+                      </Field>
+                    </FieldGroup>
+                    <FieldGroup>
+                      <Field label="Media Type">
+                        <Select value={form.media || ""} onValueChange={v => update("media", v)}>
+                          <SelectTrigger data-testid="select-media"><SelectValue placeholder="Select media" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="single_mode">Single Mode Fiber</SelectItem>
+                            <SelectItem value="multi_mode">Multi Mode Fiber</SelectItem>
+                            <SelectItem value="cat6">CAT6 Ethernet</SelectItem>
+                            <SelectItem value="coaxial">Coaxial Cable</SelectItem>
+                            <SelectItem value="wireless_5ghz">Wireless 5GHz</SelectItem>
+                            <SelectItem value="wireless_2ghz">Wireless 2.4GHz</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="Connection Type">
+                        <Select value={form.connectionType || ""} onValueChange={v => update("connectionType", v)}>
+                          <SelectTrigger data-testid="select-connection-type"><SelectValue placeholder="Select type" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="FTTH">FTTH</SelectItem>
+                            <SelectItem value="FTTB">FTTB</SelectItem>
+                            <SelectItem value="wireless">Wireless</SelectItem>
+                            <SelectItem value="leased_line">Leased Line</SelectItem>
+                            <SelectItem value="vsat">VSAT</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </FieldGroup>
+                  </CardContent>
+                </Card>
 
-              {/* ── NETWORK & SERVICE ── */}
-              {activeTab === "network" && (
-                <div className="space-y-5">
-                  <Card>
-                    <SectionHeader icon={Network} title="Network Infrastructure" />
-                    <CardContent className="pt-5 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField control={form.control} name="uplinkType" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Uplink Type</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}>
-                              <FormControl><SelectTrigger data-testid="select-reseller-uplink-type"><SelectValue placeholder="Select uplink type" /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                <SelectItem value="exchange">Exchange</SelectItem>
-                                <SelectItem value="tower">Tower</SelectItem>
-                                <SelectItem value="pop">POP</SelectItem>
-                                <SelectItem value="datacenter">Data Center</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="uplink" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Uplink Media</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}>
-                              <FormControl><SelectTrigger data-testid="select-reseller-uplink"><SelectValue placeholder="Select media" /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                <SelectItem value="fiber">Fiber</SelectItem>
-                                <SelectItem value="wireless">Wireless</SelectItem>
-                                <SelectItem value="ethernet">Ethernet</SelectItem>
-                                <SelectItem value="coaxial">Coaxial</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="exchangeTowerPopName" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Exchange / Tower / POP Name</FormLabel>
-                            <FormControl><Input placeholder="e.g. DHA-Tower-01" data-testid="input-reseller-exchange-name" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField control={form.control} name="portId" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Port ID</FormLabel>
-                            <FormControl><Input placeholder="Port identifier" data-testid="input-reseller-port-id" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="vlanId" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>VLAN ID</FormLabel>
-                            <FormControl><Input placeholder="VLAN identifier" data-testid="input-reseller-vlan-id" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="media" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Media Type</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}>
-                              <FormControl><SelectTrigger data-testid="select-reseller-media"><SelectValue placeholder="Select media" /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                <SelectItem value="dish">Dish</SelectItem>
-                                <SelectItem value="sfp">SFP</SelectItem>
-                                <SelectItem value="cat6">CAT6 / Ethernet</SelectItem>
-                                <SelectItem value="fiber_optic">Fiber Optic</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
-                    </CardContent>
-                  </Card>
+                <Card>
+                  <SectionHeader icon={Wifi} title="Network Configuration" />
+                  <CardContent className="pt-5 space-y-4">
+                    <FieldGroup>
+                      <Field label="Bandwidth Plan">
+                        <Input value={form.bandwidthPlan} onChange={e => update("bandwidthPlan", e.target.value)} placeholder="e.g. 100 Mbps Shared" data-testid="input-bandwidth-plan" />
+                      </Field>
+                      <Field label="IP Assignment">
+                        <Select value={form.ipAssignment} onValueChange={v => update("ipAssignment", v)}>
+                          <SelectTrigger data-testid="select-ip-assignment"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="dynamic">Dynamic (DHCP)</SelectItem>
+                            <SelectItem value="static">Static IP</SelectItem>
+                            <SelectItem value="pppoe">PPPoE</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </FieldGroup>
+                    <FieldGroup>
+                      <Field label="NAS ID">
+                        <Input value={form.nasId} onChange={e => update("nasId", e.target.value)} placeholder="Network Access Server ID" data-testid="input-nas-id" />
+                      </Field>
+                      <Field label="Service Zone">
+                        <Input value={form.serviceZone} onChange={e => update("serviceZone", e.target.value)} placeholder="Zone identifier" data-testid="input-service-zone" />
+                      </Field>
+                    </FieldGroup>
 
-                  <Card>
-                    <SectionHeader icon={Settings} title="Service Configuration" />
-                    <CardContent className="pt-5 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField control={form.control} name="connectionType" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Connection Type</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || ""}>
-                              <FormControl><SelectTrigger data-testid="select-reseller-connection-type"><SelectValue placeholder="Select type" /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                <SelectItem value="FTTH">FTTH</SelectItem>
-                                <SelectItem value="FTTB">FTTB</SelectItem>
-                                <SelectItem value="Wireless">Wireless</SelectItem>
-                                <SelectItem value="Ethernet">Ethernet</SelectItem>
-                                <SelectItem value="PPPoE">PPPoE</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="bandwidthPlan" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Bandwidth Plan</FormLabel>
-                            <FormControl><Input placeholder="e.g. 100Mbps" data-testid="input-reseller-bandwidth-plan" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="ipAssignment" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>IP Assignment</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || "dynamic"}>
-                              <FormControl><SelectTrigger data-testid="select-reseller-ip-assignment"><SelectValue /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                <SelectItem value="dynamic">Dynamic</SelectItem>
-                                <SelectItem value="static">Static</SelectItem>
-                                <SelectItem value="block">IP Block</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
+                    <Separator />
+                    <div className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <p className="text-sm font-medium">VLAN ID Allowed</p>
+                        <p className="text-xs text-muted-foreground">Enable VLAN tagging for this reseller's traffic</p>
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="nasId" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>NAS ID</FormLabel>
-                            <FormControl><Input placeholder="NAS identifier" data-testid="input-reseller-nas-id" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="serviceZone" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Service Zone</FormLabel>
-                            <FormControl><Input placeholder="Service zone or region" data-testid="input-reseller-service-zone" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                        <FormField control={form.control} name="vlanIdAllowed" render={({ field }) => (
-                          <FormItem className="flex items-center gap-3 space-y-0 rounded-lg border p-3">
-                            <FormControl>
-                              <Switch checked={field.value ?? false} onCheckedChange={field.onChange} data-testid="switch-reseller-vlan-allowed" />
-                            </FormControl>
-                            <div>
-                              <FormLabel className="cursor-pointer font-medium">VLAN ID Allowed</FormLabel>
-                              <p className="text-xs text-muted-foreground">Allow reseller to manage VLAN IDs</p>
+                      <Switch
+                        checked={form.vlanIdAllowed}
+                        onCheckedChange={v => update("vlanIdAllowed", v)}
+                        data-testid="switch-vlan-allowed"
+                      />
+                    </div>
+
+                    {form.vlanIdAllowed && (
+                      <FieldGroup>
+                        <Field label="VLAN ID">
+                          <Input value={form.vlanId} onChange={e => update("vlanId", e.target.value)} placeholder="e.g. 100" data-testid="input-vlan-id" />
+                        </Field>
+                        <Field label="VLAN Note">
+                          <Input value={form.vlanIdNote} onChange={e => update("vlanIdNote", e.target.value)} placeholder="Optional notes about VLAN" data-testid="input-vlan-note" />
+                        </Field>
+                      </FieldGroup>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* ── PACKAGES ── */}
+            {activeTab === "packages" && (
+              <div className="space-y-5">
+                <Card>
+                  <SectionHeader icon={Tag} title="Assign Packages" />
+                  <CardContent className="pt-5 space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Field label="Select Package">
+                        <Select value={pkgForm.packageId} onValueChange={v => {
+                          const pkg = (packagesList || []).find(p => String(p.id) === v);
+                          setPkgForm(prev => ({
+                            ...prev, packageId: v,
+                            resellerPrice: pkg?.price || "0",
+                          }));
+                        }}>
+                          <SelectTrigger data-testid="select-package"><SelectValue placeholder="Choose package" /></SelectTrigger>
+                          <SelectContent>
+                            {(packagesList || []).map(p => (
+                              <SelectItem key={p.id} value={String(p.id)}>
+                                {p.name} {p.speed ? `— ${p.speed}` : ""} {p.price ? `(Rs. ${p.price})` : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="Vendor">
+                        <Select value={pkgForm.vendorId} onValueChange={v => setPkgForm(prev => ({ ...prev, vendorId: v }))}>
+                          <SelectTrigger data-testid="select-package-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
+                          <SelectContent>
+                            {(vendors || []).map(v => (
+                              <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <Field label="Vendor Price (Rs.)">
+                        <Input
+                          type="number" min="0" step="0.01"
+                          value={pkgForm.vendorPrice}
+                          onChange={e => setPkgForm(prev => ({ ...prev, vendorPrice: e.target.value }))}
+                          data-testid="input-vendor-price"
+                        />
+                      </Field>
+                      <Field label="Reseller Price (Rs.)">
+                        <Input
+                          type="number" min="0" step="0.01"
+                          value={pkgForm.resellerPrice}
+                          onChange={e => setPkgForm(prev => ({ ...prev, resellerPrice: e.target.value }))}
+                          data-testid="input-reseller-price"
+                        />
+                      </Field>
+                      <Field label="Profit (Rs.)">
+                        <div className={`flex items-center h-10 px-3 rounded-md border bg-muted text-sm font-mono ${parseFloat(pkgProfit) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          Rs. {pkgProfit}
+                        </div>
+                      </Field>
+                    </div>
+                    <Button type="button" onClick={handleAddPackage} disabled={!pkgForm.packageId} data-testid="button-add-package">
+                      <Plus className="h-4 w-4 mr-1" /> Add Package
+                    </Button>
+
+                    {addedPackages.length > 0 && (
+                      <div className="border rounded-lg overflow-hidden mt-2">
+                        <div className="px-3 py-2 bg-[#1a3a5c] text-white text-xs font-semibold uppercase tracking-wide grid grid-cols-5 gap-2">
+                          <span className="col-span-2">Package</span>
+                          <span>Vendor Price</span>
+                          <span>Reseller Price</span>
+                          <span>Action</span>
+                        </div>
+                        {addedPackages.map((p, i) => (
+                          <div key={i} className="px-3 py-2.5 border-t text-sm grid grid-cols-5 gap-2 items-center">
+                            <div className="col-span-2">
+                              <p className="font-medium">{p.packageName}</p>
+                              {p.speed && <p className="text-xs text-muted-foreground">{p.speed}</p>}
                             </div>
-                          </FormItem>
-                        )} />
-                        {vlanIdAllowedVal && (
-                          <FormField control={form.control} name="vlanIdNote" render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>VLAN ID Note</FormLabel>
-                              <FormControl><Input placeholder="VLAN note or range" data-testid="input-reseller-vlan-note" {...field} value={field.value || ""} /></FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )} />
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
-              {/* ── PACKAGES ── */}
-              {activeTab === "packages" && (
-                <div className="space-y-5">
-                  <Card>
-                    <SectionHeader icon={Tag} title="Assign Packages" />
-                    <CardContent className="pt-5 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm font-medium mb-1.5 block">Package Name <span className="text-red-500">*</span></label>
-                          <Select value={pkgForm.packageId} onValueChange={(val) => {
-                            const pkg = (packagesList || []).find(p => String(p.id) === val);
-                            setPkgForm(prev => ({ ...prev, packageId: val, vendorId: String(pkg?.vendorId || "") }));
-                          }}>
-                            <SelectTrigger data-testid="select-pkg-name"><SelectValue placeholder="Select Package" /></SelectTrigger>
-                            <SelectContent>
-                              {(packagesList || []).map((p) => (
-                                <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium mb-1.5 block">Vendor</label>
-                          <Select value={pkgForm.vendorId} onValueChange={(val) => setPkgForm(prev => ({ ...prev, vendorId: val }))}>
-                            <SelectTrigger data-testid="select-pkg-vendor"><SelectValue placeholder="Select Vendor" /></SelectTrigger>
-                            <SelectContent>
-                              {(vendors || []).map((v) => (
-                                <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <label className="text-sm font-medium mb-1.5 block">Vendor Price (PKR)</label>
-                          <Input type="number" step="0.01" placeholder="0.00" data-testid="input-pkg-vendor-price" value={pkgForm.vendorPrice} onChange={(e) => setPkgForm(prev => ({ ...prev, vendorPrice: e.target.value }))} />
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium mb-1.5 block">Reseller Price (PKR)</label>
-                          <Input type="number" step="0.01" placeholder="0.00" data-testid="input-pkg-reseller-price" value={pkgForm.resellerPrice} onChange={(e) => setPkgForm(prev => ({ ...prev, resellerPrice: e.target.value }))} />
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium mb-1.5 block">Profit</label>
-                          <div className={`flex items-center h-10 px-3 rounded-md border text-sm font-mono font-medium ${parseFloat(pkgProfit) >= 0 ? "text-green-600 bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800" : "text-red-600 bg-red-50 border-red-200"}`}>
-                            PKR {pkgProfit}
+                            <span>Rs. {p.vendorPrice}</span>
+                            <span>Rs. {p.resellerPrice}</span>
+                            <Button
+                              type="button" variant="ghost" size="sm"
+                              onClick={() => setAddedPackages(prev => prev.filter((_, j) => j !== i))}
+                              data-testid={`button-remove-package-${i}`}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
                           </div>
-                        </div>
+                        ))}
                       </div>
-                      {selectedPkg && (
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 text-sm">
-                          <Package className="h-4 w-4 text-blue-600 shrink-0" />
-                          <span className="font-medium text-blue-800 dark:text-blue-300">{selectedPkg.name}</span>
-                          <Badge variant="outline" className="text-xs">{selectedPkg.speed || "N/A"}</Badge>
-                          <Badge variant="outline" className="text-xs">{selectedPkg.dataLimit || "Unlimited"}</Badge>
-                        </div>
-                      )}
-                      <Button type="button" onClick={handleAddPackage} disabled={!selectedPkg} data-testid="button-add-package" className="bg-blue-600 hover:bg-blue-700">
-                        <CheckCircle2 className="h-4 w-4 mr-1" /> Add Package
-                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
 
-                      {addedPackages.length > 0 && (
-                        <div className="border rounded-xl overflow-hidden mt-2">
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="bg-[#1a3a5c] hover:bg-[#1a3a5c]">
-                                <TableHead className="text-white font-semibold">Package</TableHead>
-                                <TableHead className="text-white font-semibold">Speed</TableHead>
-                                <TableHead className="text-white font-semibold">Data</TableHead>
-                                <TableHead className="text-white font-semibold">Vendor Price</TableHead>
-                                <TableHead className="text-white font-semibold">Reseller Price</TableHead>
-                                <TableHead className="text-white font-semibold">Profit</TableHead>
-                                <TableHead className="text-white font-semibold w-16">Action</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {addedPackages.map((p) => (
-                                <TableRow key={p.packageId}>
-                                  <TableCell className="font-medium">{p.packageName}</TableCell>
-                                  <TableCell>{p.speed}</TableCell>
-                                  <TableCell>{p.dataLimit}</TableCell>
-                                  <TableCell>PKR {p.vendorPrice}</TableCell>
-                                  <TableCell>PKR {p.resellerPrice}</TableCell>
-                                  <TableCell className={parseFloat(p.profit) >= 0 ? "text-green-600 font-medium" : "text-red-600 font-medium"}>PKR {p.profit}</TableCell>
-                                  <TableCell>
-                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:bg-red-50 hover:text-red-700" onClick={() => handleRemovePackage(p.packageId)} data-testid={`button-remove-pkg-${p.packageId}`}>
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
+                <Card>
+                  <SectionHeader icon={DollarSign} title="Commission Settings" />
+                  <CardContent className="pt-5 space-y-4">
+                    <FieldGroup cols={3}>
+                      <Field label="Commission Rate (%)">
+                        <Input
+                          type="number" min="0" max="100" step="0.5"
+                          value={form.commissionRate}
+                          onChange={e => update("commissionRate", e.target.value)}
+                          data-testid="input-commission-rate"
+                        />
+                      </Field>
+                      <Field label="Payment Method">
+                        <Select value={form.commissionPaymentMethod} onValueChange={v => update("commissionPaymentMethod", v)}>
+                          <SelectTrigger data-testid="select-commission-method"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="wallet">Wallet Credit</SelectItem>
+                            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                            <SelectItem value="cash">Cash</SelectItem>
+                            <SelectItem value="cheque">Cheque</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="Payment Frequency">
+                        <Select value={form.commissionPaymentFrequency} onValueChange={v => update("commissionPaymentFrequency", v)}>
+                          <SelectTrigger data-testid="select-commission-frequency"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="weekly">Weekly</SelectItem>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="quarterly">Quarterly</SelectItem>
+                            <SelectItem value="on_payment">On Each Payment</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </FieldGroup>
+                    <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 p-3 text-sm text-blue-800 dark:text-blue-200">
+                      Commission of <strong>{form.commissionRate}%</strong> will be credited via{" "}
+                      <strong>{form.commissionPaymentMethod.replace("_", " ")}</strong> on a{" "}
+                      <strong>{form.commissionPaymentFrequency}</strong> basis.
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
-                  <Card>
-                    <SectionHeader icon={Percent} title="Commission Settings" />
-                    <CardContent className="pt-5 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField control={form.control} name="commissionRate" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Commission Rate (%)</FormLabel>
-                            <FormControl><Input type="number" step="0.01" min="0" max="100" placeholder="10.00" data-testid="input-reseller-commission-rate" {...field} value={field.value || "10"} onChange={(e) => field.onChange(e.target.value)} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="commissionPaymentMethod" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Commission Payment Method</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || "wallet"}>
-                              <FormControl><SelectTrigger data-testid="select-reseller-commission-method"><SelectValue /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                <SelectItem value="wallet">Wallet</SelectItem>
-                                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                                <SelectItem value="cash">Cash</SelectItem>
-                                <SelectItem value="cheque">Cheque</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="commissionPaymentFrequency" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Payment Frequency</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || "monthly"}>
-                              <FormControl><SelectTrigger data-testid="select-reseller-commission-freq"><SelectValue /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                <SelectItem value="weekly">Weekly</SelectItem>
-                                <SelectItem value="biweekly">Bi-Weekly</SelectItem>
-                                <SelectItem value="monthly">Monthly</SelectItem>
-                                <SelectItem value="quarterly">Quarterly</SelectItem>
-                                <SelectItem value="annually">Annually</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
+            {/* ── VENDOR PANELS ── */}
+            {activeTab === "panels" && (
+              <div className="space-y-5">
+                <Card>
+                  <SectionHeader icon={Globe} title="Vendor Panel Access" />
+                  <CardContent className="pt-5 space-y-4">
+                    <div className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <p className="text-sm font-medium">Allow Vendor Panel Access</p>
+                        <p className="text-xs text-muted-foreground">Grant this reseller access to vendor management panels</p>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
+                      <Switch
+                        checked={form.vendorPanelAllowed}
+                        onCheckedChange={v => update("vendorPanelAllowed", v)}
+                        data-testid="switch-vendor-panel-allowed"
+                      />
+                    </div>
 
-              {/* ── VENDOR PANELS ── */}
-              {activeTab === "panels" && (
-                <div className="space-y-5">
-                  <Card>
-                    <SectionHeader icon={Globe} title="Vendor Panel Access" />
-                    <CardContent className="pt-5 space-y-5">
-                      <FormField control={form.control} name="vendorPanelAllowed" render={({ field }) => (
-                        <FormItem className="flex items-center gap-3 space-y-0 rounded-lg border p-4 bg-muted/30">
-                          <FormControl>
-                            <Switch checked={field.value ?? false} onCheckedChange={field.onChange} data-testid="switch-reseller-vendor-panel" />
-                          </FormControl>
-                          <div>
-                            <FormLabel className="cursor-pointer font-medium">Vendor Panel Allowed</FormLabel>
-                            <p className="text-xs text-muted-foreground">Allow this reseller to access vendor management panels</p>
-                          </div>
-                        </FormItem>
-                      )} />
-
-                      <div className="border rounded-xl p-5 bg-card space-y-4">
-                        <h4 className="text-sm font-semibold flex items-center gap-2 text-foreground">
-                          <Plus className="h-4 w-4 text-blue-600" /> Add Vendor Panel
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-sm font-medium mb-1.5 block">Vendor Name <span className="text-red-500">*</span></label>
-                            <Select value={vpForm.vendorId} onValueChange={(val) => setVpForm(prev => ({ ...prev, vendorId: val }))}>
+                    {form.vendorPanelAllowed && (
+                      <>
+                        <Separator />
+                        <p className="text-sm font-medium">Add Vendor Panel</p>
+                        <FieldGroup>
+                          <Field label="Vendor">
+                            <Select value={vpForm.vendorId} onValueChange={v => setVpForm(prev => ({ ...prev, vendorId: v }))}>
                               <SelectTrigger data-testid="select-vp-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
                               <SelectContent>
-                                {(vendors || []).map((v) => (
+                                {(vendors || []).map(v => (
                                   <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium mb-1.5 block">Panel URL <span className="text-red-500">*</span></label>
-                            <Input placeholder="https://panel.example.com" data-testid="input-vp-panel-url" value={vpForm.panelUrl} onChange={(e) => setVpForm(prev => ({ ...prev, panelUrl: e.target.value }))} />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-sm font-medium mb-1.5 block">Panel Username <span className="text-red-500">*</span></label>
-                            <Input placeholder="Panel login username" data-testid="input-vp-username" value={vpForm.panelUsername} onChange={(e) => setVpForm(prev => ({ ...prev, panelUsername: e.target.value }))} />
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium mb-1.5 block">Panel Password <span className="text-red-500">*</span></label>
+                          </Field>
+                          <Field label="Panel URL">
+                            <Input
+                              value={vpForm.panelUrl}
+                              onChange={e => setVpForm(prev => ({ ...prev, panelUrl: e.target.value }))}
+                              placeholder="https://panel.vendor.com"
+                              data-testid="input-panel-url"
+                            />
+                          </Field>
+                        </FieldGroup>
+                        <FieldGroup>
+                          <Field label="Panel Username">
+                            <Input
+                              value={vpForm.panelUsername}
+                              onChange={e => setVpForm(prev => ({ ...prev, panelUsername: e.target.value }))}
+                              placeholder="Login username"
+                              data-testid="input-panel-username"
+                            />
+                          </Field>
+                          <Field label="Panel Password">
                             <div className="relative">
                               <Input
                                 type={showVpPassword ? "text" : "password"}
-                                placeholder="Panel login password"
-                                data-testid="input-vp-password"
                                 value={vpForm.panelPassword}
-                                onChange={(e) => setVpForm(prev => ({ ...prev, panelPassword: e.target.value }))}
+                                onChange={e => setVpForm(prev => ({ ...prev, panelPassword: e.target.value }))}
+                                placeholder="Login password"
+                                data-testid="input-panel-password"
+                                className="pr-10"
                               />
-                              <button type="button" onClick={() => setShowVpPassword(!showVpPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" data-testid="toggle-vp-password">
+                              <button type="button" onClick={() => setShowVpPassword(p => !p)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                                 {showVpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                               </button>
                             </div>
+                          </Field>
+                        </FieldGroup>
+                        <Button type="button" onClick={handleAddVendorPanel} disabled={!vpForm.vendorId || !vpForm.panelUrl} data-testid="button-add-vendor-panel">
+                          <Plus className="h-4 w-4 mr-1" /> Add Panel
+                        </Button>
+
+                        {addedVendorPanels.length > 0 && (
+                          <div className="border rounded-lg overflow-hidden">
+                            <div className="px-3 py-2 bg-[#1a3a5c] text-white text-xs font-semibold uppercase tracking-wide grid grid-cols-4 gap-2">
+                              <span>Vendor</span>
+                              <span className="col-span-2">Panel URL</span>
+                              <span>Action</span>
+                            </div>
+                            {addedVendorPanels.map((vp, i) => (
+                              <div key={i} className="px-3 py-2.5 border-t text-sm grid grid-cols-4 gap-2 items-center">
+                                <span className="font-medium">{vp.vendorName}</span>
+                                <span className="col-span-2 text-blue-600 dark:text-blue-400 truncate">{vp.panelUrl}</span>
+                                <Button
+                                  type="button" variant="ghost" size="sm"
+                                  onClick={() => setAddedVendorPanels(prev => prev.filter((_, j) => j !== i))}
+                                  data-testid={`button-remove-panel-${i}`}
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
+                            ))}
                           </div>
-                        </div>
-                        <div className="flex gap-2 justify-end">
-                          <Button type="button" variant="outline" size="sm" onClick={() => { setVpForm({ vendorId: "", panelUrl: "", panelUsername: "", panelPassword: "" }); setShowVpPassword(false); }} data-testid="button-cancel-vp">
-                            Cancel
-                          </Button>
-                          <Button type="button" size="sm" className="bg-gradient-to-r from-[#002B5B] to-[#007BFF] text-white" data-testid="button-add-vp"
-                            onClick={() => {
-                              if (!vpForm.vendorId || !vpForm.panelUrl || !vpForm.panelUsername || !vpForm.panelPassword) return;
-                              const vendor = (vendors || []).find(v => v.id === parseInt(vpForm.vendorId));
-                              const updated = [...addedVendorPanels, {
-                                vendorId: parseInt(vpForm.vendorId),
-                                vendorName: vendor?.name || "Unknown",
-                                panelUrl: vpForm.panelUrl,
-                                panelUsername: vpForm.panelUsername,
-                                panelPassword: vpForm.panelPassword,
-                              }];
-                              setAddedVendorPanels(updated);
-                              form.setValue("assignedVendorPanels", JSON.stringify(updated));
-                              setVpForm({ vendorId: "", panelUrl: "", panelUsername: "", panelPassword: "" });
-                              setShowVpPassword(false);
-                            }}>
-                            <Plus className="h-4 w-4 mr-1" /> Add Panel
-                          </Button>
-                        </div>
+                        )}
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* ── BILLING & FINANCE ── */}
+            {activeTab === "billing" && (
+              <div className="space-y-5">
+                <Card>
+                  <SectionHeader icon={Wallet} title="Wallet & Credit" />
+                  <CardContent className="pt-5 space-y-4">
+                    <FieldGroup cols={3}>
+                      <Field label="Initial Wallet Balance (Rs.)">
+                        <Input type="number" min="0" step="0.01" value={form.walletBalance} onChange={e => update("walletBalance", e.target.value)} data-testid="input-wallet-balance" />
+                      </Field>
+                      <Field label="Credit Limit (Rs.)">
+                        <Input type="number" min="0" step="0.01" value={form.creditLimit} onChange={e => update("creditLimit", e.target.value)} data-testid="input-credit-limit" />
+                      </Field>
+                      <Field label="Security Deposit (Rs.)">
+                        <Input type="number" min="0" step="0.01" value={form.securityDeposit} onChange={e => update("securityDeposit", e.target.value)} data-testid="input-security-deposit" />
+                      </Field>
+                    </FieldGroup>
+                    <Field label="Opening Balance (Rs.)">
+                      <Input type="number" step="0.01" value={form.openingBalance} onChange={e => update("openingBalance", e.target.value)} data-testid="input-opening-balance" />
+                    </Field>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <SectionHeader icon={CreditCard} title="Billing Settings" />
+                  <CardContent className="pt-5 space-y-4">
+                    <FieldGroup>
+                      <Field label="Billing Cycle">
+                        <Select value={form.billingCycle} onValueChange={v => update("billingCycle", v)}>
+                          <SelectTrigger data-testid="select-billing-cycle"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="quarterly">Quarterly</SelectItem>
+                            <SelectItem value="semi_annual">Semi-Annual</SelectItem>
+                            <SelectItem value="annual">Annual</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="Payment Method">
+                        <Select value={form.paymentMethod} onValueChange={v => update("paymentMethod", v)}>
+                          <SelectTrigger data-testid="select-payment-method"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cash">Cash</SelectItem>
+                            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                            <SelectItem value="cheque">Cheque</SelectItem>
+                            <SelectItem value="online">Online Payment</SelectItem>
+                            <SelectItem value="wallet">Wallet</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </FieldGroup>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <SectionHeader icon={Building2} title="Bank Account Details" />
+                  <CardContent className="pt-5 space-y-4">
+                    <FieldGroup>
+                      <Field label="Bank Name">
+                        <Input value={form.bankName} onChange={e => update("bankName", e.target.value)} placeholder="e.g. HBL, UBL, MCB" data-testid="input-bank-name" />
+                      </Field>
+                      <Field label="Account Title">
+                        <Input value={form.bankAccountTitle} onChange={e => update("bankAccountTitle", e.target.value)} placeholder="Account holder name" data-testid="input-bank-title" />
+                      </Field>
+                    </FieldGroup>
+                    <FieldGroup>
+                      <Field label="Account Number">
+                        <Input value={form.bankAccountNumber} onChange={e => update("bankAccountNumber", e.target.value)} placeholder="Bank account number" data-testid="input-bank-account" />
+                      </Field>
+                      <Field label="Branch Code / IBAN">
+                        <Input value={form.bankBranchCode} onChange={e => update("bankBranchCode", e.target.value)} placeholder="Branch code or IBAN" data-testid="input-branch-code" />
+                      </Field>
+                    </FieldGroup>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* ── AGREEMENT ── */}
+            {activeTab === "agreement" && (
+              <div className="space-y-5">
+                <Card>
+                  <SectionHeader icon={ScrollText} title="Agreement Details" />
+                  <CardContent className="pt-5 space-y-4">
+                    <Field label="Agreement Type">
+                      <Select value={form.agreementType} onValueChange={v => update("agreementType", v)}>
+                        <SelectTrigger data-testid="select-agreement-type"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="standard">Standard Agreement</SelectItem>
+                          <SelectItem value="exclusive">Exclusive Territory Agreement</SelectItem>
+                          <SelectItem value="franchise">Franchise Agreement</SelectItem>
+                          <SelectItem value="white_label">White Label Agreement</SelectItem>
+                          <SelectItem value="custom">Custom Agreement</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                    <FieldGroup>
+                      <Field label="Agreement Start Date">
+                        <Input type="date" value={form.agreementStartDate} onChange={e => update("agreementStartDate", e.target.value)} data-testid="input-agreement-start" />
+                      </Field>
+                      <Field label="Agreement End Date">
+                        <Input type="date" value={form.agreementEndDate} onChange={e => update("agreementEndDate", e.target.value)} data-testid="input-agreement-end" />
+                      </Field>
+                    </FieldGroup>
+                    <div className="flex items-center justify-between rounded-lg border p-3">
+                      <div>
+                        <p className="text-sm font-medium">Auto-Renewal</p>
+                        <p className="text-xs text-muted-foreground">Automatically renew agreement when it expires</p>
                       </div>
+                      <Switch
+                        checked={form.autoRenewal}
+                        onCheckedChange={v => update("autoRenewal", v)}
+                        data-testid="switch-auto-renewal"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
 
-                      {addedVendorPanels.length > 0 && (
-                        <div className="border rounded-xl overflow-hidden">
-                          <Table>
-                            <TableHeader>
-                              <TableRow className="bg-[#1a3a5c] hover:bg-[#1a3a5c]">
-                                <TableHead className="text-white font-semibold">Vendor</TableHead>
-                                <TableHead className="text-white font-semibold">Panel URL</TableHead>
-                                <TableHead className="text-white font-semibold">Username</TableHead>
-                                <TableHead className="text-white font-semibold">Password</TableHead>
-                                <TableHead className="text-white font-semibold w-16">Action</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {addedVendorPanels.map((vp, idx) => (
-                                <TableRow key={idx}>
-                                  <TableCell className="font-medium">{vp.vendorName}</TableCell>
-                                  <TableCell className="text-blue-600 underline max-w-[200px] truncate" title={vp.panelUrl}>{vp.panelUrl}</TableCell>
-                                  <TableCell>{vp.panelUsername}</TableCell>
-                                  <TableCell className="font-mono text-xs">••••••••</TableCell>
-                                  <TableCell>
-                                    <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:bg-red-50 hover:text-red-700" data-testid={`button-delete-vp-${idx}`}
-                                      onClick={() => {
-                                        const updated = addedVendorPanels.filter((_, i) => i !== idx);
-                                        setAddedVendorPanels(updated);
-                                        form.setValue("assignedVendorPanels", updated.length > 0 ? JSON.stringify(updated) : "");
-                                      }}>
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
-              {/* ── BILLING & FINANCE ── */}
-              {activeTab === "billing" && (
-                <div className="space-y-5">
+                {/* Agreement Summary Card */}
+                {(form.agreementType || form.agreementStartDate) && (
                   <Card>
-                    <SectionHeader icon={Wallet} title="Wallet & Credit" />
-                    <CardContent className="pt-5 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField control={form.control} name="walletBalance" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Initial Wallet Balance (PKR)</FormLabel>
-                            <FormControl><Input type="number" step="0.01" placeholder="0.00" data-testid="input-reseller-wallet-balance" {...field} value={field.value || "0"} onChange={(e) => field.onChange(e.target.value)} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="creditLimit" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Credit Limit (PKR)</FormLabel>
-                            <FormControl><Input type="number" step="0.01" placeholder="0.00" data-testid="input-reseller-credit-limit" {...field} value={field.value || "0"} onChange={(e) => field.onChange(e.target.value)} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="securityDeposit" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Security Deposit (PKR)</FormLabel>
-                            <FormControl><Input type="number" step="0.01" placeholder="0.00" data-testid="input-reseller-security-deposit" {...field} value={field.value || "0"} onChange={(e) => field.onChange(e.target.value)} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
-                      <FormField control={form.control} name="openingBalance" render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Opening Balance (PKR)</FormLabel>
-                          <FormControl><Input type="number" step="0.01" placeholder="0.00" data-testid="input-reseller-opening-balance" {...field} value={field.value || "0"} onChange={(e) => field.onChange(e.target.value)} /></FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )} />
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <SectionHeader icon={CreditCard} title="Billing Settings" />
-                    <CardContent className="pt-5 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="billingCycle" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Billing Cycle</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || "monthly"}>
-                              <FormControl><SelectTrigger data-testid="select-reseller-billing-cycle"><SelectValue /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                <SelectItem value="weekly">Weekly</SelectItem>
-                                <SelectItem value="biweekly">Bi-Weekly</SelectItem>
-                                <SelectItem value="monthly">Monthly</SelectItem>
-                                <SelectItem value="quarterly">Quarterly</SelectItem>
-                                <SelectItem value="annually">Annually</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="paymentMethod" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Payment Method</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || "cash"}>
-                              <FormControl><SelectTrigger data-testid="select-reseller-payment-method"><SelectValue /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                <SelectItem value="cash">Cash</SelectItem>
-                                <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                                <SelectItem value="cheque">Cheque</SelectItem>
-                                <SelectItem value="online">Online Payment</SelectItem>
-                                <SelectItem value="wallet">Wallet</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <SectionHeader icon={Landmark} title="Bank Details" />
-                    <CardContent className="pt-5 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="bankName" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Bank Name</FormLabel>
-                            <FormControl><Input placeholder="e.g. HBL, MCB, UBL" data-testid="input-reseller-bank-name" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="bankAccountTitle" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Account Title</FormLabel>
-                            <FormControl><Input placeholder="Account holder name" data-testid="input-reseller-bank-title" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="bankAccountNumber" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Account / IBAN Number</FormLabel>
-                            <FormControl><Input placeholder="Account number or IBAN" data-testid="input-reseller-bank-account" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="bankBranchCode" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Branch Code</FormLabel>
-                            <FormControl><Input placeholder="Branch code" data-testid="input-reseller-bank-branch" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
-              {/* ── AGREEMENT ── */}
-              {activeTab === "agreement" && (
-                <div className="space-y-5">
-                  <Card>
-                    <SectionHeader icon={ScrollText} title="Agreement & Contract" />
-                    <CardContent className="pt-5 space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField control={form.control} name="agreementType" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Agreement Type</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value || "standard"}>
-                              <FormControl><SelectTrigger data-testid="select-reseller-agreement-type"><SelectValue /></SelectTrigger></FormControl>
-                              <SelectContent>
-                                <SelectItem value="standard">Standard</SelectItem>
-                                <SelectItem value="premium">Premium</SelectItem>
-                                <SelectItem value="enterprise">Enterprise</SelectItem>
-                                <SelectItem value="exclusive">Exclusive Territory</SelectItem>
-                                <SelectItem value="custom">Custom</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="agreementStartDate" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Agreement Start Date</FormLabel>
-                            <FormControl><Input type="date" data-testid="input-reseller-agreement-start" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                        <FormField control={form.control} name="agreementEndDate" render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Agreement End Date</FormLabel>
-                            <FormControl><Input type="date" data-testid="input-reseller-agreement-end" {...field} value={field.value || ""} /></FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )} />
-                      </div>
-
-                      <FormField control={form.control} name="autoRenewal" render={({ field }) => (
-                        <FormItem className="flex items-center gap-3 space-y-0 rounded-lg border p-4 bg-muted/30">
-                          <FormControl>
-                            <Switch checked={field.value ?? false} onCheckedChange={field.onChange} data-testid="switch-reseller-auto-renewal" />
-                          </FormControl>
-                          <div>
-                            <FormLabel className="cursor-pointer font-medium">Auto Renewal</FormLabel>
-                            <p className="text-xs text-muted-foreground">Automatically renew agreement when it expires</p>
-                          </div>
-                        </FormItem>
-                      )} />
-
-                      {/* Summary box */}
-                      <div className="rounded-xl border bg-blue-50/40 dark:bg-blue-950/10 border-blue-200 dark:border-blue-800 p-4 space-y-2">
-                        <p className="text-sm font-semibold text-blue-800 dark:text-blue-300 flex items-center gap-2">
-                          <CalendarClock className="h-4 w-4" /> Agreement Summary
-                        </p>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">Type:</span>
-                            <span className="ml-2 font-medium capitalize">{w("agreementType") || "standard"}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Auto Renewal:</span>
-                            <span className={`ml-2 font-medium ${autoRenewalVal ? "text-green-600" : "text-red-500"}`}>{autoRenewalVal ? "Yes" : "No"}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Start:</span>
-                            <span className="ml-2 font-medium">{w("agreementStartDate") || "—"}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">End:</span>
-                            <span className="ml-2 font-medium">{w("agreementEndDate") || "—"}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              )}
-
-              {/* ── DOCUMENTS ── */}
-              {activeTab === "documents" && (
-                <div className="space-y-5">
-                  <Card>
-                    <SectionHeader icon={Image} title="Identity & Registration Documents" />
+                    <SectionHeader icon={CalendarClock} title="Agreement Summary" />
                     <CardContent className="pt-5">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <FileUploadPreview
-                          label="Profile Picture"
-                          value={w("profilePicture") || ""}
-                          onChange={(url) => form.setValue("profilePicture", url)}
-                          testId="upload-reseller-profile-picture"
-                        />
-                        <FileUploadPreview
-                          label="CNIC / National ID"
-                          value={w("cnicPicture") || ""}
-                          onChange={(url) => form.setValue("cnicPicture", url)}
-                          testId="upload-reseller-cnic-picture"
-                        />
-                        <FileUploadPreview
-                          label="Registration Form"
-                          value={w("registrationFormPicture") || ""}
-                          onChange={(url) => form.setValue("registrationFormPicture", url)}
-                          testId="upload-reseller-reg-form"
-                        />
+                      <div className="rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-800 p-5 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <ScrollText className="h-5 w-5 text-blue-600" />
+                          <span className="font-semibold text-blue-800 dark:text-blue-200">
+                            {form.agreementType === "standard" ? "Standard Agreement" :
+                             form.agreementType === "exclusive" ? "Exclusive Territory Agreement" :
+                             form.agreementType === "franchise" ? "Franchise Agreement" :
+                             form.agreementType === "white_label" ? "White Label Agreement" : "Custom Agreement"}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          {form.agreementStartDate && (
+                            <div>
+                              <p className="text-xs text-muted-foreground">Start Date</p>
+                              <p className="font-medium">{new Date(form.agreementStartDate).toLocaleDateString("en-PK", { day: "numeric", month: "long", year: "numeric" })}</p>
+                            </div>
+                          )}
+                          {form.agreementEndDate && (
+                            <div>
+                              <p className="text-xs text-muted-foreground">End Date</p>
+                              <p className="font-medium">{new Date(form.agreementEndDate).toLocaleDateString("en-PK", { day: "numeric", month: "long", year: "numeric" })}</p>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 pt-1">
+                          {form.autoRenewal ? (
+                            <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 border-0 text-xs">
+                              <CheckCircle2 className="h-3 w-3 mr-1" /> Auto-Renewal Enabled
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs text-muted-foreground">Manual Renewal</Badge>
+                          )}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
+                )}
+              </div>
+            )}
 
-                  <Card>
-                    <SectionHeader icon={AlertCircle} title="Upload Guidelines" />
-                    <CardContent className="pt-5">
-                      <ul className="space-y-2 text-sm text-muted-foreground">
-                        <li className="flex items-start gap-2">
+            {/* ── DOCUMENTS ── */}
+            {activeTab === "documents" && (
+              <div className="space-y-5">
+                <Card>
+                  <SectionHeader icon={Image} title="Document Uploads" />
+                  <CardContent className="pt-5 space-y-4">
+                    <FieldGroup>
+                      <FileUploadPreview
+                        label="CNIC / NID Front"
+                        value={form.cnicPicture}
+                        onChange={url => update("cnicPicture", url)}
+                        testId="upload-cnic-front"
+                      />
+                      <FileUploadPreview
+                        label="Registration Form"
+                        value={form.registrationFormPicture}
+                        onChange={url => update("registrationFormPicture", url)}
+                        testId="upload-reg-form"
+                      />
+                    </FieldGroup>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <SectionHeader icon={Shield} title="Document Requirements" />
+                  <CardContent className="pt-5">
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      {[
+                        "CNIC must be valid and not expired",
+                        "NTN certificate required for white-label and franchise resellers",
+                        "Registration form must be signed and stamped by company authority",
+                        "All documents should be clear scans or high-quality photos",
+                        "PDF format accepted for contracts and agreements",
+                      ].map((req, i) => (
+                        <li key={i} className="flex items-start gap-2">
                           <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
-                          Accepted formats: JPG, PNG, PDF
+                          {req}
                         </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
-                          Maximum file size: 5MB per document
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
-                          CNIC must be clear and legible on both sides
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
-                          Registration form must be signed and stamped
-                        </li>
-                      </ul>
-                    </CardContent>
-                  </Card>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Bottom action bar */}
+            <div className="flex items-center justify-between pt-2 pb-6">
+              <Button
+                type="button" variant="outline"
+                onClick={() => setLocation("/resellers")}
+                data-testid="button-cancel-reseller"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" /> Cancel
+              </Button>
+              <div className="flex items-center gap-3">
+                <div className="flex gap-1">
+                  {tabItems.map((t, i) => (
+                    <button
+                      key={t.id} type="button"
+                      onClick={() => setActiveTab(t.id)}
+                      className={`h-2 rounded-full transition-all ${activeTab === t.id ? "w-6 bg-blue-600" : "w-2 bg-gray-300 dark:bg-gray-600"}`}
+                    />
+                  ))}
                 </div>
-              )}
-
-              {/* Bottom save button */}
-              <div className="flex items-center justify-between pt-2 pb-6">
                 <Button
                   type="button"
-                  variant="outline"
-                  onClick={() => setLocation("/resellers")}
-                  data-testid="button-cancel-reseller"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-1" /> Cancel
-                </Button>
-                <Button
-                  type="submit"
                   disabled={createMutation.isPending}
                   className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8"
+                  onClick={handleSave}
                   data-testid="button-submit-reseller"
                 >
                   {createMutation.isPending ? "Saving..." : "Save Reseller"}
                 </Button>
               </div>
             </div>
-          </main>
-        </form>
-      </Form>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
