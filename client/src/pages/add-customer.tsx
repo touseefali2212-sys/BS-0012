@@ -47,10 +47,12 @@ const CIR_ADD_STEPS: Array<{ key: string; label: string; icon: any; description:
 ];
 
 const corpTabItems = [
-  { id: "company",  label: "Company Info",         icon: Building2 },
-  { id: "billing",  label: "Billing & Terms",       icon: DollarSign },
-  { id: "sla",      label: "Contract & SLA",        icon: Shield },
-  { id: "services", label: "Value-Added Services",  icon: Zap },
+  { id: "company",    label: "Company Info",           icon: Building2 },
+  { id: "network",    label: "Network Details",        icon: Network },
+  { id: "billing",    label: "Billing & Terms",        icon: DollarSign },
+  { id: "sla",        label: "Contract & SLA",         icon: Shield },
+  { id: "services",   label: "Value-Added Services",   icon: Zap },
+  { id: "monitoring", label: "Monitoring",             icon: Activity },
 ];
 
 const cirTabItems = [
@@ -296,6 +298,11 @@ export default function AddCustomerPage() {
     headOfficeAddress: "", billingAddress: "", accountManager: "", email: "", mobileNo: "", phone: "",
     branch: "", city: "",
     mapLatitude: "", mapLongitude: "",
+    customerType: "", serviceType: "", vendorId: "", linkType: "", uplinkPort: "", mediaType: "",
+    committedBandwidth: "", uploadSpeed: "", downloadSpeed: "", vlanId: "",
+    staticIp: "", subnetMask: "", gateway: "", dns1: "", dns2: "",
+    radiusProfile: "", bandwidthProfileName: "",
+    monitoringEnabled: false, snmpMonitoring: false, trafficAlerts: false,
     billingMode: "fixed", perMbpsRate: "0", bandwidthMbps: "0",
     taxEnabled: false, whTaxPercent: "0", aitTaxPercent: "0", extraFeeTaxPercent: "0",
     centralizedBilling: true, perBranchBilling: false, customInvoiceFormat: "",
@@ -1002,7 +1009,7 @@ export default function AddCustomerPage() {
     mutationFn: async (opts: { activate?: boolean } = {}) => {
       const payload = {
         ...corpForm,
-        vendorId: undefined,
+        vendorId: corpForm.vendorId ? parseInt(corpForm.vendorId) : null,
         status: opts.activate ? "active" : corpForm.status,
         creditLimit: corpForm.creditLimit || "0",
         securityDeposit: corpForm.securityDeposit || "0",
@@ -3058,6 +3065,144 @@ export default function AddCustomerPage() {
               </Card>
             )}
 
+            {/* Network Details */}
+            {corpActiveTab === "network" && (
+              <Card className="border-border/60 shadow-sm">
+                <CardHeader className="pb-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center"><Network className="h-5 w-5 text-blue-600" /></div><div><CardTitle className="text-base">Network Details</CardTitle><CardDescription>Corporate connection and IP configuration</CardDescription></div></div></CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <Settings className="h-4 w-4 text-blue-600" />
+                      Connection Configuration
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Customer Type<span className="text-red-500 ml-0.5">*</span></label>
+                        <Select value={corpForm.customerType} onValueChange={v => updateCorp("customerType", v)}>
+                          <SelectTrigger data-testid="select-corp-customer-type"><SelectValue placeholder="Select type" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Corporate">Corporate</SelectItem>
+                            <SelectItem value="Enterprise">Enterprise</SelectItem>
+                            <SelectItem value="SME">SME</SelectItem>
+                            <SelectItem value="Government">Government</SelectItem>
+                            <SelectItem value="ISP">ISP</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Service Type<span className="text-red-500 ml-0.5">*</span></label>
+                        <Select value={corpForm.serviceType} onValueChange={v => updateCorp("serviceType", v)}>
+                          <SelectTrigger data-testid="select-corp-service-type"><SelectValue placeholder="Select service" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Internet">Internet</SelectItem>
+                            <SelectItem value="MPLS">MPLS</SelectItem>
+                            <SelectItem value="P2P">P2P</SelectItem>
+                            <SelectItem value="IPLC">IPLC</SelectItem>
+                            <SelectItem value="Dark Fiber">Dark Fiber</SelectItem>
+                            <SelectItem value="Colocation">Colocation</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Vendor<span className="text-red-500 ml-0.5">*</span></label>
+                        <Select value={corpForm.vendorId} onValueChange={v => updateCorp("vendorId", v)}>
+                          <SelectTrigger data-testid="select-corp-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
+                          <SelectContent>{(vendors || []).map(v => <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Link Type<span className="text-red-500 ml-0.5">*</span></label>
+                        <Select value={corpForm.linkType} onValueChange={v => updateCorp("linkType", v)}>
+                          <SelectTrigger data-testid="select-corp-link-type"><SelectValue placeholder="Select link type" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Primary">Primary</SelectItem>
+                            <SelectItem value="Secondary">Secondary</SelectItem>
+                            <SelectItem value="Backup">Backup</SelectItem>
+                            <SelectItem value="Redundant">Redundant</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Uplink Port<span className="text-red-500 ml-0.5">*</span></label>
+                        <Input placeholder="e.g. GE0/0/1" value={corpForm.uplinkPort} onChange={e => updateCorp("uplinkPort", e.target.value)} data-testid="input-corp-uplink-port" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Media<span className="text-red-500 ml-0.5">*</span></label>
+                        <Select value={corpForm.mediaType} onValueChange={v => updateCorp("mediaType", v)}>
+                          <SelectTrigger data-testid="select-corp-media"><SelectValue placeholder="Select media" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Fiber">Fiber</SelectItem>
+                            <SelectItem value="Copper">Copper</SelectItem>
+                            <SelectItem value="Wireless">Wireless</SelectItem>
+                            <SelectItem value="Microwave">Microwave</SelectItem>
+                            <SelectItem value="Satellite">Satellite</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <Gauge className="h-4 w-4 text-blue-600" />
+                      Bandwidth & Speed
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Bandwidth (Mbps)<span className="text-red-500 ml-0.5">*</span></label>
+                        <Input placeholder="e.g. 100" value={corpForm.committedBandwidth} onChange={e => updateCorp("committedBandwidth", e.target.value)} data-testid="input-corp-committed-bw" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Upload Speed</label>
+                        <Input placeholder="e.g. 100 Mbps" value={corpForm.uploadSpeed} onChange={e => updateCorp("uploadSpeed", e.target.value)} data-testid="input-corp-upload-speed" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Download Speed</label>
+                        <Input placeholder="e.g. 100 Mbps" value={corpForm.downloadSpeed} onChange={e => updateCorp("downloadSpeed", e.target.value)} data-testid="input-corp-download-speed" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Vlan ID</label>
+                        <Input placeholder="e.g. 100" value={corpForm.vlanId} onChange={e => updateCorp("vlanId", e.target.value)} data-testid="input-corp-vlan-id" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                      <Globe className="h-4 w-4 text-blue-600" />
+                      IP Configuration
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Static IP Address<span className="text-red-500 ml-0.5">*</span></label>
+                        <Input placeholder="e.g. 192.168.1.1" value={corpForm.staticIp} onChange={e => updateCorp("staticIp", e.target.value)} data-testid="input-corp-static-ip" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Subnet Mask<span className="text-red-500 ml-0.5">*</span></label>
+                        <Input placeholder="e.g. 255.255.255.0" value={corpForm.subnetMask} onChange={e => updateCorp("subnetMask", e.target.value)} data-testid="input-corp-subnet-mask" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Gateway<span className="text-red-500 ml-0.5">*</span></label>
+                        <Input placeholder="e.g. 192.168.1.1" value={corpForm.gateway} onChange={e => updateCorp("gateway", e.target.value)} data-testid="input-corp-gateway" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">DNS Server 1<span className="text-red-500 ml-0.5">*</span></label>
+                        <Input placeholder="e.g. 8.8.8.8" value={corpForm.dns1} onChange={e => updateCorp("dns1", e.target.value)} data-testid="input-corp-dns1" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">DNS Server 2<span className="text-red-500 ml-0.5">*</span></label>
+                        <Input placeholder="e.g. 8.8.4.4" value={corpForm.dns2} onChange={e => updateCorp("dns2", e.target.value)} data-testid="input-corp-dns2" />
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Billing & Terms */}
             {corpActiveTab === "billing" && (
               <Card className="border-border/60 shadow-sm">
@@ -3744,6 +3889,32 @@ export default function AddCustomerPage() {
                       <Switch checked={corpForm[key as keyof typeof corpForm] as boolean} onCheckedChange={v => updateCorp(key, v)} data-testid={`switch-corp-${key}`} />
                     </div>
                   ))}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Monitoring */}
+            {corpActiveTab === "monitoring" && (
+              <Card className="border-border/60 shadow-sm">
+                <CardHeader className="pb-4"><div className="flex items-center gap-3"><div className="h-9 w-9 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center"><Activity className="h-5 w-5 text-orange-600" /></div><div><CardTitle className="text-base">Monitoring & Network Profiles</CardTitle><CardDescription>Network monitoring and provisioning settings</CardDescription></div></div></CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Radius Profile</label><Input placeholder="Radius profile name" value={corpForm.radiusProfile} onChange={e => updateCorp("radiusProfile", e.target.value)} data-testid="input-corp-radius-profile" /></div>
+                    <div className="space-y-1.5"><label className="text-sm font-medium">Bandwidth Profile Name</label><Input placeholder="Bandwidth profile" value={corpForm.bandwidthProfileName} onChange={e => updateCorp("bandwidthProfileName", e.target.value)} data-testid="input-corp-bw-profile" /></div>
+                  </div>
+                  <div className="space-y-3">
+                    {[
+                      { key: "monitoringEnabled", label: "Monitoring Enabled",  desc: "Enable active monitoring for this corporate link" },
+                      { key: "snmpMonitoring",    label: "SNMP Monitoring",      desc: "Monitor via SNMP protocol" },
+                      { key: "trafficAlerts",     label: "Traffic Alerts",       desc: "Send alerts on bandwidth threshold breach" },
+                    ].map(({ key, label, desc }) => (
+                      <div key={key} className="flex items-center justify-between p-3 rounded-xl border bg-muted/20">
+                        <div><p className="text-sm font-medium">{label}</p><p className="text-xs text-muted-foreground">{desc}</p></div>
+                        <Switch checked={corpForm[key as keyof typeof corpForm] as boolean} onCheckedChange={v => updateCorp(key, v)} data-testid={`switch-corp-${key}`} />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-1.5"><label className="text-sm font-medium">Notes</label><Textarea rows={3} placeholder="Additional notes..." value={corpForm.notes} onChange={e => updateCorp("notes", e.target.value)} data-testid="input-corp-notes" /></div>
                 </CardContent>
               </Card>
             )}
