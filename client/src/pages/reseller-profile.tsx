@@ -9,7 +9,7 @@ import {
   Calendar, Download, MessageCircle, CalendarRange, User, Hash,
   CreditCard, Globe, CheckCircle2, FileText, Plus, Clock, TrendingUp,
   TrendingDown, BarChart3, MessageSquare, ShoppingBag, Users, Bell,
-  Wallet, Store, Percent, Landmark, MapPin, Briefcase, Key, Wifi, Navigation,
+  Wallet, Store, Percent, Landmark, MapPin, Briefcase, Key, Wifi, Navigation, Tag,
 } from "lucide-react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker } from "react-leaflet";
@@ -270,11 +270,14 @@ export default function ResellerProfilePage() {
     enabled: !!id,
   });
   const { data: vendors } = useQuery<any[]>({ queryKey: ["/api/vendors"] });
+  const { data: vendorPackages } = useQuery<any[]>({ queryKey: ["/api/vendor-packages"] });
   const { data: walletTxns, isLoading: txnsLoading } = useQuery<any[]>({
     queryKey: ["/api/reseller-wallet-transactions", id],
     queryFn: async () => { const res = await fetch(`/api/reseller-wallet-transactions/${id}`, { credentials: "include" }); if (!res.ok) throw new Error("Failed"); return res.json(); },
     enabled: !!id,
   });
+  const { data: allTickets } = useQuery<any[]>({ queryKey: ["/api/tickets"] });
+  const { data: allCustomers } = useQuery<any[]>({ queryKey: ["/api/customers"] });
 
   const statusUpdateMutation = useMutation({
     mutationFn: async (status: string) => { const res = await apiRequest("PATCH", `/api/resellers/${id}`, { status }); return res.json(); },
@@ -283,19 +286,26 @@ export default function ResellerProfilePage() {
 
   const vendor = vendors?.find(v => v.id === reseller?.vendorId);
 
+  const assignedPkgIds = (reseller?.assignedPackages || "").split(",").map((s: string) => parseInt(s.trim())).filter((n: number) => !isNaN(n));
+  const assignedPkgs = (vendorPackages || []).filter((vp: any) => assignedPkgIds.includes(vp.id));
+
+  const resellerCustomers = (allCustomers || []).filter((c: any) => c.resellerId === reseller?.id);
+  const resellerTickets = (allTickets || []).filter((t: any) => resellerCustomers.some((c: any) => c.id === t.customerId));
+
   const tabsRow1 = [
     { key: "personal", label: "Personal Information" },
     { key: "service", label: "Network & Service" },
-    { key: "financial", label: "Billing & Finance" },
-    { key: "commission", label: "Commission & Bank" },
-    { key: "agreement", label: "Agreement & Settings" },
+    { key: "packages", label: "Packages" },
+    { key: "customers", label: "Customer Summary" },
     { key: "panel", label: "Vendor Panels" },
+    { key: "agreement", label: "Agreement" },
   ];
   const tabsRow2 = [
-    { key: "wallet", label: "Wallet Transactions" },
-    { key: "customers", label: "Customer Summary" },
-    { key: "complain", label: "Complain History" },
-    { key: "sms", label: "SMS Message History" },
+    { key: "documents", label: "Documents" },
+    { key: "financial", label: "Billing & Finance" },
+    { key: "wallet", label: "Wallet & Transactions" },
+    { key: "tickets", label: "Support & Tickets History" },
+    { key: "sms", label: "SMS Notifications History" },
     { key: "referrals", label: "Referrals" },
   ];
 
@@ -484,71 +494,96 @@ export default function ResellerProfilePage() {
               </div>
             )}
 
-            {activeTab === "financial" && (
+            {activeTab === "packages" && (
               <div className="space-y-4">
-                <SectionHeader title="Wallet & Balance" />
-                <div className="bg-card border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Wallet Balance" value={<span className={`font-bold ${parseFloat(String(reseller.walletBalance || "0")) >= 0 ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}>{formatPKR(reseller.walletBalance)}</span>} />
-                    <InfoRow label="Credit Limit" value={<span className="font-bold text-blue-700 dark:text-blue-400">{formatPKR(reseller.creditLimit)}</span>} />
-                    <InfoRow label="Security Deposit" value={formatPKR(reseller.securityDeposit)} />
-                    <InfoRow label="Opening Balance" value={formatPKR(reseller.openingBalance)} />
+                <SectionHeader title="Assigned Packages" />
+                {assignedPkgs.length === 0 ? (
+                  <EmptyState icon={Tag} message="No packages assigned to this reseller" />
+                ) : (
+                  <div className="bg-card border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader><TableRow className="bg-[#1a3a5c]">
+                        <TableHead className="text-white text-xs">#</TableHead>
+                        <TableHead className="text-white text-xs">Package Name</TableHead>
+                        <TableHead className="text-white text-xs">Speed</TableHead>
+                        <TableHead className="text-white text-xs">Vendor</TableHead>
+                        <TableHead className="text-white text-xs">Vendor Price</TableHead>
+                        <TableHead className="text-white text-xs">Reseller Price</TableHead>
+                        <TableHead className="text-white text-xs">Status</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {assignedPkgs.map((pkg: any, i: number) => {
+                          const pkgVendor = (vendors || []).find((v: any) => v.id === pkg.vendorId);
+                          return (
+                            <TableRow key={pkg.id}>
+                              <TableCell className="text-xs">{i + 1}</TableCell>
+                              <TableCell className="text-xs font-medium">{pkg.packageName}</TableCell>
+                              <TableCell className="text-xs">{pkg.speed || "—"}</TableCell>
+                              <TableCell className="text-xs">{pkgVendor?.name || "—"}</TableCell>
+                              <TableCell className="text-xs">Rs. {parseFloat(String(pkg.vendorPrice || "0")).toLocaleString()}</TableCell>
+                              <TableCell className="text-xs font-semibold text-green-700">Rs. {parseFloat(String(pkg.resellerPrice || pkg.ispSellingPrice || "0")).toLocaleString()}</TableCell>
+                              <TableCell><Badge variant="secondary" className={`text-[10px] ${pkg.isActive ? "text-emerald-700 bg-emerald-50" : "text-gray-500 bg-gray-100"}`}>{pkg.isActive ? "Active" : "Inactive"}</Badge></TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
                   </div>
-                </div>
-
-                <SectionHeader title="Billing Settings" />
-                <div className="bg-card border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Billing Cycle" value={reseller.billingCycle} capitalize />
-                    <InfoRow label="Payment Method" value={(reseller.paymentMethod || "").replace(/_/g, " ")} capitalize />
-                  </div>
-                </div>
+                )}
               </div>
             )}
 
-            {activeTab === "commission" && (
+            {activeTab === "customers" && (
               <div className="space-y-4">
-                <SectionHeader title="Commission Settings" />
-                <div className="bg-card border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Commission Rate" value={<span className="font-bold text-teal-700 dark:text-teal-400">{reseller.commissionRate || "10"}%</span>} />
-                    <InfoRow label="Payment Method" value={(reseller.commissionPaymentMethod || "wallet").replace(/_/g, " ")} capitalize />
-                    <InfoRow label="Payment Frequency" value={reseller.commissionPaymentFrequency} capitalize />
-                  </div>
+                <SectionHeader title="Customer Summary" />
+                <div className="grid grid-cols-3 gap-4">
+                  <Card className="border-l-4 border-l-green-500">
+                    <CardContent className="p-4">
+                      <p className="text-xs text-muted-foreground">Total Customers</p>
+                      <p className="text-2xl font-bold text-green-700" data-testid="profile-total-customers">{resellerCustomers.length || reseller.totalCustomers || 0}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-l-4 border-l-blue-500">
+                    <CardContent className="p-4">
+                      <p className="text-xs text-muted-foreground">Max Customer Limit</p>
+                      <p className="text-2xl font-bold text-blue-700">{reseller.maxCustomerLimit || "Unlimited"}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-l-4 border-l-purple-500">
+                    <CardContent className="p-4">
+                      <p className="text-xs text-muted-foreground">Active Customers</p>
+                      <p className="text-2xl font-bold text-purple-700">{resellerCustomers.filter((c: any) => c.status === "active").length}</p>
+                    </CardContent>
+                  </Card>
                 </div>
 
-                <SectionHeader title="Bank Details" />
-                <div className="bg-card border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Bank Name" value={reseller.bankName} />
-                    <InfoRow label="Account Title" value={reseller.bankAccountTitle} />
-                    <InfoRow label="Account Number" value={<span className="font-mono">{reseller.bankAccountNumber}</span>} />
-                    <InfoRow label="Branch Code" value={reseller.bankBranchCode} />
+                {resellerCustomers.length === 0 ? (
+                  <EmptyState icon={Users} message="No customers linked to this reseller" />
+                ) : (
+                  <div className="bg-card border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader><TableRow className="bg-[#1a3a5c]">
+                        <TableHead className="text-white text-xs">#</TableHead>
+                        <TableHead className="text-white text-xs">Customer Name</TableHead>
+                        <TableHead className="text-white text-xs">Phone</TableHead>
+                        <TableHead className="text-white text-xs">Area</TableHead>
+                        <TableHead className="text-white text-xs">Status</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {resellerCustomers.slice(0, 50).map((c: any, i: number) => (
+                          <TableRow key={c.id}>
+                            <TableCell className="text-xs">{i + 1}</TableCell>
+                            <TableCell className="text-xs font-medium">{c.name}</TableCell>
+                            <TableCell className="text-xs">{c.phone || "—"}</TableCell>
+                            <TableCell className="text-xs">{c.area || "—"}</TableCell>
+                            <TableCell><Badge variant="secondary" className={`text-[10px] capitalize ${c.status === "active" ? "text-emerald-700 bg-emerald-50" : "text-red-600 bg-red-50"}`}>{c.status}</Badge></TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                    {resellerCustomers.length > 50 && <div className="px-4 py-2 text-xs text-muted-foreground text-center border-t">Showing 50 of {resellerCustomers.length} customers</div>}
                   </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === "agreement" && (
-              <div className="space-y-4">
-                <SectionHeader title="Agreement Details" />
-                <div className="bg-card border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Agreement Type" value={reseller.agreementType} capitalize />
-                    <InfoRow label="Agreement Start" value={formatDate(reseller.agreementStartDate)} />
-                    <InfoRow label="Agreement End" value={formatDate(reseller.agreementEndDate)} />
-                    <InfoRow label="Join Date" value={formatDate(reseller.joinDate)} />
-                    <InfoRow label="Auto Renewal" value={<BoolValue v={reseller.autoRenewal} />} />
-                    <InfoRow label="Support Level" value={reseller.supportLevel} capitalize />
-                  </div>
-                </div>
-
-                <SectionHeader title="Limits & Notes" />
-                <div className="bg-card border rounded-lg overflow-hidden divide-y">
-                  <InfoRow label="Max Customer Limit" value={reseller.maxCustomerLimit ? String(reseller.maxCustomerLimit) : "Unlimited"} />
-                  <InfoRow label="Total Customers" value={String(reseller.totalCustomers || 0)} />
-                </div>
-                {reseller.notes && (<><SectionHeader title="Notes" /><div className="bg-card border rounded-lg px-4 py-3 text-sm">{reseller.notes}</div></>)}
+                )}
               </div>
             )}
 
@@ -590,14 +625,120 @@ export default function ResellerProfilePage() {
                     </Table>
                   </div>
                 )}
+              </div>
+            )}
 
-                <SectionHeader title="Network Details" />
+            {activeTab === "agreement" && (
+              <div className="space-y-4">
+                <SectionHeader title="Agreement Details" />
                 <div className="bg-card border rounded-lg overflow-hidden">
                   <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Port ID" value={<span className="font-mono">{reseller.portId}</span>} />
-                    <InfoRow label="VLAN ID" value={<span className="font-mono">{reseller.vlanId}</span>} />
-                    <InfoRow label="Media" value={reseller.media ? reseller.media.toUpperCase() : null} />
-                    <InfoRow label="Exchange/Tower/POP" value={reseller.exchangeTowerPopName} />
+                    <InfoRow label="Agreement Type" value={reseller.agreementType} capitalize />
+                    <InfoRow label="Agreement Start" value={formatDate(reseller.agreementStartDate)} />
+                    <InfoRow label="Agreement End" value={formatDate(reseller.agreementEndDate)} />
+                    <InfoRow label="Join Date" value={formatDate(reseller.joinDate)} />
+                    <InfoRow label="Auto Renewal" value={<BoolValue v={reseller.autoRenewal} />} />
+                    <InfoRow label="Support Level" value={reseller.supportLevel} capitalize />
+                  </div>
+                </div>
+
+                <SectionHeader title="Limits & Notes" />
+                <div className="bg-card border rounded-lg overflow-hidden divide-y">
+                  <InfoRow label="Max Customer Limit" value={reseller.maxCustomerLimit ? String(reseller.maxCustomerLimit) : "Unlimited"} />
+                  <InfoRow label="Total Customers" value={String(reseller.totalCustomers || 0)} />
+                </div>
+                {reseller.notes && (<><SectionHeader title="Notes" /><div className="bg-card border rounded-lg px-4 py-3 text-sm">{reseller.notes}</div></>)}
+              </div>
+            )}
+
+            {activeTab === "documents" && (
+              <div className="space-y-4">
+                <SectionHeader title="Reseller Documents" />
+                <div className="bg-card border rounded-lg overflow-hidden">
+                  <div className="grid grid-cols-2 divide-x divide-y">
+                    <InfoRow label="Profile Picture" value={
+                      reseller.profilePicture
+                        ? <a href={reseller.profilePicture} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs flex items-center gap-1"><FileText className="h-3.5 w-3.5" />View Document</a>
+                        : <span className="text-muted-foreground text-xs">Not uploaded</span>
+                    } />
+                    <InfoRow label="CNIC Picture" value={
+                      reseller.cnicPicture
+                        ? <a href={reseller.cnicPicture} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs flex items-center gap-1"><FileText className="h-3.5 w-3.5" />View Document</a>
+                        : <span className="text-muted-foreground text-xs">Not uploaded</span>
+                    } />
+                    <InfoRow label="Registration Form" value={
+                      reseller.registrationFormPicture
+                        ? <a href={reseller.registrationFormPicture} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs flex items-center gap-1"><FileText className="h-3.5 w-3.5" />View Document</a>
+                        : <span className="text-muted-foreground text-xs">Not uploaded</span>
+                    } />
+                    <InfoRow label="Registration Form No" value={reseller.registrationFormNo} />
+                  </div>
+                </div>
+
+                {(reseller.profilePicture || reseller.cnicPicture || reseller.registrationFormPicture) && (
+                  <>
+                    <SectionHeader title="Document Previews" />
+                    <div className="grid grid-cols-3 gap-4">
+                      {reseller.profilePicture && (
+                        <div className="bg-card border rounded-lg overflow-hidden">
+                          <div className="bg-[#1a3a5c] text-white text-[10px] font-semibold px-3 py-1.5 uppercase tracking-wide">Profile Picture</div>
+                          <div className="p-2"><img src={reseller.profilePicture} alt="Profile" className="w-full h-40 object-cover rounded" /></div>
+                        </div>
+                      )}
+                      {reseller.cnicPicture && (
+                        <div className="bg-card border rounded-lg overflow-hidden">
+                          <div className="bg-[#1a3a5c] text-white text-[10px] font-semibold px-3 py-1.5 uppercase tracking-wide">CNIC Picture</div>
+                          <div className="p-2"><img src={reseller.cnicPicture} alt="CNIC" className="w-full h-40 object-cover rounded" /></div>
+                        </div>
+                      )}
+                      {reseller.registrationFormPicture && (
+                        <div className="bg-card border rounded-lg overflow-hidden">
+                          <div className="bg-[#1a3a5c] text-white text-[10px] font-semibold px-3 py-1.5 uppercase tracking-wide">Registration Form</div>
+                          <div className="p-2"><img src={reseller.registrationFormPicture} alt="Registration Form" className="w-full h-40 object-cover rounded" /></div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {activeTab === "financial" && (
+              <div className="space-y-4">
+                <SectionHeader title="Wallet & Balance" />
+                <div className="bg-card border rounded-lg overflow-hidden">
+                  <div className="grid grid-cols-2 divide-x divide-y">
+                    <InfoRow label="Wallet Balance" value={<span className={`font-bold ${parseFloat(String(reseller.walletBalance || "0")) >= 0 ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}>{formatPKR(reseller.walletBalance)}</span>} />
+                    <InfoRow label="Credit Limit" value={<span className="font-bold text-blue-700 dark:text-blue-400">{formatPKR(reseller.creditLimit)}</span>} />
+                    <InfoRow label="Security Deposit" value={formatPKR(reseller.securityDeposit)} />
+                    <InfoRow label="Opening Balance" value={formatPKR(reseller.openingBalance)} />
+                  </div>
+                </div>
+
+                <SectionHeader title="Billing Settings" />
+                <div className="bg-card border rounded-lg overflow-hidden">
+                  <div className="grid grid-cols-2 divide-x divide-y">
+                    <InfoRow label="Billing Cycle" value={reseller.billingCycle} capitalize />
+                    <InfoRow label="Payment Method" value={(reseller.paymentMethod || "").replace(/_/g, " ")} capitalize />
+                  </div>
+                </div>
+
+                <SectionHeader title="Commission Settings" />
+                <div className="bg-card border rounded-lg overflow-hidden">
+                  <div className="grid grid-cols-2 divide-x divide-y">
+                    <InfoRow label="Commission Rate" value={<span className="font-bold text-teal-700 dark:text-teal-400">{reseller.commissionRate || "10"}%</span>} />
+                    <InfoRow label="Payment Method" value={(reseller.commissionPaymentMethod || "wallet").replace(/_/g, " ")} capitalize />
+                    <InfoRow label="Payment Frequency" value={reseller.commissionPaymentFrequency} capitalize />
+                  </div>
+                </div>
+
+                <SectionHeader title="Bank Details" />
+                <div className="bg-card border rounded-lg overflow-hidden">
+                  <div className="grid grid-cols-2 divide-x divide-y">
+                    <InfoRow label="Bank Name" value={reseller.bankName} />
+                    <InfoRow label="Account Title" value={reseller.bankAccountTitle} />
+                    <InfoRow label="Account Number" value={<span className="font-mono">{reseller.bankAccountNumber}</span>} />
+                    <InfoRow label="Branch Code" value={reseller.bankBranchCode} />
                   </div>
                 </div>
               </div>
@@ -605,7 +746,29 @@ export default function ResellerProfilePage() {
 
             {activeTab === "wallet" && (
               <div className="space-y-4">
-                <SectionHeader title="Wallet Transaction History" />
+                <SectionHeader title="Wallet Summary" />
+                <div className="grid grid-cols-3 gap-4">
+                  <Card className="border-l-4 border-l-green-500">
+                    <CardContent className="p-4">
+                      <p className="text-xs text-muted-foreground">Wallet Balance</p>
+                      <p className={`text-2xl font-bold ${parseFloat(String(reseller.walletBalance || "0")) >= 0 ? "text-green-700" : "text-red-600"}`}>{formatPKR(reseller.walletBalance)}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-l-4 border-l-blue-500">
+                    <CardContent className="p-4">
+                      <p className="text-xs text-muted-foreground">Credit Limit</p>
+                      <p className="text-2xl font-bold text-blue-700">{formatPKR(reseller.creditLimit)}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-l-4 border-l-amber-500">
+                    <CardContent className="p-4">
+                      <p className="text-xs text-muted-foreground">Total Transactions</p>
+                      <p className="text-2xl font-bold text-amber-700">{walletTxns?.length || 0}</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <SectionHeader title="Transaction History" />
                 {txnsLoading ? (<div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>)
                 : !walletTxns?.length ? (<EmptyState icon={Wallet} message="No wallet transactions found" />)
                 : (
@@ -643,44 +806,49 @@ export default function ResellerProfilePage() {
               </div>
             )}
 
-            {activeTab === "customers" && (
+            {activeTab === "tickets" && (
               <div className="space-y-4">
-                <SectionHeader title="Customer Summary" />
-                <div className="grid grid-cols-3 gap-4">
-                  <Card className="border-l-4 border-l-green-500">
-                    <CardContent className="p-4">
-                      <p className="text-xs text-muted-foreground">Total Customers</p>
-                      <p className="text-2xl font-bold text-green-700" data-testid="profile-total-customers">{reseller.totalCustomers || 0}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-l-4 border-l-blue-500">
-                    <CardContent className="p-4">
-                      <p className="text-xs text-muted-foreground">Max Customer Limit</p>
-                      <p className="text-2xl font-bold text-blue-700">{reseller.maxCustomerLimit || "Unlimited"}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-l-4 border-l-purple-500">
-                    <CardContent className="p-4">
-                      <p className="text-xs text-muted-foreground">Commission Rate</p>
-                      <p className="text-2xl font-bold text-purple-700">{reseller.commissionRate || "10"}%</p>
-                    </CardContent>
-                  </Card>
-                </div>
-                <EmptyState icon={Users} message="Detailed customer list will be shown here once connected" />
-              </div>
-            )}
-
-            {activeTab === "complain" && (
-              <div className="space-y-4">
-                <SectionHeader title="Complain History" />
-                <EmptyState icon={AlertCircle} message="No complaints found for this reseller" />
+                <SectionHeader title="Support & Tickets History" />
+                {resellerTickets.length === 0 ? (
+                  <EmptyState icon={AlertCircle} message="No support tickets found for this reseller's customers" />
+                ) : (
+                  <div className="bg-card border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader><TableRow className="bg-[#1a3a5c]">
+                        <TableHead className="text-white text-xs">#</TableHead>
+                        <TableHead className="text-white text-xs">Ticket No</TableHead>
+                        <TableHead className="text-white text-xs">Subject</TableHead>
+                        <TableHead className="text-white text-xs">Customer</TableHead>
+                        <TableHead className="text-white text-xs">Priority</TableHead>
+                        <TableHead className="text-white text-xs">Status</TableHead>
+                        <TableHead className="text-white text-xs">Created</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {resellerTickets.map((t: any, i: number) => {
+                          const cust = resellerCustomers.find((c: any) => c.id === t.customerId);
+                          return (
+                            <TableRow key={t.id}>
+                              <TableCell className="text-xs">{i + 1}</TableCell>
+                              <TableCell className="text-xs font-mono">{t.ticketNumber}</TableCell>
+                              <TableCell className="text-xs font-medium">{t.subject}</TableCell>
+                              <TableCell className="text-xs">{cust?.name || "—"}</TableCell>
+                              <TableCell><Badge variant="secondary" className={`text-[10px] capitalize ${t.priority === "high" || t.priority === "critical" ? "text-red-700 bg-red-50" : t.priority === "medium" ? "text-amber-700 bg-amber-50" : "text-gray-600 bg-gray-100"}`}>{t.priority}</Badge></TableCell>
+                              <TableCell><Badge variant="secondary" className={`text-[10px] capitalize ${t.status === "open" ? "text-blue-700 bg-blue-50" : t.status === "resolved" ? "text-green-700 bg-green-50" : "text-gray-600 bg-gray-100"}`}>{t.status}</Badge></TableCell>
+                              <TableCell className="text-xs">{formatDate(t.createdAt)}</TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </div>
             )}
 
             {activeTab === "sms" && (
               <div className="space-y-4">
-                <SectionHeader title="SMS Message History" />
-                <EmptyState icon={MessageSquare} message="No SMS message history available" />
+                <SectionHeader title="SMS Notifications History" />
+                <EmptyState icon={MessageSquare} message="No SMS notifications history available for this reseller" />
               </div>
             )}
 
