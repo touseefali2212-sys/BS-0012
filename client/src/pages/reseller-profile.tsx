@@ -502,6 +502,7 @@ export default function ResellerProfilePage() {
                         <TableHead className="text-white text-xs">Reseller Price</TableHead>
                         <TableHead className="text-white text-xs">Active Customer</TableHead>
                         <TableHead className="text-white text-xs">Status</TableHead>
+                        <TableHead className="text-white text-xs">Action</TableHead>
                       </TableRow></TableHeader>
                       <TableBody>
                         {assignedPkgs.map((pkg: any, i: number) => {
