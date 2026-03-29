@@ -207,12 +207,12 @@ export default function AddResellerPage() {
 
   const [form, setForm] = useState({
     // Basic Info
-    name: "", contactName: "", resellerType: "authorized_dealer",
+    name: "", companyName: "", contactName: "", resellerType: "authorized_dealer",
     gender: "", occupation: "", dateOfBirth: "", fatherName: "",
     cnic: "", ntn: "", registrationFormNo: "",
     status: "active", joinDate: new Date().toISOString().split("T")[0],
     supportLevel: "standard", maxCustomerLimit: "0",
-    notes: "", profilePicture: "",
+    notes: "", profilePicture: "", branch: "",
     // Contact & Location
     phone: "", secondaryPhone: "", email: "",
     address: "", city: "", area: "", territory: "",
@@ -299,23 +299,34 @@ export default function AddResellerPage() {
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
     if (!form.name || form.name.trim().length < 2) errs.name = "Reseller name must be at least 2 characters";
-    if (!form.phone || form.phone.trim().length < 10) errs.phone = "Valid phone number required";
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Invalid email address";
+    if (!form.phone || form.phone.trim().length < 10) errs.phone = "Valid mobile number required";
+    if (!form.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = "Valid email address required";
+    if (!form.cnic || form.cnic.trim().length < 5) errs.cnic = "CNIC / NID is required";
+    if (!form.branch || form.branch.trim().length < 1) errs.branch = "Branch is required";
+    if (!form.area || form.area.trim().length < 1) errs.area = "Area is required";
+    if (!form.city || form.city.trim().length < 1) errs.city = "City is required";
+    if (!form.address || form.address.trim().length < 5) errs.address = "Full address is required";
     setErrors(errs);
-    if (errs.name || errs.phone) setActiveTab("basic");
-    else if (errs.email) setActiveTab("contact");
+    if (Object.keys(errs).length > 0) setActiveTab("basic");
     return Object.keys(errs).length === 0;
   };
 
   // Missing fields tracker per tab for sidebar indicators
   const missingByTab: Record<string, string[]> = { "Basic Info": [], "Contact & Location": [] };
   if (!form.name || form.name.trim().length < 2) missingByTab["Basic Info"].push("Reseller Name");
-  if (!form.phone || form.phone.trim().length < 10) missingByTab["Contact & Location"].push("Phone");
+  if (!form.phone || form.phone.trim().length < 10) missingByTab["Basic Info"].push("Mobile No");
+  if (!form.email) missingByTab["Basic Info"].push("Email");
+  if (!form.cnic) missingByTab["Basic Info"].push("CNIC/NID");
+  if (!form.branch) missingByTab["Basic Info"].push("Branch");
+  if (!form.city) missingByTab["Basic Info"].push("City");
+  if (!form.area) missingByTab["Basic Info"].push("Area");
+  if (!form.address) missingByTab["Basic Info"].push("Address");
 
   const createMutation = useMutation({
     mutationFn: async () => {
       const payload = {
-        name: form.name, contactName: form.contactName, resellerType: form.resellerType,
+        name: form.name, companyName: form.companyName || null,
+        contactName: form.contactName, resellerType: form.resellerType,
         gender: form.gender || null, occupation: form.occupation || null,
         dateOfBirth: form.dateOfBirth || null, fatherName: form.fatherName || null,
         cnic: form.cnic || null, ntn: form.ntn || null,
@@ -324,6 +335,7 @@ export default function AddResellerPage() {
         supportLevel: form.supportLevel,
         maxCustomerLimit: parseInt(form.maxCustomerLimit) || 0,
         notes: form.notes || null, profilePicture: form.profilePicture || null,
+        branch: form.branch || null,
         phone: form.phone, secondaryPhone: form.secondaryPhone || null,
         email: form.email || null, address: form.address || null,
         city: form.city || null, area: form.area || null, territory: form.territory || null,
@@ -502,168 +514,53 @@ export default function AddResellerPage() {
             {/* ── BASIC INFO ── */}
             {activeTab === "basic" && (
               <div className="space-y-5">
-                {/* Profile Photo */}
+                {/* Personal Info */}
                 <Card>
-                  <SectionHeader icon={User} title="Profile Photo & Identity" description="Reseller profile picture and primary identity" />
-                  <CardContent className="flex items-start gap-8">
-                    <ProfilePhotoUpload
-                      value={form.profilePicture}
-                      onChange={(url) => update("profilePicture", url)}
-                    />
-                    <div className="flex-1 space-y-4">
-                      <FieldGroup>
-                        <Field label="Reseller / Company Name" required error={errors.name}>
-                          <Input
-                            value={form.name}
-                            onChange={e => update("name", e.target.value)}
-                            placeholder="e.g. SpeedNet Resellers"
-                            data-testid="input-reseller-name"
-                            className={errors.name ? "border-red-500" : ""}
-                          />
-                        </Field>
-                        <Field label="Contact Person Name">
-                          <Input
-                            value={form.contactName}
-                            onChange={e => update("contactName", e.target.value)}
-                            placeholder="Primary contact name"
-                            data-testid="input-contact-name"
-                          />
-                        </Field>
-                      </FieldGroup>
-                      <FieldGroup>
-                        <Field label="Reseller Type">
-                          <Select value={form.resellerType} onValueChange={v => update("resellerType", v)}>
-                            <SelectTrigger data-testid="select-reseller-type"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="authorized_dealer">Authorized Dealer</SelectItem>
-                              <SelectItem value="sub_reseller">Sub-Reseller</SelectItem>
-                              <SelectItem value="franchise">Franchise</SelectItem>
-                              <SelectItem value="white_label">White Label</SelectItem>
-                              {(resellerTypesList || []).filter(rt =>
-                                !["authorized_dealer","sub_reseller","franchise","white_label"].includes(rt.key)
-                              ).map(rt => (
-                                <SelectItem key={rt.id} value={rt.key}>{rt.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </Field>
-                        <Field label="Status">
-                          <Select value={form.status} onValueChange={v => update("status", v)}>
-                            <SelectTrigger data-testid="select-status"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="active">Active</SelectItem>
-                              <SelectItem value="inactive">Inactive</SelectItem>
-                              <SelectItem value="suspended">Suspended</SelectItem>
-                              <SelectItem value="terminated">Terminated</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </Field>
-                      </FieldGroup>
+                  <SectionHeader icon={User} title="Personal Info" description="Reseller profile photo, identity and contact details" />
+                  <CardContent className="space-y-5">
+
+                    {/* Profile Photo */}
+                    <div className="flex justify-center">
+                      <ProfilePhotoUpload
+                        value={form.profilePicture}
+                        onChange={(url) => update("profilePicture", url)}
+                      />
                     </div>
-                  </CardContent>
-                </Card>
 
-                {/* Personal Details */}
-                <Card>
-                  <SectionHeader icon={Briefcase} title="Personal Details" description="Additional personal and professional information" />
-                  <CardContent className="space-y-4">
-                    <FieldGroup>
-                      <Field label="Gender">
-                        <Select value={form.gender || ""} onValueChange={v => update("gender", v)}>
-                          <SelectTrigger data-testid="select-gender"><SelectValue placeholder="Select gender" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="male">Male</SelectItem>
-                            <SelectItem value="female">Female</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                      <Field label="Date of Birth">
-                        <Input type="date" value={form.dateOfBirth} onChange={e => update("dateOfBirth", e.target.value)} data-testid="input-dob" />
-                      </Field>
-                    </FieldGroup>
-                    <FieldGroup>
-                      <Field label="Father Name">
-                        <Input value={form.fatherName} onChange={e => update("fatherName", e.target.value)} placeholder="Father's full name" data-testid="input-father-name" />
-                      </Field>
-                      <Field label="Occupation">
-                        <Input value={form.occupation} onChange={e => update("occupation", e.target.value)} placeholder="e.g. ISP Dealer, IT Entrepreneur" data-testid="input-occupation" />
-                      </Field>
-                    </FieldGroup>
-                  </CardContent>
-                </Card>
+                    <Separator />
 
-                {/* Identification */}
-                <Card>
-                  <SectionHeader icon={Shield} title="Identification & Registration" description="CNIC, NTN and official registration numbers" />
-                  <CardContent className="space-y-4">
+                    {/* Row 1: Company Name | Reseller Name */}
                     <FieldGroup>
-                      <Field label="CNIC / NID">
-                        <Input value={form.cnic} onChange={e => update("cnic", e.target.value)} placeholder="XXXXX-XXXXXXX-X" data-testid="input-cnic" />
-                      </Field>
-                      <Field label="NTN Number">
-                        <Input value={form.ntn} onChange={e => update("ntn", e.target.value)} placeholder="National Tax Number" data-testid="input-ntn" />
-                      </Field>
-                    </FieldGroup>
-                    <FieldGroup>
-                      <Field label="Registration Form No.">
-                        <Input value={form.registrationFormNo} onChange={e => update("registrationFormNo", e.target.value)} placeholder="Reg form reference" data-testid="input-reg-form" />
-                      </Field>
-                      <Field label="Join Date">
-                        <Input type="date" value={form.joinDate} onChange={e => update("joinDate", e.target.value)} data-testid="input-join-date" />
-                      </Field>
-                    </FieldGroup>
-                  </CardContent>
-                </Card>
-
-                {/* Account Settings */}
-                <Card>
-                  <SectionHeader icon={Settings} title="Account Settings" description="Reseller status, join date and support tier" />
-                  <CardContent className="space-y-4">
-                    <FieldGroup>
-                      <Field label="Support Level">
-                        <Select value={form.supportLevel} onValueChange={v => update("supportLevel", v)}>
-                          <SelectTrigger data-testid="select-support-level"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="basic">Basic</SelectItem>
-                            <SelectItem value="standard">Standard</SelectItem>
-                            <SelectItem value="premium">Premium</SelectItem>
-                            <SelectItem value="enterprise">Enterprise</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                      <Field label="Max Customer Limit">
+                      <Field label="Company Name">
                         <Input
-                          type="number" min="0"
-                          value={form.maxCustomerLimit}
-                          onChange={e => update("maxCustomerLimit", e.target.value)}
-                          placeholder="0 = Unlimited"
-                          data-testid="input-max-customer-limit"
+                          value={form.companyName}
+                          onChange={e => update("companyName", e.target.value)}
+                          placeholder="e.g. SpeedNet Solutions Pvt. Ltd."
+                          data-testid="input-company-name"
+                        />
+                      </Field>
+                      <Field label="Reseller Name" required error={errors.name}>
+                        <Input
+                          value={form.name}
+                          onChange={e => update("name", e.target.value)}
+                          placeholder="Full name of the reseller"
+                          data-testid="input-reseller-name"
+                          className={errors.name ? "border-red-500" : ""}
                         />
                       </Field>
                     </FieldGroup>
-                    <Field label="Notes / Remarks">
-                      <Textarea
-                        value={form.notes}
-                        onChange={e => update("notes", e.target.value)}
-                        placeholder="Internal notes about this reseller..."
-                        className="min-h-[80px]"
-                        data-testid="input-notes"
-                      />
-                    </Field>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
 
-            {/* ── CONTACT & LOCATION ── */}
-            {activeTab === "contact" && (
-              <div className="space-y-5">
-                <Card>
-                  <SectionHeader icon={Phone} title="Contact Information" description="Phone, email and communication details" />
-                  <CardContent className="space-y-4">
+                    {/* Row 2: Father Name | Mobile No */}
                     <FieldGroup>
-                      <Field label="Primary Phone" required error={errors.phone}>
+                      <Field label="Father Name">
+                        <Input
+                          value={form.fatherName}
+                          onChange={e => update("fatherName", e.target.value)}
+                          placeholder="Father's full name"
+                          data-testid="input-father-name"
+                        />
+                      </Field>
+                      <Field label="Mobile No" required error={errors.phone}>
                         <Input
                           value={form.phone}
                           onChange={e => update("phone", e.target.value)}
@@ -672,48 +569,86 @@ export default function AddResellerPage() {
                           className={errors.phone ? "border-red-500" : ""}
                         />
                       </Field>
-                      <Field label="Secondary Phone">
-                        <Input value={form.secondaryPhone} onChange={e => update("secondaryPhone", e.target.value)} placeholder="Alternate number" data-testid="input-secondary-phone" />
+                    </FieldGroup>
+
+                    {/* Row 3: Phone No | Email */}
+                    <FieldGroup>
+                      <Field label="Phone No">
+                        <Input
+                          value={form.secondaryPhone}
+                          onChange={e => update("secondaryPhone", e.target.value)}
+                          placeholder="Alternate / landline number"
+                          data-testid="input-secondary-phone"
+                        />
+                      </Field>
+                      <Field label="Email" required error={errors.email}>
+                        <Input
+                          type="email"
+                          value={form.email}
+                          onChange={e => update("email", e.target.value)}
+                          placeholder="reseller@company.pk"
+                          data-testid="input-email"
+                          className={errors.email ? "border-red-500" : ""}
+                        />
                       </Field>
                     </FieldGroup>
-                    <Field label="Email Address" error={errors.email}>
-                      <Input
-                        type="email"
-                        value={form.email}
-                        onChange={e => update("email", e.target.value)}
-                        placeholder="reseller@company.pk"
-                        data-testid="input-email"
-                        className={errors.email ? "border-red-500" : ""}
-                      />
-                    </Field>
-                  </CardContent>
-                </Card>
 
-                <Card>
-                  <SectionHeader icon={MapPin} title="Location & Address" description="Service area, city and address details" />
-                  <CardContent className="space-y-4">
-                    <Field label="Full Address">
+                    {/* Row 4: CNIC/NID | Branch */}
+                    <FieldGroup>
+                      <Field label="CNIC / NID" required error={errors.cnic}>
+                        <Input
+                          value={form.cnic}
+                          onChange={e => update("cnic", e.target.value)}
+                          placeholder="XXXXX-XXXXXXX-X"
+                          data-testid="input-cnic"
+                          className={errors.cnic ? "border-red-500" : ""}
+                        />
+                      </Field>
+                      <Field label="Branch" required error={errors.branch}>
+                        <Input
+                          value={form.branch}
+                          onChange={e => update("branch", e.target.value)}
+                          placeholder="e.g. Main Branch, Lahore"
+                          data-testid="input-branch"
+                          className={errors.branch ? "border-red-500" : ""}
+                        />
+                      </Field>
+                    </FieldGroup>
+
+                    {/* Row 5: Area | City */}
+                    <FieldGroup>
+                      <Field label="Area" required error={errors.area}>
+                        <Input
+                          value={form.area}
+                          onChange={e => update("area", e.target.value)}
+                          placeholder="e.g. Gulberg, DHA"
+                          data-testid="input-area"
+                          className={errors.area ? "border-red-500" : ""}
+                        />
+                      </Field>
+                      <Field label="City" required error={errors.city}>
+                        <Input
+                          value={form.city}
+                          onChange={e => update("city", e.target.value)}
+                          placeholder="e.g. Lahore, Karachi"
+                          data-testid="input-city"
+                          className={errors.city ? "border-red-500" : ""}
+                        />
+                      </Field>
+                    </FieldGroup>
+
+                    {/* Address */}
+                    <Field label="Address" required error={errors.address}>
                       <Textarea
                         value={form.address}
                         onChange={e => update("address", e.target.value)}
-                        placeholder="Street, block, building..."
-                        className="min-h-[70px]"
+                        placeholder="Street, block, building, landmark..."
+                        className={`min-h-[80px] ${errors.address ? "border-red-500" : ""}`}
                         data-testid="input-address"
                       />
                     </Field>
-                    <FieldGroup cols={3}>
-                      <Field label="City">
-                        <Input value={form.city} onChange={e => update("city", e.target.value)} placeholder="e.g. Lahore" data-testid="input-city" />
-                      </Field>
-                      <Field label="Area">
-                        <Input value={form.area} onChange={e => update("area", e.target.value)} placeholder="e.g. Gulberg" data-testid="input-area" />
-                      </Field>
-                      <Field label="Territory">
-                        <Input value={form.territory} onChange={e => update("territory", e.target.value)} placeholder="Covered territory" data-testid="input-territory" />
-                      </Field>
-                    </FieldGroup>
 
-                    <Separator />
+                    {/* GPS Coordinates */}
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium">GPS Coordinates</p>
@@ -736,6 +671,78 @@ export default function AddResellerPage() {
                         </Field>
                       </FieldGroup>
                     </div>
+
+                    <Separator />
+
+                    {/* Note / Remarks */}
+                    <Field label="NOTE / Remarks">
+                      <Textarea
+                        value={form.notes}
+                        onChange={e => update("notes", e.target.value)}
+                        placeholder="Internal notes or remarks about this reseller..."
+                        className="min-h-[80px]"
+                        data-testid="input-notes"
+                      />
+                    </Field>
+
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* ── CONTACT & LOCATION ── */}
+            {activeTab === "contact" && (
+              <div className="space-y-5">
+                {/* Info banner */}
+                <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+                  <Phone className="h-4 w-4 mt-0.5 text-blue-600 shrink-0" />
+                  <p className="text-sm text-blue-800">
+                    Core contact details (Mobile, Email, Address, City, Area) are entered on the <strong>Basic Info</strong> tab.
+                    Complete additional service coverage settings here.
+                  </p>
+                </div>
+
+                {/* Contact summary (read-only preview) */}
+                <Card>
+                  <SectionHeader icon={Phone} title="Contact Summary" description="Quick view of contact details from Basic Info" />
+                  <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Mobile No</span>
+                        <span className="font-medium">{form.phone || <span className="text-muted-foreground italic">Not filled</span>}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Phone No</span>
+                        <span className="font-medium">{form.secondaryPhone || <span className="text-muted-foreground italic">Not filled</span>}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Email</span>
+                        <span className="font-medium">{form.email || <span className="text-muted-foreground italic">Not filled</span>}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">City / Area</span>
+                        <span className="font-medium">{[form.city, form.area].filter(Boolean).join(", ") || <span className="text-muted-foreground italic">Not filled</span>}</span>
+                      </div>
+                      <div className="col-span-full flex flex-col gap-0.5">
+                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Address</span>
+                        <span className="font-medium">{form.address || <span className="text-muted-foreground italic">Not filled</span>}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Service Coverage */}
+                <Card>
+                  <SectionHeader icon={MapPin} title="Service Coverage" description="Service territory and coverage zone details" />
+                  <CardContent className="space-y-4">
+                    <Field label="Territory / Coverage Zone">
+                      <Input
+                        value={form.territory}
+                        onChange={e => update("territory", e.target.value)}
+                        placeholder="e.g. North Lahore, DHA Phase 1-5"
+                        data-testid="input-territory"
+                      />
+                    </Field>
                   </CardContent>
                 </Card>
               </div>
