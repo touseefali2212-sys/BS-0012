@@ -3,7 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation, useRoute } from "wouter";
 import {
   User, Wifi, FileText, MapPin, CreditCard, Globe, Tag,
-  ChevronLeft, Upload, Check, Eye, EyeOff,
+  ChevronLeft, Upload, Check, Eye, EyeOff, RefreshCw,
   Camera, Phone, Mail, Shield, Building2, X,
   CheckCircle2, Trash2, Plus, ScrollText, Network,
   Wallet, Store, Image, AlertCircle, Map,
