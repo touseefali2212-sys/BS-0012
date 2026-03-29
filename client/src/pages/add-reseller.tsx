@@ -243,8 +243,8 @@ export default function AddResellerPage() {
     packageId: number; packageName: string; speed: string;
     vendorId: string; vendorPrice: string; resellerPrice: string; profit: string;
   }>>([]);
-  const [pkgForm, setPkgForm] = useState({ packageId: "", vendorId: "", vendorPrice: "0", resellerPrice: "0" });
-  const pkgProfit = (parseFloat(pkgForm.resellerPrice || "0") - parseFloat(pkgForm.vendorPrice || "0")).toFixed(2);
+  const [pkgForm, setPkgForm] = useState({ packageId: "", vendorId: "", vendorPrice: "0", profit: "0" });
+  const pkgResellerPrice = (parseFloat(pkgForm.vendorPrice || "0") + parseFloat(pkgForm.profit || "0")).toFixed(2);
 
   const [addedVendorPanels, setAddedVendorPanels] = useState<Array<{
     vendorId: string; vendorName: string; panelUrl: string; panelUsername: string; panelPassword: string;
@@ -392,20 +392,22 @@ export default function AddResellerPage() {
   };
 
   const handleAddPackage = () => {
-    if (!pkgForm.packageId) return;
+    if (!pkgForm.packageId || !pkgForm.vendorId) {
+      toast({ title: "Please select a vendor and package", variant: "destructive" }); return;
+    }
     const pkg = (packagesList || []).find(p => String(p.id) === pkgForm.packageId);
     if (!pkg) return;
     if (addedPackages.some(p => p.packageId === pkg.id)) {
       toast({ title: "Package already added", variant: "destructive" }); return;
     }
-    const vendor = (vendors || []).find(v => String(v.id) === pkgForm.vendorId);
     setAddedPackages(prev => [...prev, {
       packageId: pkg.id, packageName: pkg.name,
       speed: pkg.speed || "", vendorId: pkgForm.vendorId,
-      vendorPrice: pkgForm.vendorPrice, resellerPrice: pkgForm.resellerPrice,
-      profit: pkgProfit,
+      vendorPrice: pkgForm.vendorPrice,
+      profit: pkgForm.profit,
+      resellerPrice: pkgResellerPrice,
     }]);
-    setPkgForm({ packageId: "", vendorId: "", vendorPrice: "0", resellerPrice: "0" });
+    setPkgForm({ packageId: "", vendorId: "", vendorPrice: "0", profit: "0" });
   };
 
   const handleAddVendorPanel = () => {
@@ -761,60 +763,87 @@ export default function AddResellerPage() {
                 <Card>
                   <SectionHeader icon={Tag} title="Assign Packages" description="Internet packages and reseller pricing tiers" />
                   <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Field label="Select Package">
-                        <Select value={pkgForm.packageId} onValueChange={v => {
-                          const pkg = (packagesList || []).find(p => String(p.id) === v);
-                          setPkgForm(prev => ({
-                            ...prev, packageId: v,
-                            resellerPrice: pkg?.price || "0",
-                          }));
-                        }}>
-                          <SelectTrigger data-testid="select-package"><SelectValue placeholder="Choose package" /></SelectTrigger>
+                    {/* Row 1: Select Vendor | Select Package */}
+                    <FieldGroup>
+                      <Field label="Select Vendor" required>
+                        <Select
+                          value={pkgForm.vendorId}
+                          onValueChange={v => setPkgForm(prev => ({ ...prev, vendorId: v, packageId: "", vendorPrice: "0" }))}
+                        >
+                          <SelectTrigger data-testid="select-package-vendor"><SelectValue placeholder="Select panel vendor" /></SelectTrigger>
                           <SelectContent>
-                            {(packagesList || []).map(p => (
-                              <SelectItem key={p.id} value={String(p.id)}>
-                                {p.name} {p.speed ? `— ${p.speed}` : ""} {p.price ? `(Rs. ${p.price})` : ""}
-                              </SelectItem>
-                            ))}
+                            {(vendors || []).filter(v => v.panelUrl).length > 0
+                              ? (vendors || []).filter(v => v.panelUrl).map(v => (
+                                  <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>
+                                ))
+                              : (vendors || []).map(v => (
+                                  <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>
+                                ))
+                            }
                           </SelectContent>
                         </Select>
                       </Field>
-                      <Field label="Vendor">
-                        <Select value={pkgForm.vendorId} onValueChange={v => setPkgForm(prev => ({ ...prev, vendorId: v }))}>
-                          <SelectTrigger data-testid="select-package-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
+                      <Field label="Select Package" required>
+                        <Select
+                          value={pkgForm.packageId}
+                          disabled={!pkgForm.vendorId}
+                          onValueChange={v => {
+                            const pkg = (packagesList || []).find(p => String(p.id) === v);
+                            setPkgForm(prev => ({
+                              ...prev,
+                              packageId: v,
+                              vendorPrice: pkg?.price || "0",
+                            }));
+                          }}
+                        >
+                          <SelectTrigger data-testid="select-package"><SelectValue placeholder={pkgForm.vendorId ? "Choose package" : "Select vendor first"} /></SelectTrigger>
                           <SelectContent>
-                            {(vendors || []).map(v => (
-                              <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>
-                            ))}
+                            {(packagesList || [])
+                              .filter(p => !pkgForm.vendorId || String(p.vendorId) === pkgForm.vendorId || p.vendorId == null)
+                              .map(p => (
+                                <SelectItem key={p.id} value={String(p.id)}>
+                                  {p.name}{p.speed ? ` — ${p.speed}` : ""}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       </Field>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
+                    </FieldGroup>
+
+                    {/* Row 2: Vendor Price | Profit | Reseller Price */}
+                    <FieldGroup cols={3}>
                       <Field label="Vendor Price (Rs.)">
                         <Input
                           type="number" min="0" step="0.01"
                           value={pkgForm.vendorPrice}
-                          onChange={e => setPkgForm(prev => ({ ...prev, vendorPrice: e.target.value }))}
+                          readOnly
+                          className="bg-muted cursor-default"
+                          placeholder="Auto-filled"
                           data-testid="input-vendor-price"
                         />
                       </Field>
-                      <Field label="Reseller Price (Rs.)">
+                      <Field label="Profit (Rs.)">
                         <Input
                           type="number" min="0" step="0.01"
-                          value={pkgForm.resellerPrice}
-                          onChange={e => setPkgForm(prev => ({ ...prev, resellerPrice: e.target.value }))}
-                          data-testid="input-reseller-price"
+                          value={pkgForm.profit}
+                          onChange={e => setPkgForm(prev => ({ ...prev, profit: e.target.value }))}
+                          placeholder="Enter profit"
+                          data-testid="input-profit"
                         />
                       </Field>
-                      <Field label="Profit (Rs.)">
-                        <div className={`flex items-center h-10 px-3 rounded-md border bg-muted text-sm font-mono ${parseFloat(pkgProfit) >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          Rs. {pkgProfit}
+                      <Field label="Reseller Price (Rs.)">
+                        <div className={`flex items-center h-10 px-3 rounded-md border bg-muted text-sm font-mono font-semibold ${parseFloat(pkgResellerPrice) > parseFloat(pkgForm.vendorPrice || "0") ? "text-green-600" : "text-muted-foreground"}`}>
+                          Rs. {pkgResellerPrice}
                         </div>
                       </Field>
-                    </div>
-                    <Button type="button" onClick={handleAddPackage} disabled={!pkgForm.packageId} data-testid="button-add-package">
+                    </FieldGroup>
+
+                    <Button
+                      type="button"
+                      onClick={handleAddPackage}
+                      disabled={!pkgForm.packageId || !pkgForm.vendorId}
+                      data-testid="button-add-package"
+                    >
                       <Plus className="h-4 w-4 mr-1" /> Add Package
                     </Button>
 
