@@ -241,7 +241,7 @@ export default function AddResellerPage() {
 
   const [addedPackages, setAddedPackages] = useState<Array<{
     packageId: number; packageName: string; speed: string;
-    vendorId: string; vendorPrice: string; resellerPrice: string; profit: string;
+    vendorId: string; vendorName: string; vendorPrice: string; profit: string; resellerPrice: string;
   }>>([]);
   const [pkgForm, setPkgForm] = useState({ packageId: "", vendorId: "", vendorPrice: "0", profit: "0" });
   const pkgResellerPrice = (parseFloat(pkgForm.vendorPrice || "0") + parseFloat(pkgForm.profit || "0")).toFixed(2);
@@ -400,9 +400,12 @@ export default function AddResellerPage() {
     if (addedPackages.some(p => p.packageId === pkg.id)) {
       toast({ title: "Package already added", variant: "destructive" }); return;
     }
+    const vendor = (vendors || []).find(v => String(v.id) === pkgForm.vendorId);
     setAddedPackages(prev => [...prev, {
       packageId: pkg.id, packageName: pkg.name,
-      speed: pkg.speed || "", vendorId: pkgForm.vendorId,
+      speed: pkg.speed || "",
+      vendorId: pkgForm.vendorId,
+      vendorName: vendor?.name || "",
       vendorPrice: pkgForm.vendorPrice,
       profit: pkgForm.profit,
       resellerPrice: pkgResellerPrice,
@@ -849,20 +852,24 @@ export default function AddResellerPage() {
 
                     {addedPackages.length > 0 && (
                       <div className="border rounded-lg overflow-hidden mt-2">
-                        <div className="px-3 py-2 bg-[#1a3a5c] text-white text-xs font-semibold uppercase tracking-wide grid grid-cols-5 gap-2">
+                        <div className="px-3 py-2 bg-[#1a3a5c] text-white text-xs font-semibold uppercase tracking-wide grid grid-cols-7 gap-2">
                           <span className="col-span-2">Package</span>
+                          <span>Vendor</span>
                           <span>Vendor Price</span>
+                          <span>Profit</span>
                           <span>Reseller Price</span>
                           <span>Action</span>
                         </div>
                         {addedPackages.map((p, i) => (
-                          <div key={i} className="px-3 py-2.5 border-t text-sm grid grid-cols-5 gap-2 items-center">
+                          <div key={i} className="px-3 py-2.5 border-t text-sm grid grid-cols-7 gap-2 items-center">
                             <div className="col-span-2">
                               <p className="font-medium">{p.packageName}</p>
                               {p.speed && <p className="text-xs text-muted-foreground">{p.speed}</p>}
                             </div>
+                            <span className="text-muted-foreground text-xs">{p.vendorName || "—"}</span>
                             <span>Rs. {p.vendorPrice}</span>
-                            <span>Rs. {p.resellerPrice}</span>
+                            <span className="text-green-600 font-medium">Rs. {p.profit}</span>
+                            <span className="font-semibold">Rs. {p.resellerPrice}</span>
                             <Button
                               type="button" variant="ghost" size="sm"
                               onClick={() => setAddedPackages(prev => prev.filter((_, j) => j !== i))}
