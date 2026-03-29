@@ -278,6 +278,7 @@ export type ResellerType = typeof resellerTypes.$inferSelect;
 export const resellers = pgTable("resellers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  companyName: text("company_name"),
   resellerType: text("reseller_type").notNull().default("authorized_dealer"),
   gender: text("gender"),
   occupation: text("occupation"),
@@ -293,7 +294,10 @@ export const resellers = pgTable("resellers", {
   address: text("address"),
   city: text("city"),
   area: text("area"),
+  branch: text("branch"),
   territory: text("territory"),
+  mapLatitude: text("map_latitude"),
+  mapLongitude: text("map_longitude"),
   profilePicture: text("profile_picture"),
   cnicPicture: text("cnic_picture"),
   registrationFormPicture: text("registration_form_picture"),

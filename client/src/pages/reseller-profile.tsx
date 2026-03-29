@@ -9,8 +9,11 @@ import {
   Calendar, Download, MessageCircle, CalendarRange, User, Hash,
   CreditCard, Globe, CheckCircle2, FileText, Plus, Clock, TrendingUp,
   TrendingDown, BarChart3, MessageSquare, ShoppingBag, Users, Bell,
-  Wallet, Store, Percent, Landmark, MapPin, Briefcase, Key, Wifi,
+  Wallet, Store, Percent, Landmark, MapPin, Briefcase, Key, Wifi, Navigation,
 } from "lucide-react";
+import L from "leaflet";
+import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +28,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { insertResellerSchema, type Reseller, type InsertReseller } from "@shared/schema";
+
+const mapMarkerIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
+});
 
 function SectionHeader({ title, action }: { title: string; action?: React.ReactNode }) {
   return (
@@ -104,41 +113,51 @@ function ResellerEditDialog({ open, onClose, reseller, id }: { open: boolean; on
           <form onSubmit={form.handleSubmit((d) => updateMutation.mutate(d))} className="space-y-4">
             {section === 0 && (<div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Name *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="contactName" render={({ field }) => (<FormItem><FormLabel>Contact Person</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="cnic" render={({ field }) => (<FormItem><FormLabel>CNIC</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="ntn" render={({ field }) => (<FormItem><FormLabel>NTN</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="companyName" render={({ field }) => (<FormItem><FormLabel>Company Name</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Reseller Name *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="fatherName" render={({ field }) => (<FormItem><FormLabel>Father Name</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="cnic" render={({ field }) => (<FormItem><FormLabel>CNIC / NIC</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="gender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="dateOfBirth" render={({ field }) => (<FormItem><FormLabel>Date of Birth</FormLabel><FormControl><Input type="date" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="occupation" render={({ field }) => (<FormItem><FormLabel>Occupation</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="registrationFormNo" render={({ field }) => (<FormItem><FormLabel>Registration Form No</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="occupation" render={({ field }) => (<FormItem><FormLabel>Occupation</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
                 <FormField control={form.control} name="resellerType" render={({ field }) => (<FormItem><FormLabel>Reseller Type</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
               </div>
               <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} value={field.value || "active"}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem><SelectItem value="suspended">Suspended</SelectItem><SelectItem value="blocked">Blocked</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
             </div>)}
             {section === 1 && (<div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="secondaryPhone" render={({ field }) => (<FormItem><FormLabel>Secondary Phone</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Mobile No *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="secondaryPhone" render={({ field }) => (<FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="branch" render={({ field }) => (<FormItem><FormLabel>Branch</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="area" render={({ field }) => (<FormItem><FormLabel>Area</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="territory" render={({ field }) => (<FormItem><FormLabel>Territory</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
               </div>
               <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="mapLatitude" render={({ field }) => (<FormItem><FormLabel>Latitude</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="e.g. 31.5204" /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="mapLongitude" render={({ field }) => (<FormItem><FormLabel>Longitude</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="e.g. 74.3587" /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={() => {
+                if (navigator.geolocation) {
+                  navigator.geolocation.getCurrentPosition(
+                    (pos) => { form.setValue("mapLatitude", pos.coords.latitude.toFixed(6)); form.setValue("mapLongitude", pos.coords.longitude.toFixed(6)); },
+                    () => {},
+                  );
+                }
+              }} data-testid="button-get-gps-edit">
+                <Navigation className="h-4 w-4 mr-1.5" /> Get GPS from Device
+              </Button>
             </div>)}
             {section === 2 && (<div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -387,44 +406,51 @@ export default function ResellerProfilePage() {
                 <SectionHeader title="Personal Information" />
                 <div className="bg-card border rounded-lg overflow-hidden">
                   <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Full Name" value={reseller.name} />
-                    <InfoRow label="Contact Person" value={reseller.contactName} />
-                    <InfoRow label="CNIC" value={reseller.cnic} />
-                    <InfoRow label="NTN" value={reseller.ntn} />
+                    <InfoRow label="Company Name" value={reseller.companyName} />
+                    <InfoRow label="Reseller Name" value={reseller.name} />
                     <InfoRow label="Father Name" value={reseller.fatherName} />
-                    <InfoRow label="Gender" value={reseller.gender} capitalize />
-                    <InfoRow label="Date of Birth" value={formatDate(reseller.dateOfBirth)} />
-                    <InfoRow label="Occupation" value={reseller.occupation} capitalize />
-                    <InfoRow label="Registration Form No" value={reseller.registrationFormNo} />
-                    <InfoRow label="Reseller Type" value={(reseller.resellerType || "").replace(/_/g, " ")} capitalize />
-                  </div>
-                </div>
-
-                <SectionHeader title="Contact & Location" />
-                <div className="bg-card border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Phone" value={reseller.phone} />
-                    <InfoRow label="Secondary Phone" value={reseller.secondaryPhone} />
+                    <InfoRow label="Mobile No" value={reseller.phone} />
+                    <InfoRow label="Phone Number" value={reseller.secondaryPhone} />
                     <InfoRow label="Email" value={reseller.email} />
-                    <InfoRow label="City" value={reseller.city} />
+                    <InfoRow label="CNIC / NIC" value={reseller.cnic} />
+                    <InfoRow label="Branch" value={reseller.branch} />
                     <InfoRow label="Area" value={reseller.area} />
-                    <InfoRow label="Territory" value={reseller.territory} />
+                    <InfoRow label="City" value={reseller.city} />
                     <InfoRow label="Address" value={reseller.address} />
-                    <InfoRow label="Status" value={
-                      <Badge variant="secondary" className={`capitalize text-[10px] ${reseller.status === "active" ? "text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950" : reseller.status === "blocked" ? "text-gray-700 bg-gray-100" : "text-red-700 bg-red-50"}`}>{reseller.status}</Badge>
+                    <InfoRow label="GPS Coordinates" value={
+                      reseller.mapLatitude && reseller.mapLongitude
+                        ? <span className="font-mono text-xs">{reseller.mapLatitude}, {reseller.mapLongitude}</span>
+                        : null
                     } />
                   </div>
                 </div>
 
-                <SectionHeader title="Management" />
-                <div className="bg-card border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Support Level" value={reseller.supportLevel} capitalize />
-                    <InfoRow label="Max Customer Limit" value={reseller.maxCustomerLimit ? String(reseller.maxCustomerLimit) : "Unlimited"} />
-                    <InfoRow label="Total Customers" value={String(reseller.totalCustomers || 0)} />
-                    <InfoRow label="Join Date" value={formatDate(reseller.joinDate)} />
-                  </div>
-                </div>
+                {(() => {
+                  const lat = parseFloat(reseller.mapLatitude || "");
+                  const lng = parseFloat(reseller.mapLongitude || "");
+                  const hasValidCoords = isFinite(lat) && isFinite(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+                  if (hasValidCoords) return (
+                    <>
+                      <SectionHeader title="GEO MAP — Graphical Location" />
+                      <div className="bg-card border rounded-lg overflow-hidden" style={{ height: 320 }}>
+                        <MapContainer center={[lat, lng]} zoom={15} style={{ height: "100%", width: "100%" }} scrollWheelZoom={false}>
+                          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' />
+                          <Marker position={[lat, lng]} icon={mapMarkerIcon} />
+                        </MapContainer>
+                      </div>
+                    </>
+                  );
+                  return (
+                    <>
+                      <SectionHeader title="GEO MAP — Graphical Location" />
+                      <div className="bg-card border rounded-lg overflow-hidden p-8 flex flex-col items-center justify-center text-muted-foreground" style={{ height: 200 }}>
+                        <Navigation className="h-10 w-10 mb-2 opacity-30" />
+                        <p className="text-sm">No GPS coordinates available</p>
+                        <p className="text-xs opacity-60 mt-1">Add GPS coordinates via the edit dialog to view the location on the map</p>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             )}
 
