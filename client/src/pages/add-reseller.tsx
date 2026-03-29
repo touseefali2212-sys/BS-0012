@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
@@ -249,7 +249,7 @@ export default function AddResellerPage() {
   });
 
   // Pre-fill from client request
-  useState(() => {
+  useEffect(() => {
     if (!fromQueryData) return;
     const q = fromQueryData;
     form.reset({
@@ -265,7 +265,7 @@ export default function AddResellerPage() {
       cnic: q.nidNumber || "",
       notes: q.remarks || "",
     });
-  });
+  }, [fromQueryData]);
 
   const selectedPkg = (packagesList || []).find(p => String(p.id) === pkgForm.packageId);
   const pkgProfit = (parseFloat(pkgForm.resellerPrice || "0") - parseFloat(pkgForm.vendorPrice || "0")).toFixed(2);
