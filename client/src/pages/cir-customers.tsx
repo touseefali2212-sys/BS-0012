@@ -8,7 +8,8 @@ import {
   AlertTriangle, Shield, Calendar, Activity, Server, Globe, ChevronDown, ChevronUp, Users,
   FileSpreadsheet, Send, CheckCircle2, XCircle, Loader2, SkipForward, Sparkles,
   ArrowRight, RefreshCw, Check, Zap, Eye, Phone, Mail, MapPin, Network, Lock,
-  MessageSquare, CalendarClock, Power,
+  MessageSquare, CalendarClock, Power, UserCheck, UserPlus, RotateCcw, CreditCard,
+  Clock, Download, FileText, Rss, Filter,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +50,19 @@ export default function CirCustomersPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [formSection, setFormSection] = useState(0);
+  const [showFilters, setShowFilters] = useState(true);
+  const [showEntries, setShowEntries] = useState("100");
+  const [vendorFilter, setVendorFilter] = useState("all");
+  const [customerTypeFilter, setCustomerTypeFilter] = useState("all");
+  const [serviceTypeFilter, setServiceTypeFilter] = useState("all");
+  const [linkTypeFilter, setLinkTypeFilter] = useState("all");
+  const [branchFilter, setBranchFilter] = useState("all");
+  const [cityFilter, setCityFilter] = useState("all");
+  const [managerFilter, setManagerFilter] = useState("all");
+  const [joinDateFilter, setJoinDateFilter] = useState("all");
+  const [billingStatusFilter, setBillingStatusFilter] = useState("all");
+  const [serviceStatusFilter, setServiceStatusFilter] = useState("all");
+  const [contractStatusFilter, setContractStatusFilter] = useState("all");
 
   const [referralsDialogOpen, setReferralsDialogOpen] = useState(false);
   const [viewingReferralsCir, setViewingReferralsCir] = useState<CirCustomer | null>(null);
@@ -234,89 +248,292 @@ export default function CirCustomersPage() {
 
   const filtered = (cirCustomers || [])
     .filter(c => statusFilter === "all" || c.status === statusFilter)
+    .filter(c => vendorFilter === "all" || String(c.vendorId) === vendorFilter)
+    .filter(c => linkTypeFilter === "all" || (c.linkType || "") === linkTypeFilter)
+    .filter(c => serviceTypeFilter === "all" || (c.serviceType || "") === serviceTypeFilter)
+    .filter(c => branchFilter === "all" || (c.branch || "") === branchFilter)
+    .filter(c => cityFilter === "all" || (c.city || "") === cityFilter)
+    .filter(c => contractStatusFilter === "all" || (() => {
+      if (!c.contractEndDate) return contractStatusFilter === "none";
+      const days = Math.ceil((new Date(c.contractEndDate).getTime() - Date.now()) / 86400000);
+      if (days < 0) return contractStatusFilter === "expired";
+      if (days <= 30) return contractStatusFilter === "expiring";
+      return contractStatusFilter === "active";
+    })())
     .filter(c => {
       if (!search) return true;
       const q = search.toLowerCase();
       return (c.companyName || "").toLowerCase().includes(q) || (c.contactPerson || "").toLowerCase().includes(q) || (c.staticIp || "").toLowerCase().includes(q);
-    });
+    })
+    .slice(0, parseInt(showEntries) || 100);
 
-  const totalActive = (cirCustomers || []).filter(c => c.status === "active").length;
-  const totalBandwidth = (cirCustomers || []).filter(c => c.status === "active").reduce((sum, c) => sum + (parseFloat(c.committedBandwidth || "0") || 0), 0);
-  const totalRevenue = (cirCustomers || []).filter(c => c.status === "active").reduce((sum, c) => sum + (parseFloat(c.monthlyCharges || "0") || 0), 0);
-  const suspended = (cirCustomers || []).filter(c => c.status === "suspended").length;
-  const expiring = (cirCustomers || []).filter(c => {
+  const allCir = cirCustomers || [];
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const totalActive = allCir.filter(c => c.status === "active").length;
+  const totalBandwidth = allCir.filter(c => c.status === "active").reduce((sum, c) => sum + (parseFloat(c.committedBandwidth || "0") || 0), 0);
+  const totalRevenue = allCir.filter(c => c.status === "active").reduce((sum, c) => sum + (parseFloat(c.monthlyCharges || "0") || 0), 0);
+  const suspended = allCir.filter(c => c.status === "suspended").length;
+  const expiring = allCir.filter(c => {
     if (!c.contractEndDate) return false;
     const days = Math.ceil((new Date(c.contractEndDate).getTime() - Date.now()) / 86400000);
     return days >= 0 && days <= 30;
   }).length;
 
+  const running = totalActive;
+  const newThisMonth = allCir.filter(c => c.createdAt && new Date(c.createdAt) >= monthStart).length;
+  const renewed = allCir.filter(c => c.autoRenewal === true).length;
+  const billPaid = allCir.filter(c => c.status === "active").length;
+  const pendingBill = allCir.filter(c => c.status === "suspended" || c.status === "pending").length;
+
+  const uniqueBranches = [...new Set(allCir.map(c => c.branch).filter(Boolean))];
+  const uniqueCities = [...new Set(allCir.map(c => c.city).filter(Boolean))];
+  const uniqueLinkTypes = [...new Set(allCir.map(c => c.linkType).filter(Boolean))];
+  const uniqueServiceTypes = [...new Set(allCir.map(c => c.serviceType).filter(Boolean))];
+
   const sections = ["Company Info", "Bandwidth", "IP Config", "Contract & SLA", "Billing", "Monitoring"];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-4">
       <div>
         <h1 className="text-2xl font-bold bg-gradient-to-r from-[#002B5B] to-[#005EFF] bg-clip-text text-transparent" data-testid="text-cir-title">CIR Customers</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Committed Information Rate — Dedicated Bandwidth Clients</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="border-l-4 border-l-blue-500">
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Total CIR Customers</p>
-            <p className="text-2xl font-bold" data-testid="text-cir-total">{(cirCustomers || []).length}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-teal-500">
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Active Bandwidth</p>
-            <p className="text-2xl font-bold text-teal-600" data-testid="text-cir-bandwidth">{totalBandwidth >= 1000 ? `${(totalBandwidth / 1000).toFixed(1)} Gbps` : `${totalBandwidth} Mbps`}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-green-500">
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Monthly Revenue</p>
-            <p className="text-2xl font-bold text-green-600" data-testid="text-cir-revenue">Rs. {totalRevenue.toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-red-500">
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Suspended</p>
-            <p className="text-2xl font-bold text-red-600" data-testid="text-cir-suspended">{suspended}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-l-4 border-l-orange-500">
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Expiring Contracts</p>
-            <p className="text-2xl font-bold text-orange-600" data-testid="text-cir-expiring">{expiring}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex gap-2 flex-wrap items-center">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search company, contact, IP..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 w-[250px] h-9" data-testid="input-cir-search" />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px] h-9" data-testid="select-cir-status-filter"><SelectValue placeholder="All Status" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="suspended">Suspended</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="expired">Expired</SelectItem>
-            </SelectContent>
-          </Select>
+      {/* Action Toolbar */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" className="h-9 gap-1.5 text-sm" data-testid="button-assign-employee">
+            <Users className="h-4 w-4" />Assign To Employee
+          </Button>
+          <Button variant="outline" size="sm" className="h-9 gap-1.5 text-sm" data-testid="button-generate-excel">
+            <Download className="h-4 w-4" />Generate Excel
+          </Button>
+          <Button variant="outline" size="sm" className="h-9 gap-1.5 text-sm" data-testid="button-generate-pdf">
+            <FileText className="h-4 w-4" />Generate Pdf
+          </Button>
         </div>
-        <Button onClick={() => setLocation("/add-customer?type=cir")} data-testid="button-add-cir" className="bg-gradient-to-r from-[#002B5B] to-[#005EFF] hover:from-[#001f42] hover:to-[#0044cc]">
-          <Plus className="h-4 w-4 mr-1" />Add CIR Customer
+        <Button size="sm" className="h-9 gap-1.5 text-sm bg-[#1c3557] hover:bg-[#152b44] text-white" data-testid="button-sync-ip">
+          <RefreshCw className="h-4 w-4" />SYNC IP Address Ping
         </Button>
       </div>
 
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="rounded-xl p-4 text-white bg-gradient-to-br from-blue-500 to-blue-700 relative overflow-hidden shadow-md" data-testid="card-running-customers">
+          <div className="absolute right-3 top-3 opacity-20"><Wifi className="h-12 w-12" /></div>
+          <p className="text-3xl font-bold">{running}</p>
+          <p className="font-semibold text-sm mt-1">Running Customers</p>
+          <p className="text-xs opacity-80 mt-0.5">Number of active CIR customers</p>
+        </div>
+        <div className="rounded-xl p-4 text-white bg-gradient-to-br from-emerald-400 to-teal-600 relative overflow-hidden shadow-md" data-testid="card-new-customers">
+          <div className="absolute right-3 top-3 opacity-20"><UserPlus className="h-12 w-12" /></div>
+          <p className="text-3xl font-bold">{newThisMonth}</p>
+          <p className="font-semibold text-sm mt-1">New Customers</p>
+          <p className="text-xs opacity-80 mt-0.5">Monthly number of new CIR clients</p>
+        </div>
+        <div className="rounded-xl p-4 text-white bg-gradient-to-br from-orange-400 to-orange-600 relative overflow-hidden shadow-md" data-testid="card-renewed-customers">
+          <div className="absolute right-3 top-3 opacity-20"><RotateCcw className="h-12 w-12" /></div>
+          <p className="text-3xl font-bold">{renewed}</p>
+          <p className="font-semibold text-sm mt-1">Renewed Customers</p>
+          <p className="text-xs opacity-80 mt-0.5">Monthly number of newly renewed</p>
+        </div>
+        <div className="rounded-xl p-4 text-white bg-gradient-to-br from-slate-500 to-slate-700 relative overflow-hidden shadow-md" data-testid="card-bill-paid">
+          <div className="absolute right-3 top-3 opacity-20"><CreditCard className="h-12 w-12" /></div>
+          <p className="text-3xl font-bold">{billPaid}</p>
+          <p className="font-semibold text-sm mt-1">Bill Paid</p>
+          <p className="text-xs opacity-80 mt-0.5">Customers with cleared invoices</p>
+        </div>
+        <div className="rounded-xl p-4 text-white bg-gradient-to-br from-red-500 to-red-700 relative overflow-hidden shadow-md" data-testid="card-pending-bill">
+          <div className="absolute right-3 top-3 opacity-20"><Clock className="h-12 w-12" /></div>
+          <p className="text-3xl font-bold">{pendingBill}</p>
+          <p className="font-semibold text-sm mt-1">Pending Bill</p>
+          <p className="text-xs opacity-80 mt-0.5">Customers with outstanding dues</p>
+        </div>
+      </div>
+
+      {/* Advanced Filter Panel */}
+      <div className="border rounded-lg bg-card shadow-sm">
+        <div className="p-4 space-y-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Vendor</label>
+              <Select value={vendorFilter} onValueChange={setVendorFilter}>
+                <SelectTrigger className="h-9" data-testid="select-vendor-filter"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Select</SelectItem>
+                  {(vendors || []).map(v => <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Customer Type</label>
+              <Select value={customerTypeFilter} onValueChange={setCustomerTypeFilter}>
+                <SelectTrigger className="h-9" data-testid="select-customer-type-filter"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Select</SelectItem>
+                  <SelectItem value="individual">Individual</SelectItem>
+                  <SelectItem value="corporate">Corporate</SelectItem>
+                  <SelectItem value="government">Government</SelectItem>
+                  <SelectItem value="isp">ISP</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Service Type</label>
+              <Select value={serviceTypeFilter} onValueChange={setServiceTypeFilter}>
+                <SelectTrigger className="h-9" data-testid="select-service-type-filter"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Select</SelectItem>
+                  <SelectItem value="fiber">Fiber</SelectItem>
+                  <SelectItem value="wireless">Wireless</SelectItem>
+                  <SelectItem value="dsl">DSL</SelectItem>
+                  <SelectItem value="leased_line">Leased Line</SelectItem>
+                  {uniqueServiceTypes.filter(t => !["fiber","wireless","dsl","leased_line"].includes(t!)).map(t => <SelectItem key={t} value={t!}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Link Type</label>
+              <Select value={linkTypeFilter} onValueChange={setLinkTypeFilter}>
+                <SelectTrigger className="h-9" data-testid="select-link-type-filter"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Select</SelectItem>
+                  <SelectItem value="dedicated">Dedicated</SelectItem>
+                  <SelectItem value="shared">Shared</SelectItem>
+                  <SelectItem value="p2p">Point to Point</SelectItem>
+                  <SelectItem value="mpls">MPLS</SelectItem>
+                  {uniqueLinkTypes.filter(t => !["dedicated","shared","p2p","mpls"].includes(t!)).map(t => <SelectItem key={t} value={t!}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Branch</label>
+              <Select value={branchFilter} onValueChange={setBranchFilter}>
+                <SelectTrigger className="h-9" data-testid="select-branch-filter"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Select</SelectItem>
+                  {uniqueBranches.map(b => <SelectItem key={b} value={b!}>{b}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">City</label>
+              <Select value={cityFilter} onValueChange={setCityFilter}>
+                <SelectTrigger className="h-9" data-testid="select-city-filter"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Select</SelectItem>
+                  {uniqueCities.map(c => <SelectItem key={c} value={c!}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Assign To Manager</label>
+              <Select value={managerFilter} onValueChange={setManagerFilter}>
+                <SelectTrigger className="h-9" data-testid="select-manager-filter"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Select</SelectItem>
+                  <SelectItem value="bilal">Bilal Hussain</SelectItem>
+                  <SelectItem value="sara">Sara Ahmed</SelectItem>
+                  <SelectItem value="kamran">Kamran Malik</SelectItem>
+                  <SelectItem value="naveed">Naveed Aslam</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Join Date Status</label>
+              <Select value={joinDateFilter} onValueChange={setJoinDateFilter}>
+                <SelectTrigger className="h-9" data-testid="select-join-date-filter"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Select</SelectItem>
+                  <SelectItem value="this_month">This Month</SelectItem>
+                  <SelectItem value="last_month">Last Month</SelectItem>
+                  <SelectItem value="this_year">This Year</SelectItem>
+                  <SelectItem value="last_year">Last Year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Billing Status</label>
+              <Select value={billingStatusFilter} onValueChange={setBillingStatusFilter}>
+                <SelectTrigger className="h-9" data-testid="select-billing-status-filter"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Select</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="unpaid">Unpaid</SelectItem>
+                  <SelectItem value="overdue">Overdue</SelectItem>
+                  <SelectItem value="partial">Partial</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Service Status</label>
+              <Select value={serviceStatusFilter} onValueChange={setServiceStatusFilter}>
+                <SelectTrigger className="h-9" data-testid="select-service-status-filter"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Select</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="terminated">Terminated</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Contract Status</label>
+              <Select value={contractStatusFilter} onValueChange={setContractStatusFilter}>
+                <SelectTrigger className="h-9" data-testid="select-contract-status-filter"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Select</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="expiring">Expiring Soon</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                  <SelectItem value="none">No Contract</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-center border-t py-2">
+          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground" onClick={() => setShowFilters(!showFilters)} data-testid="button-toggle-filters">
+            {showFilters ? <><ChevronUp className="h-3.5 w-3.5" />Hide</> : <><ChevronDown className="h-3.5 w-3.5" />Show Filters</>}
+          </Button>
+        </div>
+      </div>
+
+      {/* Table Controls Row */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">SHOW</span>
+          <Select value={showEntries} onValueChange={setShowEntries}>
+            <SelectTrigger className="w-20 h-9" data-testid="select-show-entries"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="25">25</SelectItem>
+              <SelectItem value="50">50</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+              <SelectItem value="250">250</SelectItem>
+              <SelectItem value="500">500</SelectItem>
+            </SelectContent>
+          </Select>
+          <span className="text-sm text-muted-foreground">ENTRIES</span>
+          <Button onClick={() => setDialogOpen(true)} size="sm" className="h-9 ml-2 bg-gradient-to-r from-[#002B5B] to-[#005EFF] hover:from-[#001f42] hover:to-[#0044cc] gap-1.5" data-testid="button-add-cir">
+            <Users className="h-4 w-4" />Add New Customer
+          </Button>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground font-medium">SEARCH:</span>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 w-[220px] h-9" data-testid="input-cir-search" />
+          </div>
+        </div>
+      </div>
+
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2"><Wifi className="h-5 w-5 text-blue-600" />CIR Customer Management</CardTitle>
+        <CardHeader className="pb-3 bg-gradient-to-r from-[#1a3a5c] to-[#1c67d4] rounded-t-lg">
+          <CardTitle className="flex items-center gap-2 text-white"><Wifi className="h-5 w-5" />CIR Customers</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
