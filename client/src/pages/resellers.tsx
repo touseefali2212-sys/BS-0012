@@ -1625,7 +1625,7 @@ export default function ResellersPage() {
                                   <DropdownMenuItem onClick={() => { setDetailReseller(reseller); setDetailTab("profile"); }} data-testid={`action-view-${reseller.id}`}>
                                     <Eye className="h-4 w-4 mr-2" /> View Details
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => openEdit(reseller)} data-testid={`button-edit-${reseller.id}`}>
+                                  <DropdownMenuItem onClick={() => setLocation(`/resellers/${reseller.id}/edit`)} data-testid={`button-edit-${reseller.id}`}>
                                     <Edit className="h-4 w-4 mr-2" /> Edit Reseller
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => { setRechargeReseller(reseller); setRechargeDialogOpen(true); }} data-testid={`action-credit-${reseller.id}`}>
@@ -1900,7 +1900,7 @@ export default function ResellersPage() {
               )}
 
               <div className="flex gap-2 pt-3 border-t">
-                <Button size="sm" className="flex-1 bg-gradient-to-r from-[#002B5B] to-[#007BFF] text-white" onClick={() => { openEdit(detailReseller); setDetailReseller(null); }} data-testid="detail-btn-edit">
+                <Button size="sm" className="flex-1 bg-gradient-to-r from-[#002B5B] to-[#007BFF] text-white" onClick={() => { setLocation(`/resellers/${detailReseller.id}/edit`); setDetailReseller(null); }} data-testid="detail-btn-edit">
                   <Edit className="h-4 w-4 mr-1" /> Edit
                 </Button>
                 <Button size="sm" variant="outline" className="flex-1" onClick={() => { setRechargeReseller(detailReseller); setRechargeDialogOpen(true); setDetailReseller(null); }} data-testid="detail-btn-credit">
