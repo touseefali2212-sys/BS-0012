@@ -1071,6 +1071,17 @@ export async function registerRoutes(
     (id) => storage.deleteReseller(id),
   );
 
+  app.get("/api/resellers/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const reseller = await storage.getReseller(id);
+      if (!reseller) return res.status(404).json({ message: "Reseller not found" });
+      res.json(reseller);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.get("/api/vendor-wallet-transactions/all", requireAuth, async (req, res) => {
     try {
       res.json(await storage.getAllVendorWalletTransactions());
