@@ -233,7 +233,7 @@ export default function AddResellerPage() {
     // Agreement
     agreementType: "standard", agreementStartDate: "", agreementEndDate: "", autoRenewal: false,
     // Documents
-    cnicPicture: "", registrationFormPicture: "", agreementFile: "",
+    cnicPicture: "", cnicBackPicture: "", officePicture: "", agreementFile: "",
   });
 
   const update = (field: string, value: string | boolean | number) =>
@@ -364,7 +364,8 @@ export default function AddResellerPage() {
           ? addedPackages.map(p => p.packageId).join(",")
           : null,
         cnicPicture: form.cnicPicture || null,
-        registrationFormPicture: form.registrationFormPicture || null,
+        cnicBackPicture: form.cnicBackPicture || null,
+        officePicture: form.officePicture || null,
         agreementFile: form.agreementFile || null,
       };
       const res = await apiRequest("POST", "/api/resellers", payload);
@@ -1122,42 +1123,37 @@ export default function AddResellerPage() {
             {activeTab === "documents" && (
               <div className="space-y-5">
                 <Card>
-                  <SectionHeader icon={Image} title="Document Uploads" description="Upload CNIC, registration and supporting documents" />
-                  <CardContent className="space-y-4">
+                  <SectionHeader icon={Image} title="Document Uploads" description="Upload CNIC and office documents for verification" />
+                  <CardContent className="space-y-6">
+                    {/* Row 1: CNIC Front & Back */}
                     <FieldGroup>
                       <FileUploadPreview
-                        label="CNIC / NID Front"
+                        label="CNIC Front"
+                        required
                         value={form.cnicPicture}
                         onChange={url => update("cnicPicture", url)}
                         testId="upload-cnic-front"
                       />
                       <FileUploadPreview
-                        label="Registration Form"
-                        value={form.registrationFormPicture}
-                        onChange={url => update("registrationFormPicture", url)}
-                        testId="upload-reg-form"
+                        label="CNIC Back"
+                        required
+                        value={form.cnicBackPicture}
+                        onChange={url => update("cnicBackPicture", url)}
+                        testId="upload-cnic-back"
                       />
                     </FieldGroup>
-                  </CardContent>
-                </Card>
 
-                <Card>
-                  <SectionHeader icon={Shield} title="Document Requirements" description="Required documents checklist for reseller onboarding" />
-                  <CardContent className="">
-                    <ul className="space-y-2 text-sm text-muted-foreground">
-                      {[
-                        "CNIC must be valid and not expired",
-                        "NTN certificate required for white-label and franchise resellers",
-                        "Registration form must be signed and stamped by company authority",
-                        "All documents should be clear scans or high-quality photos",
-                        "PDF format accepted for contracts and agreements",
-                      ].map((req, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
-                          {req}
-                        </li>
-                      ))}
-                    </ul>
+                    <Separator />
+
+                    {/* Row 2: Office Picture */}
+                    <div className="max-w-sm">
+                      <FileUploadPreview
+                        label="Office Picture"
+                        value={form.officePicture}
+                        onChange={url => update("officePicture", url)}
+                        testId="upload-office-picture"
+                      />
+                    </div>
                   </CardContent>
                 </Card>
               </div>
