@@ -532,9 +532,6 @@ export default function CirCustomersPage() {
       </div>
 
       <Card>
-        <CardHeader className="pb-3 bg-gradient-to-r from-[#1a3a5c] to-[#1c67d4] rounded-t-lg">
-          <CardTitle className="flex items-center gap-2 text-white"><Wifi className="h-5 w-5" />CIR Customers</CardTitle>
-        </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-5 space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>
