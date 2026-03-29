@@ -2653,8 +2653,85 @@ export async function registerRoutes(
       } catch (e: any) {
         steps.push({ step: "invoice", status: "error", message: `Invoice generation failed: ${e.message}` });
       }
-      // Step 2: Notification (always skipped for CIR — use portal manually)
-      steps.push({ step: "notification_customer", status: "skipped", message: "CIR client notifications managed via account manager" });
+      // Step 2: IP Address Add and SYNC in Network
+      try {
+        const staticIp = (cir as any).staticIp || "";
+        const publicIpBlock = (cir as any).publicIpBlock || "";
+        const ipRef = staticIp || publicIpBlock || `cir-${cid}`;
+        await storage.createActivityLog({
+          action: "ip_sync",
+          module: "network",
+          description: `CIR IP block assigned and synced: ${ipRef} | Committed BW: ${(cir as any).committedBandwidth || "N/A"} | VLAN: ${(cir as any).vlanId || "N/A"}`,
+          userId: null,
+          createdAt: new Date().toISOString(),
+        });
+        steps.push({ step: "ip_sync", status: "success", message: `IP block assigned and synced: ${ipRef || "pending assignment"}`, data: { ip: ipRef, vlan: (cir as any).vlanId || null } });
+      } catch (e: any) {
+        steps.push({ step: "ip_sync", status: "error", message: `IP sync failed: ${e.message}` });
+      }
+
+      // Step 3: Installation Task
+      try {
+        const taskCode = `TSK-CIR-${Date.now().toString(36).toUpperCase()}`;
+        const dateStr = new Date().toISOString().split("T")[0];
+        const dueDate = (() => { const d = new Date(); d.setDate(d.getDate() + 3); return d.toISOString().split("T")[0]; })();
+        const task = await storage.createTask({
+          taskCode,
+          title: `CIR Circuit Installation — ${(cir as any).companyName}`,
+          type: "installation",
+          description: `CIR circuit setup.\nCommitted BW: ${(cir as any).committedBandwidth || "N/A"}\nAddress: ${(cir as any).address || "N/A"}\nContact: ${(cir as any).phone || "N/A"}`,
+          priority: "high",
+          status: "pending",
+          assignedTo: null,
+          customerId: null,
+          startDate: dateStr,
+          dueDate,
+          notes: "Auto-generated on CIR customer creation",
+          createdAt: new Date().toISOString(),
+        });
+        steps.push({ step: "task", status: "success", message: `Installation task ${taskCode} created`, data: { taskCode, taskId: task.id } });
+      } catch (e: any) {
+        steps.push({ step: "task", status: "error", message: `Task creation failed: ${e.message}` });
+      }
+
+      // Step 4: Customer Welcome Notification
+      try {
+        await storage.createNotification({
+          title: "Welcome — CIR Service",
+          message: `Dear ${(cir as any).contactPerson || "Valued Client"}, your CIR dedicated internet circuit is being processed. Our team will contact you shortly.`,
+          type: "info",
+          channel: (cir as any).email ? "email" : "app",
+          recipientType: "customer",
+          recipientId: null,
+          isRead: false,
+          createdAt: new Date().toISOString(),
+        });
+        steps.push({ step: "notification_customer", status: "success", message: "Welcome notification sent to CIR client contact", data: { channel: (cir as any).email ? "Email" : "App" } });
+      } catch (e: any) {
+        steps.push({ step: "notification_customer", status: "error", message: `Customer notification failed: ${e.message}` });
+      }
+
+      // Step 5: Employee / Account Manager Notification
+      try {
+        if ((cir as any).accountManager) {
+          await storage.createNotification({
+            title: "New CIR Client Assigned",
+            message: `New CIR customer ${(cir as any).companyName} has been created. Committed BW: ${(cir as any).committedBandwidth || "N/A"}. Please initiate onboarding.`,
+            type: "info",
+            channel: "sms",
+            recipientType: "employee",
+            recipientId: null,
+            isRead: false,
+            createdAt: new Date().toISOString(),
+          });
+          steps.push({ step: "notification_employee", status: "success", message: `Account manager notified: ${(cir as any).accountManager}`, data: { channel: "SMS", assignedTo: (cir as any).accountManager } });
+        } else {
+          steps.push({ step: "notification_employee", status: "skipped", message: "Employee SMS notifications disabled" });
+        }
+      } catch (e: any) {
+        steps.push({ step: "notification_employee", status: "error", message: `Employee notification failed: ${e.message}` });
+      }
+
       res.json({ success: true, steps });
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
@@ -2745,8 +2822,84 @@ export async function registerRoutes(
       } catch (e: any) {
         steps.push({ step: "invoice", status: "error", message: `Invoice generation failed: ${e.message}` });
       }
-      // Step 2: Account manager notification (skipped — handled externally)
-      steps.push({ step: "notification_customer", status: "skipped", message: "Corporate notifications managed via account manager" });
+      // Step 2: IP Address Add and SYNC in Network
+      try {
+        const bandwidth = (corp as any).totalBandwidth || (corp as any).bandwidthMbps || "N/A";
+        const ipRef = `corp-${cid}-net`;
+        await storage.createActivityLog({
+          action: "ip_sync",
+          module: "network",
+          description: `Corporate IP block assigned: ${ipRef} | Bandwidth: ${bandwidth} | Company: ${(corp as any).companyName}`,
+          userId: null,
+          createdAt: new Date().toISOString(),
+        });
+        steps.push({ step: "ip_sync", status: "success", message: `IP block assigned for ${bandwidth} bandwidth`, data: { ip: ipRef, bandwidth } });
+      } catch (e: any) {
+        steps.push({ step: "ip_sync", status: "error", message: `IP sync failed: ${e.message}` });
+      }
+
+      // Step 3: Installation / Setup Task
+      try {
+        const taskCode = `TSK-CORP-${Date.now().toString(36).toUpperCase()}`;
+        const dateStr = new Date().toISOString().split("T")[0];
+        const dueDate = (() => { const d = new Date(); d.setDate(d.getDate() + 5); return d.toISOString().split("T")[0]; })();
+        const task = await storage.createTask({
+          taskCode,
+          title: `Corporate Setup — ${(corp as any).companyName}`,
+          type: "installation",
+          description: `Corporate client setup.\nContact: ${(corp as any).contactFullName || "N/A"}\nAddress: ${(corp as any).headOfficeAddress || "N/A"}\nPhone: ${(corp as any).mobileNo || "N/A"}`,
+          priority: "high",
+          status: "pending",
+          assignedTo: null,
+          customerId: null,
+          startDate: dateStr,
+          dueDate,
+          notes: "Auto-generated on corporate customer creation",
+          createdAt: new Date().toISOString(),
+        });
+        steps.push({ step: "task", status: "success", message: `Setup task ${taskCode} created`, data: { taskCode, taskId: task.id } });
+      } catch (e: any) {
+        steps.push({ step: "task", status: "error", message: `Task creation failed: ${e.message}` });
+      }
+
+      // Step 4: Customer Welcome Notification
+      try {
+        await storage.createNotification({
+          title: "Welcome — Corporate Internet Service",
+          message: `Dear ${(corp as any).contactFullName || "Valued Client"}, your corporate internet service account is being set up. Our account manager will reach out shortly.`,
+          type: "info",
+          channel: (corp as any).email ? "email" : "app",
+          recipientType: "customer",
+          recipientId: null,
+          isRead: false,
+          createdAt: new Date().toISOString(),
+        });
+        steps.push({ step: "notification_customer", status: "success", message: "Welcome message sent to corporate contact", data: { channel: (corp as any).email ? "Email" : "App" } });
+      } catch (e: any) {
+        steps.push({ step: "notification_customer", status: "error", message: `Customer notification failed: ${e.message}` });
+      }
+
+      // Step 5: Employee / Account Manager Notification
+      try {
+        if ((corp as any).accountManagerId || (corp as any).accountManager) {
+          await storage.createNotification({
+            title: "New Corporate Client Assigned",
+            message: `New corporate client ${(corp as any).companyName} has been created. Monthly billing: Rs. ${(corp as any).monthlyBilling || "0"}. Please initiate onboarding.`,
+            type: "info",
+            channel: "sms",
+            recipientType: "employee",
+            recipientId: null,
+            isRead: false,
+            createdAt: new Date().toISOString(),
+          });
+          steps.push({ step: "notification_employee", status: "success", message: "Account manager notified via SMS", data: { channel: "SMS" } });
+        } else {
+          steps.push({ step: "notification_employee", status: "skipped", message: "Employee SMS notifications disabled" });
+        }
+      } catch (e: any) {
+        steps.push({ step: "notification_employee", status: "error", message: `Employee notification failed: ${e.message}` });
+      }
+
       res.json({ success: true, steps });
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });

@@ -9,7 +9,7 @@ import {
   FileSpreadsheet, Send, CheckCircle2, XCircle, Loader2, SkipForward, Sparkles,
   ArrowRight, RefreshCw, Check, Zap, Eye, Phone, Mail, MapPin, Network, Lock,
   MessageSquare, CalendarClock, Power, UserCheck, UserPlus, RotateCcw, CreditCard,
-  Clock, Download, FileText, Rss, Filter,
+  Clock, Download, FileText, Rss, Filter, Radio, ClipboardList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,8 +39,11 @@ const statusColors: Record<string, string> = {
 type AutoStep = { step: string; status: "pending" | "running" | "success" | "error" | "skipped"; message: string; data?: any };
 
 const CIR_AUTO_STEPS = [
-  { key: "invoice", label: "Auto Invoice Generation", icon: FileSpreadsheet, description: "Generating first invoice for this CIR customer" },
-  { key: "notification_customer", label: "Account Manager Notification", icon: Send, description: "Notifying account manager of new CIR client" },
+  { key: "invoice",               label: "Auto Invoice Generation",            icon: FileSpreadsheet, description: "Generating first invoice for this CIR customer" },
+  { key: "ip_sync",               label: "IP Address Add and SYNC in Network", icon: Radio,           description: "Assigning dedicated IP block and syncing CIR network" },
+  { key: "task",                  label: "Installation Task",                  icon: ClipboardList,   description: "Creating CIR circuit installation task" },
+  { key: "notification_customer", label: "Customer Notification",              icon: Send,            description: "Sending welcome message to CIR client contact" },
+  { key: "notification_employee", label: "Employee Notification",              icon: Users,           description: "Notifying account manager / field team" },
 ];
 
 export default function CirCustomersPage() {
@@ -893,8 +896,15 @@ export default function CirCustomersPage() {
                       {status === "running" && <Badge className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 border-0 animate-pulse">Running…</Badge>}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{step?.message || stepDef.description}</p>
-                    {step?.data?.invoiceNumber && status === "success" && (
-                      <span className="mt-1 inline-block text-[10px] bg-white dark:bg-gray-800 border border-green-200 dark:border-green-700 rounded px-2 py-0.5 text-green-700 dark:text-green-300 font-mono">{step.data.invoiceNumber}</span>
+                    {step?.data && status === "success" && (
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {step.data.invoiceNumber && <span className="text-[10px] bg-white dark:bg-gray-800 border border-green-200 dark:border-green-700 rounded px-2 py-0.5 text-green-700 dark:text-green-300 font-mono">{step.data.invoiceNumber}</span>}
+                        {step.data.taskCode      && <span className="text-[10px] bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 rounded px-2 py-0.5 text-blue-700 dark:text-blue-300 font-mono">{step.data.taskCode}</span>}
+                        {step.data.ip            && <span className="text-[10px] bg-white dark:bg-gray-800 border border-cyan-200 dark:border-cyan-700 rounded px-2 py-0.5 text-cyan-700 dark:text-cyan-300 font-mono">{step.data.ip}</span>}
+                        {step.data.vlan          && <span className="text-[10px] bg-white dark:bg-gray-800 border border-teal-200 dark:border-teal-700 rounded px-2 py-0.5 text-teal-700 dark:text-teal-300 font-mono">VLAN: {step.data.vlan}</span>}
+                        {step.data.assignedTo    && <span className="text-[10px] bg-white dark:bg-gray-800 border border-purple-200 dark:border-purple-700 rounded px-2 py-0.5 text-purple-700 dark:text-purple-300">{step.data.assignedTo}</span>}
+                        {step.data.channel       && <span className="text-[10px] bg-white dark:bg-gray-800 border border-orange-200 dark:border-orange-700 rounded px-2 py-0.5 text-orange-700 dark:text-orange-300">{step.data.channel}</span>}
+                      </div>
                     )}
                   </div>
                 </div>
