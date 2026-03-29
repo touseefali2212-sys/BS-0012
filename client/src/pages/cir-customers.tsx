@@ -575,9 +575,9 @@ export default function CirCustomersPage() {
                       : "text-slate-500 bg-slate-100";
                     return (
                       <TableRow key={c.id} data-testid={`row-cir-${c.id}`} className={idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"}>
-                        <TableCell className="text-xs font-mono font-semibold text-blue-700 dark:text-blue-400 whitespace-nowrap">CIR-{String(c.id).padStart(4, "0")}</TableCell>
-                        <TableCell className="text-xs font-semibold whitespace-nowrap" data-testid={`text-cir-name-${c.id}`}>{c.companyName}</TableCell>
-                        <TableCell className="text-xs whitespace-nowrap">{c.contactPerson || "—"}</TableCell>
+                        <TableCell className="text-xs font-mono font-semibold text-blue-700 dark:text-blue-400 whitespace-nowrap cursor-pointer hover:underline" onClick={() => setLocation(`/cir-customers/${c.id}`)} data-testid={`link-cir-code-${c.id}`}>CIR-{String(c.id).padStart(4, "0")}</TableCell>
+                        <TableCell className="text-xs font-semibold whitespace-nowrap cursor-pointer hover:text-blue-600 hover:underline" onClick={() => setLocation(`/cir-customers/${c.id}`)} data-testid={`text-cir-name-${c.id}`}>{c.companyName}</TableCell>
+                        <TableCell className="text-xs whitespace-nowrap cursor-pointer hover:text-blue-600 hover:underline" onClick={() => setLocation(`/cir-customers/${c.id}`)} data-testid={`link-cir-contact-${c.id}`}>{c.contactPerson || "—"}</TableCell>
                         <TableCell className="text-xs whitespace-nowrap">{c.phone || c.mobileNo2 || "—"}</TableCell>
                         <TableCell className="text-xs max-w-[140px] truncate">{c.email || "—"}</TableCell>
                         <TableCell><code className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded whitespace-nowrap">{c.staticIp || "—"}</code></TableCell>

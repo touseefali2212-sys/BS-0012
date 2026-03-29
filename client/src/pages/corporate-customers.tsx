@@ -619,9 +619,9 @@ export default function CorporateCustomersPage() {
                           : "text-slate-500 bg-slate-100";
                         return (
                         <TableRow key={c.id} data-testid={`row-corp-${c.id}`} className={idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"}>
-                          <TableCell className="text-xs font-mono font-semibold text-indigo-700 dark:text-indigo-400 whitespace-nowrap">CORP-{String(c.id).padStart(4, "0")}</TableCell>
-                          <TableCell className="text-xs font-semibold whitespace-nowrap" data-testid={`text-corp-name-${c.id}`}>{c.companyName}</TableCell>
-                          <TableCell className="text-xs whitespace-nowrap">{c.contactFullName || "—"}</TableCell>
+                          <TableCell className="text-xs font-mono font-semibold text-indigo-700 dark:text-indigo-400 whitespace-nowrap cursor-pointer hover:underline" onClick={() => setLocation(`/corporate-customers/${c.id}`)} data-testid={`link-corp-code-${c.id}`}>CORP-{String(c.id).padStart(4, "0")}</TableCell>
+                          <TableCell className="text-xs font-semibold whitespace-nowrap cursor-pointer hover:text-indigo-600 hover:underline" onClick={() => setLocation(`/corporate-customers/${c.id}`)} data-testid={`text-corp-name-${c.id}`}>{c.companyName}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap cursor-pointer hover:text-indigo-600 hover:underline" onClick={() => setLocation(`/corporate-customers/${c.id}`)} data-testid={`link-corp-contact-${c.id}`}>{c.contactFullName || "—"}</TableCell>
                           <TableCell className="text-xs whitespace-nowrap">{c.mobileNo || c.phone || "—"}</TableCell>
                           <TableCell className="text-xs max-w-[140px] truncate">{c.email || "—"}</TableCell>
                           <TableCell><code className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded whitespace-nowrap">—</code></TableCell>
