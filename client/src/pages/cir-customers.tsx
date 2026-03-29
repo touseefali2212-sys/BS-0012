@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { insertCirCustomerSchema, type CirCustomer, type InsertCirCustomer } from "@shared/schema";
@@ -52,6 +53,7 @@ export default function CirCustomersPage() {
   const [formSection, setFormSection] = useState(0);
   const [showFilters, setShowFilters] = useState(true);
   const [showEntries, setShowEntries] = useState("100");
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [vendorFilter, setVendorFilter] = useState("all");
   const [customerTypeFilter, setCustomerTypeFilter] = useState("all");
   const [serviceTypeFilter, setServiceTypeFilter] = useState("all");
@@ -531,6 +533,13 @@ export default function CirCustomersPage() {
         </div>
       </div>
 
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-2.5">
+          <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{selectedIds.size} customer{selectedIds.size > 1 ? "s" : ""} selected</span>
+          <Button variant="ghost" size="sm" className="h-7 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900" onClick={() => setSelectedIds(new Set())} data-testid="button-clear-selection">Clear Selection</Button>
+        </div>
+      )}
+
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
@@ -545,6 +554,17 @@ export default function CirCustomersPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gradient-to-r from-slate-800 to-slate-700">
+                    <TableHead className="w-10 pl-4">
+                      <Checkbox
+                        checked={filtered.length > 0 && filtered.every(c => selectedIds.has(c.id))}
+                        onCheckedChange={(checked) => {
+                          if (checked) setSelectedIds(new Set(filtered.map(c => c.id)));
+                          else setSelectedIds(new Set());
+                        }}
+                        data-testid="checkbox-select-all-cir"
+                        className="border-slate-400 data-[state=checked]:bg-white data-[state=checked]:text-slate-900 data-[state=checked]:border-white"
+                      />
+                    </TableHead>
                     <TableHead className="text-white text-xs whitespace-nowrap">Customer Code</TableHead>
                     <TableHead className="text-white text-xs whitespace-nowrap">Company Name</TableHead>
                     <TableHead className="text-white text-xs whitespace-nowrap">Customer Name</TableHead>
@@ -574,7 +594,18 @@ export default function CirCustomersPage() {
                       : contractStatus === "Active" ? "text-green-700 bg-green-50"
                       : "text-slate-500 bg-slate-100";
                     return (
-                      <TableRow key={c.id} data-testid={`row-cir-${c.id}`} className={idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"}>
+                      <TableRow key={c.id} data-testid={`row-cir-${c.id}`} className={`${idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"} ${selectedIds.has(c.id) ? "bg-blue-50 dark:bg-blue-950/40" : ""}`}>
+                        <TableCell className="pl-4 w-10" onClick={e => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selectedIds.has(c.id)}
+                            onCheckedChange={(checked) => {
+                              const next = new Set(selectedIds);
+                              if (checked) next.add(c.id); else next.delete(c.id);
+                              setSelectedIds(next);
+                            }}
+                            data-testid={`checkbox-cir-${c.id}`}
+                          />
+                        </TableCell>
                         <TableCell className="text-xs font-mono font-semibold text-blue-700 dark:text-blue-400 whitespace-nowrap cursor-pointer hover:underline" onClick={() => setLocation(`/cir-customers/${c.id}`)} data-testid={`link-cir-code-${c.id}`}>CIR-{String(c.id).padStart(4, "0")}</TableCell>
                         <TableCell className="text-xs font-semibold whitespace-nowrap cursor-pointer hover:text-blue-600 hover:underline" onClick={() => setLocation(`/cir-customers/${c.id}`)} data-testid={`text-cir-name-${c.id}`}>{c.companyName}</TableCell>
                         <TableCell className="text-xs whitespace-nowrap cursor-pointer hover:text-blue-600 hover:underline" onClick={() => setLocation(`/cir-customers/${c.id}`)} data-testid={`link-cir-contact-${c.id}`}>{c.contactPerson || "—"}</TableCell>

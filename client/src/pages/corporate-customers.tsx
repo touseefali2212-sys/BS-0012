@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -57,6 +58,7 @@ export default function CorporateCustomersPage() {
   const [formSection, setFormSection] = useState(0);
   const [showFilters, setShowFilters] = useState(true);
   const [showEntries, setShowEntries] = useState("100");
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [industryFilter, setIndustryFilter] = useState("all");
   const [serviceTypeFilter, setServiceTypeFilter] = useState("all");
   const [billingModeFilter, setBillingModeFilter] = useState("all");
@@ -576,6 +578,13 @@ export default function CorporateCustomersPage() {
             </div>
           </div>
 
+          {selectedIds.size > 0 && (
+            <div className="flex items-center justify-between bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800 rounded-lg px-4 py-2.5">
+              <span className="text-sm font-medium text-indigo-700 dark:text-indigo-300">{selectedIds.size} customer{selectedIds.size > 1 ? "s" : ""} selected</span>
+              <Button variant="ghost" size="sm" className="h-7 text-xs text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900" onClick={() => setSelectedIds(new Set())} data-testid="button-clear-selection">Clear Selection</Button>
+            </div>
+          )}
+
           <Card>
             <CardContent className="p-0">
               {isLoading ? (
@@ -590,6 +599,17 @@ export default function CorporateCustomersPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-gradient-to-r from-slate-800 to-slate-700">
+                        <TableHead className="w-10 pl-4">
+                          <Checkbox
+                            checked={filtered.length > 0 && filtered.every(c => selectedIds.has(c.id))}
+                            onCheckedChange={(checked) => {
+                              if (checked) setSelectedIds(new Set(filtered.map(c => c.id)));
+                              else setSelectedIds(new Set());
+                            }}
+                            data-testid="checkbox-select-all-corp"
+                            className="border-slate-400 data-[state=checked]:bg-white data-[state=checked]:text-slate-900 data-[state=checked]:border-white"
+                          />
+                        </TableHead>
                         <TableHead className="text-white text-xs whitespace-nowrap">Customer Code</TableHead>
                         <TableHead className="text-white text-xs whitespace-nowrap">Company Name</TableHead>
                         <TableHead className="text-white text-xs whitespace-nowrap">Customer Name</TableHead>
@@ -618,7 +638,18 @@ export default function CorporateCustomersPage() {
                           : contractStatus === "Active" ? "text-green-700 bg-green-50"
                           : "text-slate-500 bg-slate-100";
                         return (
-                        <TableRow key={c.id} data-testid={`row-corp-${c.id}`} className={idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"}>
+                        <TableRow key={c.id} data-testid={`row-corp-${c.id}`} className={`${idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"} ${selectedIds.has(c.id) ? "bg-indigo-50 dark:bg-indigo-950/40" : ""}`}>
+                          <TableCell className="pl-4 w-10" onClick={e => e.stopPropagation()}>
+                            <Checkbox
+                              checked={selectedIds.has(c.id)}
+                              onCheckedChange={(checked) => {
+                                const next = new Set(selectedIds);
+                                if (checked) next.add(c.id); else next.delete(c.id);
+                                setSelectedIds(next);
+                              }}
+                              data-testid={`checkbox-corp-${c.id}`}
+                            />
+                          </TableCell>
                           <TableCell className="text-xs font-mono font-semibold text-indigo-700 dark:text-indigo-400 whitespace-nowrap cursor-pointer hover:underline" onClick={() => setLocation(`/corporate-customers/${c.id}`)} data-testid={`link-corp-code-${c.id}`}>CORP-{String(c.id).padStart(4, "0")}</TableCell>
                           <TableCell className="text-xs font-semibold whitespace-nowrap cursor-pointer hover:text-indigo-600 hover:underline" onClick={() => setLocation(`/corporate-customers/${c.id}`)} data-testid={`text-corp-name-${c.id}`}>{c.companyName}</TableCell>
                           <TableCell className="text-xs whitespace-nowrap cursor-pointer hover:text-indigo-600 hover:underline" onClick={() => setLocation(`/corporate-customers/${c.id}`)} data-testid={`link-corp-contact-${c.id}`}>{c.contactFullName || "—"}</TableCell>
