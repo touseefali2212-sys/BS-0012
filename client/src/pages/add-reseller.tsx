@@ -750,59 +750,6 @@ export default function AddResellerPage() {
                     </FieldGroup>
                   </CardContent>
                 </Card>
-
-                <Card>
-                  <SectionHeader icon={Wifi} title="Network Configuration" description="IP assignment, NAS and service zone settings" />
-                  <CardContent className="space-y-4">
-                    <FieldGroup>
-                      <Field label="Bandwidth Plan">
-                        <Input value={form.bandwidthPlan} onChange={e => update("bandwidthPlan", e.target.value)} placeholder="e.g. 100 Mbps Shared" data-testid="input-bandwidth-plan" />
-                      </Field>
-                      <Field label="IP Assignment">
-                        <Select value={form.ipAssignment} onValueChange={v => update("ipAssignment", v)}>
-                          <SelectTrigger data-testid="select-ip-assignment"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="dynamic">Dynamic (DHCP)</SelectItem>
-                            <SelectItem value="static">Static IP</SelectItem>
-                            <SelectItem value="pppoe">PPPoE</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                    </FieldGroup>
-                    <FieldGroup>
-                      <Field label="NAS ID">
-                        <Input value={form.nasId} onChange={e => update("nasId", e.target.value)} placeholder="Network Access Server ID" data-testid="input-nas-id" />
-                      </Field>
-                      <Field label="Service Zone">
-                        <Input value={form.serviceZone} onChange={e => update("serviceZone", e.target.value)} placeholder="Zone identifier" data-testid="input-service-zone" />
-                      </Field>
-                    </FieldGroup>
-
-                    <Separator />
-                    <div className="flex items-center justify-between rounded-lg border p-3">
-                      <div>
-                        <p className="text-sm font-medium">VLAN ID Allowed</p>
-                        <p className="text-xs text-muted-foreground">Enable VLAN tagging for this reseller's traffic</p>
-                      </div>
-                      <Switch
-                        checked={form.vlanIdAllowed}
-                        onCheckedChange={v => update("vlanIdAllowed", v)}
-                        data-testid="switch-vlan-allowed"
-                      />
-                    </div>
-
-                    {form.vlanIdAllowed && (
-                      <FieldGroup>
-                        <Field label="VLAN ID">
-                          <Input value={form.vlanId} onChange={e => update("vlanId", e.target.value)} placeholder="e.g. 100" data-testid="input-vlan-id" />
-                        </Field>
-                        <Field label="VLAN Note">
-                          <Input value={form.vlanIdNote} onChange={e => update("vlanIdNote", e.target.value)} placeholder="Optional notes about VLAN" data-testid="input-vlan-note" />
-                        </Field>
-                      </FieldGroup>
-                    )}
-                  </CardContent>
-                </Card>
               </div>
             )}
 
