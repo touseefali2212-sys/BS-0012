@@ -9,7 +9,7 @@ import {
   Calendar, Download, MessageCircle, CalendarRange, User, Hash,
   CreditCard, Globe, CheckCircle2, FileText, Plus, Clock, TrendingUp,
   TrendingDown, BarChart3, MessageSquare, ShoppingBag, Users, Bell,
-  Wallet, Store, Percent, Landmark, MapPin, Briefcase, Key, Wifi, Navigation, Tag,
+  Wallet, Store, Percent, Landmark, MapPin, Briefcase, Key, Wifi, Navigation, Tag, Trash2, MoreHorizontal, Pencil,
 } from "lucide-react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker } from "react-leaflet";
@@ -25,6 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { insertResellerSchema, type Reseller, type InsertReseller } from "@shared/schema";
@@ -492,26 +493,57 @@ export default function ResellerProfilePage() {
                   <div className="bg-card border rounded-lg overflow-hidden">
                     <Table>
                       <TableHeader><TableRow className="bg-[#1a3a5c]">
-                        <TableHead className="text-white text-xs">#</TableHead>
-                        <TableHead className="text-white text-xs">Package Name</TableHead>
-                        <TableHead className="text-white text-xs">Speed</TableHead>
+                        <TableHead className="text-white text-xs">Sr.#</TableHead>
                         <TableHead className="text-white text-xs">Vendor</TableHead>
+                        <TableHead className="text-white text-xs">Package</TableHead>
+                        <TableHead className="text-white text-xs">Speed</TableHead>
                         <TableHead className="text-white text-xs">Vendor Price</TableHead>
+                        <TableHead className="text-white text-xs">Profit</TableHead>
                         <TableHead className="text-white text-xs">Reseller Price</TableHead>
+                        <TableHead className="text-white text-xs">Active Customer</TableHead>
                         <TableHead className="text-white text-xs">Status</TableHead>
+                        <TableHead className="text-white text-xs">Action</TableHead>
                       </TableRow></TableHeader>
                       <TableBody>
                         {assignedPkgs.map((pkg: any, i: number) => {
                           const pkgVendor = (vendors || []).find((v: any) => v.id === pkg.vendorId);
+                          const vPrice = parseFloat(String(pkg.vendorPrice || "0"));
+                          const rPrice = parseFloat(String(pkg.resellerPrice || pkg.ispSellingPrice || "0"));
+                          const profit = rPrice - vPrice;
+                          const activeCustCount = resellerCustomers.filter((c: any) => c.status === "active" && c.packageId === pkg.id).length;
                           return (
                             <TableRow key={pkg.id}>
                               <TableCell className="text-xs">{i + 1}</TableCell>
+                              <TableCell className="text-xs">{pkgVendor?.name || "—"}</TableCell>
                               <TableCell className="text-xs font-medium">{pkg.packageName}</TableCell>
                               <TableCell className="text-xs">{pkg.speed || "—"}</TableCell>
-                              <TableCell className="text-xs">{pkgVendor?.name || "—"}</TableCell>
-                              <TableCell className="text-xs">Rs. {parseFloat(String(pkg.vendorPrice || "0")).toLocaleString()}</TableCell>
-                              <TableCell className="text-xs font-semibold text-green-700">Rs. {parseFloat(String(pkg.resellerPrice || pkg.ispSellingPrice || "0")).toLocaleString()}</TableCell>
+                              <TableCell className="text-xs">Rs. {vPrice.toLocaleString()}</TableCell>
+                              <TableCell className={`text-xs font-semibold ${profit >= 0 ? "text-green-700" : "text-red-600"}`}>Rs. {profit.toLocaleString()}</TableCell>
+                              <TableCell className="text-xs font-semibold">Rs. {rPrice.toLocaleString()}</TableCell>
+                              <TableCell className="text-xs text-center">{activeCustCount}</TableCell>
                               <TableCell><Badge variant="secondary" className={`text-[10px] ${pkg.isActive ? "text-emerald-700 bg-emerald-50" : "text-gray-500 bg-gray-100"}`}>{pkg.isActive ? "Active" : "Inactive"}</Badge></TableCell>
+                              <TableCell>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" data-testid={`pkg-action-${pkg.id}`}>
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => toast({ title: "Edit Package", description: `Edit ${pkg.packageName} pricing via the Edit Reseller dialog.` })} data-testid={`pkg-edit-${pkg.id}`}>
+                                      <Pencil className="h-3.5 w-3.5 mr-2" /> Edit Package
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="text-red-600" onClick={() => {
+                                      const updatedIds = assignedPkgIds.filter((pkgId: number) => pkgId !== pkg.id).join(",");
+                                      apiRequest("PATCH", `/api/resellers/${id}`, { assignedPackages: updatedIds || null })
+                                        .then(() => { queryClient.invalidateQueries({ queryKey: ["/api/resellers", id] }); toast({ title: "Package removed" }); })
+                                        .catch(() => toast({ title: "Failed to remove package", variant: "destructive" }));
+                                    }} data-testid={`pkg-delete-${pkg.id}`}>
+                                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Package
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </TableCell>
                             </TableRow>
                           );
                         })}
