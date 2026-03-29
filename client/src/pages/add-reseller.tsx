@@ -845,49 +845,6 @@ export default function AddResellerPage() {
                     )}
                   </CardContent>
                 </Card>
-
-                <Card>
-                  <SectionHeader icon={DollarSign} title="Commission Settings" description="Commission rate and payment configuration" />
-                  <CardContent className="space-y-4">
-                    <FieldGroup cols={3}>
-                      <Field label="Commission Rate (%)">
-                        <Input
-                          type="number" min="0" max="100" step="0.5"
-                          value={form.commissionRate}
-                          onChange={e => update("commissionRate", e.target.value)}
-                          data-testid="input-commission-rate"
-                        />
-                      </Field>
-                      <Field label="Payment Method">
-                        <Select value={form.commissionPaymentMethod} onValueChange={v => update("commissionPaymentMethod", v)}>
-                          <SelectTrigger data-testid="select-commission-method"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="wallet">Wallet Credit</SelectItem>
-                            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                            <SelectItem value="cash">Cash</SelectItem>
-                            <SelectItem value="cheque">Cheque</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                      <Field label="Payment Frequency">
-                        <Select value={form.commissionPaymentFrequency} onValueChange={v => update("commissionPaymentFrequency", v)}>
-                          <SelectTrigger data-testid="select-commission-frequency"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="weekly">Weekly</SelectItem>
-                            <SelectItem value="monthly">Monthly</SelectItem>
-                            <SelectItem value="quarterly">Quarterly</SelectItem>
-                            <SelectItem value="on_payment">On Each Payment</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                    </FieldGroup>
-                    <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 p-3 text-sm text-blue-800 dark:text-blue-200">
-                      Commission of <strong>{form.commissionRate}%</strong> will be credited via{" "}
-                      <strong>{form.commissionPaymentMethod.replace("_", " ")}</strong> on a{" "}
-                      <strong>{form.commissionPaymentFrequency}</strong> basis.
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
             )}
 
