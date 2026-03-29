@@ -6,9 +6,15 @@ import {
   ChevronLeft, Upload, Check, Eye, EyeOff, RefreshCw,
   Camera, Phone, Mail, Shield, Building2, X,
   CheckCircle2, Trash2, Plus, ScrollText, Network,
-  Wallet, Store, Image, AlertCircle, LocateFixed,
+  Wallet, Store, Image, AlertCircle, Map,
   CalendarClock, Settings, DollarSign, Briefcase, Sparkles, Handshake,
 } from "lucide-react";
+import L from "leaflet";
+import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +41,17 @@ const tabItems = [
   { id: "agreement", label: "Agreement",          icon: ScrollText },
   { id: "documents", label: "Documents",          icon: Image },
 ];
+
+const pickerIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41],
+});
+
+function MapClickHandler({ onPick }: { onPick: (lat: number, lng: number) => void }) {
+  useMapEvents({ click(e) { onPick(e.latlng.lat, e.latlng.lng); } });
+  return null;
+}
 
 function SectionHeader({ icon: Icon, title, description }: { icon: any; title: string; description?: string }) {
   return (
@@ -192,7 +209,8 @@ export default function AddResellerPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showVpPassword, setShowVpPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [gpsLocating, setGpsLocating] = useState(false);
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
+  const [mapPickedPos, setMapPickedPos] = useState<{ lat: number; lng: number } | null>(null);
 
   const fromQueryId = new URLSearchParams(window.location.search).get("fromQuery");
   const { data: fromQueryData } = useQuery<any>({
@@ -279,22 +297,19 @@ export default function AddResellerPage() {
     if (rt?.defaultCommissionRate) update("commissionRate", rt.defaultCommissionRate);
   }, [form.resellerType, resellerTypesList]);
 
-  const GPS = () => {
-    if (!navigator.geolocation) {
-      toast({ title: "Geolocation not supported", variant: "destructive" });
-      return;
-    }
-    setGpsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        update("mapLatitude", String(pos.coords.latitude));
-        update("mapLongitude", String(pos.coords.longitude));
-        setGpsLocating(false);
-        toast({ title: "Location detected", description: `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}` });
-      },
-      (err) => { setGpsLocating(false); toast({ title: "GPS error", description: err.message, variant: "destructive" }); },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+  const openMapPicker = () => {
+    const lat = parseFloat(form.mapLatitude);
+    const lng = parseFloat(form.mapLongitude);
+    if (!isNaN(lat) && !isNaN(lng)) setMapPickedPos({ lat, lng });
+    setMapPickerOpen(true);
+  };
+
+  const confirmMapLocation = () => {
+    if (!mapPickedPos) return;
+    update("mapLatitude", mapPickedPos.lat.toFixed(6));
+    update("mapLongitude", mapPickedPos.lng.toFixed(6));
+    setMapPickerOpen(false);
+    toast({ title: "Location set", description: `${mapPickedPos.lat.toFixed(6)}, ${mapPickedPos.lng.toFixed(6)}` });
   };
 
   const validate = (): boolean => {
@@ -463,6 +478,7 @@ export default function AddResellerPage() {
   const isFirstTab = tabIndex === 0;
 
   return (
+    <>
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-950 dark:via-blue-950/10 dark:to-indigo-950/10">
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
 
@@ -710,12 +726,12 @@ export default function AddResellerPage() {
                         <p className="text-sm font-medium">GPS Coordinates</p>
                         <Button
                           type="button" variant="outline" size="sm"
-                          onClick={GPS} disabled={gpsLocating}
+                          onClick={openMapPicker}
                           data-testid="button-get-gps"
-                          className="gap-1.5"
+                          className="gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50"
                         >
-                          <LocateFixed className="h-3.5 w-3.5" />
-                          {gpsLocating ? "Detecting..." : "Detect My Location"}
+                          <Map className="h-3.5 w-3.5" />
+                          Get GPS Location from MAP
                         </Button>
                       </div>
                       <FieldGroup>
@@ -726,6 +742,23 @@ export default function AddResellerPage() {
                           <Input value={form.mapLongitude} onChange={e => update("mapLongitude", e.target.value)} placeholder="e.g. 74.3587" data-testid="input-longitude" />
                         </Field>
                       </FieldGroup>
+                      {form.mapLatitude && form.mapLongitude && (
+                        <div className="rounded-md overflow-hidden border h-48">
+                          <MapContainer
+                            center={[parseFloat(form.mapLatitude) || 31.5204, parseFloat(form.mapLongitude) || 74.3587]}
+                            zoom={15}
+                            style={{ height: "100%", width: "100%" }}
+                            zoomControl={false}
+                            dragging={false}
+                            scrollWheelZoom={false}
+                            doubleClickZoom={false}
+                            attributionControl={false}
+                          >
+                            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                            <Marker position={[parseFloat(form.mapLatitude), parseFloat(form.mapLongitude)]} icon={pickerIcon} />
+                          </MapContainer>
+                        </div>
+                      )}
                     </div>
 
                     <Separator />
@@ -1288,5 +1321,57 @@ export default function AddResellerPage() {
       </div>
     </div>
     </div>
+
+    {/* ── Map Picker Dialog ── */}
+    <Dialog open={mapPickerOpen} onOpenChange={setMapPickerOpen}>
+      <DialogContent className="max-w-2xl p-0 overflow-hidden">
+        <DialogHeader className="px-5 pt-5 pb-3">
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <Map className="h-4 w-4 text-blue-600" />
+            Pick Location on Map
+          </DialogTitle>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Click anywhere on the map to drop a pin. Confirm to save the coordinates.
+          </p>
+        </DialogHeader>
+
+        <div className="h-[420px] w-full">
+          <MapContainer
+            center={mapPickedPos ? [mapPickedPos.lat, mapPickedPos.lng] : [30.3753, 69.3451]}
+            zoom={mapPickedPos ? 15 : 5}
+            style={{ height: "100%", width: "100%" }}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            />
+            <MapClickHandler onPick={(lat, lng) => setMapPickedPos({ lat, lng })} />
+            {mapPickedPos && (
+              <Marker position={[mapPickedPos.lat, mapPickedPos.lng]} icon={pickerIcon} />
+            )}
+          </MapContainer>
+        </div>
+
+        <DialogFooter className="px-5 py-3 bg-muted/30 border-t flex items-center justify-between">
+          <div className="text-xs text-muted-foreground">
+            {mapPickedPos
+              ? <span className="font-medium text-foreground">📍 {mapPickedPos.lat.toFixed(6)}, {mapPickedPos.lng.toFixed(6)}</span>
+              : "No location selected — click on the map"}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setMapPickerOpen(false)}>Cancel</Button>
+            <Button
+              size="sm"
+              disabled={!mapPickedPos}
+              onClick={confirmMapLocation}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Check className="h-3.5 w-3.5 mr-1" /> Confirm Location
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
