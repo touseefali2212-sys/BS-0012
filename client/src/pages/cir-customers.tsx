@@ -354,7 +354,7 @@ export default function CirCustomersPage() {
 
       {/* Advanced Filter Panel */}
       <div className="border rounded-lg bg-card shadow-sm">
-        <div className="p-4 space-y-3">
+        {showFilters && (<div className="p-4 space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Vendor</label>
@@ -495,7 +495,7 @@ export default function CirCustomersPage() {
               </Select>
             </div>
           </div>
-        </div>
+        </div>)}
         <div className="flex justify-center border-t py-2">
           <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground hover:text-foreground" onClick={() => setShowFilters(!showFilters)} data-testid="button-toggle-filters">
             {showFilters ? <><ChevronUp className="h-3.5 w-3.5" />Hide</> : <><ChevronDown className="h-3.5 w-3.5" />Show Filters</>}
