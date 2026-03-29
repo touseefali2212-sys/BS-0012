@@ -28,7 +28,6 @@ type ResellerType = { id: number; key: string; label: string; defaultCommissionR
 
 const tabItems = [
   { id: "basic",     label: "Basic Info",         icon: User },
-  { id: "contact",   label: "Contact & Location", icon: Phone },
   { id: "network",   label: "Network & Service",  icon: Wifi },
   { id: "packages",  label: "Packages",           icon: Tag },
   { id: "panels",    label: "Vendor Panels",      icon: Globe },
@@ -312,7 +311,7 @@ export default function AddResellerPage() {
   };
 
   // Missing fields tracker per tab for sidebar indicators
-  const missingByTab: Record<string, string[]> = { "Basic Info": [], "Contact & Location": [] };
+  const missingByTab: Record<string, string[]> = { "Basic Info": [] };
   if (!form.name || form.name.trim().length < 2) missingByTab["Basic Info"].push("Reseller Name");
   if (!form.phone || form.phone.trim().length < 10) missingByTab["Basic Info"].push("Mobile No");
   if (!form.email) missingByTab["Basic Info"].push("Email");
@@ -685,64 +684,6 @@ export default function AddResellerPage() {
                       />
                     </Field>
 
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* ── CONTACT & LOCATION ── */}
-            {activeTab === "contact" && (
-              <div className="space-y-5">
-                {/* Info banner */}
-                <div className="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
-                  <Phone className="h-4 w-4 mt-0.5 text-blue-600 shrink-0" />
-                  <p className="text-sm text-blue-800">
-                    Core contact details (Mobile, Email, Address, City, Area) are entered on the <strong>Basic Info</strong> tab.
-                    Complete additional service coverage settings here.
-                  </p>
-                </div>
-
-                {/* Contact summary (read-only preview) */}
-                <Card>
-                  <SectionHeader icon={Phone} title="Contact Summary" description="Quick view of contact details from Basic Info" />
-                  <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Mobile No</span>
-                        <span className="font-medium">{form.phone || <span className="text-muted-foreground italic">Not filled</span>}</span>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Phone No</span>
-                        <span className="font-medium">{form.secondaryPhone || <span className="text-muted-foreground italic">Not filled</span>}</span>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Email</span>
-                        <span className="font-medium">{form.email || <span className="text-muted-foreground italic">Not filled</span>}</span>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">City / Area</span>
-                        <span className="font-medium">{[form.city, form.area].filter(Boolean).join(", ") || <span className="text-muted-foreground italic">Not filled</span>}</span>
-                      </div>
-                      <div className="col-span-full flex flex-col gap-0.5">
-                        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Address</span>
-                        <span className="font-medium">{form.address || <span className="text-muted-foreground italic">Not filled</span>}</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Service Coverage */}
-                <Card>
-                  <SectionHeader icon={MapPin} title="Service Coverage" description="Service territory and coverage zone details" />
-                  <CardContent className="space-y-4">
-                    <Field label="Territory / Coverage Zone">
-                      <Input
-                        value={form.territory}
-                        onChange={e => update("territory", e.target.value)}
-                        placeholder="e.g. North Lahore, DHA Phase 1-5"
-                        data-testid="input-territory"
-                      />
-                    </Field>
                   </CardContent>
                 </Card>
               </div>
