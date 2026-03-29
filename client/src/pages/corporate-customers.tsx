@@ -8,7 +8,7 @@ import {
   FileSpreadsheet, Send, CheckCircle2, XCircle, Loader2, SkipForward, Sparkles,
   ArrowRight, RefreshCw, Check, Zap,
   Shield, Network, Calendar, Activity, Server, Globe, ChevronDown, Eye,
-  Briefcase, Link2, Wifi,
+  Briefcase, Link2, Wifi, Phone, Mail, MapPin, CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +59,8 @@ export default function CorporateCustomersPage() {
   const [editingConnection, setEditingConnection] = useState<CorporateConnection | null>(null);
   const [referralsDialogOpen, setReferralsDialogOpen] = useState(false);
   const [viewingReferralsCorp, setViewingReferralsCorp] = useState<CorporateCustomer | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [viewingDetails, setViewingDetails] = useState<CorporateCustomer | null>(null);
 
   // Automation modal state
   const [autoModalOpen, setAutoModalOpen] = useState(false);
@@ -423,6 +425,7 @@ export default function CorporateCustomersPage() {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" data-testid={`button-corp-actions-${c.id}`}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => { setViewingDetails(c); setDetailsDialogOpen(true); }} data-testid={`button-corp-details-${c.id}`}><Eye className="h-4 w-4 mr-2" />View Details</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => openConnections(c)}><Link2 className="h-4 w-4 mr-2" />Connections</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => openEdit(c)}><Edit className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>
                                 <DropdownMenuItem className="text-destructive" onClick={() => deleteMutation.mutate(c.id)}><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
@@ -786,6 +789,114 @@ export default function CorporateCustomersPage() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Corporate Customer Details Dialog */}
+      <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" data-testid="modal-corp-details">
+          {viewingDetails && (
+            <>
+              <DialogHeader>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-600 to-blue-700 flex items-center justify-center flex-shrink-0">
+                    <Building2 className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-xl">{viewingDetails.companyName}</DialogTitle>
+                    <p className="text-sm text-muted-foreground mt-0.5">{viewingDetails.industryType || "Corporate Account"}{viewingDetails.ntn ? ` — NTN: ${viewingDetails.ntn}` : ""}</p>
+                  </div>
+                  <div className="ml-auto">
+                    <Badge variant="secondary" className={`capitalize text-xs ${statusColors[viewingDetails.status] || ""}`}>{viewingDetails.status}</Badge>
+                  </div>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-5 mt-2">
+                {/* Company Info */}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400 mb-3 flex items-center gap-2"><Building2 className="h-3.5 w-3.5" />Company Information</p>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
+                    <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Registration No.</p><p className="text-sm font-medium font-mono">{viewingDetails.registrationNumber || "—"}</p></div>
+                    <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">NTN</p><p className="text-sm font-medium font-mono">{viewingDetails.ntn || "—"}</p></div>
+                    <div className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5 text-muted-foreground" /><div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Email</p><p className="text-sm font-medium">{viewingDetails.email || "—"}</p></div></div>
+                    <div className="flex items-center gap-1.5"><Phone className="h-3.5 w-3.5 text-muted-foreground" /><div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Phone</p><p className="text-sm font-medium">{viewingDetails.phone || "—"}</p></div></div>
+                    <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Account Manager</p><p className="text-sm font-medium">{viewingDetails.accountManager || "—"}</p></div>
+                    <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Industry</p><p className="text-sm font-medium">{viewingDetails.industryType || "—"}</p></div>
+                    <div className="col-span-2 flex items-start gap-1.5"><MapPin className="h-3.5 w-3.5 text-muted-foreground mt-0.5" /><div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Head Office Address</p><p className="text-sm font-medium">{viewingDetails.headOfficeAddress || "—"}</p></div></div>
+                    {viewingDetails.billingAddress && viewingDetails.billingAddress !== viewingDetails.headOfficeAddress && (
+                      <div className="col-span-2"><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Billing Address</p><p className="text-sm font-medium">{viewingDetails.billingAddress}</p></div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Billing */}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-green-700 dark:text-green-400 mb-3 flex items-center gap-2"><DollarSign className="h-3.5 w-3.5" />Billing Configuration</p>
+                  <div className="grid grid-cols-3 gap-x-6 gap-y-3 bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
+                    <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Monthly Billing</p><p className="text-sm font-bold text-green-700 dark:text-green-400">Rs. {parseFloat(viewingDetails.monthlyBilling || "0").toLocaleString()}</p></div>
+                    <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Payment Terms</p><p className="text-sm font-medium capitalize">{(viewingDetails.paymentTerms || "net_30").replace("_", " ")}</p></div>
+                    <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Credit Limit</p><p className="text-sm font-medium">Rs. {parseFloat(viewingDetails.creditLimit || "0").toLocaleString()}</p></div>
+                    <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Security Deposit</p><p className="text-sm font-medium">Rs. {parseFloat(viewingDetails.securityDeposit || "0").toLocaleString()}</p></div>
+                    <div className="flex gap-3">
+                      {viewingDetails.centralizedBilling && <Badge variant="secondary" className="text-[10px] bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">Centralized</Badge>}
+                      {viewingDetails.perBranchBilling && <Badge variant="secondary" className="text-[10px] bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300">Per-Branch</Badge>}
+                    </div>
+                    {viewingDetails.customInvoiceFormat && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Invoice Format</p><p className="text-sm font-medium">{viewingDetails.customInvoiceFormat}</p></div>}
+                  </div>
+                </div>
+
+                {/* Contract & SLA */}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-orange-700 dark:text-orange-400 mb-3 flex items-center gap-2"><Calendar className="h-3.5 w-3.5" />Contract & SLA</p>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-3 bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
+                    <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Contract Duration</p><p className="text-sm font-medium">{viewingDetails.contractDuration || "—"}</p></div>
+                    <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Dedicated Acc. Manager</p><p className="text-sm font-medium">{viewingDetails.dedicatedAccountManager || "—"}</p></div>
+                    {viewingDetails.customSla && <div className="col-span-2"><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Custom SLA</p><p className="text-sm">{viewingDetails.customSla}</p></div>}
+                    {viewingDetails.customPricingAgreement && <div className="col-span-2"><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Custom Pricing Agreement</p><p className="text-sm">{viewingDetails.customPricingAgreement}</p></div>}
+                  </div>
+                </div>
+
+                {/* Managed Services */}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400 mb-3 flex items-center gap-2"><Shield className="h-3.5 w-3.5" />Managed Services</p>
+                  <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
+                    <div className="flex flex-wrap gap-2">
+                      {viewingDetails.managedRouter && <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">Managed Router</Badge>}
+                      {viewingDetails.firewall && <Badge variant="secondary" className="text-xs bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300">Firewall</Badge>}
+                      {viewingDetails.loadBalancer && <Badge variant="secondary" className="text-xs bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-300">Load Balancer</Badge>}
+                      {viewingDetails.dedicatedSupport && <Badge variant="secondary" className="text-xs bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300">Dedicated Support</Badge>}
+                      {viewingDetails.backupLink && <Badge variant="secondary" className="text-xs bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300">Backup Link</Badge>}
+                      {viewingDetails.monitoringSla && <Badge variant="secondary" className="text-xs bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300">Monitoring SLA</Badge>}
+                      {!viewingDetails.managedRouter && !viewingDetails.firewall && !viewingDetails.loadBalancer && !viewingDetails.dedicatedSupport && !viewingDetails.backupLink && !viewingDetails.monitoringSla && (
+                        <span className="text-sm text-muted-foreground">No managed services enabled</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Summary */}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400 mb-3 flex items-center gap-2"><Network className="h-3.5 w-3.5" />Summary</p>
+                  <div className="grid grid-cols-3 gap-x-6 gap-y-3 bg-slate-50 dark:bg-slate-900 rounded-lg p-4">
+                    <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Connections</p><p className="text-2xl font-bold text-blue-700 dark:text-blue-400">{viewingDetails.totalConnections || 0}</p></div>
+                    <div><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Bandwidth</p><p className="text-sm font-bold text-teal-700 dark:text-teal-400 mt-1">{viewingDetails.totalBandwidth || "—"}</p></div>
+                    {viewingDetails.notes && <div className="col-span-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wide">Notes</p><p className="text-sm">{viewingDetails.notes}</p></div>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2 border-t mt-4">
+                <Button variant="outline" size="sm" onClick={() => { setDetailsDialogOpen(false); openConnections(viewingDetails); }}>
+                  <Link2 className="h-3.5 w-3.5 mr-1.5" />Connections
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setDetailsDialogOpen(false)}>Close</Button>
+                <Button size="sm" onClick={() => { setDetailsDialogOpen(false); openEdit(viewingDetails); }} className="bg-gradient-to-r from-[#002B5B] to-[#005EFF] text-white">
+                  <Edit className="h-3.5 w-3.5 mr-1.5" />Edit Customer
+                </Button>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 
