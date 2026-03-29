@@ -239,7 +239,7 @@ function CirEditDialog({ open, onClose, customer, id, vendors }: { open: boolean
 export default function CirCustomerProfilePage() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("service");
+  const [activeTab, setActiveTab] = useState("personal");
   const [editOpen, setEditOpen] = useState(false);
 
   const { data: customer, isLoading } = useQuery<CirCustomer>({
@@ -273,9 +273,9 @@ export default function CirCustomerProfilePage() {
 
   /* Tab definitions — two rows matching reference image */
   const tabsRow1 = [
+    { key: "personal", label: "Personal Information" },
     { key: "service", label: "Service Information" },
     { key: "network", label: "Network & Infrastructure" },
-    { key: "personal", label: "Personal Information" },
     { key: "contract", label: "Contract & SLA" },
     { key: "vas", label: "Value Added Services" },
     { key: "monitoring", label: "Monitoring" },
