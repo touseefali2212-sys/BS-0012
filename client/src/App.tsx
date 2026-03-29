@@ -65,7 +65,9 @@ import ShiftSchedulingPage from "@/pages/shift-scheduling";
 import StaffAccountsPage from "@/pages/staff-accounts";
 import ClientRequestProfilePage from "@/pages/client-request-profile";
 import CirCustomersPage from "@/pages/cir-customers";
+import CirCustomerProfilePage from "@/pages/cir-customer-profile";
 import CorporateCustomersPage from "@/pages/corporate-customers";
+import CorporateCustomerProfilePage from "@/pages/corporate-customer-profile";
 import AssetAssignmentsPage from "@/pages/asset-assignments";
 import AssetRequestsPage from "@/pages/asset-requests";
 import AssetTrackingPage from "@/pages/asset-tracking";
@@ -129,7 +131,9 @@ function Router() {
       <Route path="/customers/:id" component={CustomerProfilePage} />
       <Route path="/client-requests/:id" component={ClientRequestProfilePage} />
       <Route path="/cir-customers" component={CirCustomersPage} />
+      <Route path="/cir-customers/:id" component={CirCustomerProfilePage} />
       <Route path="/corporate-customers" component={CorporateCustomersPage} />
+      <Route path="/corporate-customers/:id" component={CorporateCustomerProfilePage} />
       <Route path="/packages" component={PackagesPage} />
       <Route path="/invoices" component={InvoicesPage} />
       <Route path="/tickets" component={TicketsPage} />

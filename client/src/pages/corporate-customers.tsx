@@ -425,7 +425,7 @@ export default function CorporateCustomersPage() {
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" data-testid={`button-corp-actions-${c.id}`}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => { setViewingDetails(c); setDetailsDialogOpen(true); }} data-testid={`button-corp-details-${c.id}`}><Eye className="h-4 w-4 mr-2" />View Details</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setLocation(`/corporate-customers/${c.id}`)} data-testid={`button-corp-details-${c.id}`}><Eye className="h-4 w-4 mr-2" />View Profile</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => openConnections(c)}><Link2 className="h-4 w-4 mr-2" />Connections</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => openEdit(c)}><Edit className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>
                                 <DropdownMenuItem className="text-destructive" onClick={() => deleteMutation.mutate(c.id)}><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>

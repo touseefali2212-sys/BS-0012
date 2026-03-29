@@ -391,7 +391,7 @@ export default function CirCustomersPage() {
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" data-testid={`button-cir-actions-${c.id}`}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => { setViewingDetails(c); setDetailsDialogOpen(true); }} data-testid={`button-cir-details-${c.id}`}><Eye className="h-4 w-4 mr-2" />View Details</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setLocation(`/cir-customers/${c.id}`)} data-testid={`button-cir-details-${c.id}`}><Eye className="h-4 w-4 mr-2" />View Profile</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => openEdit(c)}><Edit className="h-4 w-4 mr-2" />Edit</DropdownMenuItem>
                               <DropdownMenuItem className="text-destructive" onClick={() => deleteMutation.mutate(c.id)}><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
                             </DropdownMenuContent>
