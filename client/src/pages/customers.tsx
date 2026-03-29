@@ -95,6 +95,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useTab } from "@/hooks/use-tab";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -2813,17 +2814,23 @@ function CustomerListView({
         </div>
       </div>
 
+      {selectedIds.length > 0 && (
+        <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg px-4 py-2.5">
+          <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{selectedIds.length} customer{selectedIds.length > 1 ? "s" : ""} selected</span>
+          <Button variant="ghost" size="sm" className="h-7 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900" onClick={() => setSelectedIds([])} data-testid="button-clear-selection">Clear Selection</Button>
+        </div>
+      )}
+
       <div className="overflow-x-auto border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow className="bg-[#1a3a5c] dark:bg-[#1a3a5c]">
-              <TableHead className="text-white w-10">
-                <input
-                  type="checkbox"
+              <TableHead className="w-10 pl-4">
+                <Checkbox
                   checked={selectedIds.length === displayed.length && displayed.length > 0}
-                  onChange={toggleSelectAll}
-                  className="rounded"
+                  onCheckedChange={toggleSelectAll}
                   data-testid="checkbox-select-all"
+                  className="border-slate-400 data-[state=checked]:bg-white data-[state=checked]:text-slate-900 data-[state=checked]:border-white"
                 />
               </TableHead>
               <TableHead className="text-white font-semibold text-[11px] whitespace-nowrap">Customer Code</TableHead>
@@ -2858,13 +2865,11 @@ function CustomerListView({
               const maskedPassword = customer.password ? "••••" + (customer.password.length > 2 ? customer.password.slice(-1) : "") : "•••••";
               const vendorName = getVendorName(customer.vendorId);
               return (
-                <TableRow key={customer.id} className="text-xs" data-testid={`row-customer-${customer.id}`}>
-                  <TableCell>
-                    <input
-                      type="checkbox"
+                <TableRow key={customer.id} className={`text-xs ${selectedIds.includes(customer.id) ? "bg-blue-50 dark:bg-blue-950/40" : ""}`} data-testid={`row-customer-${customer.id}`}>
+                  <TableCell className="pl-4 w-10" onClick={e => e.stopPropagation()}>
+                    <Checkbox
                       checked={selectedIds.includes(customer.id)}
-                      onChange={() => toggleSelect(customer.id)}
-                      className="rounded"
+                      onCheckedChange={() => toggleSelect(customer.id)}
                       data-testid={`checkbox-customer-${customer.id}`}
                     />
                   </TableCell>
@@ -2984,9 +2989,6 @@ function CustomerListView({
       {filtered.length > 0 && (
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>Showing {Math.min(displayed.length, entriesCount)} of {filtered.length} entries</span>
-          {selectedIds.length > 0 && (
-            <span className="text-blue-600 font-medium">{selectedIds.length} selected</span>
-          )}
         </div>
       )}
     </div>
