@@ -224,7 +224,7 @@ const customerNav: NavItem[] = [
     module: "reseller",
     subItems: [
       { title: "Reseller Type & Role", url: "/resellers?tab=types", icon: Hash },
-      { title: "Add New Reseller", url: "/resellers?tab=add", icon: UserPlus },
+      { title: "Add New Reseller", url: "/resellers/add", icon: UserPlus },
       { title: "Reseller List", url: "/resellers?tab=list", icon: List },
       { title: "Wallet & Transaction", url: "/resellers?tab=wallet", icon: Wallet },
       { title: "Commission Report", url: "/resellers?tab=commission", icon: TrendingUp },
