@@ -454,63 +454,39 @@ export default function AddResellerPage() {
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left sidebar */}
-        <aside className="w-64 shrink-0 bg-gradient-to-b from-[#1a2332] to-[#243447] border-r border-[#2d3f55] flex flex-col sticky top-[57px] h-[calc(100vh-57px)]">
-          <div className="p-4 flex-1 overflow-y-auto">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-blue-300/60 mb-3 px-2">Sections</p>
-            <nav className="space-y-1">
-              {tabItems.map(tab => {
+      {/* Main content */}
+      <main className="flex-1 overflow-y-auto bg-muted/30">
+        <div className="p-6 max-w-5xl mx-auto space-y-6">
+
+          {/* Horizontal step buttons */}
+          <div className="sticky top-[57px] z-10 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md rounded-2xl border border-border/60 shadow-sm p-1.5">
+            <div className="w-full flex gap-1 flex-wrap">
+              {tabItems.map((tab, i) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
-                const missing = missingByTab[tab.label]?.length ?? 0;
+                const tabIdx = tabItems.findIndex(t => t.id === activeTab);
+                const isComplete = i < tabIdx;
                 return (
                   <button
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id)}
                     data-testid={`tab-${tab.id}`}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-left ${
+                    className={`flex-1 min-w-fit flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${
                       isActive
-                        ? "bg-blue-600 text-white shadow-md shadow-blue-900/30"
-                        : "text-blue-100/70 hover:bg-white/5 hover:text-white"
+                        ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md"
+                        : isComplete
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-muted-foreground hover:bg-muted/60"
                     }`}
                   >
-                    <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-white" : "text-blue-300/60"}`} />
-                    <span className="flex-1">{tab.label}</span>
-                    {missing > 0 && (
-                      <span className="text-[10px] bg-amber-500/30 text-amber-300 rounded-full px-1.5 py-0.5 leading-none">
-                        {missing}
-                      </span>
-                    )}
+                    {isComplete ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                    <span className="hidden sm:inline">{tab.label}</span>
                   </button>
                 );
               })}
-            </nav>
-          </div>
-
-          {/* Sidebar footer summary */}
-          <div className="p-4 border-t border-[#2d3f55]">
-            <div className="bg-white/5 rounded-lg p-3 space-y-1.5 text-xs text-blue-200/70">
-              <div className="flex items-center justify-between">
-                <span>Packages</span>
-                <span className="font-semibold text-white">{addedPackages.length}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Vendor Panels</span>
-                <span className="font-semibold text-white">{addedVendorPanels.length}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Commission</span>
-                <span className="font-semibold text-white">{form.commissionRate}%</span>
-              </div>
             </div>
           </div>
-        </aside>
-
-        {/* Main content */}
-        <main className="flex-1 overflow-y-auto bg-muted/30">
-          <div className="p-6 max-w-5xl space-y-6">
 
             {/* ── BASIC INFO ── */}
             {activeTab === "basic" && (
@@ -1318,39 +1294,52 @@ export default function AddResellerPage() {
               </div>
             )}
 
-            {/* Bottom action bar */}
-            <div className="flex items-center justify-between pt-2 pb-6">
-              <Button
-                type="button" variant="outline"
-                onClick={() => setLocation("/resellers")}
-                data-testid="button-cancel-reseller"
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" /> Cancel
-              </Button>
-              <div className="flex items-center gap-3">
-                <div className="flex gap-1">
-                  {tabItems.map((t, i) => (
-                    <button
-                      key={t.id} type="button"
-                      onClick={() => setActiveTab(t.id)}
-                      className={`h-2 rounded-full transition-all ${activeTab === t.id ? "w-6 bg-blue-600" : "w-2 bg-gray-300 dark:bg-gray-600"}`}
-                    />
-                  ))}
+            {/* Bottom step navigation */}
+            {(() => {
+              const tabIdx = tabItems.findIndex(t => t.id === activeTab);
+              const isFirst = tabIdx === 0;
+              const isLast = tabIdx === tabItems.length - 1;
+              return (
+                <div className="flex items-center justify-between pt-2 pb-6">
+                  <div className="flex items-center gap-3">
+                    <Button
+                      type="button" variant="outline"
+                      onClick={() => setLocation("/resellers")}
+                      data-testid="button-cancel-reseller"
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" /> Cancel
+                    </Button>
+                    {!isFirst && (
+                      <Button variant="outline" onClick={() => setActiveTab(tabItems[tabIdx - 1].id)} className="gap-2" data-testid="button-prev-tab">
+                        <ChevronLeft className="h-4 w-4" />Previous
+                      </Button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="text-xs text-muted-foreground hidden sm:block">
+                      Step {tabIdx + 1} of {tabItems.length} — {tabItems[tabIdx].label}
+                    </div>
+                    {!isLast ? (
+                      <Button variant="outline" onClick={() => setActiveTab(tabItems[tabIdx + 1].id)} className="gap-2" data-testid="button-next-tab">
+                        Next<ChevronLeft className="h-4 w-4 rotate-180" />
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        disabled={createMutation.isPending}
+                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8"
+                        onClick={handleSave}
+                        data-testid="button-submit-reseller"
+                      >
+                        {createMutation.isPending ? "Saving..." : "Save Reseller"}
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <Button
-                  type="button"
-                  disabled={createMutation.isPending}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8"
-                  onClick={handleSave}
-                  data-testid="button-submit-reseller"
-                >
-                  {createMutation.isPending ? "Saving..." : "Save Reseller"}
-                </Button>
-              </div>
-            </div>
+              );
+            })()}
           </div>
         </main>
-      </div>
     </div>
   );
 }
