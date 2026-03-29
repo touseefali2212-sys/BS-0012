@@ -238,7 +238,7 @@ export default function AddResellerPage() {
     mapLatitude: "", mapLongitude: "",
     // Network & Service
     uplinkType: "", uplink: "", exchangeTowerPopName: "",
-    portId: "", vlanId: "", media: "", connectionType: "",
+    portId: "", vlanId: "", media: "", connectionType: "", vlanInput: "",
     bandwidthPlan: "", ipAssignment: "dynamic", nasId: "", serviceZone: "",
     vlanIdAllowed: false, vlanIdNote: "",
     // Vendor Panels
@@ -258,6 +258,15 @@ export default function AddResellerPage() {
 
   const update = (field: string, value: string | boolean | number) =>
     setForm(prev => ({ ...prev, [field]: value }));
+
+  const [vlanIds, setVlanIds] = useState<string[]>([]);
+  const addVlanId = () => {
+    const v = form.vlanInput.trim();
+    if (!v || vlanIds.includes(v)) { update("vlanInput", ""); return; }
+    setVlanIds(prev => [...prev, v]);
+    update("vlanInput", "");
+  };
+  const removeVlanId = (id: string) => setVlanIds(prev => prev.filter(v => v !== id));
 
   const [addedPackages, setAddedPackages] = useState<Array<{
     packageId: number; packageName: string; speed: string;
@@ -357,12 +366,13 @@ export default function AddResellerPage() {
         city: form.city || null, area: form.area || null, territory: form.territory || null,
         uplinkType: form.uplinkType || null, uplink: form.uplink || null,
         exchangeTowerPopName: form.exchangeTowerPopName || null,
-        portId: form.portId || null, vlanId: form.vlanId || null,
+        portId: form.portId || null,
         media: form.media || null, connectionType: form.connectionType || null,
         bandwidthPlan: form.bandwidthPlan || null,
         ipAssignment: form.ipAssignment, nasId: form.nasId || null,
         serviceZone: form.serviceZone || null,
         vlanIdAllowed: form.vlanIdAllowed, vlanIdNote: form.vlanIdNote || null,
+        vlanId: vlanIds.length > 0 ? vlanIds.join(",") : form.vlanId || null,
         vendorPanelAllowed: form.vendorPanelAllowed,
         assignedVendorPanels: addedVendorPanels.length > 0 ? JSON.stringify(addedVendorPanels) : null,
         walletBalance: form.walletBalance, creditLimit: form.creditLimit,
@@ -814,30 +824,75 @@ export default function AddResellerPage() {
                     <FieldGroup>
                       <Field label="Media Type">
                         <Select value={form.media || ""} onValueChange={v => update("media", v)}>
-                          <SelectTrigger data-testid="select-media"><SelectValue placeholder="Select media" /></SelectTrigger>
+                          <SelectTrigger data-testid="select-media"><SelectValue placeholder="Select media type" /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="single_mode">Single Mode Fiber</SelectItem>
-                            <SelectItem value="multi_mode">Multi Mode Fiber</SelectItem>
-                            <SelectItem value="cat6">CAT6 Ethernet</SelectItem>
-                            <SelectItem value="coaxial">Coaxial Cable</SelectItem>
-                            <SelectItem value="wireless_5ghz">Wireless 5GHz</SelectItem>
-                            <SelectItem value="wireless_2ghz">Wireless 2.4GHz</SelectItem>
+                            <SelectItem value="fiber_p2p">Fiber P2P</SelectItem>
+                            <SelectItem value="wireless">Wireless</SelectItem>
+                            <SelectItem value="exchange">Exchange</SelectItem>
                           </SelectContent>
                         </Select>
                       </Field>
                       <Field label="Connection Type">
                         <Select value={form.connectionType || ""} onValueChange={v => update("connectionType", v)}>
-                          <SelectTrigger data-testid="select-connection-type"><SelectValue placeholder="Select type" /></SelectTrigger>
+                          <SelectTrigger data-testid="select-connection-type"><SelectValue placeholder="Select connection type" /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="FTTH">FTTH</SelectItem>
-                            <SelectItem value="FTTB">FTTB</SelectItem>
-                            <SelectItem value="wireless">Wireless</SelectItem>
-                            <SelectItem value="leased_line">Leased Line</SelectItem>
-                            <SelectItem value="vsat">VSAT</SelectItem>
+                            <SelectItem value="FTTP">FTTP</SelectItem>
+                            <SelectItem value="media_converter">Media Converter</SelectItem>
+                            <SelectItem value="switch_port">Switch Port</SelectItem>
+                            <SelectItem value="dish_p2p">Dish P2P</SelectItem>
+                            <SelectItem value="dplc">DPLC</SelectItem>
                           </SelectContent>
                         </Select>
                       </Field>
                     </FieldGroup>
+
+                    {/* Multiple VLAN IDs */}
+                    <div className="space-y-2 pt-1">
+                      <p className="text-sm font-medium">VLAN IDs</p>
+                      <div className="flex gap-2">
+                        <Input
+                          value={form.vlanInput}
+                          onChange={e => update("vlanInput", e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addVlanId(); } }}
+                          placeholder="Enter VLAN ID and press Add"
+                          className="flex-1"
+                          data-testid="input-vlan-id"
+                        />
+                        <Button
+                          type="button" variant="outline" size="sm"
+                          onClick={addVlanId}
+                          disabled={!form.vlanInput.trim()}
+                          data-testid="button-add-vlan"
+                          className="gap-1.5 shrink-0"
+                        >
+                          <Plus className="h-3.5 w-3.5" /> Add
+                        </Button>
+                      </div>
+                      {vlanIds.length > 0 && (
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {vlanIds.map(id => (
+                            <div
+                              key={id}
+                              className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full"
+                              data-testid={`badge-vlan-${id}`}
+                            >
+                              <span>VLAN {id}</span>
+                              <button
+                                type="button"
+                                onClick={() => removeVlanId(id)}
+                                className="text-blue-500 hover:text-red-500 transition-colors"
+                                data-testid={`remove-vlan-${id}`}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {vlanIds.length === 0 && (
+                        <p className="text-xs text-muted-foreground">No VLAN IDs added yet. You can add multiple.</p>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               </div>
