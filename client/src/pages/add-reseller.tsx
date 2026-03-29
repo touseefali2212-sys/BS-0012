@@ -7,12 +7,12 @@ import {
   Camera, Phone, Mail, Shield, Building2, X,
   CheckCircle2, Trash2, Plus, ScrollText, Network,
   Wallet, Store, Image, AlertCircle, LocateFixed,
-  CalendarClock, Settings, DollarSign, Briefcase,
+  CalendarClock, Settings, DollarSign, Briefcase, Sparkles, Handshake,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -37,12 +37,19 @@ const tabItems = [
   { id: "documents", label: "Documents",          icon: Image },
 ];
 
-function SectionHeader({ icon: Icon, title }: { icon: any; title: string }) {
+function SectionHeader({ icon: Icon, title, description }: { icon: any; title: string; description?: string }) {
   return (
-    <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#1c67d4] to-[#1a5bbf] text-white rounded-t-lg">
-      <Icon className="h-4 w-4" />
-      <span className="text-sm font-semibold tracking-wide uppercase">{title}</span>
-    </div>
+    <CardHeader className="pb-4">
+      <div className="flex items-center gap-3">
+        <div className="h-9 w-9 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+          <Icon className="h-5 w-5 text-blue-600" />
+        </div>
+        <div>
+          <CardTitle className="text-base">{title}</CardTitle>
+          {description && <CardDescription>{description}</CardDescription>}
+        </div>
+      </div>
+    </CardHeader>
   );
 }
 
@@ -403,34 +410,45 @@ export default function AddResellerPage() {
 
   const totalMissingRequired = Object.values(missingByTab).flat().length;
 
+  const tabIndex = tabItems.findIndex(t => t.id === activeTab);
+  const isLastTab = tabIndex === tabItems.length - 1;
+  const isFirstTab = tabIndex === 0;
+
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Top header bar */}
-      <div className="sticky top-0 z-40 bg-[#1a2332] border-b border-[#243447] shadow-lg">
-        <div className="flex items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-4">
-            <Button type="button" variant="ghost" size="sm"
-              className="text-white hover:text-white hover:bg-white/10"
-              onClick={() => setLocation("/resellers")}
-              data-testid="button-back-to-resellers"
-            >
-              <ChevronLeft className="h-4 w-4 mr-1" /> Back to Resellers
-            </Button>
-            <Separator orientation="vertical" className="h-6 bg-white/20" />
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 dark:from-slate-950 dark:via-blue-950/10 dark:to-indigo-950/10">
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+
+        {/* Page header */}
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLocation("/resellers")}
+            className="gap-2 text-muted-foreground hover:text-foreground"
+            data-testid="button-back-to-resellers"
+          >
+            <ChevronLeft className="h-4 w-4" /> Back to Resellers
+          </Button>
+          <Separator orientation="vertical" className="h-5" />
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-md">
+              <Handshake className="h-5 w-5 text-white" />
+            </div>
             <div>
-              <h1 className="text-lg font-bold text-white">Add New Reseller</h1>
-              <p className="text-xs text-blue-200/70">Complete all sections for full reseller profile</p>
+              <h1 className="text-xl font-bold text-foreground">Add New Reseller</h1>
+              <p className="text-xs text-muted-foreground">Complete all sections for full reseller profile</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-3">
             {totalMissingRequired > 0 && (
-              <Badge className="bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs">
-                <AlertCircle className="h-3 w-3 mr-1" />
+              <Badge variant="outline" className="text-amber-600 border-amber-400 text-xs gap-1">
+                <AlertCircle className="h-3 w-3" />
                 {totalMissingRequired} required field{totalMissingRequired !== 1 ? "s" : ""} missing
               </Badge>
             )}
-            <Button type="button" variant="ghost" size="sm"
-              className="text-white/70 hover:text-white hover:bg-white/10"
+            <Button
+              type="button" variant="ghost" size="sm"
+              className="gap-2 text-muted-foreground hover:text-foreground"
               onClick={() => {
                 setForm(prev => ({ ...prev, name: "", contactName: "", phone: "", email: "" }));
                 setAddedPackages([]);
@@ -439,62 +457,55 @@ export default function AddResellerPage() {
               }}
               data-testid="button-reset-reseller"
             >
-              <RefreshCw className="h-4 w-4 mr-1" /> Reset
-            </Button>
-            <Button
-              size="sm"
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow"
-              onClick={handleSave}
-              disabled={createMutation.isPending}
-              data-testid="button-save-reseller"
-            >
-              {createMutation.isPending ? "Saving..." : "Save Reseller"}
+              <RefreshCw className="h-4 w-4" /> Reset
             </Button>
           </div>
         </div>
-      </div>
 
-      {/* Main content */}
-      <main className="flex-1 overflow-y-auto bg-muted/30">
-        <div className="p-6 max-w-5xl mx-auto space-y-6">
-
-          {/* Horizontal step buttons */}
-          <div className="sticky top-[57px] z-10 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md rounded-2xl border border-border/60 shadow-sm p-1.5">
-            <div className="w-full flex gap-1 flex-wrap">
-              {tabItems.map((tab, i) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                const tabIdx = tabItems.findIndex(t => t.id === activeTab);
-                const isComplete = i < tabIdx;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveTab(tab.id)}
-                    data-testid={`tab-${tab.id}`}
-                    className={`flex-1 min-w-fit flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${
-                      isActive
-                        ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md"
-                        : isComplete
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-muted-foreground hover:bg-muted/60"
-                    }`}
-                  >
-                    {isComplete ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
-                    <span className="hidden sm:inline">{tab.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+        {/* From query conversion banner */}
+        {fromQueryId && fromQueryData && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300 text-sm">
+            <Sparkles className="h-4 w-4 shrink-0" />
+            <span>Converting client request <strong>#{fromQueryId}</strong> — <strong>{fromQueryData.name}</strong>. Review the details below and save to complete the conversion.</span>
           </div>
+        )}
+
+        {/* Horizontal step buttons */}
+        <div className="sticky top-0 z-10 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md rounded-2xl border border-border/60 shadow-sm p-1.5">
+          <div className="w-full flex gap-1 flex-wrap">
+            {tabItems.map((tab, i) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              const isComplete = i < tabIndex;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  data-testid={`tab-${tab.id}`}
+                  className={`flex-1 min-w-fit flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${
+                    isActive
+                      ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md"
+                      : isComplete
+                      ? "text-green-600 dark:text-green-400"
+                      : "text-muted-foreground hover:bg-muted/60"
+                  }`}
+                >
+                  {isComplete ? <Check className="h-4 w-4" /> : <Icon className="h-4 w-4" />}
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
             {/* ── BASIC INFO ── */}
             {activeTab === "basic" && (
               <div className="space-y-5">
                 {/* Profile Photo */}
                 <Card>
-                  <SectionHeader icon={User} title="Profile Photo & Identity" />
-                  <CardContent className="pt-6 flex items-start gap-8">
+                  <SectionHeader icon={User} title="Profile Photo & Identity" description="Reseller profile picture and primary identity" />
+                  <CardContent className="flex items-start gap-8">
                     <ProfilePhotoUpload
                       value={form.profilePicture}
                       onChange={(url) => update("profilePicture", url)}
@@ -554,8 +565,8 @@ export default function AddResellerPage() {
 
                 {/* Personal Details */}
                 <Card>
-                  <SectionHeader icon={Briefcase} title="Personal Details" />
-                  <CardContent className="pt-5 space-y-4">
+                  <SectionHeader icon={Briefcase} title="Personal Details" description="Additional personal and professional information" />
+                  <CardContent className="space-y-4">
                     <FieldGroup>
                       <Field label="Gender">
                         <Select value={form.gender || ""} onValueChange={v => update("gender", v)}>
@@ -584,8 +595,8 @@ export default function AddResellerPage() {
 
                 {/* Identification */}
                 <Card>
-                  <SectionHeader icon={Shield} title="Identification & Registration" />
-                  <CardContent className="pt-5 space-y-4">
+                  <SectionHeader icon={Shield} title="Identification & Registration" description="CNIC, NTN and official registration numbers" />
+                  <CardContent className="space-y-4">
                     <FieldGroup>
                       <Field label="CNIC / NID">
                         <Input value={form.cnic} onChange={e => update("cnic", e.target.value)} placeholder="XXXXX-XXXXXXX-X" data-testid="input-cnic" />
@@ -607,8 +618,8 @@ export default function AddResellerPage() {
 
                 {/* Account Settings */}
                 <Card>
-                  <SectionHeader icon={Settings} title="Account Settings" />
-                  <CardContent className="pt-5 space-y-4">
+                  <SectionHeader icon={Settings} title="Account Settings" description="Reseller status, join date and support tier" />
+                  <CardContent className="space-y-4">
                     <FieldGroup>
                       <Field label="Support Level">
                         <Select value={form.supportLevel} onValueChange={v => update("supportLevel", v)}>
@@ -649,8 +660,8 @@ export default function AddResellerPage() {
             {activeTab === "contact" && (
               <div className="space-y-5">
                 <Card>
-                  <SectionHeader icon={Phone} title="Contact Information" />
-                  <CardContent className="pt-5 space-y-4">
+                  <SectionHeader icon={Phone} title="Contact Information" description="Phone, email and communication details" />
+                  <CardContent className="space-y-4">
                     <FieldGroup>
                       <Field label="Primary Phone" required error={errors.phone}>
                         <Input
@@ -679,8 +690,8 @@ export default function AddResellerPage() {
                 </Card>
 
                 <Card>
-                  <SectionHeader icon={MapPin} title="Location & Address" />
-                  <CardContent className="pt-5 space-y-4">
+                  <SectionHeader icon={MapPin} title="Location & Address" description="Service area, city and address details" />
+                  <CardContent className="space-y-4">
                     <Field label="Full Address">
                       <Textarea
                         value={form.address}
@@ -734,8 +745,8 @@ export default function AddResellerPage() {
             {activeTab === "network" && (
               <div className="space-y-5">
                 <Card>
-                  <SectionHeader icon={Network} title="Uplink & Connectivity" />
-                  <CardContent className="pt-5 space-y-4">
+                  <SectionHeader icon={Network} title="Uplink & Connectivity" description="Network uplink type and connection details" />
+                  <CardContent className="space-y-4">
                     <FieldGroup>
                       <Field label="Uplink Type">
                         <Select value={form.uplinkType || ""} onValueChange={v => update("uplinkType", v)}>
@@ -793,8 +804,8 @@ export default function AddResellerPage() {
                 </Card>
 
                 <Card>
-                  <SectionHeader icon={Wifi} title="Network Configuration" />
-                  <CardContent className="pt-5 space-y-4">
+                  <SectionHeader icon={Wifi} title="Network Configuration" description="IP assignment, NAS and service zone settings" />
+                  <CardContent className="space-y-4">
                     <FieldGroup>
                       <Field label="Bandwidth Plan">
                         <Input value={form.bandwidthPlan} onChange={e => update("bandwidthPlan", e.target.value)} placeholder="e.g. 100 Mbps Shared" data-testid="input-bandwidth-plan" />
@@ -851,8 +862,8 @@ export default function AddResellerPage() {
             {activeTab === "packages" && (
               <div className="space-y-5">
                 <Card>
-                  <SectionHeader icon={Tag} title="Assign Packages" />
-                  <CardContent className="pt-5 space-y-4">
+                  <SectionHeader icon={Tag} title="Assign Packages" description="Internet packages and reseller pricing tiers" />
+                  <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <Field label="Select Package">
                         <Select value={pkgForm.packageId} onValueChange={v => {
@@ -941,8 +952,8 @@ export default function AddResellerPage() {
                 </Card>
 
                 <Card>
-                  <SectionHeader icon={DollarSign} title="Commission Settings" />
-                  <CardContent className="pt-5 space-y-4">
+                  <SectionHeader icon={DollarSign} title="Commission Settings" description="Commission rate and payment configuration" />
+                  <CardContent className="space-y-4">
                     <FieldGroup cols={3}>
                       <Field label="Commission Rate (%)">
                         <Input
@@ -989,8 +1000,8 @@ export default function AddResellerPage() {
             {activeTab === "panels" && (
               <div className="space-y-5">
                 <Card>
-                  <SectionHeader icon={Globe} title="Vendor Panel Access" />
-                  <CardContent className="pt-5 space-y-4">
+                  <SectionHeader icon={Globe} title="Vendor Panel Access" description="External vendor portals and panel credentials" />
+                  <CardContent className="space-y-4">
                     <div className="flex items-center justify-between rounded-lg border p-3">
                       <div>
                         <p className="text-sm font-medium">Allow Vendor Panel Access</p>
@@ -1090,8 +1101,8 @@ export default function AddResellerPage() {
             {activeTab === "billing" && (
               <div className="space-y-5">
                 <Card>
-                  <SectionHeader icon={Wallet} title="Wallet & Credit" />
-                  <CardContent className="pt-5 space-y-4">
+                  <SectionHeader icon={Wallet} title="Wallet & Credit" description="Balance, credit limit and security deposit" />
+                  <CardContent className="space-y-4">
                     <FieldGroup cols={3}>
                       <Field label="Initial Wallet Balance (Rs.)">
                         <Input type="number" min="0" step="0.01" value={form.walletBalance} onChange={e => update("walletBalance", e.target.value)} data-testid="input-wallet-balance" />
@@ -1110,8 +1121,8 @@ export default function AddResellerPage() {
                 </Card>
 
                 <Card>
-                  <SectionHeader icon={CreditCard} title="Billing Settings" />
-                  <CardContent className="pt-5 space-y-4">
+                  <SectionHeader icon={CreditCard} title="Billing Settings" description="Billing cycle and payment preferences" />
+                  <CardContent className="space-y-4">
                     <FieldGroup>
                       <Field label="Billing Cycle">
                         <Select value={form.billingCycle} onValueChange={v => update("billingCycle", v)}>
@@ -1141,8 +1152,8 @@ export default function AddResellerPage() {
                 </Card>
 
                 <Card>
-                  <SectionHeader icon={Building2} title="Bank Account Details" />
-                  <CardContent className="pt-5 space-y-4">
+                  <SectionHeader icon={Building2} title="Bank Account Details" description="Banking information for commission payments" />
+                  <CardContent className="space-y-4">
                     <FieldGroup>
                       <Field label="Bank Name">
                         <Input value={form.bankName} onChange={e => update("bankName", e.target.value)} placeholder="e.g. HBL, UBL, MCB" data-testid="input-bank-name" />
@@ -1168,8 +1179,8 @@ export default function AddResellerPage() {
             {activeTab === "agreement" && (
               <div className="space-y-5">
                 <Card>
-                  <SectionHeader icon={ScrollText} title="Agreement Details" />
-                  <CardContent className="pt-5 space-y-4">
+                  <SectionHeader icon={ScrollText} title="Agreement Details" description="Contract type, dates and renewal settings" />
+                  <CardContent className="space-y-4">
                     <Field label="Agreement Type">
                       <Select value={form.agreementType} onValueChange={v => update("agreementType", v)}>
                         <SelectTrigger data-testid="select-agreement-type"><SelectValue /></SelectTrigger>
@@ -1207,8 +1218,8 @@ export default function AddResellerPage() {
                 {/* Agreement Summary Card */}
                 {(form.agreementType || form.agreementStartDate) && (
                   <Card>
-                    <SectionHeader icon={CalendarClock} title="Agreement Summary" />
-                    <CardContent className="pt-5">
+                    <SectionHeader icon={CalendarClock} title="Agreement Summary" description="Visual overview of the configured agreement" />
+                    <CardContent className="">
                       <div className="rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-800 p-5 space-y-3">
                         <div className="flex items-center gap-2">
                           <ScrollText className="h-5 w-5 text-blue-600" />
@@ -1253,8 +1264,8 @@ export default function AddResellerPage() {
             {activeTab === "documents" && (
               <div className="space-y-5">
                 <Card>
-                  <SectionHeader icon={Image} title="Document Uploads" />
-                  <CardContent className="pt-5 space-y-4">
+                  <SectionHeader icon={Image} title="Document Uploads" description="Upload CNIC, registration and supporting documents" />
+                  <CardContent className="space-y-4">
                     <FieldGroup>
                       <FileUploadPreview
                         label="CNIC / NID Front"
@@ -1273,8 +1284,8 @@ export default function AddResellerPage() {
                 </Card>
 
                 <Card>
-                  <SectionHeader icon={Shield} title="Document Requirements" />
-                  <CardContent className="pt-5">
+                  <SectionHeader icon={Shield} title="Document Requirements" description="Required documents checklist for reseller onboarding" />
+                  <CardContent className="">
                     <ul className="space-y-2 text-sm text-muted-foreground">
                       {[
                         "CNIC must be valid and not expired",
@@ -1294,52 +1305,47 @@ export default function AddResellerPage() {
               </div>
             )}
 
-            {/* Bottom step navigation */}
-            {(() => {
-              const tabIdx = tabItems.findIndex(t => t.id === activeTab);
-              const isFirst = tabIdx === 0;
-              const isLast = tabIdx === tabItems.length - 1;
-              return (
-                <div className="flex items-center justify-between pt-2 pb-6">
-                  <div className="flex items-center gap-3">
-                    <Button
-                      type="button" variant="outline"
-                      onClick={() => setLocation("/resellers")}
-                      data-testid="button-cancel-reseller"
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" /> Cancel
-                    </Button>
-                    {!isFirst && (
-                      <Button variant="outline" onClick={() => setActiveTab(tabItems[tabIdx - 1].id)} className="gap-2" data-testid="button-prev-tab">
-                        <ChevronLeft className="h-4 w-4" />Previous
-                      </Button>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-xs text-muted-foreground hidden sm:block">
-                      Step {tabIdx + 1} of {tabItems.length} — {tabItems[tabIdx].label}
-                    </div>
-                    {!isLast ? (
-                      <Button variant="outline" onClick={() => setActiveTab(tabItems[tabIdx + 1].id)} className="gap-2" data-testid="button-next-tab">
-                        Next<ChevronLeft className="h-4 w-4 rotate-180" />
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        disabled={createMutation.isPending}
-                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8"
-                        onClick={handleSave}
-                        data-testid="button-submit-reseller"
-                      >
-                        {createMutation.isPending ? "Saving..." : "Save Reseller"}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
+      {/* Sticky bottom action bar */}
+      <div className="sticky bottom-4 z-20">
+        <div className="bg-white/90 dark:bg-slate-950/90 backdrop-blur-md rounded-2xl border border-border/60 shadow-xl p-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Button
+                type="button" variant="outline"
+                onClick={() => setLocation("/resellers")}
+                data-testid="button-cancel-reseller"
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" /> Cancel
+              </Button>
+              {!isFirstTab && (
+                <Button variant="outline" onClick={() => setActiveTab(tabItems[tabIndex - 1].id)} className="gap-2" data-testid="button-prev-tab">
+                  <ChevronLeft className="h-4 w-4" />Previous
+                </Button>
+              )}
+              {!isLastTab && (
+                <Button variant="outline" onClick={() => setActiveTab(tabItems[tabIndex + 1].id)} className="gap-2" data-testid="button-next-tab">
+                  Next<ChevronLeft className="h-4 w-4 rotate-180" />
+                </Button>
+              )}
+              <div className="text-xs text-muted-foreground hidden sm:block">
+                Step {tabIndex + 1} of {tabItems.length} — {tabItems[tabIndex].label}
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                type="button"
+                disabled={createMutation.isPending}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 shadow-md"
+                onClick={handleSave}
+                data-testid="button-submit-reseller"
+              >
+                {createMutation.isPending ? "Saving..." : "Save Reseller"}
+              </Button>
+            </div>
           </div>
-        </main>
+        </div>
+      </div>
+    </div>
     </div>
   );
 }
