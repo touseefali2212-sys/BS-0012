@@ -90,8 +90,19 @@ export default function PackageChangePage() {
 
   const createMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/package-change-requests", data),
-    onSuccess: () => {
+    onSuccess: (_, variables: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/package-change-requests"] });
+      if (variables.customerId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/customers", String(variables.customerId), "service-requests"] });
+      }
+      if (variables.cirCustomerId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/cir-customers", String(variables.cirCustomerId), "service-requests"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/cir-customers", String(variables.cirCustomerId), "bandwidth-history"] });
+      }
+      if (variables.corporateCustomerId) {
+        queryClient.invalidateQueries({ queryKey: ["/api/corporate-customers", String(variables.corporateCustomerId), "service-requests"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/corporate-customers", String(variables.corporateCustomerId), "bandwidth-history"] });
+      }
       toast({ title: "Request Submitted", description: "Package change request has been created successfully." });
       resetForm();
       setActiveTab("pending");
