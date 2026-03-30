@@ -596,6 +596,136 @@ export default function CustomerProfilePage() {
   const customerPackage = packages?.find((p) => p.id === customer?.packageId);
   const customerVendor = vendors?.find((v) => v.id === customer?.vendorId);
 
+  const handleDownloadInfo = () => {
+    if (!customer) return;
+    const fmtD = (d: string | null | undefined) => {
+      if (!d) return "-";
+      try { return new Date(d).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }); } catch { return d; }
+    };
+    const pkg = customerPackage;
+    const vendor = customerVendor;
+    const conns = connections || [];
+    const section = (title: string, rows: [string, string][]) => {
+      return `<div class="section"><div class="section-title">${title}</div><table>${rows.map(([k, v]) => `<tr><td class="label">${k}</td><td class="value">${v || "-"}</td></tr>`).join("")}</table></div>`;
+    };
+    const personalRows: [string, string][] = [
+      ["Customer ID", customer.customerId],
+      ["Full Name", customer.fullName],
+      ["Father's Name", customer.fatherName || "-"],
+      ["Mother's Name", customer.motherName || "-"],
+      ["Gender", customer.gender || "-"],
+      ["Date of Birth", fmtD(customer.dateOfBirth)],
+      ["Occupation", customer.occupation || "-"],
+      ["Phone", customer.phone],
+      ["Phone (Secondary)", customer.phoneNumber || "-"],
+      ["Email", customer.email || "-"],
+      ["Present Address", customer.presentAddress || customer.address || "-"],
+      ["Permanent Address", customer.permanentAddress || "-"],
+      ["District", customer.district || "-"],
+      ["Upazila / Thana", customer.upazilaThana || "-"],
+      ["Area / Zone", customer.area || customer.zone || "-"],
+      ["Road Number", customer.roadNumber || "-"],
+      ["House Number", customer.houseNumber || "-"],
+      ["Facebook", customer.facebookUrl || "-"],
+      ["LinkedIn", customer.linkedinUrl || "-"],
+      ["Twitter", customer.twitterUrl || "-"],
+      ["VIP Client", customer.isVipClient ? "Yes" : "No"],
+      ["Joining Date", fmtD(customer.joiningDate)],
+      ["Reference By", customer.referenceBy || "-"],
+      ["Connected By", customer.connectedBy || "-"],
+      ["Assign To", customer.assignTo || "-"],
+      ["Notes", customer.notes || "-"],
+    ];
+    const docRows: [string, string][] = [
+      ["NID Number", customer.nidNumber || "-"],
+      ["CNIC", customer.cnic || "-"],
+      ["Registration Form No", customer.registrationFormNo || "-"],
+      ["Profile Picture", customer.profilePicture ? "Uploaded" : "Not Uploaded"],
+      ["NID Picture", customer.nidPicture ? "Uploaded" : "Not Uploaded"],
+      ["Registration Form", customer.registrationFormPicture ? "Uploaded" : "Not Uploaded"],
+    ];
+    const serviceRows: [string, string][] = [
+      ["Customer Type", (customer.customerType || "-").replace(/_/g, " ")],
+      ["Package", pkg?.name || "-"],
+      ["Monthly Bill", customer.monthlyBill ? `৳ ${customer.monthlyBill}` : "-"],
+      ["Status", customer.status],
+      ["Billing Status", customer.billingStatus || "-"],
+      ["Recurring Billing", customer.isRecurring ? "Yes" : "No"],
+      ["Recurring Day", customer.recurringDay?.toString() || "-"],
+      ["Billing Start Month", customer.billingStartMonth || "-"],
+      ["Next Billing Date", fmtD(customer.nextBillingDate)],
+      ["Last Billed Date", fmtD(customer.lastBilledDate)],
+      ["Connection Date", fmtD(customer.connectionDate)],
+      ["Expire Date", fmtD(customer.expireDate)],
+      ["Vendor", vendor?.name || "-"],
+      ["Purchase Date", fmtD(customer.purchaseDate)],
+      ["Affiliator", customer.affiliator || "-"],
+    ];
+    const networkRows: [string, string][] = [
+      ["Server", customer.server || "-"],
+      ["Protocol Type", customer.protocolType || "-"],
+      ["Username / IP", customer.usernameIp || "-"],
+      ["Password", customer.password || "-"],
+      ["Profile", customer.profile || "-"],
+      ["Zone", customer.zone || "-"],
+      ["Sub Zone", customer.subzone || "-"],
+      ["Box", customer.box || "-"],
+      ["Connection Type", customer.connectionType || "-"],
+      ["Cable Requirement", customer.cableRequirement || "-"],
+      ["Fiber Code", customer.fiberCode || "-"],
+      ["Number of Core", customer.numberOfCore || "-"],
+      ["Core Color", customer.coreColor || "-"],
+      ["Device", customer.device || "-"],
+      ["Device MAC/Serial", customer.deviceMacSerial || "-"],
+      ["MAC Address", customer.macAddress || "-"],
+      ["Map Latitude", customer.mapLatitude || "-"],
+      ["Map Longitude", customer.mapLongitude || "-"],
+    ];
+    let connectionsHtml = "";
+    if (conns.length > 0) {
+      connectionsHtml = `<div class="section"><div class="section-title">Connection Details (${conns.length})</div><table>
+        <tr class="header-row"><td class="label"><b>Username</b></td><td class="label"><b>IP Address</b></td><td class="label"><b>MAC</b></td><td class="label"><b>ONU Serial</b></td><td class="label"><b>Router</b></td><td class="label"><b>Type</b></td><td class="label"><b>Port</b></td><td class="label"><b>VLAN</b></td><td class="label"><b>Status</b></td></tr>
+        ${conns.map(c => `<tr><td class="value">${c.username || "-"}</td><td class="value">${c.ipAddress || "-"}</td><td class="value">${c.macAddress || "-"}</td><td class="value">${c.onuSerial || "-"}</td><td class="value">${c.routerModel || "-"} ${c.routerSerial ? `(${c.routerSerial})` : ""}</td><td class="value">${c.connectionType || "-"}</td><td class="value">${c.port || "-"}</td><td class="value">${c.vlan || "-"}</td><td class="value">${c.status}</td></tr>`).join("")}
+      </table></div>`;
+    }
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Customer Info - ${customer.fullName}</title><style>
+      @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } @page { margin: 15mm; } }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a1a; background: #fff; padding: 20px; font-size: 12px; }
+      .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #0057FF; padding-bottom: 12px; margin-bottom: 20px; }
+      .header h1 { font-size: 20px; color: #0057FF; }
+      .header .meta { text-align: right; font-size: 11px; color: #555; }
+      .header .meta span { display: block; }
+      .section { margin-bottom: 16px; break-inside: avoid; }
+      .section-title { background: #0a2540; color: #fff; padding: 7px 14px; font-size: 13px; font-weight: 600; border-radius: 4px 4px 0 0; }
+      table { width: 100%; border-collapse: collapse; border: 1px solid #ddd; border-top: none; }
+      tr:nth-child(even) { background: #f7f9fc; }
+      td { padding: 5px 10px; border-bottom: 1px solid #eee; vertical-align: top; }
+      .label { color: #555; font-weight: 500; width: 180px; white-space: nowrap; }
+      .value { color: #1a1a1a; }
+      .header-row td { background: #e8edf3; font-size: 11px; }
+      .footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #ccc; text-align: center; font-size: 10px; color: #888; }
+    </style></head><body>
+      <div class="header">
+        <div><h1>Customer Information Report</h1><p style="margin-top:4px;font-size:11px;color:#666;">${customer.fullName} — ${customer.customerId}</p></div>
+        <div class="meta"><span>Generated: ${new Date().toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span><span>Status: ${customer.status}</span></div>
+      </div>
+      ${section("Personal Information", personalRows)}
+      ${section("Documents", docRows)}
+      ${section("Service Information", serviceRows)}
+      ${section("Network & Infrastructure", networkRows)}
+      ${connectionsHtml}
+      <div class="footer">NetSphere ISP Management System — Confidential Customer Record</div>
+      <script>window.onload=function(){window.print();}</script>
+    </body></html>`;
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, "_blank");
+    if (win) {
+      win.onafterprint = () => { win.close(); URL.revokeObjectURL(url); };
+    }
+  };
+
   const formatDate = (d: string | null | undefined) => {
     if (!d) return "-";
     try {
@@ -723,7 +853,7 @@ export default function CustomerProfilePage() {
                 <Package className="h-3 w-3" /> Package Scheduler
               </Button>
             </div>
-            <Button size="sm" className="w-full text-xs h-9 gap-1.5 bg-[#0057FF]" data-testid="button-download-info">
+            <Button size="sm" className="w-full text-xs h-9 gap-1.5 bg-[#0057FF]" data-testid="button-download-info" onClick={handleDownloadInfo}>
               <Download className="h-3.5 w-3.5" /> Download Information
             </Button>
             <Link href="/customers?tab=list">
