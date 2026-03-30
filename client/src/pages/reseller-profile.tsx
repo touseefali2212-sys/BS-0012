@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowLeft, Building2, Mail, Phone, Edit, Save, ChevronRight,
   Shield, Network, Activity, DollarSign, AlertCircle, RefreshCw,
@@ -22,13 +20,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { insertResellerSchema, type Reseller, type InsertReseller } from "@shared/schema";
+import { type Reseller } from "@shared/schema";
 
 const mapMarkerIcon = new L.Icon({
   iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
@@ -93,171 +89,6 @@ const formatDate = (d?: string | null) => {
 
 const formatPKR = (v: any) => `Rs. ${parseFloat(String(v || "0")).toLocaleString()}`;
 
-function ResellerEditDialog({ open, onClose, reseller, id }: { open: boolean; onClose: () => void; reseller: Reseller; id: string }) {
-  const { toast } = useToast();
-  const [section, setSection] = useState(0);
-  const form = useForm<InsertReseller>({ resolver: zodResolver(insertResellerSchema), defaultValues: reseller as any });
-  const updateMutation = useMutation({
-    mutationFn: async (data: InsertReseller) => { const res = await apiRequest("PATCH", `/api/resellers/${id}`, data); return res.json(); },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/resellers", id] }); queryClient.invalidateQueries({ queryKey: ["/api/resellers"] }); onClose(); toast({ title: "Reseller updated successfully" }); },
-    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
-  });
-  const sections = ["Personal Info", "Location & Contact", "Network & Service", "Billing & Finance", "Commission & Bank", "Agreement & Settings", "Vendor Panels"];
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Update Reseller — {reseller.name}</DialogTitle></DialogHeader>
-        <div className="flex flex-wrap gap-1.5 pb-2 border-b">
-          {sections.map((s, i) => (<button key={s} onClick={() => setSection(i)} className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-colors ${section === i ? "bg-[#1c67d4] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{s}</button>))}
-        </div>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit((d) => updateMutation.mutate(d))} className="space-y-4">
-            {section === 0 && (<div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="companyName" render={({ field }) => (<FormItem><FormLabel>Company Name</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Reseller Name *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="fatherName" render={({ field }) => (<FormItem><FormLabel>Father Name</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="cnic" render={({ field }) => (<FormItem><FormLabel>CNIC / NIC</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="gender" render={({ field }) => (<FormItem><FormLabel>Gender</FormLabel><Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl><SelectContent><SelectItem value="male">Male</SelectItem><SelectItem value="female">Female</SelectItem><SelectItem value="other">Other</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="dateOfBirth" render={({ field }) => (<FormItem><FormLabel>Date of Birth</FormLabel><FormControl><Input type="date" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="occupation" render={({ field }) => (<FormItem><FormLabel>Occupation</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="resellerType" render={({ field }) => (<FormItem><FormLabel>Reseller Type</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} value={field.value || "active"}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem><SelectItem value="suspended">Suspended</SelectItem><SelectItem value="blocked">Blocked</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-            </div>)}
-            {section === 1 && (<div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Mobile No *</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="secondaryPhone" render={({ field }) => (<FormItem><FormLabel>Phone Number</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="branch" render={({ field }) => (<FormItem><FormLabel>Branch</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="area" render={({ field }) => (<FormItem><FormLabel>Area</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>Address</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="mapLatitude" render={({ field }) => (<FormItem><FormLabel>Latitude</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="e.g. 31.5204" /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="mapLongitude" render={({ field }) => (<FormItem><FormLabel>Longitude</FormLabel><FormControl><Input {...field} value={field.value || ""} placeholder="e.g. 74.3587" /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <Button type="button" variant="outline" size="sm" onClick={() => {
-                if (navigator.geolocation) {
-                  navigator.geolocation.getCurrentPosition(
-                    (pos) => { form.setValue("mapLatitude", pos.coords.latitude.toFixed(6)); form.setValue("mapLongitude", pos.coords.longitude.toFixed(6)); },
-                    () => {},
-                  );
-                }
-              }} data-testid="button-get-gps-edit">
-                <Navigation className="h-4 w-4 mr-1.5" /> Get GPS from Device
-              </Button>
-            </div>)}
-            {section === 2 && (<div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="uplinkType" render={({ field }) => (<FormItem><FormLabel>Uplink Type</FormLabel><Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl><SelectContent><SelectItem value="fiber">Fiber</SelectItem><SelectItem value="wireless">Wireless</SelectItem><SelectItem value="copper">Copper</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="uplink" render={({ field }) => (<FormItem><FormLabel>Uplink</FormLabel><Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl><SelectContent><SelectItem value="dedicated">Dedicated</SelectItem><SelectItem value="shared">Shared</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="exchangeTowerPopName" render={({ field }) => (<FormItem><FormLabel>Exchange/Tower/POP</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="portId" render={({ field }) => (<FormItem><FormLabel>Port ID</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="vlanId" render={({ field }) => (<FormItem><FormLabel>VLAN ID</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="media" render={({ field }) => (<FormItem><FormLabel>Media</FormLabel><Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger></FormControl><SelectContent><SelectItem value="sfp">SFP</SelectItem><SelectItem value="utp">UTP</SelectItem><SelectItem value="dish">Dish</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="connectionType" render={({ field }) => (<FormItem><FormLabel>Connection Type</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="bandwidthPlan" render={({ field }) => (<FormItem><FormLabel>Bandwidth Plan</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="ipAssignment" render={({ field }) => (<FormItem><FormLabel>IP Assignment</FormLabel><Select onValueChange={field.onChange} value={field.value || "dynamic"}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="dynamic">Dynamic</SelectItem><SelectItem value="static">Static</SelectItem><SelectItem value="pppoe">PPPoE</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="nasId" render={({ field }) => (<FormItem><FormLabel>NAS ID</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <FormField control={form.control} name="serviceZone" render={({ field }) => (<FormItem><FormLabel>Service Zone</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-            </div>)}
-            {section === 3 && (<div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="walletBalance" render={({ field }) => (<FormItem><FormLabel>Wallet Balance</FormLabel><FormControl><Input type="number" {...field} value={field.value || "0"} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="creditLimit" render={({ field }) => (<FormItem><FormLabel>Credit Limit</FormLabel><FormControl><Input type="number" {...field} value={field.value || "0"} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="securityDeposit" render={({ field }) => (<FormItem><FormLabel>Security Deposit</FormLabel><FormControl><Input type="number" {...field} value={field.value || "0"} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="openingBalance" render={({ field }) => (<FormItem><FormLabel>Opening Balance</FormLabel><FormControl><Input type="number" {...field} value={field.value || "0"} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="billingCycle" render={({ field }) => (<FormItem><FormLabel>Billing Cycle</FormLabel><Select onValueChange={field.onChange} value={field.value || "monthly"}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="weekly">Weekly</SelectItem><SelectItem value="monthly">Monthly</SelectItem><SelectItem value="quarterly">Quarterly</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="paymentMethod" render={({ field }) => (<FormItem><FormLabel>Payment Method</FormLabel><Select onValueChange={field.onChange} value={field.value || "cash"}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="cash">Cash</SelectItem><SelectItem value="bank_transfer">Bank Transfer</SelectItem><SelectItem value="online">Online</SelectItem><SelectItem value="cheque">Cheque</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-              </div>
-            </div>)}
-            {section === 4 && (<div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4">
-                <FormField control={form.control} name="commissionRate" render={({ field }) => (<FormItem><FormLabel>Commission Rate (%)</FormLabel><FormControl><Input type="number" {...field} value={field.value || "10"} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="commissionPaymentMethod" render={({ field }) => (<FormItem><FormLabel>Commission Method</FormLabel><Select onValueChange={field.onChange} value={field.value || "wallet"}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="wallet">Wallet</SelectItem><SelectItem value="bank_transfer">Bank Transfer</SelectItem><SelectItem value="cash">Cash</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="commissionPaymentFrequency" render={({ field }) => (<FormItem><FormLabel>Frequency</FormLabel><Select onValueChange={field.onChange} value={field.value || "monthly"}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="weekly">Weekly</SelectItem><SelectItem value="monthly">Monthly</SelectItem><SelectItem value="quarterly">Quarterly</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="bankName" render={({ field }) => (<FormItem><FormLabel>Bank Name</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="bankAccountTitle" render={({ field }) => (<FormItem><FormLabel>Account Title</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="bankAccountNumber" render={({ field }) => (<FormItem><FormLabel>Account Number</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="bankBranchCode" render={({ field }) => (<FormItem><FormLabel>Branch Code</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-            </div>)}
-            {section === 5 && (<div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="agreementStartDate" render={({ field }) => (<FormItem><FormLabel>Agreement Start</FormLabel><FormControl><Input type="date" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="agreementEndDate" render={({ field }) => (<FormItem><FormLabel>Agreement End</FormLabel><FormControl><Input type="date" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="agreementType" render={({ field }) => (<FormItem><FormLabel>Agreement Type</FormLabel><Select onValueChange={field.onChange} value={field.value || "standard"}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="standard">Standard</SelectItem><SelectItem value="premium">Premium</SelectItem><SelectItem value="enterprise">Enterprise</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="joinDate" render={({ field }) => (<FormItem><FormLabel>Join Date</FormLabel><FormControl><Input type="date" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="autoRenewal" render={({ field }) => (<FormItem className="flex items-center gap-2 space-y-0 pt-2"><FormControl><Switch checked={field.value ?? false} onCheckedChange={field.onChange} /></FormControl><FormLabel>Auto Renewal</FormLabel></FormItem>)} />
-                <FormField control={form.control} name="supportLevel" render={({ field }) => (<FormItem><FormLabel>Support Level</FormLabel><Select onValueChange={field.onChange} value={field.value || "standard"}><FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="standard">Standard</SelectItem><SelectItem value="priority">Priority</SelectItem><SelectItem value="premium">Premium</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-              </div>
-              <FormField control={form.control} name="maxCustomerLimit" render={({ field }) => (<FormItem><FormLabel>Max Customer Limit</FormLabel><FormControl><Input type="number" {...field} value={field.value || "0"} onChange={e => field.onChange(parseInt(e.target.value) || 0)} /></FormControl><FormMessage /></FormItem>)} />
-              <FormField control={form.control} name="notes" render={({ field }) => (<FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea rows={3} {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-            </div>)}
-            {section === 6 && (<div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="vendorPanelAllowed" render={({ field }) => (<FormItem className="flex items-center gap-2 space-y-0 pt-2"><FormControl><Switch checked={field.value ?? false} onCheckedChange={field.onChange} /></FormControl><FormLabel>Vendor Panel Allowed</FormLabel></FormItem>)} />
-                <FormField control={form.control} name="vlanIdAllowed" render={({ field }) => (<FormItem className="flex items-center gap-2 space-y-0 pt-2"><FormControl><Switch checked={field.value ?? false} onCheckedChange={field.onChange} /></FormControl><FormLabel>VLAN ID Allowed</FormLabel></FormItem>)} />
-              </div>
-              <FormField control={form.control} name="vlanIdNote" render={({ field }) => (<FormItem><FormLabel>VLAN ID Note</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="panelUrl" render={({ field }) => (<FormItem><FormLabel>Panel URL</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="panelUsername" render={({ field }) => (<FormItem><FormLabel>Panel Username</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <FormField control={form.control} name="panelPassword" render={({ field }) => (<FormItem><FormLabel>Panel Password</FormLabel><FormControl><Input type="password" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-            </div>)}
-            <div className="flex items-center justify-between gap-2 pt-4 border-t">
-              <div className="flex gap-2">
-                {section > 0 && <Button type="button" variant="outline" size="sm" onClick={() => setSection(s => s - 1)}>← Previous</Button>}
-                {section < sections.length - 1 && <Button type="button" variant="outline" size="sm" onClick={() => setSection(s => s + 1)}>Next →</Button>}
-              </div>
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={onClose}>Cancel</Button>
-                <Button type="submit" size="sm" disabled={updateMutation.isPending} className="bg-[#1c67d4] text-white">
-                  {updateMutation.isPending ? <><RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />Saving...</> : <><Save className="h-3.5 w-3.5 mr-1.5" />Save All</>}
-                </Button>
-              </div>
-            </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 function CustomerSummaryTab({ reseller, resellerId, assignedPkgs, vendors, vendorPackages, resellerCustomers, toast }: any) {
   const currentMonth = new Date().toISOString().slice(0, 7);
@@ -494,7 +325,6 @@ export default function ResellerProfilePage() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("personal");
-  const [editOpen, setEditOpen] = useState(false);
   const [editPkg, setEditPkg] = useState<any>(null);
   const [editPkgPrice, setEditPkgPrice] = useState("");
   const [deletePkg, setDeletePkg] = useState<any>(null);
@@ -611,7 +441,7 @@ export default function ResellerProfilePage() {
           </div>
           <div className="px-4 pt-4 pb-2 space-y-2">
             <div className="grid grid-cols-2 gap-2">
-              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => setEditOpen(true)} data-testid="btn-edit-reseller"><Edit className="h-3 w-3" /> Edit Reseller</Button>
+              <Link href={`/resellers/${id}/edit`}><Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1 w-full" data-testid="btn-edit-reseller"><Edit className="h-3 w-3" /> Edit Reseller</Button></Link>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="btn-status-scheduler"><CalendarRange className="h-3 w-3" /> Status Scheduler</Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="btn-send-message"><MessageCircle className="h-3 w-3" /> Send Email/Message</Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => setActiveTab("wallet")} data-testid="btn-wallet-history"><Wallet className="h-3 w-3" /> Wallet History</Button>
@@ -1069,10 +899,6 @@ export default function ResellerProfilePage() {
           </div>
         </div>
       </div>
-
-      {reseller && (
-        <ResellerEditDialog open={editOpen} onClose={() => setEditOpen(false)} reseller={reseller} id={id || ""} />
-      )}
 
       <Dialog open={!!editPkg} onOpenChange={(open) => { if (!open) setEditPkg(null); }}>
         <DialogContent className="sm:max-w-md">
