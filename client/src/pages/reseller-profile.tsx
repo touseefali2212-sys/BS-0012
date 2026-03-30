@@ -552,30 +552,106 @@ export default function ResellerProfilePage() {
               </div>
             )}
 
-            {activeTab === "customers" && (
+            {activeTab === "customers" && (() => {
+              const totalCust = resellerCustomers.length || reseller.totalCustomers || 0;
+              const activeCust = resellerCustomers.filter((c: any) => c.status === "active").length;
+              const inactiveCust = resellerCustomers.filter((c: any) => c.status !== "active").length;
+              const pkgSummary = assignedPkgs.map((pkg: any) => {
+                const pkgVendor = (vendors || []).find((v: any) => v.id === pkg.vendorId);
+                const rPrice = parseFloat(String(pkg.resellerPrice || pkg.ispSellingPrice || "0"));
+                const totalForPkg = resellerCustomers.filter((c: any) => c.packageId === pkg.id).length;
+                const activeForPkg = resellerCustomers.filter((c: any) => c.packageId === pkg.id && c.status === "active").length;
+                return { pkg, vendorName: pkgVendor?.name || "—", rPrice, totalForPkg, totalRevenue: rPrice * totalForPkg, activeForPkg, activeRevenue: rPrice * activeForPkg };
+              });
+              const grandTotalCust = pkgSummary.reduce((s, r) => s + r.totalForPkg, 0);
+              const grandTotalRev = pkgSummary.reduce((s, r) => s + r.totalRevenue, 0);
+              const grandActiveCust = pkgSummary.reduce((s, r) => s + r.activeForPkg, 0);
+              const grandActiveRev = pkgSummary.reduce((s, r) => s + r.activeRevenue, 0);
+
+              return (
               <div className="space-y-4">
                 <SectionHeader title="Customer Summary" />
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-4 gap-4">
                   <Card className="border-l-4 border-l-green-500">
                     <CardContent className="p-4">
                       <p className="text-xs text-muted-foreground">Total Customers</p>
-                      <p className="text-2xl font-bold text-green-700" data-testid="profile-total-customers">{resellerCustomers.length || reseller.totalCustomers || 0}</p>
+                      <p className="text-2xl font-bold text-green-700" data-testid="profile-total-customers">{totalCust}</p>
                     </CardContent>
                   </Card>
                   <Card className="border-l-4 border-l-blue-500">
                     <CardContent className="p-4">
-                      <p className="text-xs text-muted-foreground">Max Customer Limit</p>
-                      <p className="text-2xl font-bold text-blue-700">{reseller.maxCustomerLimit || "Unlimited"}</p>
+                      <p className="text-xs text-muted-foreground">Active Customers</p>
+                      <p className="text-2xl font-bold text-blue-700">{activeCust}</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-l-4 border-l-orange-500">
+                    <CardContent className="p-4">
+                      <p className="text-xs text-muted-foreground">Inactive / Suspended</p>
+                      <p className="text-2xl font-bold text-orange-600">{inactiveCust}</p>
                     </CardContent>
                   </Card>
                   <Card className="border-l-4 border-l-purple-500">
                     <CardContent className="p-4">
-                      <p className="text-xs text-muted-foreground">Active Customers</p>
-                      <p className="text-2xl font-bold text-purple-700">{resellerCustomers.filter((c: any) => c.status === "active").length}</p>
+                      <p className="text-xs text-muted-foreground">Max Customer Limit</p>
+                      <p className="text-2xl font-bold text-purple-700">{reseller.maxCustomerLimit || "Unlimited"}</p>
                     </CardContent>
                   </Card>
                 </div>
 
+                <SectionHeader title="Package-wise Customer Summary" />
+                {assignedPkgs.length === 0 ? (
+                  <EmptyState icon={Tag} message="No packages assigned — customer summary unavailable" />
+                ) : (
+                  <div className="bg-card border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader><TableRow className="bg-[#1a3a5c]">
+                        <TableHead className="text-white text-xs">Vendor</TableHead>
+                        <TableHead className="text-white text-xs">Package</TableHead>
+                        <TableHead className="text-white text-xs text-right">Reseller Price</TableHead>
+                        <TableHead className="text-white text-xs text-center">Total Customer</TableHead>
+                        <TableHead className="text-white text-xs text-right">Package × Total Cus.</TableHead>
+                        <TableHead className="text-white text-xs text-center">Active Customer</TableHead>
+                        <TableHead className="text-white text-xs text-right">Package × Active Cus.</TableHead>
+                        <TableHead className="text-white text-xs">Action</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {pkgSummary.map((row, i: number) => (
+                          <TableRow key={row.pkg.id}>
+                            <TableCell className="text-xs">{row.vendorName}</TableCell>
+                            <TableCell className="text-xs font-medium">{row.pkg.packageName}</TableCell>
+                            <TableCell className="text-xs text-right font-medium">Rs. {row.rPrice.toLocaleString()}</TableCell>
+                            <TableCell className="text-xs text-center font-semibold">{row.totalForPkg}</TableCell>
+                            <TableCell className="text-xs text-right font-semibold">Rs. {row.totalRevenue.toLocaleString()}</TableCell>
+                            <TableCell className="text-xs text-center font-semibold text-green-700">{row.activeForPkg}</TableCell>
+                            <TableCell className="text-xs text-right font-semibold text-green-700">Rs. {row.activeRevenue.toLocaleString()}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-1">
+                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-blue-600 hover:bg-blue-50" onClick={() => { setEditPkg(row.pkg); setEditPkgPrice(String(row.pkg.resellerPrice || row.pkg.ispSellingPrice || "0")); }} data-testid={`cust-pkg-edit-${row.pkg.id}`}>
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-600 hover:bg-red-50" onClick={() => setDeletePkg(row.pkg)} data-testid={`cust-pkg-delete-${row.pkg.id}`}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                      <tfoot>
+                        <tr className="bg-[#1a3a5c]">
+                          <td colSpan={3} className="px-4 py-2 text-white text-xs font-bold">Total</td>
+                          <td className="px-4 py-2 text-white text-xs font-bold text-center">{grandTotalCust}</td>
+                          <td className="px-4 py-2 text-white text-xs font-bold text-right">Rs. {grandTotalRev.toLocaleString()}</td>
+                          <td className="px-4 py-2 text-white text-xs font-bold text-center">{grandActiveCust}</td>
+                          <td className="px-4 py-2 text-white text-xs font-bold text-right">Rs. {grandActiveRev.toLocaleString()}</td>
+                          <td className="px-4 py-2"></td>
+                        </tr>
+                      </tfoot>
+                    </Table>
+                  </div>
+                )}
+
+                <SectionHeader title="Customer List" />
                 {resellerCustomers.length === 0 ? (
                   <EmptyState icon={Users} message="No customers linked to this reseller" />
                 ) : (
@@ -584,27 +660,33 @@ export default function ResellerProfilePage() {
                       <TableHeader><TableRow className="bg-[#1a3a5c]">
                         <TableHead className="text-white text-xs">#</TableHead>
                         <TableHead className="text-white text-xs">Customer Name</TableHead>
+                        <TableHead className="text-white text-xs">Package</TableHead>
                         <TableHead className="text-white text-xs">Phone</TableHead>
                         <TableHead className="text-white text-xs">Area</TableHead>
                         <TableHead className="text-white text-xs">Status</TableHead>
                       </TableRow></TableHeader>
                       <TableBody>
-                        {resellerCustomers.slice(0, 50).map((c: any, i: number) => (
+                        {resellerCustomers.slice(0, 50).map((c: any, i: number) => {
+                          const custPkg = (vendorPackages || []).find((vp: any) => vp.id === c.packageId);
+                          return (
                           <TableRow key={c.id}>
                             <TableCell className="text-xs">{i + 1}</TableCell>
-                            <TableCell className="text-xs font-medium">{c.name}</TableCell>
+                            <TableCell className="text-xs font-medium">{c.fullName || c.name}</TableCell>
+                            <TableCell className="text-xs">{custPkg?.packageName || "—"}</TableCell>
                             <TableCell className="text-xs">{c.phone || "—"}</TableCell>
                             <TableCell className="text-xs">{c.area || "—"}</TableCell>
                             <TableCell><Badge variant="secondary" className={`text-[10px] capitalize ${c.status === "active" ? "text-emerald-700 bg-emerald-50" : "text-red-600 bg-red-50"}`}>{c.status}</Badge></TableCell>
                           </TableRow>
-                        ))}
+                          );
+                        })}
                       </TableBody>
                     </Table>
                     {resellerCustomers.length > 50 && <div className="px-4 py-2 text-xs text-muted-foreground text-center border-t">Showing 50 of {resellerCustomers.length} customers</div>}
                   </div>
                 )}
               </div>
-            )}
+              );
+            })()}
 
             {activeTab === "panel" && (
               <div className="space-y-4">
