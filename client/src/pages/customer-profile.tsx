@@ -104,6 +104,7 @@ export default function CustomerProfilePage() {
   const [gpsLat, setGpsLat] = useState("");
   const [gpsLng, setGpsLng] = useState("");
   const [gpsLocating, setGpsLocating] = useState(false);
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [serviceSchedulerOpen, setServiceSchedulerOpen] = useState(false);
   const [serviceRequestType, setServiceRequestType] = useState("package_upgrade");
   const [selectedPackageId, setSelectedPackageId] = useState("");
@@ -456,6 +457,19 @@ export default function CustomerProfilePage() {
       toast({ title: "Error saving GPS", description: error.message, variant: "destructive" });
     },
   });
+
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === "GPS_COORDS_PICKED") {
+        setGpsLat(e.data.lat);
+        setGpsLng(e.data.lng);
+        setMapPickerOpen(false);
+        toast({ title: "Location selected", description: `Lat: ${e.data.lat}, Lng: ${e.data.lng}` });
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
 
   const handleGetGps = () => {
     if (!navigator.geolocation) {
@@ -1277,6 +1291,17 @@ export default function CustomerProfilePage() {
                       </Button>
 
                       <Button
+                        data-testid="button-get-gps-map"
+                        size="sm"
+                        variant="outline"
+                        className="h-8 gap-1.5 text-xs border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-950"
+                        onClick={() => setMapPickerOpen(true)}
+                      >
+                        <MapPin className="h-3.5 w-3.5" />
+                        Get GPS from Map
+                      </Button>
+
+                      <Button
                         data-testid="button-save-gps"
                         size="sm"
                         className="h-8 gap-1.5 text-xs bg-[#1c67d4] hover:bg-[#1558b8]"
@@ -1319,6 +1344,87 @@ export default function CustomerProfilePage() {
                   )}
                 </div>
 
+                {mapPickerOpen && (
+                  <Dialog open={mapPickerOpen} onOpenChange={setMapPickerOpen}>
+                    <DialogContent className="max-w-3xl h-[600px] flex flex-col p-0">
+                      <div className="px-6 pt-6 pb-3">
+                        <h3 className="text-lg font-semibold flex items-center gap-2">
+                          <MapPin className="h-5 w-5 text-green-600" />
+                          Pick Location from Map
+                        </h3>
+                        <p className="text-sm text-muted-foreground mt-1">Click on the map to select GPS coordinates</p>
+                      </div>
+                      <div className="flex-1 px-6">
+                        <iframe
+                          data-testid="iframe-map-picker"
+                          className="w-full h-full rounded-lg border"
+                          style={{ minHeight: "400px" }}
+                          srcDoc={`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>
+<style>
+  body { margin: 0; padding: 0; }
+  #map { width: 100%; height: 100vh; }
+  .coords-box {
+    position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+    z-index: 1000; background: white; padding: 8px 16px; border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2); font-family: system-ui; font-size: 13px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .coords-box button {
+    background: #1c67d4; color: white; border: none; padding: 6px 14px;
+    border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500;
+  }
+  .coords-box button:hover { background: #1558b8; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="coords-box" id="coordsBox" style="display:none;">
+  <span id="coordsText"></span>
+  <button onclick="confirmCoords()">Use This Location</button>
+</div>
+<script>
+  var initLat = ${(gpsLat || customerGpsLat) ? parseFloat(gpsLat || customerGpsLat) || 31.5204 : 31.5204};
+  var initLng = ${(gpsLng || customerGpsLng) ? parseFloat(gpsLng || customerGpsLng) || 74.3587 : 74.3587};
+  var initZoom = ${(gpsLat || customerGpsLat) ? 15 : 6};
+  var map = L.map('map').setView([initLat, initLng], initZoom);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+  var marker = null;
+  var selectedLat = null, selectedLng = null;
+  ${(gpsLat || customerGpsLat) ? `marker = L.marker([initLat, initLng]).addTo(map); selectedLat = initLat; selectedLng = initLng; document.getElementById('coordsBox').style.display = 'flex'; document.getElementById('coordsText').textContent = 'Lat: ' + initLat.toFixed(6) + ', Lng: ' + initLng.toFixed(6);` : ''}
+  map.on('click', function(e) {
+    selectedLat = e.latlng.lat;
+    selectedLng = e.latlng.lng;
+    if (marker) map.removeLayer(marker);
+    marker = L.marker([selectedLat, selectedLng]).addTo(map);
+    document.getElementById('coordsBox').style.display = 'flex';
+    document.getElementById('coordsText').textContent = 'Lat: ' + selectedLat.toFixed(6) + ', Lng: ' + selectedLng.toFixed(6);
+  });
+  function confirmCoords() {
+    if (selectedLat !== null && selectedLng !== null) {
+      window.parent.postMessage({ type: 'GPS_COORDS_PICKED', lat: selectedLat.toFixed(6), lng: selectedLng.toFixed(6) }, '*');
+    }
+  }
+<\/script>
+</body>
+</html>`}
+                        />
+                      </div>
+                      <div className="px-6 py-3 border-t flex justify-end">
+                        <Button variant="outline" size="sm" onClick={() => setMapPickerOpen(false)} data-testid="button-close-map">
+                          Close
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
               </div>
             )}
 
