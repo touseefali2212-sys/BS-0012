@@ -349,86 +349,58 @@ export default function ServiceSchedulerPage() {
   };
 
   return (
-    <div className="flex-1 overflow-auto bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-950 dark:to-blue-950/10">
-      <div className="p-6 space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2" data-testid="heading-service-scheduler">
-              <CalendarRange className="h-6 w-6 text-[#0057FF]" />
-              Service Scheduler Management
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">Manage service requests, installations, maintenance, and equipment operations across all customer types</p>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/service-scheduler-requests"] })} data-testid="button-refresh-sr">
-              <RefreshCw className="h-3.5 w-3.5" /> Refresh
-            </Button>
-          </div>
+    <div className="p-6 space-y-4" data-testid="service-scheduler-page">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold flex items-center gap-2" data-testid="heading-service-scheduler">
+            <CalendarRange className="h-6 w-6 text-[#0057FF]" />
+            Service Scheduler Management
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Manage service requests, installations, maintenance, and equipment operations across all customer types</p>
         </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" className="h-9 gap-1.5" onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/service-scheduler-requests"] })} data-testid="button-refresh-sr">
+            <RefreshCw className="h-3.5 w-3.5" />Refresh
+          </Button>
+        </div>
+      </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          <Card className="bg-gradient-to-br from-yellow-500 to-amber-600 text-white">
-            <CardContent className="p-4 text-center">
-              <Clock className="h-5 w-5 mx-auto mb-1 opacity-80" />
-              <p className="text-2xl font-bold">{pendingRequests.length}</p>
-              <p className="text-[10px] uppercase opacity-80">Pending</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white">
-            <CardContent className="p-4 text-center">
-              <Check className="h-5 w-5 mx-auto mb-1 opacity-80" />
-              <p className="text-2xl font-bold">{approvedRequests.length}</p>
-              <p className="text-[10px] uppercase opacity-80">Approved</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
-            <CardContent className="p-4 text-center">
-              <Settings className="h-5 w-5 mx-auto mb-1 opacity-80" />
-              <p className="text-2xl font-bold">{inProgressRequests.length}</p>
-              <p className="text-[10px] uppercase opacity-80">In Progress</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white">
-            <CardContent className="p-4 text-center">
-              <CheckCircle2 className="h-5 w-5 mx-auto mb-1 opacity-80" />
-              <p className="text-2xl font-bold">{completedRequests.length}</p>
-              <p className="text-[10px] uppercase opacity-80">Completed</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-red-500 to-rose-600 text-white">
-            <CardContent className="p-4 text-center">
-              <XCircle className="h-5 w-5 mx-auto mb-1 opacity-80" />
-              <p className="text-2xl font-bold">{rejectedRequests.length}</p>
-              <p className="text-[10px] uppercase opacity-80">Rejected</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-br from-purple-500 to-violet-600 text-white">
-            <CardContent className="p-4 text-center">
-              <History className="h-5 w-5 mx-auto mb-1 opacity-80" />
-              <p className="text-2xl font-bold">{requests.length}</p>
-              <p className="text-[10px] uppercase opacity-80">Total</p>
-            </CardContent>
-          </Card>
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+        {[
+          { label: "New Request", value: 0, icon: Plus, gradient: "from-blue-500 to-blue-600", bg: "bg-blue-50 dark:bg-blue-950/40" },
+          { label: "Pending", value: pendingRequests.length, icon: Clock, gradient: "from-yellow-500 to-amber-500", bg: "bg-yellow-50 dark:bg-yellow-950/40" },
+          { label: "Approved", value: approvedRequests.length, icon: Check, gradient: "from-green-500 to-emerald-500", bg: "bg-green-50 dark:bg-green-950/40" },
+          { label: "In Progress", value: inProgressRequests.length, icon: Settings, gradient: "from-indigo-500 to-blue-500", bg: "bg-indigo-50 dark:bg-indigo-950/40" },
+          { label: "Completed", value: completedRequests.length, icon: CheckCircle2, gradient: "from-emerald-500 to-teal-500", bg: "bg-emerald-50 dark:bg-emerald-950/40" },
+          { label: "Rejected", value: rejectedRequests.length, icon: XCircle, gradient: "from-red-500 to-rose-500", bg: "bg-red-50 dark:bg-red-950/40" },
+          { label: "Total", value: requests.length, icon: CalendarRange, gradient: "from-purple-500 to-violet-500", bg: "bg-purple-50 dark:bg-purple-950/40" },
+        ].map((stat, i) => (
+          <div key={i} className={`relative rounded-xl border border-border/60 ${stat.bg} p-3 overflow-hidden`} data-testid={`stat-card-${stat.label.toLowerCase().replace(/\s+/g, "-")}`}>
+            <div className="flex items-center justify-between mb-1">
+              <div className={`h-8 w-8 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-sm`}>
+                <stat.icon className="h-4 w-4 text-white" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold tracking-tight">{stat.value}</div>
+            <div className="text-[10px] font-medium text-muted-foreground leading-tight">{stat.label}</div>
+          </div>
+        ))}
+      </div>
 
-        <div className="flex gap-1 overflow-x-auto border-b pb-0.5">
-          {tabs.map(t => (
-            <button
-              key={t.key}
-              onClick={() => setActiveTab(t.key)}
-              className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium rounded-t-lg transition-all whitespace-nowrap ${
-                activeTab === t.key
-                  ? "bg-white dark:bg-slate-900 border border-b-white dark:border-b-slate-900 text-foreground shadow-sm -mb-[1px]"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-              }`}
-              data-testid={`tab-${t.key}`}
-            >
-              <t.icon className={`h-3.5 w-3.5 ${activeTab === t.key ? t.color : ""}`} />
-              {t.label}
-              {t.count > 0 && <Badge variant="secondary" className={`text-[9px] h-4 px-1 ${activeTab === t.key ? t.color : ""}`}>{t.count}</Badge>}
-            </button>
-          ))}
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+        {tabs.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`flex flex-col items-center gap-1 p-3 rounded-lg border text-center transition-all ${activeTab === tab.key ? "bg-[#0057FF]/10 border-[#0057FF]/30 shadow-sm" : "bg-card hover:bg-muted/50 border-border/60"}`}
+            data-testid={`tab-${tab.key}`}
+          >
+            <tab.icon className={`h-4 w-4 ${activeTab === tab.key ? "text-[#0057FF]" : tab.color}`} />
+            <span className={`text-[10px] font-medium leading-tight ${activeTab === tab.key ? "text-[#0057FF]" : "text-muted-foreground"}`}>{tab.label}</span>
+            {tab.count > 0 && <Badge className="text-[9px] h-4 px-1.5 bg-[#0057FF]/10 text-[#0057FF]">{tab.count}</Badge>}
+          </button>
+        ))}
+      </div>
 
         {activeTab !== "new_request" && (
           <div className="flex items-center gap-3">
@@ -700,7 +672,6 @@ export default function ServiceSchedulerPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
     </div>
   );
 }
