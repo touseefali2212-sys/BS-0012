@@ -852,10 +852,18 @@ export default function EditCustomerPage() {
                     <Select value={form.customerType} onValueChange={v => update("customerType", v)}>
                       <SelectTrigger data-testid="select-customer-type"><SelectValue /></SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="Home">Home</SelectItem>
+                        <SelectItem value="Office">Office</SelectItem>
+                        <SelectItem value="Govt. Office">Govt. Office</SelectItem>
+                        <SelectItem value="Shop">Shop</SelectItem>
+                        <SelectItem value="Hospital">Hospital</SelectItem>
+                        <SelectItem value="Hostel">Hostel</SelectItem>
+                        <SelectItem value="Hotel">Hotel</SelectItem>
+                        <SelectItem value="Restaurants">Restaurants</SelectItem>
+                        <SelectItem value="Café">Café</SelectItem>
                         <SelectItem value="Normal">Normal</SelectItem>
                         <SelectItem value="CIR">CIR</SelectItem>
                         <SelectItem value="Corporate">Corporate</SelectItem>
-                        <SelectItem value="Home">Home</SelectItem>
                         <SelectItem value="Business">Business</SelectItem>
                         <SelectItem value="Reseller">Reseller</SelectItem>
                       </SelectContent>

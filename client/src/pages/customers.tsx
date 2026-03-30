@@ -2896,7 +2896,18 @@ function CustomerListView({
                   <SelectContent>
                     <SelectItem value="all">All Types</SelectItem>
                     <SelectItem value="home">Home</SelectItem>
+                    <SelectItem value="office">Office</SelectItem>
+                    <SelectItem value="govt. office">Govt. Office</SelectItem>
+                    <SelectItem value="shop">Shop</SelectItem>
+                    <SelectItem value="hospital">Hospital</SelectItem>
+                    <SelectItem value="hostel">Hostel</SelectItem>
+                    <SelectItem value="hotel">Hotel</SelectItem>
+                    <SelectItem value="restaurants">Restaurants</SelectItem>
+                    <SelectItem value="café">Café</SelectItem>
+                    <SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="cir">CIR</SelectItem>
                     <SelectItem value="corporate">Corporate</SelectItem>
+                    <SelectItem value="business">Business</SelectItem>
                     <SelectItem value="reseller">Reseller</SelectItem>
                   </SelectContent>
                 </Select>
