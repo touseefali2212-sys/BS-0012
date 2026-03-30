@@ -9,7 +9,7 @@ import {
   Calendar, Download, MessageCircle, CalendarRange, User, Hash,
   CreditCard, Globe, CheckCircle2, FileText, Plus, BarChart3,
   TrendingUp, TrendingDown, MessageSquare, ShoppingBag, Users,
-  Trash2, MoreHorizontal, Wifi,
+  Trash2, MoreHorizontal, Wifi, Send, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -248,6 +248,17 @@ export default function CorporateCustomerProfilePage() {
   const [editOpen, setEditOpen] = useState(false);
   const [connDialogOpen, setConnDialogOpen] = useState(false);
   const [editingConn, setEditingConn] = useState<CorporateConnection | null>(null);
+  const [schedulerDialogOpen, setSchedulerDialogOpen] = useState(false);
+  const [schedulerType, setSchedulerType] = useState("installation");
+  const [schedulerDate, setSchedulerDate] = useState("");
+  const [schedulerTime, setSchedulerTime] = useState("10:00");
+  const [schedulerAssignee, setSchedulerAssignee] = useState("");
+  const [schedulerPriority, setSchedulerPriority] = useState("normal");
+  const [schedulerNotes, setSchedulerNotes] = useState("");
+  const [smsProfileDialogOpen, setSmsProfileDialogOpen] = useState(false);
+  const [smsProfileChannel, setSmsProfileChannel] = useState("email");
+  const [smsProfileSubject, setSmsProfileSubject] = useState("");
+  const [smsProfileMessage, setSmsProfileMessage] = useState("");
 
   const { data: customer, isLoading } = useQuery<CorporateCustomer>({
     queryKey: ["/api/corporate-customers", id],
@@ -274,10 +285,43 @@ export default function CorporateCustomerProfilePage() {
     enabled: !!id,
   });
 
+  const { data: serviceRequests } = useQuery<any[]>({
+    queryKey: ["/api/corporate-customers", id, "service-requests"],
+    queryFn: async () => { try { const res = await fetch(`/api/corporate-customers/${id}/service-requests`, { credentials: "include" }); if (!res.ok) return []; return res.json(); } catch { return []; } },
+    enabled: !!id,
+  });
+
   const statusUpdateMutation = useMutation({
     mutationFn: async (status: string) => { const res = await apiRequest("PATCH", `/api/corporate-customers/${id}`, { status }); return res.json(); },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/corporate-customers", id] }); toast({ title: "Status updated" }); },
   });
+
+  const scheduleServiceMutation = useMutation({
+    mutationFn: async (data: any) => { const res = await apiRequest("POST", `/api/corporate-customers/${id}/service-requests`, data); return res.json(); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/corporate-customers", id, "service-requests"] });
+      toast({ title: "Service Scheduled" }); setSchedulerDialogOpen(false);
+      setSchedulerType("installation"); setSchedulerDate(""); setSchedulerTime("10:00");
+      setSchedulerAssignee(""); setSchedulerPriority("normal"); setSchedulerNotes("");
+    },
+    onError: (err: Error) => { toast({ title: "Error", description: err.message, variant: "destructive" }); },
+  });
+
+  const sendProfileNotificationMutation = useMutation({
+    mutationFn: async (data: { channel: string; subject: string; message: string }) => {
+      if (data.channel === "email") {
+        if (!customer?.email) throw new Error("No email address");
+        const res = await apiRequest("POST", "/api/notifications/send-email", { to: customer.email, subject: data.subject, body: data.message }); return res.json();
+      } else {
+        const phone = customer?.mobileNo || customer?.phone;
+        if (!phone) throw new Error("No phone number");
+        const res = await apiRequest("POST", "/api/notifications/send-sms", { to: phone, message: data.message }); return res.json();
+      }
+    },
+    onSuccess: (_, vars) => { toast({ title: "Sent", description: `${vars.channel === "email" ? "Email" : "SMS"} sent` }); setSmsProfileDialogOpen(false); },
+    onError: (err: Error) => { toast({ title: "Failed", description: err.message, variant: "destructive" }); },
+  });
+
   const createConnMutation = useMutation({
     mutationFn: async (data: InsertCorporateConnection) => { const res = await apiRequest("POST", "/api/corporate-connections", data); return res.json(); },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/corporate-connections", id] }); setConnDialogOpen(false); setEditingConn(null); toast({ title: "Connection added" }); },
@@ -317,6 +361,7 @@ export default function CorporateCustomerProfilePage() {
     { key: "sales", label: "Product & Service Sales Invoices" },
     { key: "referrals", label: "Referrals" },
     { key: "connections", label: "Connections" },
+    { key: "service_scheduler", label: "Service Scheduler" },
   ];
 
   if (isLoading) return (
@@ -381,8 +426,8 @@ export default function CorporateCustomerProfilePage() {
           <div className="px-4 pt-4 pb-2 space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => setEditOpen(true)}><Edit className="h-3 w-3" /> Update Information</Button>
-              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1"><CalendarRange className="h-3 w-3" /> Status Scheduler</Button>
-              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1"><MessageCircle className="h-3 w-3" /> Send Email/Message</Button>
+              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => setActiveTab("service_scheduler")}><CalendarRange className="h-3 w-3" /> Status Scheduler</Button>
+              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => { setSmsProfileChannel("email"); setSmsProfileSubject(""); setSmsProfileMessage(""); setSmsProfileDialogOpen(true); }}><MessageCircle className="h-3 w-3" /> Send Email/Message</Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => setActiveTab("connections")}><Network className="h-3 w-3" /> View Connections</Button>
             </div>
             <Button size="sm" className="w-full text-xs h-9 gap-1.5 bg-[#0057FF]"><Download className="h-3.5 w-3.5" /> Download Information</Button>
@@ -825,6 +870,64 @@ export default function CorporateCustomerProfilePage() {
               </div>
             )}
 
+            {/* SERVICE SCHEDULER */}
+            {activeTab === "service_scheduler" && (
+              <div className="space-y-4">
+                <SectionHeader title="Service Scheduler" action={
+                  <Button size="sm" className="h-8 text-xs gap-1.5 bg-[#0057FF]" onClick={() => setSchedulerDialogOpen(true)} data-testid="button-corp-add-schedule">
+                    <Plus className="h-3.5 w-3.5" /> Schedule Service
+                  </Button>
+                } />
+                {(() => {
+                  if (!serviceRequests || serviceRequests.length === 0)
+                    return <EmptyState icon={CalendarRange} message="No scheduled service requests found" />;
+                  return (
+                    <div className="bg-card border rounded-lg overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs">Request #</TableHead>
+                            <TableHead className="text-xs">Service Type</TableHead>
+                            <TableHead className="text-xs">Scheduled Date</TableHead>
+                            <TableHead className="text-xs">Assigned To</TableHead>
+                            <TableHead className="text-xs">Status</TableHead>
+                            <TableHead className="text-xs">Priority</TableHead>
+                            <TableHead className="text-xs">Description</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {serviceRequests.map((r: any) => (
+                            <TableRow key={r.id}>
+                              <TableCell className="text-xs font-medium">SR-{r.id}</TableCell>
+                              <TableCell className="text-xs capitalize">{r.serviceType || r.requestType || "—"}</TableCell>
+                              <TableCell className="text-xs">{formatDate(r.scheduledDate || r.requestDate)}</TableCell>
+                              <TableCell className="text-xs">{r.assignedTo || "—"}</TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className={`text-[10px] capitalize ${
+                                  r.status === "completed" ? "text-green-700 bg-green-50" :
+                                  r.status === "in_progress" ? "text-blue-700 bg-blue-50" :
+                                  r.status === "cancelled" ? "text-red-700 bg-red-50" :
+                                  "text-amber-600 bg-amber-50"
+                                }`}>{r.status || "pending"}</Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className={`text-[10px] capitalize ${
+                                  r.priority === "high" || r.priority === "urgent" ? "text-red-600 border-red-300" :
+                                  r.priority === "medium" ? "text-amber-600 border-amber-300" :
+                                  "text-green-600 border-green-300"
+                                }`}>{r.priority || "normal"}</Badge>
+                              </TableCell>
+                              <TableCell className="text-xs max-w-[200px] truncate">{r.description || r.notes || "—"}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
           </div>
         </div>
       </div>
@@ -837,6 +940,119 @@ export default function CorporateCustomerProfilePage() {
           isPending={createConnMutation.isPending || updateConnMutation.isPending}
         />
       )}
+
+      <Dialog open={schedulerDialogOpen} onOpenChange={setSchedulerDialogOpen}>
+        <DialogContent className="max-w-[550px]" data-testid="dialog-corp-schedule-service">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><CalendarRange className="h-5 w-5 text-[#0057FF]" /> Schedule Service Request</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <span className="text-sm font-medium">Service Type</span>
+              <Select value={schedulerType} onValueChange={setSchedulerType}>
+                <SelectTrigger data-testid="select-corp-scheduler-type"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="installation">New Installation</SelectItem>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                  <SelectItem value="upgrade">Bandwidth Upgrade</SelectItem>
+                  <SelectItem value="downgrade">Bandwidth Downgrade</SelectItem>
+                  <SelectItem value="relocation">Relocation</SelectItem>
+                  <SelectItem value="troubleshooting">Troubleshooting</SelectItem>
+                  <SelectItem value="disconnection">Disconnection</SelectItem>
+                  <SelectItem value="reconnection">Reconnection</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Scheduled Date</span>
+                <Input type="date" value={schedulerDate} onChange={e => setSchedulerDate(e.target.value)} data-testid="input-corp-scheduler-date" />
+              </div>
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Scheduled Time</span>
+                <Input type="time" value={schedulerTime} onChange={e => setSchedulerTime(e.target.value)} data-testid="input-corp-scheduler-time" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Assign To</span>
+                <Input value={schedulerAssignee} onChange={e => setSchedulerAssignee(e.target.value)} placeholder="Technician name..." data-testid="input-corp-scheduler-assignee" />
+              </div>
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Priority</span>
+                <Select value={schedulerPriority} onValueChange={setSchedulerPriority}>
+                  <SelectTrigger data-testid="select-corp-scheduler-priority"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="normal">Normal</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <span className="text-sm font-medium">Notes</span>
+              <Textarea value={schedulerNotes} onChange={e => setSchedulerNotes(e.target.value)} placeholder="Add service request notes..." className="min-h-[80px]" data-testid="textarea-corp-scheduler-notes" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSchedulerDialogOpen(false)}>Cancel</Button>
+            <Button className="bg-[#0057FF]" disabled={scheduleServiceMutation.isPending || !schedulerDate}
+              onClick={() => scheduleServiceMutation.mutate({ serviceType: schedulerType, scheduledDate: `${schedulerDate}T${schedulerTime}`, assignedTo: schedulerAssignee, priority: schedulerPriority, notes: schedulerNotes, status: "pending" })}
+              data-testid="button-corp-confirm-schedule">
+              {scheduleServiceMutation.isPending ? "Scheduling..." : "Schedule Service"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={smsProfileDialogOpen} onOpenChange={setSmsProfileDialogOpen}>
+        <DialogContent className="max-w-[500px]" data-testid="dialog-corp-profile-send-message">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Send className="h-5 w-5 text-[#0057FF]" /> Send Email / Message</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <span className="text-sm font-medium">Channel</span>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: "email", label: "Email", icon: Mail },
+                  { value: "sms", label: "SMS", icon: Phone },
+                ].map(ch => (
+                  <button key={ch.value} type="button" onClick={() => setSmsProfileChannel(ch.value)}
+                    className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${smsProfileChannel === ch.value ? "border-[#0057FF] bg-blue-50 text-[#0057FF] font-semibold" : "border-gray-200 dark:border-gray-700 hover:border-gray-300"}`}
+                    data-testid={`btn-corp-profile-channel-${ch.value}`}>
+                    <ch.icon className="h-4 w-4" /><span className="text-sm">{ch.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            {smsProfileChannel === "email" && (
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Subject</span>
+                <Input value={smsProfileSubject} onChange={e => setSmsProfileSubject(e.target.value)} placeholder="Enter subject..." data-testid="input-corp-profile-subject" />
+              </div>
+            )}
+            <div className="space-y-2">
+              <span className="text-sm font-medium">Message</span>
+              <Textarea value={smsProfileMessage} onChange={e => setSmsProfileMessage(e.target.value)} placeholder="Type your message..." className="min-h-[120px]" data-testid="textarea-corp-profile-message" />
+            </div>
+            <div className="text-xs text-muted-foreground">
+              Sending to: {smsProfileChannel === "email" ? (customer?.email || "No email") : (customer?.mobileNo || customer?.phone || "No phone")}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSmsProfileDialogOpen(false)}>Cancel</Button>
+            <Button className="bg-[#0057FF]" disabled={sendProfileNotificationMutation.isPending || !smsProfileMessage.trim() || (smsProfileChannel === "email" && !smsProfileSubject.trim())}
+              onClick={() => sendProfileNotificationMutation.mutate({ channel: smsProfileChannel, subject: smsProfileSubject, message: smsProfileMessage })}
+              data-testid="button-corp-profile-send">
+              {sendProfileNotificationMutation.isPending ? "Sending..." : (<><Send className="h-4 w-4 mr-1.5" />{smsProfileChannel === "email" ? "Send Email" : "Send SMS"}</>)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

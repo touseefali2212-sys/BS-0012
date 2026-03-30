@@ -6,8 +6,8 @@ import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
 import { db } from "./db";
-import { purchaseOrderItems } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { purchaseOrderItems, serviceSchedulerRequests, notificationDispatches } from "@shared/schema";
+import { eq, desc } from "drizzle-orm";
 import {
   loginSchema, insertCustomerSchema, insertPackageSchema, insertInvoiceSchema,
   insertTicketSchema, insertAreaSchema, insertVendorSchema, insertResellerSchema,
@@ -7231,6 +7231,71 @@ export async function registerRoutes(
       await storage.deleteServiceSchedulerRequest(id);
       res.json({ success: true });
     } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get("/api/cir-customers/:id/service-requests", requireAuth, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const all = await db.select().from(serviceSchedulerRequests).where(eq(serviceSchedulerRequests.customerId, customerId)).orderBy(desc(serviceSchedulerRequests.createdAt));
+      res.json(all);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post("/api/cir-customers/:id/service-requests", requireAuth, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const { serviceType, scheduledDate, assignedTo, priority, notes, status } = req.body;
+      const [created] = await db.insert(serviceSchedulerRequests).values({
+        customerId,
+        requestType: serviceType === "installation" || serviceType === "maintenance" || serviceType === "troubleshooting" || serviceType === "relocation" || serviceType === "disconnection" || serviceType === "reconnection" ? "other" : serviceType === "upgrade" ? "package_upgrade" : serviceType === "downgrade" ? "package_downgrade" : "other",
+        description: `[${serviceType}] ${notes || ""}`.trim(),
+        priority: ["low", "normal", "high", "urgent"].includes(priority) ? priority : "normal",
+        requestedBy: assignedTo || null,
+        status: status || "pending",
+        effectiveMonth: scheduledDate || null,
+      }).returning();
+      res.json(created);
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+
+  app.get("/api/corporate-customers/:id/service-requests", requireAuth, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const all = await db.select().from(serviceSchedulerRequests).where(eq(serviceSchedulerRequests.customerId, customerId)).orderBy(desc(serviceSchedulerRequests.createdAt));
+      res.json(all);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post("/api/corporate-customers/:id/service-requests", requireAuth, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const { serviceType, scheduledDate, assignedTo, priority, notes, status } = req.body;
+      const [created] = await db.insert(serviceSchedulerRequests).values({
+        customerId,
+        requestType: serviceType === "upgrade" ? "package_upgrade" : serviceType === "downgrade" ? "package_downgrade" : "other",
+        description: `[${serviceType}] ${notes || ""}`.trim(),
+        priority: ["low", "normal", "high", "urgent"].includes(priority) ? priority : "normal",
+        requestedBy: assignedTo || null,
+        status: status || "pending",
+        effectiveMonth: scheduledDate || null,
+      }).returning();
+      res.json(created);
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+
+  app.post("/api/notification-dispatches", requireAuth, async (req, res) => {
+    try {
+      const { channel, recipient, subject, body, status, createdAt } = req.body;
+      const [created] = await db.insert(notificationDispatches).values({
+        channel: channel || "in_app",
+        recipient: recipient || "",
+        subject: subject || "",
+        body: body || "",
+        status: status || "sent",
+        createdAt: createdAt || new Date().toISOString(),
+      }).returning();
+      res.json(created);
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
   });
 
   return httpServer;

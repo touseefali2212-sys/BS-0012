@@ -9,8 +9,9 @@ import {
   ArrowRight, RefreshCw, Check, Zap,
   Shield, Network, Calendar, Activity, Server, Globe, ChevronDown, ChevronUp, Eye,
   Briefcase, Link2, Wifi, Phone, Mail, MapPin, CreditCard,
-  MessageSquare, CalendarClock, Power, UserPlus, RotateCcw, Clock, Download, FileText,
+  MessageSquare, CalendarClock, Power, PowerOff, UserPlus, RotateCcw, Clock, Download, FileText,
   Radio, ClipboardList,
+  MessageCircle, Smartphone, Bell, CalendarRange, AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +81,94 @@ export default function CorporateCustomersPage() {
   const [viewingReferralsCorp, setViewingReferralsCorp] = useState<CorporateCustomer | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [viewingDetails, setViewingDetails] = useState<CorporateCustomer | null>(null);
+
+  const [smsDialogOpen, setSmsDialogOpen] = useState(false);
+  const [smsCustomer, setSmsCustomer] = useState<CorporateCustomer | null>(null);
+  const [smsChannel, setSmsChannel] = useState("sms");
+  const [smsCategory, setSmsCategory] = useState("bill_reminder");
+  const [smsMessage, setSmsMessage] = useState("");
+  const [smsSubject, setSmsSubject] = useState("");
+
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [statusCustomer, setStatusCustomer] = useState<CorporateCustomer | null>(null);
+  const [statusAction, setStatusAction] = useState("closed");
+  const [statusReasonSelect, setStatusReasonSelect] = useState("");
+  const [statusReason, setStatusReason] = useState("");
+
+  const statusReasonOptions: Record<string, { value: string; label: string }[]> = {
+    active: [{ value: "active", label: "Active" }, { value: "reactive", label: "Reactive" }],
+    closed: [{ value: "house_shift", label: "House Shift" }, { value: "temporary_closed", label: "Temporary Closed" }, { value: "shift_to_other_isp", label: "Shift to Other ISP" }],
+    suspended: [{ value: "bill_issue", label: "Bill Issue" }, { value: "temporary_suspend", label: "Temporary Suspend" }],
+    expired: [{ value: "recharge_next_month", label: "Recharge on Next Month" }, { value: "other", label: "Other" }],
+  };
+
+  const smsCategories = [
+    { value: "bill_reminder", label: "Bill Reminder", defaultMsg: "Dear {name}, your bill is due. Please pay before the due date." },
+    { value: "invoice_softcopy", label: "Invoice Softcopy", defaultMsg: "Dear {name}, please find your invoice attached." },
+    { value: "account_suspend", label: "Account Suspend Notice", defaultMsg: "Dear {name}, your account has been suspended due to non-payment." },
+    { value: "payment_confirmation", label: "Payment Confirmation", defaultMsg: "Dear {name}, we have received your payment. Thank you!" },
+    { value: "service_activation", label: "Service Activation", defaultMsg: "Dear {name}, your internet service has been activated." },
+    { value: "package_change", label: "Package Change Notification", defaultMsg: "Dear {name}, your package has been changed successfully." },
+    { value: "maintenance_notice", label: "Maintenance Notice", defaultMsg: "Dear {name}, scheduled maintenance will be performed." },
+    { value: "welcome_message", label: "Welcome Message", defaultMsg: "Welcome to our network, {name}!" },
+    { value: "custom", label: "Custom Message", defaultMsg: "" },
+  ];
+
+  const openSmsDialog = (c: CorporateCustomer) => {
+    setSmsCustomer(c); setSmsChannel("sms"); setSmsCategory("bill_reminder");
+    const cat = smsCategories.find(x => x.value === "bill_reminder");
+    setSmsMessage(cat?.defaultMsg.replace("{name}", c.companyName) || "");
+    setSmsSubject(""); setSmsDialogOpen(true);
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setSmsCategory(value);
+    const cat = smsCategories.find(x => x.value === value);
+    if (cat && smsCustomer) {
+      setSmsMessage(cat.defaultMsg.replace("{name}", smsCustomer.companyName));
+      if (value === "invoice_softcopy") setSmsSubject("Invoice Copy");
+      else if (value === "bill_reminder") setSmsSubject("Bill Reminder");
+      else if (value === "account_suspend") setSmsSubject("Account Suspension Notice");
+      else setSmsSubject("");
+    }
+  };
+
+  const sendNotificationMutation = useMutation({
+    mutationFn: async (data: { channel: string; customer: CorporateCustomer; subject: string; message: string; category: string }) => {
+      if (data.channel === "email") {
+        if (!data.customer.email) throw new Error("No email"); const res = await apiRequest("POST", "/api/notifications/send-email", { to: data.customer.email, subject: data.subject, body: data.message }); return res.json();
+      } else if (data.channel === "sms") {
+        if (!data.customer.phone && !data.customer.mobileNo) throw new Error("No phone"); const res = await apiRequest("POST", "/api/notifications/send-sms", { to: data.customer.mobileNo || data.customer.phone, message: data.message }); return res.json();
+      } else if (data.channel === "whatsapp") {
+        const res = await apiRequest("POST", "/api/notifications/send-sms", { to: data.customer.mobileNo || data.customer.phone, message: data.message }); return res.json();
+      } else {
+        const res = await apiRequest("POST", "/api/notification-dispatches", { channel: "in_app", recipient: data.customer.email || `CORP-${data.customer.id}`, subject: data.subject, body: data.message, status: "sent", createdAt: new Date().toISOString() }); return res.json();
+      }
+    },
+    onSuccess: (_, vars) => { toast({ title: "Sent", description: `Notification sent to ${vars.customer.companyName}` }); setSmsDialogOpen(false); },
+    onError: (err: Error) => { toast({ title: "Failed", description: err.message, variant: "destructive" }); },
+  });
+
+  const openStatusDialog = (c: CorporateCustomer) => {
+    setStatusCustomer(c); setStatusAction(c.status === "active" ? "closed" : "active");
+    setStatusReasonSelect(""); setStatusReason(""); setStatusDialogOpen(true);
+  };
+
+  const statusToggleMutation = useMutation({
+    mutationFn: async (data: { customer: CorporateCustomer; newStatus: string; reason: string }) => {
+      const res = await apiRequest("PATCH", `/api/corporate-customers/${data.customer.id}`, { status: data.newStatus });
+      const result = await res.json();
+      await apiRequest("POST", "/api/audit-logs", {
+        action: data.newStatus === "active" ? "enable" : "disable", module: "corporate_customers", entityType: "corporate_customer", entityId: data.customer.id,
+        oldValues: JSON.stringify({ status: data.customer.status }), newValues: JSON.stringify({ status: data.newStatus }),
+        description: `Corporate Customer ${data.customer.companyName} (CORP-${data.customer.id}) status changed from "${data.customer.status}" to "${data.newStatus}". Reason: ${data.reason || "N/A"}`,
+        createdAt: new Date().toISOString(),
+      });
+      return result;
+    },
+    onSuccess: (_, vars) => { queryClient.invalidateQueries({ queryKey: ["/api/corporate-customers"] }); toast({ title: "Status Updated", description: `${vars.customer.companyName} is now ${vars.newStatus}` }); setStatusDialogOpen(false); },
+    onError: (err: Error) => { toast({ title: "Error", description: err.message, variant: "destructive" }); },
+  });
 
   // Automation modal state
   const [autoModalOpen, setAutoModalOpen] = useState(false);
@@ -682,11 +771,11 @@ export default function CorporateCustomersPage() {
                               <DropdownMenuContent align="end" className="w-44">
                                 <DropdownMenuItem onClick={() => setLocation(`/corporate-customers/${c.id}`)} data-testid={`button-corp-details-${c.id}`}><Eye className="h-4 w-4 mr-2 text-blue-600" />View Profile</DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => openEdit(c)}><Edit className="h-4 w-4 mr-2 text-amber-600" />Edit Profile</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => toast({ title: "Send SMS", description: `SMS to ${c.companyName}` })}><MessageSquare className="h-4 w-4 mr-2 text-green-600" />Send SMS</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => toast({ title: "Service Scheduler", description: `Schedule service for ${c.companyName}` })}><CalendarClock className="h-4 w-4 mr-2 text-purple-600" />Service Scheduler</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => updateMutation.mutate({ id: c.id, data: { status: c.status === "active" ? "suspended" : "active" } })}>
-                                  <Power className={`h-4 w-4 mr-2 ${c.status === "active" ? "text-red-500" : "text-green-500"}`} />
-                                  {c.status === "active" ? "Suspend" : "Activate"}
+                                <DropdownMenuItem onClick={() => openSmsDialog(c)}><MessageSquare className="h-4 w-4 mr-2 text-green-600" />Send SMS</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => setLocation(`/corporate-customers/${c.id}`)}><CalendarClock className="h-4 w-4 mr-2 text-purple-600" />Service Scheduler</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openStatusDialog(c)}>
+                                  {c.status === "active" ? <PowerOff className="h-4 w-4 mr-2" /> : <Power className="h-4 w-4 mr-2" />}
+                                  {c.status === "active" ? "Close / Deactivate" : "Activate"}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem className="text-destructive" onClick={() => deleteMutation.mutate(c.id)}><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
                               </DropdownMenuContent>
@@ -1219,6 +1308,144 @@ export default function CorporateCustomersPage() {
               </Table>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={smsDialogOpen} onOpenChange={setSmsDialogOpen}>
+        <DialogContent className="max-w-[600px] max-h-[90vh] overflow-y-auto" data-testid="dialog-corp-send-notification">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Send className="h-5 w-5 text-[#0057FF]" /> Send Notification</DialogTitle>
+          </DialogHeader>
+          {smsCustomer && (
+            <div className="space-y-5">
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-[#0057FF] flex items-center justify-center text-white font-bold text-sm">{smsCustomer.companyName.charAt(0)}</div>
+                  <div>
+                    <p className="font-semibold text-sm">{smsCustomer.companyName}</p>
+                    <p className="text-xs text-muted-foreground">CORP-{smsCustomer.id} • {smsCustomer.mobileNo || smsCustomer.phone || "No phone"} • {smsCustomer.email || "No email"}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Notification Type</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { value: "in_app", label: "In-App", icon: Bell, color: "text-purple-600 bg-purple-50 border-purple-200" },
+                    { value: "sms", label: "SMS", icon: Smartphone, color: "text-green-600 bg-green-50 border-green-200" },
+                    { value: "whatsapp", label: "WhatsApp", icon: MessageCircle, color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+                    { value: "email", label: "Email", icon: Mail, color: "text-blue-600 bg-blue-50 border-blue-200" },
+                  ].map(ch => (
+                    <button key={ch.value} type="button" onClick={() => setSmsChannel(ch.value)}
+                      className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all ${smsChannel === ch.value ? `${ch.color} ring-2 ring-offset-1 ring-current font-semibold` : "border-gray-200 dark:border-gray-700 hover:border-gray-300"}`}
+                      data-testid={`btn-corp-channel-${ch.value}`}>
+                      <ch.icon className="h-5 w-5" /><span className="text-xs">{ch.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Message Category</span>
+                <Select value={smsCategory} onValueChange={handleCategoryChange}>
+                  <SelectTrigger data-testid="select-corp-sms-category"><SelectValue /></SelectTrigger>
+                  <SelectContent>{smsCategories.map(cat => (<SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>))}</SelectContent>
+                </Select>
+              </div>
+              {(smsChannel === "email" || smsChannel === "in_app") && (
+                <div className="space-y-2">
+                  <span className="text-sm font-medium">Subject</span>
+                  <Input value={smsSubject} onChange={e => setSmsSubject(e.target.value)} placeholder="Enter subject..." data-testid="input-corp-sms-subject" />
+                </div>
+              )}
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Message</span>
+                <Textarea value={smsMessage} onChange={e => setSmsMessage(e.target.value)} placeholder="Type your message..." className="min-h-[120px]" data-testid="textarea-corp-sms-message" />
+              </div>
+              {smsChannel === "sms" && !smsCustomer.mobileNo && !smsCustomer.phone && (
+                <div className="flex items-center gap-2 text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs"><AlertTriangle className="h-4 w-4 shrink-0" /> Customer has no phone number</div>
+              )}
+              {smsChannel === "email" && !smsCustomer.email && (
+                <div className="flex items-center gap-2 text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs"><AlertTriangle className="h-4 w-4 shrink-0" /> Customer has no email address</div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSmsDialogOpen(false)}>Cancel</Button>
+            <Button onClick={() => smsCustomer && sendNotificationMutation.mutate({ channel: smsChannel, customer: smsCustomer, subject: smsSubject, message: smsMessage, category: smsCategory })}
+              disabled={sendNotificationMutation.isPending || !smsMessage.trim() || (smsChannel === "email" && (!smsSubject.trim() || !smsCustomer?.email)) || (smsChannel === "sms" && !smsCustomer?.mobileNo && !smsCustomer?.phone)}
+              className="bg-[#0057FF]" data-testid="button-corp-send-notification">
+              {sendNotificationMutation.isPending ? "Sending..." : (<><Send className="h-4 w-4 mr-1.5" />{smsChannel === "email" ? "Send Email" : smsChannel === "sms" ? "Send SMS" : smsChannel === "whatsapp" ? "Send WhatsApp" : "Send Notification"}</>)}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+        <DialogContent className="max-w-[500px]" data-testid="dialog-corp-status-toggle">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {statusAction === "active" ? <Power className="h-5 w-5 text-green-600" /> : <PowerOff className="h-5 w-5 text-red-600" />}
+              {statusAction === "active" ? "Activate Corporate Customer" : "Close / Deactivate Corporate Customer"}
+            </DialogTitle>
+          </DialogHeader>
+          {statusCustomer && (
+            <div className="space-y-5">
+              <div className="bg-muted/50 rounded-lg p-3 border">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-[#0057FF] flex items-center justify-center text-white font-bold text-sm">{statusCustomer.companyName.charAt(0)}</div>
+                  <div><p className="font-semibold text-sm">{statusCustomer.companyName}</p><p className="text-xs text-muted-foreground">CORP-{statusCustomer.id}</p></div>
+                  <Badge className={`ml-auto text-[10px] capitalize ${statusCustomer.status === "active" ? "bg-green-600 text-white" : "bg-gray-400 text-white"}`}>{statusCustomer.status}</Badge>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Change Status To</span>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { value: "active", label: "Active", desc: "Enable services", icon: Power, color: "text-green-600 bg-green-50 border-green-300" },
+                    { value: "closed", label: "Closed", desc: "Disable services", icon: PowerOff, color: "text-red-600 bg-red-50 border-red-300" },
+                    { value: "suspended", label: "Suspended", desc: "Temporarily suspend", icon: AlertTriangle, color: "text-amber-600 bg-amber-50 border-amber-300" },
+                    { value: "expired", label: "Expired", desc: "Mark as expired", icon: Clock, color: "text-gray-600 bg-gray-50 border-gray-300" },
+                  ].map(s => (
+                    <button key={s.value} type="button" onClick={() => { setStatusAction(s.value); setStatusReasonSelect(""); }}
+                      className={`flex items-center gap-2 p-3 rounded-lg border-2 text-left transition-all ${statusAction === s.value ? `${s.color} ring-2 ring-offset-1 ring-current font-semibold` : "border-gray-200 dark:border-gray-700 hover:border-gray-300"}`}
+                      data-testid={`btn-corp-status-${s.value}`}>
+                      <s.icon className="h-5 w-5 shrink-0" />
+                      <div><p className="text-sm font-medium">{s.label}</p><p className="text-[10px] text-muted-foreground">{s.desc}</p></div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Reason</span>
+                <Select value={statusReasonSelect} onValueChange={setStatusReasonSelect}>
+                  <SelectTrigger data-testid="select-corp-status-reason"><SelectValue placeholder="Select reason..." /></SelectTrigger>
+                  <SelectContent>{(statusReasonOptions[statusAction] || []).map(opt => (<SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>))}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Additional Notes</span>
+                <Textarea value={statusReason} onChange={e => setStatusReason(e.target.value)} placeholder="Add any additional notes..." className="min-h-[80px]" data-testid="textarea-corp-status-notes" />
+              </div>
+              {statusAction === statusCustomer.status && (
+                <div className="flex items-center gap-2 text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs"><AlertTriangle className="h-4 w-4 shrink-0" /> Customer is already {statusCustomer.status}</div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStatusDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => {
+                if (!statusCustomer) return;
+                const reasonLabel = (statusReasonOptions[statusAction] || []).find(o => o.value === statusReasonSelect)?.label || statusReasonSelect;
+                const fullReason = statusReason.trim() ? `${reasonLabel} - ${statusReason.trim()}` : reasonLabel;
+                statusToggleMutation.mutate({ customer: statusCustomer, newStatus: statusAction, reason: fullReason });
+              }}
+              disabled={statusToggleMutation.isPending || statusAction === statusCustomer?.status || !statusReasonSelect}
+              className={statusAction === "active" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
+              data-testid="button-corp-confirm-status">
+              {statusToggleMutation.isPending ? "Updating..." : (statusAction === "active" ? "Activate" : statusAction === "suspended" ? "Suspend" : statusAction === "expired" ? "Set Expired" : "Close Account")}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
