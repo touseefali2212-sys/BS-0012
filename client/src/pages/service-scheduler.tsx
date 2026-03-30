@@ -413,8 +413,8 @@ export default function ServiceSchedulerPage() {
 
         {activeTab === "new_request" && (
           <Card className="border shadow-sm">
-            <CardHeader className="pb-4 bg-gradient-to-r from-[#002B5B] to-[#005EFF] text-white rounded-t-lg">
-              <CardTitle className="text-lg flex items-center gap-2"><Plus className="h-5 w-5" /> New Service Request</CardTitle>
+            <CardHeader className="pb-4 bg-gradient-to-r from-[#1a56db] to-[#2563EB] text-white rounded-t-lg">
+              <CardTitle className="text-lg flex items-center gap-2 text-white"><Plus className="h-5 w-5" /> New Service Request</CardTitle>
               <CardDescription className="text-blue-100">Create a service request for any customer type</CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-6">

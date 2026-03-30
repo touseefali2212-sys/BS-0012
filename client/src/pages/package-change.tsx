@@ -391,10 +391,10 @@ export default function PackageChangePage() {
 
       {activeTab === "new_request" && (
         <Card className="border-border/60 shadow-sm">
-          <CardHeader className="pb-4">
+          <CardHeader className="pb-4 bg-gradient-to-r from-[#1a56db] to-[#2563EB] text-white rounded-t-lg">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center"><Plus className="h-5 w-5 text-blue-600" /></div>
-              <div><CardTitle className="text-base">New Package Change Request</CardTitle><CardDescription>Create an upgrade or downgrade request</CardDescription></div>
+              <div className="h-9 w-9 rounded-xl bg-white/15 flex items-center justify-center"><Plus className="h-5 w-5 text-white" /></div>
+              <div><CardTitle className="text-base text-white">New Package Change Request</CardTitle><CardDescription className="text-blue-100">Create an upgrade or downgrade request</CardDescription></div>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
