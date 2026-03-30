@@ -1970,60 +1970,133 @@ export default function CustomerProfilePage() {
       </Dialog>
 
       <Dialog open={statusSchedulerOpen} onOpenChange={setStatusSchedulerOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CalendarRange className="h-5 w-5 text-[#0057FF]" />
-              Status Scheduler
+              Status Scheduler — All Scheduled Requests
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="p-3 bg-muted/50 rounded-lg border">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-muted-foreground">Current Status</span>
-                <Badge variant="secondary" className={`text-[10px] capitalize ${
-                  customer?.status === "active" ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"
-                }`} data-testid="badge-current-status">{customer?.status || "unknown"}</Badge>
+            <div className="p-3 bg-muted/50 rounded-lg border flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium" data-testid="text-status-customer-name">{customer?.fullName}</p>
+                <p className="text-xs text-muted-foreground">{customer?.customerId}</p>
               </div>
-              <p className="text-sm font-medium" data-testid="text-status-customer-name">{customer?.fullName}</p>
+              <Badge variant="secondary" className={`text-[10px] capitalize ${
+                customer?.status === "active" ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"
+              }`} data-testid="badge-current-status">Current: {customer?.status || "unknown"}</Badge>
             </div>
 
-            <div className="space-y-2">
-              <span className="text-sm font-semibold">Change Status To</span>
-              <Select value={scheduledStatus} onValueChange={setScheduledStatus}>
-                <SelectTrigger data-testid="select-scheduled-status"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active (Enable)</SelectItem>
-                  <SelectItem value="inactive">Inactive (Disable)</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
-                  <SelectItem value="expired">Expired</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {serviceRequestsLoading ? (
+              <div className="space-y-2">{[1, 2].map(i => <Skeleton key={i} className="h-10 w-full" />)}</div>
+            ) : (() => {
+              const allScheduled = serviceRequests || [];
+              return allScheduled.length === 0 ? (
+                <div className="flex flex-col items-center py-8 text-muted-foreground gap-2">
+                  <CalendarRange className="h-10 w-10 opacity-30" />
+                  <p className="text-sm">No scheduled requests found for this customer.</p>
+                </div>
+              ) : (
+                <div className="bg-card border rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-[#1a3a5c] border-[#1a3a5c]">
+                        <TableHead className="text-white text-xs font-semibold">ID</TableHead>
+                        <TableHead className="text-white text-xs font-semibold">Type</TableHead>
+                        <TableHead className="text-white text-xs font-semibold">Details</TableHead>
+                        <TableHead className="text-white text-xs font-semibold">Effective</TableHead>
+                        <TableHead className="text-white text-xs font-semibold">Priority</TableHead>
+                        <TableHead className="text-white text-xs font-semibold">Status</TableHead>
+                        <TableHead className="text-white text-xs font-semibold">Created</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {allScheduled.map((req, idx) => {
+                        const typeLabels: Record<string, string> = {
+                          package_upgrade: "Pkg Upgrade",
+                          package_downgrade: "Pkg Downgrade",
+                          equipment_new: "New Equipment",
+                          equipment_replace: "Equip Replace",
+                          status_change: "Status Change",
+                          other: "Other",
+                        };
+                        const reqPkg = packages?.find(p => p.id === req.requestedPackageId);
+                        const curPkg = packages?.find(p => p.id === req.currentPackageId);
+                        return (
+                          <TableRow key={req.id} data-testid={`row-sched-${req.id}`} className={idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"}>
+                            <TableCell className="text-xs font-mono">#{req.id}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className={`text-[10px] whitespace-nowrap ${
+                                req.requestType === "status_change" ? "text-purple-700 bg-purple-50" :
+                                req.requestType.includes("package") ? "text-blue-700 bg-blue-50" :
+                                req.requestType.includes("equipment") ? "text-amber-700 bg-amber-50" :
+                                "text-gray-600 bg-gray-50"
+                              }`}>{typeLabels[req.requestType] || req.requestType}</Badge>
+                            </TableCell>
+                            <TableCell className="text-xs max-w-[160px] truncate">
+                              {req.requestType === "status_change" ? (
+                                <span>→ <span className="capitalize font-medium">{req.equipmentType || "-"}</span></span>
+                              ) : (req.requestType === "package_upgrade" || req.requestType === "package_downgrade") ? (
+                                <span>{curPkg?.name || "Current"} → {reqPkg?.name || "New"}</span>
+                              ) : req.description || "-"}
+                            </TableCell>
+                            <TableCell className="text-xs">{req.effectiveMonth || "-"}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className={`text-[10px] capitalize ${
+                                req.priority === "high" || req.priority === "urgent" ? "text-red-600 bg-red-50" :
+                                req.priority === "normal" ? "text-blue-700 bg-blue-50" : "text-gray-600 bg-gray-50"
+                              }`}>{req.priority}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className={`text-[10px] capitalize ${
+                                req.status === "completed" ? "text-green-700 bg-green-50" :
+                                req.status === "approved" ? "text-blue-700 bg-blue-50" :
+                                req.status === "rejected" ? "text-red-600 bg-red-50" :
+                                req.status === "in_progress" ? "text-amber-600 bg-amber-50" :
+                                "text-gray-600 bg-gray-50"
+                              }`}>{req.status?.replace("_", " ")}</Badge>
+                            </TableCell>
+                            <TableCell className="text-xs">{formatDate(req.createdAt)}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              );
+            })()}
 
-            <div className="space-y-2">
-              <span className="text-sm font-semibold">Scheduled Date</span>
-              <Input
-                type="date"
-                value={scheduledDate}
-                onChange={(e) => setScheduledDate(e.target.value)}
-                data-testid="input-scheduled-date"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-sm font-semibold">Reason</span>
-              <Textarea
-                placeholder="Reason for the status change..."
-                value={statusScheduleReason}
-                onChange={(e) => setStatusScheduleReason(e.target.value)}
-                className="min-h-[80px]"
-                data-testid="textarea-status-reason"
-              />
+            <div className="border-t pt-4">
+              <p className="text-sm font-semibold mb-3 flex items-center gap-2">
+                <Plus className="h-4 w-4" /> Schedule New Status Change
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <span className="text-xs font-medium">Change Status To</span>
+                  <Select value={scheduledStatus} onValueChange={setScheduledStatus}>
+                    <SelectTrigger className="h-9" data-testid="select-scheduled-status"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active (Enable)</SelectItem>
+                      <SelectItem value="inactive">Inactive (Disable)</SelectItem>
+                      <SelectItem value="suspended">Suspended</SelectItem>
+                      <SelectItem value="expired">Expired</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <span className="text-xs font-medium">Scheduled Date</span>
+                  <Input type="date" className="h-9" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} data-testid="input-scheduled-date" />
+                </div>
+              </div>
+              <div className="space-y-1.5 mt-3">
+                <span className="text-xs font-medium">Reason</span>
+                <Textarea placeholder="Reason for the status change..." value={statusScheduleReason} onChange={(e) => setStatusScheduleReason(e.target.value)} className="min-h-[60px]" data-testid="textarea-status-reason" />
+              </div>
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setStatusSchedulerOpen(false)} data-testid="button-cancel-status-scheduler">Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => setStatusSchedulerOpen(false)} data-testid="button-cancel-status-scheduler">Close</Button>
             <Button
               onClick={handleStatusSchedulerSubmit}
               disabled={statusSchedulerMutation.isPending || !scheduledDate}
