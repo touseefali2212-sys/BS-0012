@@ -1210,31 +1210,28 @@ export default function CustomerProfilePage() {
                 <div className="bg-card border rounded-lg overflow-hidden">
                   <div className="grid grid-cols-2 divide-x divide-y">
                     <InfoRow label="Full Name" value={customer.fullName} />
-                    <InfoRow label="Email" value={customer.email || "-"} />
-                    <InfoRow label="Phone" value={customer.phone} />
-                    <InfoRow label="CNIC / NID Number" value={customer.cnic || customer.nidNumber || "-"} />
+                    <InfoRow label="Father Name" value={customer.fatherName || "-"} />
                     <InfoRow label="Gender" value={customer.gender || "-"} capitalize />
                     <InfoRow label="Date of Birth" value={formatDate(customer.dateOfBirth)} />
-                    <InfoRow label="Father's Name" value={customer.fatherName || "-"} />
-                    <InfoRow label="Mother's Name" value={customer.motherName || "-"} />
+                    <InfoRow label="CNIC / NID Number" value={customer.cnic || customer.nidNumber || "-"} />
+                    <InfoRow label="Mobile Number" value={customer.phone} />
+                    <InfoRow label="Email Address" value={customer.email || "-"} />
+                    <InfoRow label="Customer Type" value={customer.customerType || "-"} capitalize />
                     <InfoRow label="Occupation" value={customer.occupation || "-"} capitalize />
-                    <InfoRow label="Registration Form No" value={customer.registrationFormNo || "-"} />
+                    <InfoRow label="Remarks / Notes" value={customer.notes || "-"} />
                   </div>
                 </div>
 
-                <SectionHeader title="Address Information" />
+                <SectionHeader title="Area Information" />
                 <div className="bg-card border rounded-lg overflow-hidden">
                   <div className="grid grid-cols-2 divide-x divide-y">
                     <InfoRow label="Branch" value={(customer as any).branch || "-"} />
                     <InfoRow label="Area" value={customer.area || "-"} />
                     <InfoRow label="City" value={(customer as any).city || "-"} />
+                    <InfoRow label="Zone" value={(customer as any).zone || "-"} />
+                    <InfoRow label="Subzone" value={(customer as any).subzone || "-"} />
                     <InfoRow label="CNIC Address" value={customer.address || "-"} />
                     <InfoRow label="Current Address" value={customer.presentAddress || "-"} />
-                    <InfoRow label="Permanent Address" value={customer.permanentAddress || "-"} />
-                    <InfoRow label="District" value={customer.district || "-"} />
-                    <InfoRow label="Upazila / Thana" value={customer.upazilaThana || "-"} />
-                    <InfoRow label="Road Number" value={customer.roadNumber || "-"} />
-                    <InfoRow label="House Number" value={customer.houseNumber || "-"} />
                   </div>
                 </div>
 
@@ -1322,40 +1319,6 @@ export default function CustomerProfilePage() {
                   )}
                 </div>
 
-                <SectionHeader title="Social Links" />
-                <div className="bg-card border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Facebook" value={customer.facebookUrl || "-"} />
-                    <InfoRow label="LinkedIn" value={customer.linkedinUrl || "-"} />
-                    <InfoRow label="Twitter" value={customer.twitterUrl || "-"} />
-                    <InfoRow label="Facebook Profile" value={customer.facebookId || "-"} />
-                    <InfoRow label="WhatsApp" value={customer.whatsapp || "-"} />
-                  </div>
-                </div>
-
-                <SectionHeader title="Notifications & Settings" />
-                <div className="bg-card border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="VIP Client" value={customer.isVipClient ? "Yes" : "No"} />
-                    <InfoRow label="Affiliator" value={customer.affiliator || "-"} />
-                    <InfoRow
-                      label="Send SMS to Employee"
-                      value={
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${customer.sendSmsToEmployee ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" : "bg-muted text-muted-foreground"}`}>
-                          <Bell className="h-3 w-3" /> {customer.sendSmsToEmployee ? "Enabled" : "Disabled"}
-                        </span>
-                      }
-                    />
-                    <InfoRow
-                      label="Send Greeting SMS"
-                      value={
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${customer.sendGreetingSms ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" : "bg-muted text-muted-foreground"}`}>
-                          <Bell className="h-3 w-3" /> {customer.sendGreetingSms ? "Enabled" : "Disabled"}
-                        </span>
-                      }
-                    />
-                  </div>
-                </div>
               </div>
             )}
 
