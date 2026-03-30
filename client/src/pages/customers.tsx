@@ -2833,6 +2833,9 @@ function CustomerListView({
                     <SelectItem value="hotel">Hotel</SelectItem>
                     <SelectItem value="restaurants">Restaurants</SelectItem>
                     <SelectItem value="café">Café</SelectItem>
+                    <SelectItem value="school">School</SelectItem>
+                    <SelectItem value="collage">Collage</SelectItem>
+                    <SelectItem value="academy">Academy</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -861,6 +861,9 @@ export default function EditCustomerPage() {
                         <SelectItem value="Hotel">Hotel</SelectItem>
                         <SelectItem value="Restaurants">Restaurants</SelectItem>
                         <SelectItem value="Café">Café</SelectItem>
+                        <SelectItem value="School">School</SelectItem>
+                        <SelectItem value="Collage">Collage</SelectItem>
+                        <SelectItem value="Academy">Academy</SelectItem>
                         <SelectItem value="Normal">Normal</SelectItem>
                         <SelectItem value="CIR">CIR</SelectItem>
                         <SelectItem value="Corporate">Corporate</SelectItem>

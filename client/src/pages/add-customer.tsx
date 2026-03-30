@@ -1458,6 +1458,9 @@ export default function AddCustomerPage() {
                         <SelectItem value="Hotel">Hotel</SelectItem>
                         <SelectItem value="Restaurants">Restaurants</SelectItem>
                         <SelectItem value="Café">Café</SelectItem>
+                        <SelectItem value="School">School</SelectItem>
+                        <SelectItem value="Collage">Collage</SelectItem>
+                        <SelectItem value="Academy">Academy</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
