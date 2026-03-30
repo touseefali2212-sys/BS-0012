@@ -182,6 +182,8 @@ import {
   type P2pLink, type InsertP2pLink,
   bandwidthHistory,
   type BandwidthHistory, type InsertBandwidthHistory,
+  serviceSchedulerRequests,
+  type ServiceSchedulerRequest, type InsertServiceSchedulerRequest,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -936,6 +938,12 @@ export interface IStorage {
   createP2pLink(data: InsertP2pLink): Promise<P2pLink>;
   updateP2pLink(id: number, data: Partial<InsertP2pLink>): Promise<P2pLink | undefined>;
   deleteP2pLink(id: number): Promise<void>;
+
+  getServiceSchedulerRequests(customerId: number): Promise<ServiceSchedulerRequest[]>;
+  getServiceSchedulerRequest(id: number): Promise<ServiceSchedulerRequest | undefined>;
+  createServiceSchedulerRequest(data: InsertServiceSchedulerRequest): Promise<ServiceSchedulerRequest>;
+  updateServiceSchedulerRequest(id: number, data: Partial<InsertServiceSchedulerRequest>): Promise<ServiceSchedulerRequest | undefined>;
+  deleteServiceSchedulerRequest(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -4517,6 +4525,27 @@ export class DatabaseStorage implements IStorage {
   }
   async deleteP2pLink(id: number): Promise<void> {
     await db.delete(p2pLinks).where(eq(p2pLinks.id, id));
+  }
+
+  async getServiceSchedulerRequests(customerId: number): Promise<ServiceSchedulerRequest[]> {
+    return db.select().from(serviceSchedulerRequests)
+      .where(eq(serviceSchedulerRequests.customerId, customerId))
+      .orderBy(desc(serviceSchedulerRequests.id));
+  }
+  async getServiceSchedulerRequest(id: number): Promise<ServiceSchedulerRequest | undefined> {
+    const [r] = await db.select().from(serviceSchedulerRequests).where(eq(serviceSchedulerRequests.id, id));
+    return r;
+  }
+  async createServiceSchedulerRequest(data: InsertServiceSchedulerRequest): Promise<ServiceSchedulerRequest> {
+    const [r] = await db.insert(serviceSchedulerRequests).values(data).returning();
+    return r;
+  }
+  async updateServiceSchedulerRequest(id: number, data: Partial<InsertServiceSchedulerRequest>): Promise<ServiceSchedulerRequest | undefined> {
+    const [r] = await db.update(serviceSchedulerRequests).set(data).where(eq(serviceSchedulerRequests.id, id)).returning();
+    return r;
+  }
+  async deleteServiceSchedulerRequest(id: number): Promise<void> {
+    await db.delete(serviceSchedulerRequests).where(eq(serviceSchedulerRequests.id, id));
   }
 }
 

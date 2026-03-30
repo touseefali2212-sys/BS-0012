@@ -3590,3 +3590,25 @@ export const bandwidthHistory = pgTable("bandwidth_history", {
 export const insertBandwidthHistorySchema = createInsertSchema(bandwidthHistory).omit({ id: true });
 export type InsertBandwidthHistory = z.infer<typeof insertBandwidthHistorySchema>;
 export type BandwidthHistory = typeof bandwidthHistory.$inferSelect;
+
+export const serviceSchedulerRequests = pgTable("service_scheduler_requests", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id").notNull(),
+  requestType: text("request_type").notNull(),
+  currentPackageId: integer("current_package_id"),
+  requestedPackageId: integer("requested_package_id"),
+  effectiveMonth: text("effective_month"),
+  equipmentType: text("equipment_type"),
+  equipmentAction: text("equipment_action"),
+  description: text("description"),
+  status: text("status").notNull().default("pending"),
+  priority: text("priority").notNull().default("normal"),
+  requestedBy: text("requested_by"),
+  processedBy: text("processed_by"),
+  processedAt: text("processed_at"),
+  createdAt: text("created_at").default(sql`now()`),
+});
+
+export const insertServiceSchedulerRequestSchema = createInsertSchema(serviceSchedulerRequests).omit({ id: true });
+export type InsertServiceSchedulerRequest = z.infer<typeof insertServiceSchedulerRequestSchema>;
+export type ServiceSchedulerRequest = typeof serviceSchedulerRequests.$inferSelect;

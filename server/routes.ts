@@ -77,6 +77,7 @@ import {
   insertGponSplitterSchema,
   insertOnuDeviceSchema,
   insertP2pLinkSchema,
+  insertServiceSchedulerRequestSchema,
 } from "@shared/schema";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
@@ -7083,6 +7084,72 @@ export async function registerRoutes(
       const upgrades = bandwidthChanges.filter(b => b.changeType === "upgrade").length;
       const downgrades = bandwidthChanges.filter(b => b.changeType === "downgrade").length;
       res.json({ total: vendors.length, active, inactive: vendors.length - active, totalWallet, totalPayable, totalPackages: vendorPackages.length, totalTransactions: walletTxns.length, upgrades, downgrades, byType: Object.entries(byType).map(([name, value]) => ({ name, value })) });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get("/api/customers/:id/service-requests", requireAuth, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const requests = await storage.getServiceSchedulerRequests(customerId);
+      res.json(requests);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  const serviceRequestCreateSchema = z.object({
+    customerId: z.number().int().positive(),
+    requestType: z.enum(["package_upgrade", "package_downgrade", "equipment_new", "equipment_replace", "other"]),
+    currentPackageId: z.number().int().positive().nullable().optional(),
+    requestedPackageId: z.number().int().positive().nullable().optional(),
+    effectiveMonth: z.enum(["current_month", "next_month"]).nullable().optional(),
+    equipmentType: z.string().nullable().optional(),
+    equipmentAction: z.enum(["new", "replace"]).nullable().optional(),
+    description: z.string().nullable().optional(),
+    priority: z.enum(["low", "normal", "high", "urgent"]).default("normal"),
+    requestedBy: z.string().nullable().optional(),
+  });
+
+  const serviceRequestUpdateSchema = z.object({
+    status: z.enum(["pending", "approved", "in_progress", "completed", "rejected"]).optional(),
+    priority: z.enum(["low", "normal", "high", "urgent"]).optional(),
+    description: z.string().nullable().optional(),
+    processedBy: z.string().nullable().optional(),
+    processedAt: z.string().nullable().optional(),
+  });
+
+  app.post("/api/service-requests", requireAuth, async (req, res) => {
+    try {
+      const data = serviceRequestCreateSchema.parse(req.body);
+      const customer = await storage.getCustomer(data.customerId);
+      if (!customer) return res.status(404).json({ message: "Customer not found" });
+      if ((data.requestType === "package_upgrade" || data.requestType === "package_downgrade") && !data.requestedPackageId) {
+        return res.status(400).json({ message: "Requested package is required for package change requests" });
+      }
+      if ((data.requestType === "equipment_new" || data.requestType === "equipment_replace") && !data.equipmentType) {
+        return res.status(400).json({ message: "Equipment type is required for equipment requests" });
+      }
+      const request = await storage.createServiceSchedulerRequest(data as any);
+      res.json(request);
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+
+  app.patch("/api/service-requests/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const existing = await storage.getServiceSchedulerRequest(id);
+      if (!existing) return res.status(404).json({ message: "Request not found" });
+      const data = serviceRequestUpdateSchema.parse(req.body);
+      const updated = await storage.updateServiceSchedulerRequest(id, data as any);
+      res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.delete("/api/service-requests/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const existing = await storage.getServiceSchedulerRequest(id);
+      if (!existing) return res.status(404).json({ message: "Request not found" });
+      await storage.deleteServiceSchedulerRequest(id);
+      res.json({ success: true });
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 

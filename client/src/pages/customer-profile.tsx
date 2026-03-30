@@ -88,6 +88,7 @@ import {
   insertCustomerConnectionSchema,
   type Package as PackageType,
   type Vendor,
+  type ServiceSchedulerRequest,
 } from "@shared/schema";
 
 export default function CustomerProfilePage() {
@@ -103,6 +104,14 @@ export default function CustomerProfilePage() {
   const [gpsLat, setGpsLat] = useState("");
   const [gpsLng, setGpsLng] = useState("");
   const [gpsLocating, setGpsLocating] = useState(false);
+  const [serviceSchedulerOpen, setServiceSchedulerOpen] = useState(false);
+  const [serviceRequestType, setServiceRequestType] = useState("package_upgrade");
+  const [selectedPackageId, setSelectedPackageId] = useState("");
+  const [effectiveMonth, setEffectiveMonth] = useState("current_month");
+  const [equipmentType, setEquipmentType] = useState("");
+  const [equipmentAction, setEquipmentAction] = useState("new");
+  const [serviceDescription, setServiceDescription] = useState("");
+  const [servicePriority, setServicePriority] = useState("normal");
 
   const { data: customer, isLoading: customerLoading } = useQuery<Customer>({
     queryKey: ["/api/customers", id],
@@ -161,6 +170,89 @@ export default function CustomerProfilePage() {
     },
     enabled: !!id,
   });
+
+  const { data: serviceRequests, isLoading: serviceRequestsLoading } = useQuery<ServiceSchedulerRequest[]>({
+    queryKey: ["/api/customers", id, "service-requests"],
+    queryFn: async () => {
+      const res = await fetch(`/api/customers/${id}/service-requests`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch service requests");
+      return res.json();
+    },
+    enabled: !!id,
+  });
+
+  const createServiceRequestMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/service-requests", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers", id, "service-requests"] });
+      setServiceSchedulerOpen(false);
+      resetServiceForm();
+      toast({ title: "Service request created successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateServiceRequestMutation = useMutation({
+    mutationFn: async ({ reqId, data }: { reqId: number; data: any }) => {
+      const res = await apiRequest("PATCH", `/api/service-requests/${reqId}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers", id, "service-requests"] });
+      toast({ title: "Service request updated" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteServiceRequestMutation = useMutation({
+    mutationFn: async (reqId: number) => {
+      const res = await apiRequest("DELETE", `/api/service-requests/${reqId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers", id, "service-requests"] });
+      toast({ title: "Service request deleted" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const resetServiceForm = () => {
+    setServiceRequestType("package_upgrade");
+    setSelectedPackageId("");
+    setEffectiveMonth("current_month");
+    setEquipmentType("");
+    setEquipmentAction("new");
+    setServiceDescription("");
+    setServicePriority("normal");
+  };
+
+  const handleServiceRequestSubmit = () => {
+    const data: any = {
+      customerId: parseInt(id || "0"),
+      requestType: serviceRequestType,
+      priority: servicePriority,
+      description: serviceDescription,
+    };
+    if (serviceRequestType === "package_upgrade" || serviceRequestType === "package_downgrade") {
+      data.currentPackageId = customer?.packageId;
+      data.requestedPackageId = selectedPackageId ? parseInt(selectedPackageId) : null;
+      data.effectiveMonth = effectiveMonth;
+    }
+    if (serviceRequestType === "equipment_new" || serviceRequestType === "equipment_replace") {
+      data.equipmentType = equipmentType;
+      data.equipmentAction = serviceRequestType === "equipment_new" ? "new" : "replace";
+    }
+    createServiceRequestMutation.mutate(data);
+  };
 
   const statusUpdateMutation = useMutation({
     mutationFn: async (status: string) => {
@@ -371,6 +463,7 @@ export default function CustomerProfilePage() {
     { key: "enablelog", label: "Customer Enable/Disable Log" },
     { key: "sales", label: "Product & Service Sales Invoices" },
     { key: "referrals", label: "Referrals" },
+    { key: "service_scheduler", label: "Service Scheduler" },
   ];
 
   if (customerLoading) {
@@ -464,13 +557,13 @@ export default function CustomerProfilePage() {
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-update-info" onClick={() => setLocation(`/customers/${id}/edit`)}>
                 <Edit className="h-3 w-3" /> Update Information
               </Button>
-              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-status-scheduler">
+              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-status-scheduler" onClick={() => setActiveTab("service_scheduler")}>
                 <CalendarRange className="h-3 w-3" /> Status Scheduler
               </Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-send-email">
                 <MessageCircle className="h-3 w-3" /> Send Email/Message
               </Button>
-              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-package-scheduler">
+              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-package-scheduler" onClick={() => setActiveTab("service_scheduler")}>
                 <Package className="h-3 w-3" /> Package Scheduler
               </Button>
             </div>
@@ -1286,9 +1379,243 @@ export default function CustomerProfilePage() {
                 )}
               </div>
             )}
+            {activeTab === "service_scheduler" && (
+              <div className="space-y-5" data-testid="tab-content-service-scheduler">
+                <SectionHeader title="Service Scheduler" action={
+                  <Button size="sm" className="gap-1.5 bg-[#0057FF]" onClick={() => setServiceSchedulerOpen(true)} data-testid="button-new-service-request">
+                    <Plus className="h-3.5 w-3.5" /> New Service Request
+                  </Button>
+                } />
+
+                {serviceRequestsLoading ? (
+                  <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
+                ) : !serviceRequests?.length ? (
+                  <EmptyState icon={CalendarRange} message="No service requests yet. Click 'New Service Request' to create one." />
+                ) : (
+                  <div className="bg-card border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-[#1a3a5c] border-[#1a3a5c]">
+                          <TableHead className="text-white text-xs font-semibold">ID</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Request Type</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Details</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Effective</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Priority</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Status</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Date</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {serviceRequests.map((req, idx) => {
+                          const reqPkg = packages?.find(p => p.id === req.requestedPackageId);
+                          const curPkg = packages?.find(p => p.id === req.currentPackageId);
+                          const typeLabels: Record<string, string> = {
+                            package_upgrade: "Package Upgrade",
+                            package_downgrade: "Package Downgrade",
+                            equipment_new: "New Equipment",
+                            equipment_replace: "Equipment Replacement",
+                            other: "Other Service Request",
+                          };
+                          return (
+                            <TableRow key={req.id} data-testid={`row-service-request-${req.id}`} className={idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"}>
+                              <TableCell className="text-xs font-mono">#{req.id}</TableCell>
+                              <TableCell className="text-xs font-medium">{typeLabels[req.requestType] || req.requestType}</TableCell>
+                              <TableCell className="text-xs max-w-[200px]">
+                                {(req.requestType === "package_upgrade" || req.requestType === "package_downgrade") ? (
+                                  <span>{curPkg?.name || "Current"} → {reqPkg?.name || "Requested"}</span>
+                                ) : (req.requestType === "equipment_new" || req.requestType === "equipment_replace") ? (
+                                  <span>{req.equipmentAction === "replace" ? "Replace" : "New"}: {req.equipmentType || "-"}</span>
+                                ) : (
+                                  <span className="truncate block">{req.description || "-"}</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-xs capitalize">{req.effectiveMonth?.replace("_", " ") || "-"}</TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className={`text-[10px] capitalize ${
+                                  req.priority === "high" || req.priority === "urgent" ? "text-red-600 bg-red-50" :
+                                  req.priority === "normal" ? "text-blue-700 bg-blue-50" :
+                                  "text-gray-600 bg-gray-50"
+                                }`} data-testid={`badge-priority-${req.id}`}>{req.priority}</Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Select
+                                  value={req.status}
+                                  onValueChange={(val) => updateServiceRequestMutation.mutate({ reqId: req.id, data: { status: val, processedAt: val !== "pending" ? new Date().toISOString() : null } })}
+                                >
+                                  <SelectTrigger className="h-7 text-[10px] w-[100px]" data-testid={`select-status-${req.id}`}>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                    <SelectItem value="approved">Approved</SelectItem>
+                                    <SelectItem value="in_progress">In Progress</SelectItem>
+                                    <SelectItem value="completed">Completed</SelectItem>
+                                    <SelectItem value="rejected">Rejected</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell className="text-xs">{req.createdAt ? new Date(req.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "-"}</TableCell>
+                              <TableCell>
+                                <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500" onClick={() => deleteServiceRequestMutation.mutate(req.id)} data-testid={`button-delete-request-${req.id}`}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      <Dialog open={serviceSchedulerOpen} onOpenChange={setServiceSchedulerOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarRange className="h-5 w-5 text-[#0057FF]" />
+              New Service Request
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5">
+            <div className="space-y-3">
+              <span className="text-sm font-semibold">Request Type</span>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {[
+                  { value: "package_upgrade", label: "Package Upgrade", icon: "↑" },
+                  { value: "package_downgrade", label: "Package Downgrade", icon: "↓" },
+                  { value: "equipment_new", label: "New Equipment", icon: "+" },
+                  { value: "equipment_replace", label: "Replace Equipment", icon: "↻" },
+                  { value: "other", label: "Other Request", icon: "..." },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setServiceRequestType(opt.value)}
+                    className={`p-3 rounded-lg border text-left transition-all ${
+                      serviceRequestType === opt.value
+                        ? "border-[#0057FF] bg-blue-50 dark:bg-blue-950 ring-1 ring-[#0057FF]"
+                        : "border-border hover:border-muted-foreground/40"
+                    }`}
+                    data-testid={`btn-type-${opt.value}`}
+                  >
+                    <div className="text-lg mb-1">{opt.icon}</div>
+                    <div className="text-xs font-medium">{opt.label}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {(serviceRequestType === "package_upgrade" || serviceRequestType === "package_downgrade") && (
+              <div className="space-y-4 p-4 bg-muted/50 rounded-lg border">
+                <div className="space-y-2">
+                  <span className="text-sm font-semibold">Current Package</span>
+                  <div className="p-3 bg-card rounded-md border">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium" data-testid="text-current-package">{packages?.find(p => p.id === customer?.packageId)?.name || "No package assigned"}</span>
+                      <Badge variant="secondary" className="text-[10px]">{packages?.find(p => p.id === customer?.packageId)?.speed || "-"}</Badge>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-sm font-semibold">{serviceRequestType === "package_upgrade" ? "Upgrade To" : "Downgrade To"}</span>
+                  <Select value={selectedPackageId} onValueChange={setSelectedPackageId}>
+                    <SelectTrigger data-testid="select-requested-package"><SelectValue placeholder="Select a package" /></SelectTrigger>
+                    <SelectContent>
+                      {packages?.filter(p => p.id !== customer?.packageId && p.isActive !== false).map(p => (
+                        <SelectItem key={p.id} value={p.id.toString()}>
+                          {p.name} - {p.speed || "N/A"} ({p.price ? `$${p.price}` : "N/A"})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <span className="text-sm font-semibold">Effective Period</span>
+                  <Select value={effectiveMonth} onValueChange={setEffectiveMonth}>
+                    <SelectTrigger data-testid="select-effective-month"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="current_month">Current Month</SelectItem>
+                      <SelectItem value="next_month">Next Month</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {(serviceRequestType === "equipment_new" || serviceRequestType === "equipment_replace") && (
+              <div className="space-y-4 p-4 bg-muted/50 rounded-lg border">
+                <div className="space-y-2">
+                  <span className="text-sm font-semibold">Equipment Type</span>
+                  <Select value={equipmentType} onValueChange={setEquipmentType}>
+                    <SelectTrigger data-testid="select-equipment-type"><SelectValue placeholder="Select equipment type" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="router">Router</SelectItem>
+                      <SelectItem value="onu">ONU/ONT</SelectItem>
+                      <SelectItem value="switch">Network Switch</SelectItem>
+                      <SelectItem value="cable">Cable/Fiber</SelectItem>
+                      <SelectItem value="antenna">Antenna</SelectItem>
+                      <SelectItem value="ups">UPS/Power Backup</SelectItem>
+                      <SelectItem value="media_converter">Media Converter</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {serviceRequestType === "equipment_replace" && (
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md">
+                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                      <AlertCircle className="h-3.5 w-3.5 inline mr-1" />
+                      Equipment replacement request. The old equipment will need to be returned or marked as faulty.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <span className="text-sm font-semibold">Priority</span>
+              <Select value={servicePriority} onValueChange={setServicePriority}>
+                <SelectTrigger data-testid="select-priority"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-sm font-semibold">Description / Notes</span>
+              <Textarea
+                placeholder="Add any additional details about this service request..."
+                value={serviceDescription}
+                onChange={(e) => setServiceDescription(e.target.value)}
+                className="min-h-[100px]"
+                data-testid="textarea-service-description"
+              />
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button type="button" variant="outline" onClick={() => { setServiceSchedulerOpen(false); resetServiceForm(); }} data-testid="button-cancel-service-request">Cancel</Button>
+            <Button
+              onClick={handleServiceRequestSubmit}
+              disabled={createServiceRequestMutation.isPending}
+              className="bg-[#0057FF]"
+              data-testid="button-submit-service-request"
+            >
+              {createServiceRequestMutation.isPending ? "Submitting..." : "Submit Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={connectionDialogOpen} onOpenChange={setConnectionDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
