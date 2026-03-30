@@ -1524,12 +1524,17 @@ export default function CustomerProfilePage() {
                           <TableHead className="text-white text-xs font-semibold">Action</TableHead>
                           <TableHead className="text-white text-xs font-semibold">Module</TableHead>
                           <TableHead className="text-white text-xs font-semibold">Description</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Reason</TableHead>
                           <TableHead className="text-white text-xs font-semibold">Changed By</TableHead>
                           <TableHead className="text-white text-xs font-semibold">IP Address</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {auditLogs.map((log: any, idx: number) => (
+                        {auditLogs.map((log: any, idx: number) => {
+                          const reasonMatch = log.description?.match(/Reason:\s*(.+)/i);
+                          const reason = reasonMatch ? reasonMatch[1].trim() : "-";
+                          const descCleaned = log.description?.replace(/\.\s*Reason:\s*.+/i, "") || log.description;
+                          return (
                           <TableRow key={log.id} data-testid={`row-audit-${log.id}`} className={idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"}>
                             <TableCell className="text-xs">{formatDate(log.createdAt)}</TableCell>
                             <TableCell>
@@ -1541,11 +1546,17 @@ export default function CustomerProfilePage() {
                               }`}>{log.action}</Badge>
                             </TableCell>
                             <TableCell className="text-xs capitalize">{log.module}</TableCell>
-                            <TableCell className="text-xs max-w-[300px] truncate">{log.description}</TableCell>
+                            <TableCell className="text-xs max-w-[250px] truncate">{descCleaned}</TableCell>
+                            <TableCell className="text-xs max-w-[180px]">
+                              {reason !== "-" ? (
+                                <Badge variant="outline" className="text-[10px] font-normal">{reason}</Badge>
+                              ) : "-"}
+                            </TableCell>
                             <TableCell className="text-xs">{log.userName || "System"}</TableCell>
                             <TableCell className="text-xs font-mono">{log.ipAddress || "-"}</TableCell>
                           </TableRow>
-                        ))}
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>
