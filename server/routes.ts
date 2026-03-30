@@ -7097,10 +7097,10 @@ export async function registerRoutes(
 
   const serviceRequestCreateSchema = z.object({
     customerId: z.number().int().positive(),
-    requestType: z.enum(["package_upgrade", "package_downgrade", "equipment_new", "equipment_replace", "other"]),
+    requestType: z.enum(["package_upgrade", "package_downgrade", "equipment_new", "equipment_replace", "other", "status_change"]),
     currentPackageId: z.number().int().positive().nullable().optional(),
     requestedPackageId: z.number().int().positive().nullable().optional(),
-    effectiveMonth: z.enum(["current_month", "next_month"]).nullable().optional(),
+    effectiveMonth: z.string().nullable().optional(),
     equipmentType: z.string().nullable().optional(),
     equipmentAction: z.enum(["new", "replace"]).nullable().optional(),
     description: z.string().nullable().optional(),

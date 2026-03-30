@@ -112,6 +112,18 @@ export default function CustomerProfilePage() {
   const [equipmentAction, setEquipmentAction] = useState("new");
   const [serviceDescription, setServiceDescription] = useState("");
   const [servicePriority, setServicePriority] = useState("normal");
+  const [statusSchedulerOpen, setStatusSchedulerOpen] = useState(false);
+  const [scheduledStatus, setScheduledStatus] = useState("inactive");
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [statusScheduleReason, setStatusScheduleReason] = useState("");
+  const [sendMessageOpen, setSendMessageOpen] = useState(false);
+  const [messageChannel, setMessageChannel] = useState("email");
+  const [messageSubject, setMessageSubject] = useState("");
+  const [messageBody, setMessageBody] = useState("");
+  const [packageSchedulerOpen, setPackageSchedulerOpen] = useState(false);
+  const [pkgSchedulerPackageId, setPkgSchedulerPackageId] = useState("");
+  const [pkgSchedulerEffective, setPkgSchedulerEffective] = useState("current_month");
+  const [pkgSchedulerNotes, setPkgSchedulerNotes] = useState("");
 
   const { data: customer, isLoading: customerLoading } = useQuery<Customer>({
     queryKey: ["/api/customers", id],
@@ -252,6 +264,120 @@ export default function CustomerProfilePage() {
       data.equipmentAction = serviceRequestType === "equipment_new" ? "new" : "replace";
     }
     createServiceRequestMutation.mutate(data);
+  };
+
+  const statusSchedulerMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/service-requests", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers", id, "service-requests"] });
+      setStatusSchedulerOpen(false);
+      setScheduledStatus("inactive");
+      setScheduledDate("");
+      setStatusScheduleReason("");
+      toast({ title: "Status change scheduled successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleStatusSchedulerSubmit = () => {
+    if (!scheduledDate) {
+      toast({ title: "Error", description: "Please select a scheduled date", variant: "destructive" });
+      return;
+    }
+    statusSchedulerMutation.mutate({
+      customerId: parseInt(id || "0"),
+      requestType: "status_change",
+      description: `Change status to "${scheduledStatus}" on ${scheduledDate}. Reason: ${statusScheduleReason || "N/A"}`,
+      effectiveMonth: scheduledDate,
+      equipmentType: scheduledStatus,
+      priority: "normal",
+    });
+  };
+
+  const sendMessageMutation = useMutation({
+    mutationFn: async (data: { channel: string; to: string; subject?: string; body: string }) => {
+      if (data.channel === "email") {
+        const res = await apiRequest("POST", "/api/notifications/send-email", {
+          to: data.to,
+          subject: data.subject,
+          body: data.body,
+        });
+        return res.json();
+      } else {
+        const res = await apiRequest("POST", "/api/notifications/send-sms", {
+          to: data.to,
+          message: data.body,
+        });
+        return res.json();
+      }
+    },
+    onSuccess: () => {
+      setSendMessageOpen(false);
+      setMessageSubject("");
+      setMessageBody("");
+      setMessageChannel("email");
+      toast({ title: "Message sent successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to send message", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleSendMessage = () => {
+    const to = messageChannel === "email" ? (customer?.email || "") : (customer?.phone || "");
+    if (!to) {
+      toast({ title: "Error", description: `Customer has no ${messageChannel === "email" ? "email address" : "phone number"} on file`, variant: "destructive" });
+      return;
+    }
+    if (!messageBody.trim()) {
+      toast({ title: "Error", description: "Message body is required", variant: "destructive" });
+      return;
+    }
+    if (messageChannel === "email" && !messageSubject.trim()) {
+      toast({ title: "Error", description: "Subject is required for email", variant: "destructive" });
+      return;
+    }
+    sendMessageMutation.mutate({ channel: messageChannel, to, subject: messageSubject, body: messageBody });
+  };
+
+  const packageSchedulerMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", "/api/service-requests", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers", id, "service-requests"] });
+      setPackageSchedulerOpen(false);
+      setPkgSchedulerPackageId("");
+      setPkgSchedulerEffective("current_month");
+      setPkgSchedulerNotes("");
+      toast({ title: "Package change request submitted successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handlePackageSchedulerSubmit = () => {
+    const currentPkg = packages?.find(p => p.id === customer?.packageId);
+    const requestedPkg = packages?.find(p => p.id === parseInt(pkgSchedulerPackageId));
+    const currentPrice = parseFloat(String(currentPkg?.price || 0));
+    const requestedPrice = parseFloat(String(requestedPkg?.price || 0));
+    const changeType = requestedPrice >= currentPrice ? "package_upgrade" : "package_downgrade";
+    packageSchedulerMutation.mutate({
+      customerId: parseInt(id || "0"),
+      requestType: changeType,
+      currentPackageId: customer?.packageId,
+      requestedPackageId: parseInt(pkgSchedulerPackageId),
+      effectiveMonth: pkgSchedulerEffective,
+      description: pkgSchedulerNotes || undefined,
+      priority: "normal",
+    });
   };
 
   const statusUpdateMutation = useMutation({
@@ -557,13 +683,13 @@ export default function CustomerProfilePage() {
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-update-info" onClick={() => setLocation(`/customers/${id}/edit`)}>
                 <Edit className="h-3 w-3" /> Update Information
               </Button>
-              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-status-scheduler" onClick={() => setActiveTab("service_scheduler")}>
+              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-status-scheduler" onClick={() => setStatusSchedulerOpen(true)}>
                 <CalendarRange className="h-3 w-3" /> Status Scheduler
               </Button>
-              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-send-email">
+              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-send-email" onClick={() => setSendMessageOpen(true)}>
                 <MessageCircle className="h-3 w-3" /> Send Email/Message
               </Button>
-              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-package-scheduler" onClick={() => setActiveTab("service_scheduler")}>
+              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-package-scheduler" onClick={() => setPackageSchedulerOpen(true)}>
                 <Package className="h-3 w-3" /> Package Scheduler
               </Button>
             </div>
@@ -1415,6 +1541,7 @@ export default function CustomerProfilePage() {
                             package_downgrade: "Package Downgrade",
                             equipment_new: "New Equipment",
                             equipment_replace: "Equipment Replacement",
+                            status_change: "Status Change",
                             other: "Other Service Request",
                           };
                           return (
@@ -1426,6 +1553,8 @@ export default function CustomerProfilePage() {
                                   <span>{curPkg?.name || "Current"} → {reqPkg?.name || "Requested"}</span>
                                 ) : (req.requestType === "equipment_new" || req.requestType === "equipment_replace") ? (
                                   <span>{req.equipmentAction === "replace" ? "Replace" : "New"}: {req.equipmentType || "-"}</span>
+                                ) : req.requestType === "status_change" ? (
+                                  <span>Change to: <span className="capitalize font-medium">{req.equipmentType || "-"}</span></span>
                                 ) : (
                                   <span className="truncate block">{req.description || "-"}</span>
                                 )}
@@ -1612,6 +1741,258 @@ export default function CustomerProfilePage() {
               data-testid="button-submit-service-request"
             >
               {createServiceRequestMutation.isPending ? "Submitting..." : "Submit Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={statusSchedulerOpen} onOpenChange={setStatusSchedulerOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarRange className="h-5 w-5 text-[#0057FF]" />
+              Status Scheduler
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-3 bg-muted/50 rounded-lg border">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-muted-foreground">Current Status</span>
+                <Badge variant="secondary" className={`text-[10px] capitalize ${
+                  customer?.status === "active" ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"
+                }`} data-testid="badge-current-status">{customer?.status || "unknown"}</Badge>
+              </div>
+              <p className="text-sm font-medium" data-testid="text-status-customer-name">{customer?.fullName}</p>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-sm font-semibold">Change Status To</span>
+              <Select value={scheduledStatus} onValueChange={setScheduledStatus}>
+                <SelectTrigger data-testid="select-scheduled-status"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active (Enable)</SelectItem>
+                  <SelectItem value="inactive">Inactive (Disable)</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-sm font-semibold">Scheduled Date</span>
+              <Input
+                type="date"
+                value={scheduledDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+                data-testid="input-scheduled-date"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-sm font-semibold">Reason</span>
+              <Textarea
+                placeholder="Reason for the status change..."
+                value={statusScheduleReason}
+                onChange={(e) => setStatusScheduleReason(e.target.value)}
+                className="min-h-[80px]"
+                data-testid="textarea-status-reason"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setStatusSchedulerOpen(false)} data-testid="button-cancel-status-scheduler">Cancel</Button>
+            <Button
+              onClick={handleStatusSchedulerSubmit}
+              disabled={statusSchedulerMutation.isPending || !scheduledDate}
+              className="bg-[#0057FF]"
+              data-testid="button-submit-status-scheduler"
+            >
+              {statusSchedulerMutation.isPending ? "Scheduling..." : "Schedule Status Change"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={sendMessageOpen} onOpenChange={setSendMessageOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-[#0057FF]" />
+              Send Email / Message
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-3 bg-muted/50 rounded-lg border">
+              <p className="text-sm font-medium" data-testid="text-msg-customer-name">{customer?.fullName}</p>
+              <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
+                {customer?.email && <span data-testid="text-msg-email"><Mail className="h-3 w-3 inline mr-1" />{customer.email}</span>}
+                {customer?.phone && <span data-testid="text-msg-phone"><Phone className="h-3 w-3 inline mr-1" />{customer.phone}</span>}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-sm font-semibold">Channel</span>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={messageChannel === "email" ? "default" : "outline"}
+                  className={`flex-1 gap-1.5 ${messageChannel === "email" ? "bg-[#0057FF]" : ""}`}
+                  onClick={() => setMessageChannel("email")}
+                  data-testid="btn-channel-email"
+                >
+                  <Mail className="h-3.5 w-3.5" /> Email
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={messageChannel === "sms" ? "default" : "outline"}
+                  className={`flex-1 gap-1.5 ${messageChannel === "sms" ? "bg-[#0057FF]" : ""}`}
+                  onClick={() => setMessageChannel("sms")}
+                  data-testid="btn-channel-sms"
+                >
+                  <Smartphone className="h-3.5 w-3.5" /> SMS
+                </Button>
+              </div>
+            </div>
+
+            {messageChannel === "email" && (
+              <div className="space-y-2">
+                <span className="text-sm font-semibold">Subject</span>
+                <Input
+                  placeholder="Enter email subject..."
+                  value={messageSubject}
+                  onChange={(e) => setMessageSubject(e.target.value)}
+                  data-testid="input-msg-subject"
+                />
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <span className="text-sm font-semibold">{messageChannel === "email" ? "Email Body" : "Message"}</span>
+              <Textarea
+                placeholder={messageChannel === "email" ? "Write your email content here..." : "Type your SMS message..."}
+                value={messageBody}
+                onChange={(e) => setMessageBody(e.target.value)}
+                className="min-h-[120px]"
+                data-testid="textarea-msg-body"
+              />
+            </div>
+
+            {!customer?.email && messageChannel === "email" && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md">
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  <AlertCircle className="h-3.5 w-3.5 inline mr-1" />
+                  This customer has no email address on file. Please update their profile first.
+                </p>
+              </div>
+            )}
+            {!customer?.phone && messageChannel === "sms" && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md">
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  <AlertCircle className="h-3.5 w-3.5 inline mr-1" />
+                  This customer has no phone number on file. Please update their profile first.
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setSendMessageOpen(false)} data-testid="button-cancel-send-msg">Cancel</Button>
+            <Button
+              onClick={handleSendMessage}
+              disabled={sendMessageMutation.isPending || !messageBody.trim() || (messageChannel === "email" && !messageSubject.trim()) || (messageChannel === "email" && !customer?.email) || (messageChannel === "sms" && !customer?.phone)}
+              className="bg-[#0057FF]"
+              data-testid="button-submit-send-msg"
+            >
+              {sendMessageMutation.isPending ? "Sending..." : messageChannel === "email" ? "Send Email" : "Send SMS"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={packageSchedulerOpen} onOpenChange={setPackageSchedulerOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-[#0057FF]" />
+              Package Scheduler
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-3 bg-muted/50 rounded-lg border">
+              <span className="text-xs text-muted-foreground">Current Package</span>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-sm font-medium" data-testid="text-pkg-current">{packages?.find(p => p.id === customer?.packageId)?.name || "No package assigned"}</span>
+                <Badge variant="secondary" className="text-[10px]" data-testid="badge-pkg-speed">{packages?.find(p => p.id === customer?.packageId)?.speed || "-"}</Badge>
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Price: {packages?.find(p => p.id === customer?.packageId)?.price ? `$${packages?.find(p => p.id === customer?.packageId)?.price}` : "-"}/month
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-sm font-semibold">Change To Package</span>
+              <Select value={pkgSchedulerPackageId} onValueChange={setPkgSchedulerPackageId}>
+                <SelectTrigger data-testid="select-pkg-scheduler-package"><SelectValue placeholder="Select a package" /></SelectTrigger>
+                <SelectContent>
+                  {packages?.filter(p => p.id !== customer?.packageId && p.isActive !== false).map(p => (
+                    <SelectItem key={p.id} value={p.id.toString()}>
+                      {p.name} - {p.speed || "N/A"} ({p.price ? `$${p.price}/mo` : "N/A"})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {pkgSchedulerPackageId && (() => {
+              const currentPkg = packages?.find(p => p.id === customer?.packageId);
+              const newPkg = packages?.find(p => p.id === parseInt(pkgSchedulerPackageId));
+              const currentPrice = parseFloat(String(currentPkg?.price || 0));
+              const newPrice = parseFloat(String(newPkg?.price || 0));
+              const isUpgrade = newPrice >= currentPrice;
+              return (
+                <div className={`p-3 rounded-md border ${isUpgrade ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800" : "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800"}`}>
+                  <p className="text-xs font-medium" data-testid="text-pkg-change-type">
+                    {isUpgrade ? "↑ Upgrade" : "↓ Downgrade"}: {currentPkg?.name || "None"} → {newPkg?.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Price change: ${currentPrice.toFixed(2)} → ${newPrice.toFixed(2)}/mo ({newPrice >= currentPrice ? "+" : ""}{(newPrice - currentPrice).toFixed(2)})
+                  </p>
+                </div>
+              );
+            })()}
+
+            <div className="space-y-2">
+              <span className="text-sm font-semibold">Effective Period</span>
+              <Select value={pkgSchedulerEffective} onValueChange={setPkgSchedulerEffective}>
+                <SelectTrigger data-testid="select-pkg-scheduler-effective"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="current_month">Current Month</SelectItem>
+                  <SelectItem value="next_month">Next Month</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-sm font-semibold">Notes (Optional)</span>
+              <Textarea
+                placeholder="Add any notes about this package change..."
+                value={pkgSchedulerNotes}
+                onChange={(e) => setPkgSchedulerNotes(e.target.value)}
+                className="min-h-[80px]"
+                data-testid="textarea-pkg-scheduler-notes"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setPackageSchedulerOpen(false)} data-testid="button-cancel-pkg-scheduler">Cancel</Button>
+            <Button
+              onClick={handlePackageSchedulerSubmit}
+              disabled={packageSchedulerMutation.isPending || !pkgSchedulerPackageId}
+              className="bg-[#0057FF]"
+              data-testid="button-submit-pkg-scheduler"
+            >
+              {packageSchedulerMutation.isPending ? "Submitting..." : "Schedule Package Change"}
             </Button>
           </DialogFooter>
         </DialogContent>
