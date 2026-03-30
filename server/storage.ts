@@ -6,7 +6,7 @@ import {
   assetTypes, assets, assetTransfers, inventoryItems, employees, roles, companySettings,
   notifications, reports, settings, customerConnections,
   notificationTemplates, smtpSettings, smsSettings, notificationDispatches, branches,
-  vendorWalletTransactions, resellerWalletTransactions, vendorPackages, vendorBandwidthLinks, bandwidthChangeHistory, customerQueries, customerQueryLogs, supportCategories, invoiceItems,
+  vendorWalletTransactions, resellerWalletTransactions, resellerMonthlySummaries, vendorPackages, vendorBandwidthLinks, bandwidthChangeHistory, customerQueries, customerQueryLogs, supportCategories, invoiceItems,
   expenses, attendance, attendanceBreaks, leaves, holidays, auditLogs, taskActivityLogs, creditNotes, bulkMessages, ipAddresses, subnets, vlans, ipamLogs, outages, outageTimeline,
   networkDevices, pppoeUsers, radiusProfiles, radiusNasDevices, radiusAuthLogs, paymentGateways, payments, billingRules, bandwidthUsage, dailyCollections, salaryHistory, advanceLoans, loanInstallments, payroll, salaryPayments, bonusCommissions, commissionTypes, employeeTypes, shifts, shiftAssignments,
   transactionTypes,
@@ -43,6 +43,7 @@ import {
   type Branch, type InsertBranch,
   type VendorWalletTransaction, type InsertVendorWalletTransaction,
   type ResellerWalletTransaction, type InsertResellerWalletTransaction,
+  type ResellerMonthlySummary, type InsertResellerMonthlySummary,
   type VendorPackage, type InsertVendorPackage,
   type VendorBandwidthLink, type InsertVendorBandwidthLink,
   type BandwidthChangeHistory, type InsertBandwidthChangeHistory,
@@ -286,6 +287,11 @@ export interface IStorage {
   createResellerWalletTransaction(t: InsertResellerWalletTransaction): Promise<ResellerWalletTransaction>;
   rechargeResellerWallet(resellerId: number, amount: number, reference?: string, paymentMethod?: string, remarks?: string, createdBy?: string): Promise<Reseller>;
   deductResellerWallet(resellerId: number, amount: number, vendorId?: number, customerId?: number, reference?: string, category?: string, createdBy?: string): Promise<Reseller>;
+
+  getResellerMonthlySummaries(resellerId: number, month?: string): Promise<ResellerMonthlySummary[]>;
+  getResellerMonthlySummary(id: number): Promise<ResellerMonthlySummary | undefined>;
+  upsertResellerMonthlySummary(data: InsertResellerMonthlySummary): Promise<ResellerMonthlySummary>;
+  deleteResellerMonthlySummary(id: number): Promise<void>;
 
   getVendorPackages(vendorId?: number): Promise<VendorPackage[]>;
   getVendorPackage(id: number): Promise<VendorPackage | undefined>;
@@ -1499,6 +1505,44 @@ export class DatabaseStorage implements IStorage {
     });
     const [updated] = await db.update(resellers).set({ walletBalance: newBalance.toString() }).where(eq(resellers.id, resellerId)).returning();
     return updated;
+  }
+
+  async getResellerMonthlySummaries(resellerId: number, month?: string): Promise<ResellerMonthlySummary[]> {
+    if (month) {
+      return db.select().from(resellerMonthlySummaries)
+        .where(and(eq(resellerMonthlySummaries.resellerId, resellerId), eq(resellerMonthlySummaries.month, month)))
+        .orderBy(desc(resellerMonthlySummaries.id));
+    }
+    return db.select().from(resellerMonthlySummaries)
+      .where(eq(resellerMonthlySummaries.resellerId, resellerId))
+      .orderBy(desc(resellerMonthlySummaries.id));
+  }
+
+  async getResellerMonthlySummary(id: number): Promise<ResellerMonthlySummary | undefined> {
+    const [row] = await db.select().from(resellerMonthlySummaries).where(eq(resellerMonthlySummaries.id, id));
+    return row;
+  }
+
+  async upsertResellerMonthlySummary(data: InsertResellerMonthlySummary): Promise<ResellerMonthlySummary> {
+    const existing = await db.select().from(resellerMonthlySummaries)
+      .where(and(
+        eq(resellerMonthlySummaries.resellerId, data.resellerId),
+        eq(resellerMonthlySummaries.vendorPackageId, data.vendorPackageId),
+        eq(resellerMonthlySummaries.month, data.month),
+      ));
+    if (existing.length > 0) {
+      const [updated] = await db.update(resellerMonthlySummaries)
+        .set({ ...data, updatedAt: new Date().toISOString() })
+        .where(eq(resellerMonthlySummaries.id, existing[0].id))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(resellerMonthlySummaries).values(data).returning();
+    return created;
+  }
+
+  async deleteResellerMonthlySummary(id: number): Promise<void> {
+    await db.delete(resellerMonthlySummaries).where(eq(resellerMonthlySummaries.id, id));
   }
 
   async getVendorPackages(vendorId?: number): Promise<VendorPackage[]> {

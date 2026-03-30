@@ -1134,6 +1134,27 @@ export type InsertVendorWalletTransaction = z.infer<typeof insertVendorWalletTra
 export type VendorWalletTransaction = typeof vendorWalletTransactions.$inferSelect;
 export type InsertResellerWalletTransaction = z.infer<typeof insertResellerWalletTransactionSchema>;
 export type ResellerWalletTransaction = typeof resellerWalletTransactions.$inferSelect;
+
+export const resellerMonthlySummaries = pgTable("reseller_monthly_summaries", {
+  id: serial("id").primaryKey(),
+  resellerId: integer("reseller_id").notNull(),
+  vendorPackageId: integer("vendor_package_id").notNull(),
+  month: text("month").notNull(),
+  totalCustomers: integer("total_customers").notNull().default(0),
+  activeCustomers: integer("active_customers").notNull().default(0),
+  packagePrice: decimal("package_price", { precision: 10, scale: 2 }).notNull().default("0"),
+  resellerPrice: decimal("reseller_price", { precision: 10, scale: 2 }).notNull().default("0"),
+  totalAmount: decimal("total_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  activeBilling: decimal("active_billing", { precision: 12, scale: 2 }).notNull().default("0"),
+  resellerCost: decimal("reseller_cost", { precision: 12, scale: 2 }).notNull().default("0"),
+  updatedAt: text("updated_at"),
+  createdAt: text("created_at").notNull(),
+});
+
+export const insertResellerMonthlySummarySchema = createInsertSchema(resellerMonthlySummaries).omit({ id: true });
+export type InsertResellerMonthlySummary = z.infer<typeof insertResellerMonthlySummarySchema>;
+export type ResellerMonthlySummary = typeof resellerMonthlySummaries.$inferSelect;
+
 export type InsertVendorPackage = z.infer<typeof insertVendorPackageSchema>;
 export type VendorPackage = typeof vendorPackages.$inferSelect;
 export type InsertVendorBandwidthLink = z.infer<typeof insertVendorBandwidthLinkSchema>;

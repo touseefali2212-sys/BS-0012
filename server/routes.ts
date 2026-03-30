@@ -1138,6 +1138,46 @@ export async function registerRoutes(
     } catch (error: any) { res.status(400).json({ message: error.message }); }
   });
 
+  app.get("/api/reseller-monthly-summaries/:resellerId", requireAuth, async (req, res) => {
+    try {
+      const resellerId = parseInt(req.params.resellerId);
+      const month = req.query.month as string | undefined;
+      res.json(await storage.getResellerMonthlySummaries(resellerId, month));
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  app.post("/api/reseller-monthly-summaries", requireAuth, async (req, res) => {
+    try {
+      const { resellerId, vendorPackageId, month, totalCustomers, activeCustomers, packagePrice, resellerPrice } = req.body;
+      const pPrice = parseFloat(String(packagePrice || "0"));
+      const rPrice = parseFloat(String(resellerPrice || "0"));
+      const total = parseInt(String(totalCustomers || "0"));
+      const active = parseInt(String(activeCustomers || "0"));
+      const data = {
+        resellerId,
+        vendorPackageId,
+        month,
+        totalCustomers: total,
+        activeCustomers: active,
+        packagePrice: pPrice.toFixed(2),
+        resellerPrice: rPrice.toFixed(2),
+        totalAmount: (total * pPrice).toFixed(2),
+        activeBilling: (active * pPrice).toFixed(2),
+        resellerCost: (active * rPrice).toFixed(2),
+        createdAt: new Date().toISOString(),
+      };
+      const result = await storage.upsertResellerMonthlySummary(data);
+      res.json(result);
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  app.delete("/api/reseller-monthly-summaries/:id", requireAuth, async (req, res) => {
+    try {
+      await storage.deleteResellerMonthlySummary(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
   app.get("/api/reseller-wallet-transactions/:resellerId", requireAuth, async (req, res) => {
     try {
       if (req.params.resellerId === "all") {

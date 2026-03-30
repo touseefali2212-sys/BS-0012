@@ -9,7 +9,7 @@ import {
   Calendar, Download, MessageCircle, CalendarRange, User, Hash,
   CreditCard, Globe, CheckCircle2, FileText, Plus, Clock, TrendingUp,
   TrendingDown, BarChart3, MessageSquare, ShoppingBag, Users, Bell,
-  Wallet, Store, Percent, Landmark, MapPin, Briefcase, Key, Wifi, Navigation, Tag, Trash2, MoreHorizontal, Pencil,
+  Wallet, Store, Percent, Landmark, MapPin, Briefcase, Key, Wifi, Navigation, Tag, Trash2, MoreHorizontal, Pencil, X,
 } from "lucide-react";
 import L from "leaflet";
 import { MapContainer, TileLayer, Marker } from "react-leaflet";
@@ -256,6 +256,237 @@ function ResellerEditDialog({ open, onClose, reseller, id }: { open: boolean; on
         </Form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function CustomerSummaryTab({ reseller, resellerId, assignedPkgs, vendors, vendorPackages, resellerCustomers, toast }: any) {
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [editingRow, setEditingRow] = useState<number | null>(null);
+  const [editTotal, setEditTotal] = useState("0");
+  const [editActive, setEditActive] = useState("0");
+  const [saving, setSaving] = useState(false);
+
+  const { data: monthlySummaries = [], isLoading: summaryLoading } = useQuery<any[]>({
+    queryKey: ["/api/reseller-monthly-summaries", resellerId, selectedMonth],
+    queryFn: async () => {
+      const res = await fetch(`/api/reseller-monthly-summaries/${resellerId}?month=${selectedMonth}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    enabled: !!resellerId,
+  });
+
+  const months: string[] = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    months.push(d.toISOString().slice(0, 7));
+  }
+
+  const summaryRows = assignedPkgs.map((pkg: any) => {
+    const pkgVendor = vendors.find((v: any) => v.id === pkg.vendorId);
+    const pPrice = parseFloat(String(pkg.resellerPrice || pkg.ispSellingPrice || "0"));
+    const rPrice = parseFloat(String(pkg.resellerPrice || "0"));
+    const saved = monthlySummaries.find((s: any) => s.vendorPackageId === pkg.id);
+    const totalCust = saved ? saved.totalCustomers : 0;
+    const activeCust = saved ? saved.activeCustomers : 0;
+    const totalAmount = totalCust * pPrice;
+    const activeBilling = activeCust * pPrice;
+    const resellerCost = activeCust * rPrice;
+    return { pkg, vendorName: pkgVendor?.name || "—", pPrice, rPrice, totalCust, activeCust, totalAmount, activeBilling, resellerCost, savedId: saved?.id };
+  });
+
+  const grandTotal = summaryRows.reduce((s: number, r: any) => s + r.totalCust, 0);
+  const grandActive = summaryRows.reduce((s: number, r: any) => s + r.activeCust, 0);
+  const grandTotalAmount = summaryRows.reduce((s: number, r: any) => s + r.totalAmount, 0);
+  const grandActiveBilling = summaryRows.reduce((s: number, r: any) => s + r.activeBilling, 0);
+  const grandResellerCost = summaryRows.reduce((s: number, r: any) => s + r.resellerCost, 0);
+
+  const handleSave = async (pkg: any) => {
+    setSaving(true);
+    try {
+      const total = parseInt(editTotal || "0");
+      const active = parseInt(editActive || "0");
+      const pPrice = parseFloat(String(pkg.resellerPrice || pkg.ispSellingPrice || "0"));
+      const rPrice = parseFloat(String(pkg.resellerPrice || "0"));
+      await apiRequest("POST", "/api/reseller-monthly-summaries", {
+        resellerId,
+        vendorPackageId: pkg.id,
+        month: selectedMonth,
+        totalCustomers: total,
+        activeCustomers: active,
+        packagePrice: pPrice,
+        resellerPrice: rPrice,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/reseller-monthly-summaries", resellerId, selectedMonth] });
+      toast({ title: "Summary Updated", description: `${pkg.packageName} summary saved for ${selectedMonth}` });
+      setEditingRow(null);
+    } catch {
+      toast({ title: "Failed to save summary", variant: "destructive" });
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div className="space-y-4">
+      <SectionHeader title="Customer Summary Monthly Report" />
+      <div className="flex items-center gap-3 mb-2">
+        <label className="text-xs font-medium text-muted-foreground">Month:</label>
+        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+          <SelectTrigger className="w-48 h-8 text-xs" data-testid="select-summary-month">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {months.map((m) => (
+              <SelectItem key={m} value={m}>{new Date(m + "-01").toLocaleDateString("en-US", { year: "numeric", month: "long" })}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {selectedMonth === currentMonth && <Badge variant="secondary" className="text-[10px] text-blue-600 bg-blue-50">Current Month</Badge>}
+      </div>
+
+      <div className="grid grid-cols-5 gap-3">
+        <Card className="border-l-4 border-l-green-500">
+          <CardContent className="p-3">
+            <p className="text-[10px] text-muted-foreground">Total Customers</p>
+            <p className="text-xl font-bold text-green-700" data-testid="profile-total-customers">{grandTotal}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-blue-500">
+          <CardContent className="p-3">
+            <p className="text-[10px] text-muted-foreground">Active Customers</p>
+            <p className="text-xl font-bold text-blue-700">{grandActive}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-indigo-500">
+          <CardContent className="p-3">
+            <p className="text-[10px] text-muted-foreground">Total Amount</p>
+            <p className="text-xl font-bold text-indigo-700">Rs. {grandTotalAmount.toLocaleString()}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-emerald-500">
+          <CardContent className="p-3">
+            <p className="text-[10px] text-muted-foreground">Active Billing</p>
+            <p className="text-xl font-bold text-emerald-700">Rs. {grandActiveBilling.toLocaleString()}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-l-4 border-l-purple-500">
+          <CardContent className="p-3">
+            <p className="text-[10px] text-muted-foreground">Reseller Cost</p>
+            <p className="text-xl font-bold text-purple-700">Rs. {grandResellerCost.toLocaleString()}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {assignedPkgs.length === 0 ? (
+        <EmptyState icon={Tag} message="No packages assigned — customer summary unavailable" />
+      ) : (
+        <div className="bg-card border rounded-lg overflow-hidden">
+          <Table>
+            <TableHeader><TableRow className="bg-[#1a3a5c]">
+              <TableHead className="text-white text-xs">Vendor</TableHead>
+              <TableHead className="text-white text-xs">Package</TableHead>
+              <TableHead className="text-white text-xs text-right">Reseller Price</TableHead>
+              <TableHead className="text-white text-xs text-center">Total Customer</TableHead>
+              <TableHead className="text-white text-xs text-right">Total Amount</TableHead>
+              <TableHead className="text-white text-xs text-center">Active Customer</TableHead>
+              <TableHead className="text-white text-xs text-right">Active Billing</TableHead>
+              <TableHead className="text-white text-xs text-right">Reseller Cost</TableHead>
+              <TableHead className="text-white text-xs text-center">Action</TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {summaryRows.map((row: any) => (
+                <TableRow key={row.pkg.id}>
+                  <TableCell className="text-xs">{row.vendorName}</TableCell>
+                  <TableCell className="text-xs font-medium">{row.pkg.packageName}</TableCell>
+                  <TableCell className="text-xs text-right font-medium">Rs. {row.pPrice.toLocaleString()}</TableCell>
+                  {editingRow === row.pkg.id ? (
+                    <>
+                      <TableCell className="text-center"><Input type="number" min="0" className="h-7 w-16 text-xs text-center mx-auto" value={editTotal} onChange={(e) => setEditTotal(e.target.value)} data-testid={`input-total-${row.pkg.id}`} /></TableCell>
+                      <TableCell className="text-xs text-right font-semibold">Rs. {(parseInt(editTotal || "0") * row.pPrice).toLocaleString()}</TableCell>
+                      <TableCell className="text-center"><Input type="number" min="0" className="h-7 w-16 text-xs text-center mx-auto" value={editActive} onChange={(e) => setEditActive(e.target.value)} data-testid={`input-active-${row.pkg.id}`} /></TableCell>
+                      <TableCell className="text-xs text-right font-semibold text-green-700">Rs. {(parseInt(editActive || "0") * row.pPrice).toLocaleString()}</TableCell>
+                      <TableCell className="text-xs text-right font-semibold text-purple-700">Rs. {(parseInt(editActive || "0") * row.rPrice).toLocaleString()}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 justify-center">
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-green-600 hover:bg-green-50" onClick={() => handleSave(row.pkg)} disabled={saving} data-testid={`btn-save-summary-${row.pkg.id}`}>
+                            <Save className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-gray-500 hover:bg-gray-50" onClick={() => setEditingRow(null)} data-testid={`btn-cancel-summary-${row.pkg.id}`}>
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </>
+                  ) : (
+                    <>
+                      <TableCell className="text-xs text-center font-semibold">{row.totalCust}</TableCell>
+                      <TableCell className="text-xs text-right font-semibold">Rs. {row.totalAmount.toLocaleString()}</TableCell>
+                      <TableCell className="text-xs text-center font-semibold text-green-700">{row.activeCust}</TableCell>
+                      <TableCell className="text-xs text-right font-semibold text-green-700">Rs. {row.activeBilling.toLocaleString()}</TableCell>
+                      <TableCell className="text-xs text-right font-semibold text-purple-700">Rs. {row.resellerCost.toLocaleString()}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 justify-center">
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-blue-600 hover:bg-blue-50" onClick={() => { setEditingRow(row.pkg.id); setEditTotal(String(row.totalCust)); setEditActive(String(row.activeCust)); }} data-testid={`btn-edit-summary-${row.pkg.id}`}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+            <tfoot>
+              <tr className="bg-[#1a3a5c]">
+                <td colSpan={3} className="px-4 py-2 text-white text-xs font-bold">Total</td>
+                <td className="px-4 py-2 text-white text-xs font-bold text-center">{grandTotal}</td>
+                <td className="px-4 py-2 text-white text-xs font-bold text-right">Rs. {grandTotalAmount.toLocaleString()}</td>
+                <td className="px-4 py-2 text-white text-xs font-bold text-center">{grandActive}</td>
+                <td className="px-4 py-2 text-white text-xs font-bold text-right">Rs. {grandActiveBilling.toLocaleString()}</td>
+                <td className="px-4 py-2 text-white text-xs font-bold text-right">Rs. {grandResellerCost.toLocaleString()}</td>
+                <td className="px-4 py-2"></td>
+              </tr>
+            </tfoot>
+          </Table>
+        </div>
+      )}
+
+      <SectionHeader title="Customer List" />
+      {resellerCustomers.length === 0 ? (
+        <EmptyState icon={Users} message="No customers linked to this reseller" />
+      ) : (
+        <div className="bg-card border rounded-lg overflow-hidden">
+          <Table>
+            <TableHeader><TableRow className="bg-[#1a3a5c]">
+              <TableHead className="text-white text-xs">#</TableHead>
+              <TableHead className="text-white text-xs">Customer Name</TableHead>
+              <TableHead className="text-white text-xs">Package</TableHead>
+              <TableHead className="text-white text-xs">Phone</TableHead>
+              <TableHead className="text-white text-xs">Area</TableHead>
+              <TableHead className="text-white text-xs">Status</TableHead>
+            </TableRow></TableHeader>
+            <TableBody>
+              {resellerCustomers.slice(0, 50).map((c: any, i: number) => {
+                const custPkg = vendorPackages.find((vp: any) => vp.id === c.packageId);
+                return (
+                <TableRow key={c.id}>
+                  <TableCell className="text-xs">{i + 1}</TableCell>
+                  <TableCell className="text-xs font-medium">{c.fullName || c.name}</TableCell>
+                  <TableCell className="text-xs">{custPkg?.packageName || "—"}</TableCell>
+                  <TableCell className="text-xs">{c.phone || "—"}</TableCell>
+                  <TableCell className="text-xs">{c.area || "—"}</TableCell>
+                  <TableCell><Badge variant="secondary" className={`text-[10px] capitalize ${c.status === "active" ? "text-emerald-700 bg-emerald-50" : "text-red-600 bg-red-50"}`}>{c.status}</Badge></TableCell>
+                </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          {resellerCustomers.length > 50 && <div className="px-4 py-2 text-xs text-muted-foreground text-center border-t">Showing 50 of {resellerCustomers.length} customers</div>}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -552,141 +783,17 @@ export default function ResellerProfilePage() {
               </div>
             )}
 
-            {activeTab === "customers" && (() => {
-              const totalCust = resellerCustomers.length || reseller.totalCustomers || 0;
-              const activeCust = resellerCustomers.filter((c: any) => c.status === "active").length;
-              const inactiveCust = resellerCustomers.filter((c: any) => c.status !== "active").length;
-              const pkgSummary = assignedPkgs.map((pkg: any) => {
-                const pkgVendor = (vendors || []).find((v: any) => v.id === pkg.vendorId);
-                const rPrice = parseFloat(String(pkg.resellerPrice || pkg.ispSellingPrice || "0"));
-                const totalForPkg = resellerCustomers.filter((c: any) => c.packageId === pkg.id).length;
-                const activeForPkg = resellerCustomers.filter((c: any) => c.packageId === pkg.id && c.status === "active").length;
-                return { pkg, vendorName: pkgVendor?.name || "—", rPrice, totalForPkg, totalRevenue: rPrice * totalForPkg, activeForPkg, activeRevenue: rPrice * activeForPkg };
-              });
-              const grandTotalCust = pkgSummary.reduce((s, r) => s + r.totalForPkg, 0);
-              const grandTotalRev = pkgSummary.reduce((s, r) => s + r.totalRevenue, 0);
-              const grandActiveCust = pkgSummary.reduce((s, r) => s + r.activeForPkg, 0);
-              const grandActiveRev = pkgSummary.reduce((s, r) => s + r.activeRevenue, 0);
-
-              return (
-              <div className="space-y-4">
-                <SectionHeader title="Customer Summary" />
-                <div className="grid grid-cols-4 gap-4">
-                  <Card className="border-l-4 border-l-green-500">
-                    <CardContent className="p-4">
-                      <p className="text-xs text-muted-foreground">Total Customers</p>
-                      <p className="text-2xl font-bold text-green-700" data-testid="profile-total-customers">{totalCust}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-l-4 border-l-blue-500">
-                    <CardContent className="p-4">
-                      <p className="text-xs text-muted-foreground">Active Customers</p>
-                      <p className="text-2xl font-bold text-blue-700">{activeCust}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-l-4 border-l-orange-500">
-                    <CardContent className="p-4">
-                      <p className="text-xs text-muted-foreground">Inactive / Suspended</p>
-                      <p className="text-2xl font-bold text-orange-600">{inactiveCust}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="border-l-4 border-l-purple-500">
-                    <CardContent className="p-4">
-                      <p className="text-xs text-muted-foreground">Max Customer Limit</p>
-                      <p className="text-2xl font-bold text-purple-700">{reseller.maxCustomerLimit || "Unlimited"}</p>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <SectionHeader title="Package-wise Customer Summary" />
-                {assignedPkgs.length === 0 ? (
-                  <EmptyState icon={Tag} message="No packages assigned — customer summary unavailable" />
-                ) : (
-                  <div className="bg-card border rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader><TableRow className="bg-[#1a3a5c]">
-                        <TableHead className="text-white text-xs">Vendor</TableHead>
-                        <TableHead className="text-white text-xs">Package</TableHead>
-                        <TableHead className="text-white text-xs text-right">Reseller Price</TableHead>
-                        <TableHead className="text-white text-xs text-center">Total Customer</TableHead>
-                        <TableHead className="text-white text-xs text-right">Package × Total Cus.</TableHead>
-                        <TableHead className="text-white text-xs text-center">Active Customer</TableHead>
-                        <TableHead className="text-white text-xs text-right">Package × Active Cus.</TableHead>
-                        <TableHead className="text-white text-xs">Action</TableHead>
-                      </TableRow></TableHeader>
-                      <TableBody>
-                        {pkgSummary.map((row, i: number) => (
-                          <TableRow key={row.pkg.id}>
-                            <TableCell className="text-xs">{row.vendorName}</TableCell>
-                            <TableCell className="text-xs font-medium">{row.pkg.packageName}</TableCell>
-                            <TableCell className="text-xs text-right font-medium">Rs. {row.rPrice.toLocaleString()}</TableCell>
-                            <TableCell className="text-xs text-center font-semibold">{row.totalForPkg}</TableCell>
-                            <TableCell className="text-xs text-right font-semibold">Rs. {row.totalRevenue.toLocaleString()}</TableCell>
-                            <TableCell className="text-xs text-center font-semibold text-green-700">{row.activeForPkg}</TableCell>
-                            <TableCell className="text-xs text-right font-semibold text-green-700">Rs. {row.activeRevenue.toLocaleString()}</TableCell>
-                            <TableCell>
-                              <div className="flex gap-1">
-                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-blue-600 hover:bg-blue-50" onClick={() => { setEditPkg(row.pkg); setEditPkgPrice(String(row.pkg.resellerPrice || row.pkg.ispSellingPrice || "0")); }} data-testid={`cust-pkg-edit-${row.pkg.id}`}>
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-600 hover:bg-red-50" onClick={() => setDeletePkg(row.pkg)} data-testid={`cust-pkg-delete-${row.pkg.id}`}>
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                      <tfoot>
-                        <tr className="bg-[#1a3a5c]">
-                          <td colSpan={3} className="px-4 py-2 text-white text-xs font-bold">Total</td>
-                          <td className="px-4 py-2 text-white text-xs font-bold text-center">{grandTotalCust}</td>
-                          <td className="px-4 py-2 text-white text-xs font-bold text-right">Rs. {grandTotalRev.toLocaleString()}</td>
-                          <td className="px-4 py-2 text-white text-xs font-bold text-center">{grandActiveCust}</td>
-                          <td className="px-4 py-2 text-white text-xs font-bold text-right">Rs. {grandActiveRev.toLocaleString()}</td>
-                          <td className="px-4 py-2"></td>
-                        </tr>
-                      </tfoot>
-                    </Table>
-                  </div>
-                )}
-
-                <SectionHeader title="Customer List" />
-                {resellerCustomers.length === 0 ? (
-                  <EmptyState icon={Users} message="No customers linked to this reseller" />
-                ) : (
-                  <div className="bg-card border rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader><TableRow className="bg-[#1a3a5c]">
-                        <TableHead className="text-white text-xs">#</TableHead>
-                        <TableHead className="text-white text-xs">Customer Name</TableHead>
-                        <TableHead className="text-white text-xs">Package</TableHead>
-                        <TableHead className="text-white text-xs">Phone</TableHead>
-                        <TableHead className="text-white text-xs">Area</TableHead>
-                        <TableHead className="text-white text-xs">Status</TableHead>
-                      </TableRow></TableHeader>
-                      <TableBody>
-                        {resellerCustomers.slice(0, 50).map((c: any, i: number) => {
-                          const custPkg = (vendorPackages || []).find((vp: any) => vp.id === c.packageId);
-                          return (
-                          <TableRow key={c.id}>
-                            <TableCell className="text-xs">{i + 1}</TableCell>
-                            <TableCell className="text-xs font-medium">{c.fullName || c.name}</TableCell>
-                            <TableCell className="text-xs">{custPkg?.packageName || "—"}</TableCell>
-                            <TableCell className="text-xs">{c.phone || "—"}</TableCell>
-                            <TableCell className="text-xs">{c.area || "—"}</TableCell>
-                            <TableCell><Badge variant="secondary" className={`text-[10px] capitalize ${c.status === "active" ? "text-emerald-700 bg-emerald-50" : "text-red-600 bg-red-50"}`}>{c.status}</Badge></TableCell>
-                          </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                    {resellerCustomers.length > 50 && <div className="px-4 py-2 text-xs text-muted-foreground text-center border-t">Showing 50 of {resellerCustomers.length} customers</div>}
-                  </div>
-                )}
-              </div>
-              );
-            })()}
+            {activeTab === "customers" && (
+              <CustomerSummaryTab
+                reseller={reseller}
+                resellerId={parseInt(id || "0")}
+                assignedPkgs={assignedPkgs}
+                vendors={vendors || []}
+                vendorPackages={vendorPackages || []}
+                resellerCustomers={resellerCustomers}
+                toast={toast}
+              />
+            )}
 
             {activeTab === "panel" && (
               <div className="space-y-4">
