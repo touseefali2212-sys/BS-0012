@@ -601,7 +601,6 @@ export default function ResellerProfilePage() {
             <ProfileSidebarItem icon={Phone} label="Phone" value={reseller.phone} testId="sidebar-phone" />
             <ProfileSidebarItem icon={Wallet} label="Wallet Balance" value={formatPKR(reseller.walletBalance)} testId="sidebar-wallet" />
             <ProfileSidebarItem icon={CreditCard} label="Credit Limit" value={formatPKR(reseller.creditLimit)} testId="sidebar-credit" />
-            <ProfileSidebarItem icon={Percent} label="Commission" value={`${reseller.commissionRate || "10"}%`} testId="sidebar-commission" />
             <div className="flex items-center justify-between py-1.5 border-b border-white/10">
               <div className="flex items-center gap-2"><Shield className="h-3.5 w-3.5 opacity-60" /><span className="opacity-80">Active Status</span></div>
               <Switch checked={reseller.status === "active"} onCheckedChange={(c) => statusUpdateMutation.mutate(c ? "active" : "suspended")} className="scale-75" />
@@ -612,7 +611,7 @@ export default function ResellerProfilePage() {
           </div>
           <div className="px-4 pt-4 pb-2 space-y-2">
             <div className="grid grid-cols-2 gap-2">
-              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => setEditOpen(true)} data-testid="btn-update-info"><Edit className="h-3 w-3" /> Update Information</Button>
+              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => setEditOpen(true)} data-testid="btn-edit-reseller"><Edit className="h-3 w-3" /> Edit Reseller</Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="btn-status-scheduler"><CalendarRange className="h-3 w-3" /> Status Scheduler</Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="btn-send-message"><MessageCircle className="h-3 w-3" /> Send Email/Message</Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => setActiveTab("wallet")} data-testid="btn-wallet-history"><Wallet className="h-3 w-3" /> Wallet History</Button>
