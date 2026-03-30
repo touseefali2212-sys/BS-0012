@@ -450,7 +450,7 @@ export default function PackageChangePage() {
                         <Input type="number" placeholder="e.g. 50" value={newBandwidth} onChange={e => setNewBandwidth(e.target.value)} data-testid="input-new-bandwidth" />
                       </div>
                     )}
-                    {customerType !== "Normal" && (
+                    {customerType === "Corporate" && (
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium">Or Select Package</label>
                         <Select value={newPackageId} onValueChange={v => { setNewPackageId(v); setNewBandwidth(""); }}>
