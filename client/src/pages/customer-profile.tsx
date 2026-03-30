@@ -1994,21 +1994,13 @@ export default function CustomerProfilePage() {
                                 }`} data-testid={`badge-priority-${req.id}`}>{req.priority}</Badge>
                               </TableCell>
                               <TableCell>
-                                <Select
-                                  value={req.status}
-                                  onValueChange={(val) => updateServiceRequestMutation.mutate({ reqId: req.id, data: { status: val, processedAt: val !== "pending" ? new Date().toISOString() : null } })}
-                                >
-                                  <SelectTrigger className="h-7 text-[10px] w-[100px]" data-testid={`select-status-${req.id}`}>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="pending">Pending</SelectItem>
-                                    <SelectItem value="approved">Approved</SelectItem>
-                                    <SelectItem value="in_progress">In Progress</SelectItem>
-                                    <SelectItem value="completed">Completed</SelectItem>
-                                    <SelectItem value="rejected">Rejected</SelectItem>
-                                  </SelectContent>
-                                </Select>
+                                <Badge variant="secondary" className={`text-[10px] capitalize ${
+                                  req.status === "completed" ? "text-green-700 bg-green-50" :
+                                  req.status === "approved" ? "text-blue-700 bg-blue-50" :
+                                  req.status === "in_progress" ? "text-amber-600 bg-amber-50" :
+                                  req.status === "rejected" ? "text-red-600 bg-red-50" :
+                                  "text-gray-600 bg-gray-100"
+                                }`} data-testid={`badge-status-${req.id}`}>{(req.status || "pending").replace("_", " ")}</Badge>
                               </TableCell>
                               <TableCell className="text-xs">{req.createdAt ? new Date(req.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "-"}</TableCell>
                               <TableCell>
