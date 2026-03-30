@@ -43,8 +43,6 @@ const statusLabels: Record<string, string> = {
 };
 
 const serviceTypeOptions = [
-  { value: "package_upgrade", label: "Package Upgrade", icon: TrendingUp, color: "text-green-600" },
-  { value: "package_downgrade", label: "Package Downgrade", icon: TrendingDown, color: "text-orange-600" },
   { value: "installation", label: "New Installation", icon: HardDrive, color: "text-blue-600" },
   { value: "maintenance", label: "Maintenance", icon: Wrench, color: "text-amber-600" },
   { value: "equipment_new", label: "New Equipment", icon: Router, color: "text-indigo-600" },
@@ -230,10 +228,6 @@ export default function ServiceSchedulerPage() {
       effectiveMonth: effectiveMonth || null,
     };
 
-    if ((serviceType === "package_upgrade" || serviceType === "package_downgrade") && selectedPackageId) {
-      data.requestedPackageId = parseInt(selectedPackageId);
-      if (selectedCustomer.packageId) data.currentPackageId = selectedCustomer.packageId;
-    }
     if ((serviceType === "equipment_new" || serviceType === "equipment_replace") && equipmentType) {
       data.equipmentType = equipmentType;
       data.equipmentAction = serviceType === "equipment_replace" ? "replace" : "new";
@@ -506,20 +500,6 @@ export default function ServiceSchedulerPage() {
                       })}
                     </div>
                   </div>
-
-                  {(serviceType === "package_upgrade" || serviceType === "package_downgrade") && customerType === "Normal" && (
-                    <div className="p-4 bg-muted/50 rounded-lg border space-y-3">
-                      <span className="text-sm font-semibold">{serviceType === "package_upgrade" ? "Upgrade To" : "Downgrade To"}</span>
-                      <Select value={selectedPackageId} onValueChange={setSelectedPackageId}>
-                        <SelectTrigger data-testid="select-sr-package"><SelectValue placeholder="Select a package" /></SelectTrigger>
-                        <SelectContent>
-                          {packages?.filter(p => p.isActive !== false).map(p => (
-                            <SelectItem key={p.id} value={p.id.toString()}>{p.name} — {p.speed || "N/A"} (Rs. {p.price || "N/A"})</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
 
                   {(serviceType === "equipment_new" || serviceType === "equipment_replace") && (
                     <div className="p-4 bg-muted/50 rounded-lg border space-y-3">
