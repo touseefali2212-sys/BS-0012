@@ -264,6 +264,9 @@ export default function ResellerProfilePage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("personal");
   const [editOpen, setEditOpen] = useState(false);
+  const [editPkg, setEditPkg] = useState<any>(null);
+  const [editPkgPrice, setEditPkgPrice] = useState("");
+  const [deletePkg, setDeletePkg] = useState<any>(null);
 
   const { data: reseller, isLoading } = useQuery<Reseller>({
     queryKey: ["/api/resellers", id],
@@ -530,15 +533,10 @@ export default function ResellerProfilePage() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => toast({ title: "Edit Package", description: `Edit ${pkg.packageName} pricing via the Edit Reseller dialog.` })} data-testid={`pkg-edit-${pkg.id}`}>
+                                    <DropdownMenuItem onClick={() => { setEditPkg(pkg); setEditPkgPrice(String(pkg.resellerPrice || pkg.ispSellingPrice || "0")); }} data-testid={`pkg-edit-${pkg.id}`}>
                                       <Pencil className="h-3.5 w-3.5 mr-2" /> Edit Package
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem className="text-red-600" onClick={() => {
-                                      const updatedIds = assignedPkgIds.filter((pkgId: number) => pkgId !== pkg.id).join(",");
-                                      apiRequest("PATCH", `/api/resellers/${id}`, { assignedPackages: updatedIds || null })
-                                        .then(() => { queryClient.invalidateQueries({ queryKey: ["/api/resellers", id] }); toast({ title: "Package removed" }); })
-                                        .catch(() => toast({ title: "Failed to remove package", variant: "destructive" }));
-                                    }} data-testid={`pkg-delete-${pkg.id}`}>
+                                    <DropdownMenuItem className="text-red-600" onClick={() => setDeletePkg(pkg)} data-testid={`pkg-delete-${pkg.id}`}>
                                       <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Package
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
@@ -887,6 +885,89 @@ export default function ResellerProfilePage() {
       {reseller && (
         <ResellerEditDialog open={editOpen} onClose={() => setEditOpen(false)} reseller={reseller} id={id || ""} />
       )}
+
+      <Dialog open={!!editPkg} onOpenChange={(open) => { if (!open) setEditPkg(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Package — {editPkg?.packageName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Vendor</label>
+                <p className="text-sm font-medium">{(vendors || []).find((v: any) => v.id === editPkg?.vendorId)?.name || "—"}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Speed</label>
+                <p className="text-sm font-medium">{editPkg?.speed || "—"}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">Vendor Price</label>
+                <p className="text-sm font-medium">Rs. {parseFloat(String(editPkg?.vendorPrice || "0")).toLocaleString()}</p>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">Reseller Price</label>
+                <Input
+                  type="number"
+                  value={editPkgPrice}
+                  onChange={(e) => setEditPkgPrice(e.target.value)}
+                  placeholder="Enter reseller price"
+                  data-testid="input-edit-pkg-price"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Profit</label>
+              <p className={`text-sm font-bold ${(parseFloat(editPkgPrice || "0") - parseFloat(String(editPkg?.vendorPrice || "0"))) >= 0 ? "text-green-700" : "text-red-600"}`}>
+                Rs. {(parseFloat(editPkgPrice || "0") - parseFloat(String(editPkg?.vendorPrice || "0"))).toLocaleString()}
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setEditPkg(null)} data-testid="btn-cancel-edit-pkg">Cancel</Button>
+            <Button size="sm" onClick={() => {
+              apiRequest("PATCH", `/api/vendor-packages/${editPkg.id}`, { resellerPrice: editPkgPrice })
+                .then(() => {
+                  queryClient.invalidateQueries({ queryKey: ["/api/vendor-packages"] });
+                  toast({ title: "Package Updated", description: `${editPkg.packageName} reseller price updated to Rs. ${parseFloat(editPkgPrice).toLocaleString()}` });
+                  setEditPkg(null);
+                })
+                .catch(() => toast({ title: "Failed to update package", variant: "destructive" }));
+            }} data-testid="btn-save-edit-pkg">
+              <Save className="h-3.5 w-3.5 mr-1" /> Save Changes
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deletePkg} onOpenChange={(open) => { if (!open) setDeletePkg(null); }}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Package</DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-2">
+            <p className="text-sm">Are you sure you want to remove <span className="font-semibold">{deletePkg?.packageName}</span> from this reseller?</p>
+            <p className="text-xs text-muted-foreground">This will unassign the package from the reseller. The package itself will not be deleted.</p>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setDeletePkg(null)} data-testid="btn-cancel-delete-pkg">Cancel</Button>
+            <Button variant="destructive" size="sm" onClick={() => {
+              const updatedIds = assignedPkgIds.filter((pkgId: number) => pkgId !== deletePkg.id).join(",");
+              apiRequest("PATCH", `/api/resellers/${id}`, { assignedPackages: updatedIds || null })
+                .then(() => {
+                  queryClient.invalidateQueries({ queryKey: ["/api/resellers", id] });
+                  toast({ title: "Package Removed", description: `${deletePkg.packageName} has been removed from this reseller.` });
+                  setDeletePkg(null);
+                })
+                .catch(() => toast({ title: "Failed to remove package", variant: "destructive" }));
+            }} data-testid="btn-confirm-delete-pkg">
+              <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
