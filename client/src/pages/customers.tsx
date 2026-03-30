@@ -2993,13 +2993,14 @@ function CustomerListView({
               <TableHead className="text-white font-semibold text-[11px] whitespace-nowrap">MAC Addr</TableHead>
               <TableHead className="text-white font-semibold text-[11px] whitespace-nowrap">Connection Service Vendor</TableHead>
               <TableHead className="text-white font-semibold text-[11px] whitespace-nowrap">B.Status</TableHead>
+              <TableHead className="text-white font-semibold text-[11px] whitespace-nowrap">Profile Status</TableHead>
               <TableHead className="text-white font-semibold text-[11px] whitespace-nowrap">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {displayed.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={15} className="text-center py-12 text-muted-foreground">
+                <TableCell colSpan={16} className="text-center py-12 text-muted-foreground">
                   <div className="flex flex-col items-center">
                     <Users className="h-12 w-12 mb-3 opacity-30" />
                     <p className="font-medium">No customers found</p>
@@ -3084,6 +3085,17 @@ function CustomerListView({
                   <TableCell>
                     <Badge className={`text-[10px] ${customer.billingStatus === "Active" ? "bg-green-600 text-white" : "bg-gray-400 text-white"}`}>
                       {customer.billingStatus || "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell data-testid={`text-profile-status-${customer.id}`}>
+                    <Badge className={`text-[10px] capitalize ${
+                      customer.status === "active" ? "bg-green-100 text-green-700 border border-green-300" :
+                      customer.status === "suspended" ? "bg-amber-100 text-amber-700 border border-amber-300" :
+                      customer.status === "expired" ? "bg-orange-100 text-orange-700 border border-orange-300" :
+                      customer.status === "closed" ? "bg-red-100 text-red-700 border border-red-300" :
+                      "bg-gray-100 text-gray-600 border border-gray-300"
+                    }`}>
+                      {customer.status || "unknown"}
                     </Badge>
                   </TableCell>
                   <TableCell>
