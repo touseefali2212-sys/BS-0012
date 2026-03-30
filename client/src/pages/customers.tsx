@@ -2412,6 +2412,7 @@ function CustomerListView({
   vendors,
   employees,
   areas,
+  branches,
   isLoading,
   search,
   setSearch,
@@ -2428,6 +2429,7 @@ function CustomerListView({
   vendors: any[] | undefined;
   employees: any[] | undefined;
   areas: any[] | undefined;
+  branches: any[] | undefined;
   isLoading: boolean;
   search: string;
   setSearch: (v: string) => void;
@@ -2452,22 +2454,17 @@ function CustomerListView({
   });
   const [filterVendor, setFilterVendor] = useState("all");
   const [filterProtocol, setFilterProtocol] = useState("all");
-  const [filterProfile, setFilterProfile] = useState("all");
-  const [filterZone, setFilterZone] = useState("all");
-  const [filterSubzone, setFilterSubzone] = useState("all");
-  const [filterBox, setFilterBox] = useState("all");
-  const [filterPackage, setFilterPackage] = useState("all");
   const [filterClientType, setFilterClientType] = useState("all");
   const [filterConnType, setFilterConnType] = useState("all");
+  const [filterDevice, setFilterDevice] = useState("all");
+  const [filterProfileStatus, setFilterProfileStatus] = useState("all");
+  const [filterBranch, setFilterBranch] = useState("all");
+  const [filterArea, setFilterArea] = useState("all");
+  const [filterCity, setFilterCity] = useState("all");
+  const [filterPackage, setFilterPackage] = useState("all");
   const [filterBillingStatus, setFilterBillingStatus] = useState("all");
   const [filterAssignTo, setFilterAssignTo] = useState("all");
-  const [filterProfileStatus, setFilterProfileStatus] = useState("all");
-  const [filterDistrict, setFilterDistrict] = useState("all");
-  const [filterArea, setFilterArea] = useState("all");
-  const [filterVip, setFilterVip] = useState("all");
-  const [filterGender, setFilterGender] = useState("all");
-  const [filterServer, setFilterServer] = useState("all");
-  const [filterDevice, setFilterDevice] = useState("all");
+  const [filterMonth, setFilterMonth] = useState("all");
   const [filterFromDate, setFilterFromDate] = useState("");
   const [filterToDate, setFilterToDate] = useState("");
 
@@ -2494,25 +2491,26 @@ function CustomerListView({
     if (statusFilter !== "all" && c.status !== statusFilter) return false;
     if (filterVendor !== "all" && String(c.vendorId) !== filterVendor) return false;
     if (filterProtocol !== "all" && c.protocolType !== filterProtocol) return false;
-    if (filterProfile !== "all" && c.profile !== filterProfile) return false;
-    if (filterZone !== "all" && c.zone !== filterZone) return false;
-    if (filterSubzone !== "all" && c.subzone !== filterSubzone) return false;
-    if (filterBox !== "all" && c.box !== filterBox) return false;
-    if (filterPackage !== "all" && String(c.packageId) !== filterPackage) return false;
-    if (filterClientType !== "all" && c.customerType !== filterClientType) return false;
+    if (filterClientType !== "all" && c.customerType?.toLowerCase() !== filterClientType.toLowerCase()) return false;
     if (filterConnType !== "all" && c.connectionType !== filterConnType) return false;
+    if (filterDevice !== "all" && c.device !== filterDevice) return false;
+    if (filterProfileStatus !== "all" && c.status !== filterProfileStatus) return false;
+    if (filterBranch !== "all") {
+      const matchArea = (areas || []).find((a: any) => a.branch === filterBranch && (c.area === a.name || c.zone === a.name));
+      if (!matchArea) return false;
+    }
+    if (filterArea !== "all" && c.area !== filterArea && c.zone !== filterArea) return false;
+    if (filterCity !== "all") {
+      const cityAreas = (areas || []).filter((a: any) => a.city === filterCity).map((a: any) => a.name);
+      if (!cityAreas.includes(c.area) && !cityAreas.includes(c.zone)) return false;
+    }
+    if (filterPackage !== "all" && String(c.packageId) !== filterPackage) return false;
     if (filterBillingStatus !== "all" && c.billingStatus !== filterBillingStatus) return false;
     if (filterAssignTo !== "all" && c.assignTo !== filterAssignTo) return false;
-    if (filterProfileStatus !== "all" && c.status !== filterProfileStatus) return false;
-    if (filterDistrict !== "all" && c.district !== filterDistrict) return false;
-    if (filterArea !== "all" && c.area !== filterArea) return false;
-    if (filterVip !== "all") {
-      if (filterVip === "yes" && !c.isVipClient) return false;
-      if (filterVip === "no" && c.isVipClient) return false;
+    if (filterMonth !== "all" && c.joiningDate) {
+      const month = c.joiningDate.slice(5, 7);
+      if (month !== filterMonth) return false;
     }
-    if (filterGender !== "all" && c.gender !== filterGender) return false;
-    if (filterServer !== "all" && c.server !== filterServer) return false;
-    if (filterDevice !== "all" && c.device !== filterDevice) return false;
     if (filterFromDate && c.joiningDate && c.joiningDate < filterFromDate) return false;
     if (filterToDate && c.joiningDate && c.joiningDate > filterToDate) return false;
     return true;
@@ -2542,31 +2540,20 @@ function CustomerListView({
     return v ? v.name : "-";
   };
 
-  const uniqueZones = Array.from(new Set(allCustomers.map(c => c.zone).filter(Boolean)));
-  const uniqueSubzones = Array.from(new Set(allCustomers.map(c => c.subzone).filter(Boolean)));
-  const uniqueProtocols = Array.from(new Set(allCustomers.map(c => c.protocolType).filter(Boolean)));
-  const uniqueProfiles = Array.from(new Set(allCustomers.map(c => c.profile).filter(Boolean)));
-  const uniqueConnTypes = Array.from(new Set(allCustomers.map(c => c.connectionType).filter(Boolean)));
-  const uniqueBoxes = Array.from(new Set(allCustomers.map(c => c.box).filter(Boolean)));
-  const uniqueAssignees = Array.from(new Set(allCustomers.map(c => c.assignTo).filter(Boolean)));
-  const uniqueDistricts = Array.from(new Set(allCustomers.map(c => c.district).filter(Boolean)));
-  const uniqueAreas = Array.from(new Set(allCustomers.map(c => c.area).filter(Boolean)));
-  const uniqueServers = Array.from(new Set(allCustomers.map(c => c.server).filter(Boolean)));
-  const uniqueDevices = Array.from(new Set(allCustomers.map(c => c.device).filter(Boolean)));
-  const uniqueStatuses = Array.from(new Set(allCustomers.map(c => c.status).filter(Boolean)));
+  const areaNames = Array.from(new Set((areas || []).map((a: any) => a.name).filter(Boolean)));
+  const areaCities = Array.from(new Set((areas || []).map((a: any) => a.city).filter(Boolean)));
 
   const resetAllFilters = () => {
-    setFilterVendor("all"); setFilterProtocol("all"); setFilterProfile("all");
-    setFilterZone("all"); setFilterSubzone("all"); setFilterBox("all");
-    setFilterPackage("all"); setFilterClientType("all"); setFilterConnType("all");
-    setFilterBillingStatus("all"); setFilterAssignTo("all"); setFilterProfileStatus("all");
-    setFilterDistrict("all"); setFilterArea("all"); setFilterVip("all");
-    setFilterGender("all"); setFilterServer("all"); setFilterDevice("all");
+    setFilterVendor("all"); setFilterProtocol("all");
+    setFilterClientType("all"); setFilterConnType("all"); setFilterDevice("all");
+    setFilterProfileStatus("all"); setFilterBranch("all"); setFilterArea("all");
+    setFilterCity("all"); setFilterPackage("all"); setFilterBillingStatus("all");
+    setFilterAssignTo("all"); setFilterMonth("all");
     setFilterFromDate(""); setFilterToDate("");
     setStatusFilter("all");
   };
 
-  const activeFilterCount = [filterVendor, filterProtocol, filterProfile, filterZone, filterSubzone, filterBox, filterPackage, filterClientType, filterConnType, filterBillingStatus, filterAssignTo, filterProfileStatus, filterDistrict, filterArea, filterVip, filterGender, filterServer, filterDevice, statusFilter].filter(v => v !== "all").length + (filterFromDate ? 1 : 0) + (filterToDate ? 1 : 0);
+  const activeFilterCount = [filterVendor, filterProtocol, filterClientType, filterConnType, filterDevice, filterProfileStatus, filterBranch, filterArea, filterCity, filterPackage, filterBillingStatus, filterAssignTo, filterMonth, statusFilter].filter(v => v !== "all").length + (filterFromDate ? 1 : 0) + (filterToDate ? 1 : 0);
 
   const toggleStatusMutation = useMutation({
     mutationFn: async ({ id, newStatus }: { id: number; newStatus: string }) => {
@@ -2820,81 +2807,23 @@ function CustomerListView({
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold uppercase text-muted-foreground">Protocol Type</label>
                 <Select value={filterProtocol} onValueChange={setFilterProtocol}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-protocol"><SelectValue placeholder="All Protocols" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-protocol"><SelectValue placeholder="All" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Protocols</SelectItem>
-                    {uniqueProtocols.map(p => <SelectItem key={p!} value={p!}>{p}</SelectItem>)}
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="PPPoE">PPPoE</SelectItem>
+                    <SelectItem value="Hotspot">Hotspot</SelectItem>
+                    <SelectItem value="Static IP">Static IP</SelectItem>
+                    <SelectItem value="IPoE">IPoE</SelectItem>
+                    <SelectItem value="DHCP">DHCP</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Profile</label>
-                <Select value={filterProfile} onValueChange={setFilterProfile}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-profile"><SelectValue placeholder="All Profiles" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Profiles</SelectItem>
-                    {uniqueProfiles.map(p => <SelectItem key={p!} value={p!}>{p}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Zone</label>
-                <Select value={filterZone} onValueChange={setFilterZone}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-zone"><SelectValue placeholder="All Zones" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Zones</SelectItem>
-                    {uniqueZones.map(z => <SelectItem key={z!} value={z!}>{z}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Sub Zone</label>
-                <Select value={filterSubzone} onValueChange={setFilterSubzone}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-subzone"><SelectValue placeholder="All Sub Zones" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Sub Zones</SelectItem>
-                    {uniqueSubzones.map(s => <SelectItem key={s!} value={s!}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Box</label>
-                <Select value={filterBox} onValueChange={setFilterBox}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-box"><SelectValue placeholder="All Boxes" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Boxes</SelectItem>
-                    {uniqueBoxes.map(b => <SelectItem key={b!} value={b!}>{b}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Server</label>
-                <Select value={filterServer} onValueChange={setFilterServer}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-server"><SelectValue placeholder="All Servers" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Servers</SelectItem>
-                    {uniqueServers.map(s => <SelectItem key={s!} value={s!}>{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Package</label>
-                <Select value={filterPackage} onValueChange={setFilterPackage}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-package"><SelectValue placeholder="All Packages" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Packages</SelectItem>
-                    {(packages || []).map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Client Type</label>
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Customer Type</label>
                 <Select value={filterClientType} onValueChange={setFilterClientType}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-client-type"><SelectValue placeholder="All Types" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-client-type"><SelectValue placeholder="All" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="all">All</SelectItem>
                     <SelectItem value="home">Home</SelectItem>
                     <SelectItem value="office">Office</SelectItem>
                     <SelectItem value="govt. office">Govt. Office</SelectItem>
@@ -2904,21 +2833,96 @@ function CustomerListView({
                     <SelectItem value="hotel">Hotel</SelectItem>
                     <SelectItem value="restaurants">Restaurants</SelectItem>
                     <SelectItem value="café">Café</SelectItem>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="cir">CIR</SelectItem>
-                    <SelectItem value="corporate">Corporate</SelectItem>
-                    <SelectItem value="business">Business</SelectItem>
-                    <SelectItem value="reseller">Reseller</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold uppercase text-muted-foreground">Connection Type</label>
                 <Select value={filterConnType} onValueChange={setFilterConnType}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-conn-type"><SelectValue placeholder="All Conn. Types" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-conn-type"><SelectValue placeholder="All" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Conn. Types</SelectItem>
-                    {uniqueConnTypes.map(ct => <SelectItem key={ct!} value={ct!} className="capitalize">{ct}</SelectItem>)}
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="FTTH">FTTH</SelectItem>
+                    <SelectItem value="Dedicated Fiber">Dedicated Fiber</SelectItem>
+                    <SelectItem value="Wireless P2MP">Wireless P2MP</SelectItem>
+                    <SelectItem value="Wireless P2P">Wireless P2P</SelectItem>
+                    <SelectItem value="Ethernet Cat6">Ethernet Cat6</SelectItem>
+                    <SelectItem value="DSL">DSL</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Device Type</label>
+                <Select value={filterDevice} onValueChange={setFilterDevice}>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-device"><SelectValue placeholder="All" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="ONT">ONT</SelectItem>
+                    <SelectItem value="ONU">ONU</SelectItem>
+                    <SelectItem value="Router">Router</SelectItem>
+                    <SelectItem value="Modem">Modem</SelectItem>
+                    <SelectItem value="Access Point">Access Point</SelectItem>
+                    <SelectItem value="CPE">CPE</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Profile Status</label>
+                <Select value={filterProfileStatus} onValueChange={setFilterProfileStatus}>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-profile-status"><SelectValue placeholder="All" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="reactive">Reactive</SelectItem>
+                    <SelectItem value="house_shift">House Shift</SelectItem>
+                    <SelectItem value="temporary_closed">Temporary Closed</SelectItem>
+                    <SelectItem value="shift_to_other_isp">Shift to Other ISP</SelectItem>
+                    <SelectItem value="bill_issue">Bill Issue</SelectItem>
+                    <SelectItem value="temporary_suspend">Temporary Suspend</SelectItem>
+                    <SelectItem value="recharge_next_month">Recharge on Next Month</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Branch</label>
+                <Select value={filterBranch} onValueChange={setFilterBranch}>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-branch"><SelectValue placeholder="All" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {(branches || []).filter((b: any) => b.status === "active").map((b: any) => <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Area</label>
+                <Select value={filterArea} onValueChange={setFilterArea}>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-area"><SelectValue placeholder="All" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {areaNames.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">City</label>
+                <Select value={filterCity} onValueChange={setFilterCity}>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-city"><SelectValue placeholder="All" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {areaCities.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Package</label>
+                <Select value={filterPackage} onValueChange={setFilterPackage}>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-package"><SelectValue placeholder="All" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {(packages || []).map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -2934,101 +2938,45 @@ function CustomerListView({
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Profile Status</label>
-                <Select value={filterProfileStatus} onValueChange={setFilterProfileStatus}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-profile-status"><SelectValue placeholder="All Statuses" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    {uniqueStatuses.map(s => <SelectItem key={s!} value={s!} className="capitalize">{s}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">M.Status</label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-m-status"><SelectValue placeholder="All" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="suspended">Suspended</SelectItem>
-                    <SelectItem value="closed">Closed</SelectItem>
-                    <SelectItem value="expired">Expired</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Device</label>
-                <Select value={filterDevice} onValueChange={setFilterDevice}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-device"><SelectValue placeholder="All Devices" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Devices</SelectItem>
-                    {uniqueDevices.map(d => <SelectItem key={d!} value={d!}>{d}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-              <div className="space-y-1">
                 <label className="text-[10px] font-semibold uppercase text-muted-foreground">Assigned To</label>
                 <Select value={filterAssignTo} onValueChange={setFilterAssignTo}>
                   <SelectTrigger className="h-8 text-xs" data-testid="filter-assign-to"><SelectValue placeholder="All" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All</SelectItem>
-                    {uniqueAssignees.map(a => <SelectItem key={a!} value={a!}>{a}</SelectItem>)}
+                    {(employees || []).filter((e: any) => e.status === "active").map((e: any) => <SelectItem key={e.id} value={e.fullName}>{e.fullName}{e.designation ? ` — ${e.designation}` : ""}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">District</label>
-                <Select value={filterDistrict} onValueChange={setFilterDistrict}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-district"><SelectValue placeholder="All Districts" /></SelectTrigger>
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Month</label>
+                <Select value={filterMonth} onValueChange={setFilterMonth}>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-month"><SelectValue placeholder="Select Month" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Districts</SelectItem>
-                    {uniqueDistricts.map(d => <SelectItem key={d!} value={d!}>{d}</SelectItem>)}
+                    <SelectItem value="all">All Months</SelectItem>
+                    <SelectItem value="01">January</SelectItem>
+                    <SelectItem value="02">February</SelectItem>
+                    <SelectItem value="03">March</SelectItem>
+                    <SelectItem value="04">April</SelectItem>
+                    <SelectItem value="05">May</SelectItem>
+                    <SelectItem value="06">June</SelectItem>
+                    <SelectItem value="07">July</SelectItem>
+                    <SelectItem value="08">August</SelectItem>
+                    <SelectItem value="09">September</SelectItem>
+                    <SelectItem value="10">October</SelectItem>
+                    <SelectItem value="11">November</SelectItem>
+                    <SelectItem value="12">December</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Area</label>
-                <Select value={filterArea} onValueChange={setFilterArea}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-area"><SelectValue placeholder="All Areas" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Areas</SelectItem>
-                    {uniqueAreas.map(a => <SelectItem key={a!} value={a!}>{a}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Gender</label>
-                <Select value={filterGender} onValueChange={setFilterGender}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-gender"><SelectValue placeholder="All" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="male">Male</SelectItem>
-                    <SelectItem value="female">Female</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">VIP Client</label>
-                <Select value={filterVip} onValueChange={setFilterVip}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-vip"><SelectValue placeholder="All" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="yes">VIP Only</SelectItem>
-                    <SelectItem value="no">Non-VIP</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">From Date</label>
-                <Input type="date" className="h-8 text-xs" value={filterFromDate} onChange={e => setFilterFromDate(e.target.value)} data-testid="filter-from-date" />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">To Date</label>
-                <Input type="date" className="h-8 text-xs" value={filterToDate} onChange={e => setFilterToDate(e.target.value)} data-testid="filter-to-date" />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold uppercase text-muted-foreground">From Date</label>
+                  <Input type="date" className="h-8 text-xs" value={filterFromDate} onChange={e => setFilterFromDate(e.target.value)} data-testid="filter-from-date" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold uppercase text-muted-foreground">To Date</label>
+                  <Input type="date" className="h-8 text-xs" value={filterToDate} onChange={e => setFilterToDate(e.target.value)} data-testid="filter-to-date" />
+                </div>
               </div>
             </div>
           </CardContent>
@@ -4040,6 +3988,7 @@ export default function CustomersPage() {
           vendors={vendorsData}
           employees={employeesData}
           areas={areasData}
+          branches={branchesData}
           isLoading={isLoading}
           search={search}
           setSearch={setSearch}
