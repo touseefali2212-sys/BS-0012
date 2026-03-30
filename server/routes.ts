@@ -6,7 +6,7 @@ import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
 import { db } from "./db";
-import { purchaseOrderItems, serviceSchedulerRequests, notificationDispatches, packageChangeRequests } from "@shared/schema";
+import { purchaseOrderItems, serviceSchedulerRequests, notificationDispatches, packageChangeRequests, bandwidthHistory } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 import {
   loginSchema, insertCustomerSchema, insertPackageSchema, insertInvoiceSchema,
@@ -7308,13 +7308,52 @@ export async function registerRoutes(
   app.post("/api/package-change-requests", requireAuth, async (req, res) => {
     try {
       const reqNum = "PCR-" + Date.now().toString(36).toUpperCase();
+      const username = (req as any).session?.user?.username || "admin";
       const [created] = await db.insert(packageChangeRequests).values({
         ...req.body,
         requestNumber: req.body.requestNumber || reqNum,
-        requestedBy: (req as any).session?.user?.username || "admin",
+        requestedBy: username,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }).returning();
+
+      const custType = req.body.customerType;
+      const resolvedCustomerId = custType === "Normal" ? req.body.customerId
+        : custType === "CIR" ? req.body.cirCustomerId
+        : custType === "Corporate" ? req.body.corporateCustomerId : null;
+
+      if (resolvedCustomerId) {
+        try {
+          await db.insert(serviceSchedulerRequests).values({
+            customerId: resolvedCustomerId,
+            requestType: req.body.changeType === "upgrade" ? "package_upgrade" : "package_downgrade",
+            description: `[Package Change ${created.requestNumber}] ${req.body.changeType === "upgrade" ? "Upgrade" : "Downgrade"}: ${req.body.currentPackageName || "Current"} → ${req.body.newPackageName || "New"} (${req.body.currentBandwidth || "—"} → ${req.body.newBandwidth || "—"})`,
+            priority: req.body.isUrgent ? "urgent" : "normal",
+            requestedBy: username,
+            status: "pending",
+            effectiveMonth: req.body.effectiveDate || null,
+            currentPackageId: req.body.currentPackageId || null,
+            requestedPackageId: req.body.newPackageId || null,
+          });
+        } catch (e) { console.error("Auto service scheduler entry failed:", e); }
+
+        if (custType === "CIR" || custType === "Corporate") {
+          try {
+            await db.insert(bandwidthHistory).values({
+              customerType: custType.toLowerCase(),
+              customerId: resolvedCustomerId,
+              changeType: req.body.changeType || "upgrade",
+              previousBandwidth: req.body.currentBandwidth || "—",
+              newBandwidth: req.body.newBandwidth || "—",
+              changedBy: username,
+              reason: `Package Change Request ${created.requestNumber}${req.body.reason ? " — " + req.body.reason : ""}`,
+              effectiveDate: req.body.effectiveDate || new Date().toISOString().split("T")[0],
+              createdAt: new Date().toISOString(),
+            });
+          } catch (e) { console.error("Auto bandwidth history entry failed:", e); }
+        }
+      }
+
       res.json(created);
     } catch (e: any) { res.status(400).json({ message: e.message }); }
   });
