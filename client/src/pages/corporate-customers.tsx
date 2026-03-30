@@ -658,7 +658,7 @@ export default function CorporateCustomersPage() {
                 </SelectContent>
               </Select>
               <span className="text-sm text-muted-foreground">ENTRIES</span>
-              <Button onClick={() => setDialogOpen(true)} size="sm" className="h-9 ml-2 bg-gradient-to-r from-[#002B5B] to-[#005EFF] hover:from-[#001f42] hover:to-[#0044cc] gap-1.5" data-testid="button-add-corp">
+              <Button onClick={() => setLocation("/add-customer")} size="sm" className="h-9 ml-2 bg-gradient-to-r from-[#002B5B] to-[#005EFF] hover:from-[#001f42] hover:to-[#0044cc] gap-1.5" data-testid="button-add-corp">
                 <Users className="h-4 w-4" />Add New Customer
               </Button>
             </div>
