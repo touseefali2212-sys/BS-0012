@@ -1,0 +1,244 @@
+Customers Module
+Package Change & Bandwidth Upgrade/Downgrade Page
+(For Normal, Corporate & CIR Customers)
+🎯 Objective
+
+Develop a dedicated Package Change Management Page where users can:
+
+✔ Request package upgrade or downgrade
+✔ Handle Corporate & CIR custom plans
+✔ Approve or reject requests
+✔ Automatically update billing
+✔ Sync with network (Radius / MikroTik / BRAS)
+✔ Maintain full audit trail
+
+This page should act as a controlled workflow system, not just a simple edit form.
+
+🧩 Page Structure
+
+Use a tab-based interface:
+
+Tabs:
+New Request
+Pending Approval
+Approved Requests
+Implementation Queue
+Completed Requests
+Rejected Requests
+Request History
+🆕 1️⃣ New Request Page
+
+Form to create upgrade/downgrade request.
+
+Fields:
+Customer Name / ID (Searchable)
+Customer Type:
+Normal
+Corporate
+CIR
+Current Package (Auto Fetch)
+Current Bandwidth (Auto Fetch)
+Current Monthly Bill
+Change Details:
+Change Type:
+Upgrade
+Downgrade
+New Package Selection
+New Bandwidth (for CIR/Corporate custom input)
+Effective Date:
+Immediate
+Next Billing Cycle
+Custom Date
+Billing Preview (Auto Calculated):
+
+✔ New Package Price
+✔ Prorated Charges
+✔ Adjustment Amount
+✔ Tax Impact
+✔ Final Bill Difference
+
+Additional Options:
+Reason for Change
+Attach Supporting Documents
+Urgent Request Toggle
+Actions:
+
+✔ Submit Request
+✔ Save Draft
+
+📋 2️⃣ Pending Approval
+
+List all requests waiting for approval.
+
+Columns:
+
+Request ID
+Customer Name
+Old Package
+New Package
+Change Type
+Requested By
+Date
+Actions:
+
+✔ Approve
+✔ Reject
+✔ Request Modification
+
+✅ 3️⃣ Approval Workflow
+
+When approving:
+
+✔ Verify billing impact
+✔ Validate package availability
+✔ Check outstanding dues
+
+Approval Rules:
+Technician → Cannot approve
+Manager → Can approve
+Admin → Full control
+⚙️ 4️⃣ Implementation Queue
+
+After approval:
+
+✔ Move request to implementation queue
+
+System Actions:
+
+✔ Update package in system
+✔ Update billing plan
+✔ Recalculate next invoice
+
+Network Sync (IMPORTANT 🔥)
+
+✔ Update user profile in:
+
+MikroTik
+Radius / AAA
+BRAS
+
+✔ Apply:
+
+New speed
+New profile
+Expiry updates
+🔄 5️⃣ Automation on Implementation
+
+After implementation:
+
+✔ Generate adjustment invoice
+✔ Update customer billing cycle
+✔ Update package history
+✔ Send notifications
+
+🔔 6️⃣ Notifications
+
+Send to:
+
+Customer:
+“Your package has been upgraded to 20 Mbps”
+Include new billing details
+Staff:
+Confirmation notification
+📜 7️⃣ Completed Requests
+
+Show completed changes:
+
+Old vs New Package
+Date of change
+Billing adjustment
+Status: Success / Failed
+❌ 8️⃣ Rejected Requests
+
+Store rejected entries with:
+
+Reason
+Rejected by
+Date
+📊 9️⃣ Request History
+
+Full audit trail:
+
+✔ Who requested
+✔ Who approved
+✔ Who implemented
+✔ Old vs New values
+✔ Time logs
+
+🧠 Special Logic for Customer Types
+👤 Normal Customers:
+Fixed packages
+Simple upgrade/downgrade
+🏢 Corporate Customers:
+Custom pricing
+Custom billing cycle
+SLA-based packages
+🌐 CIR Customers:
+Dedicated bandwidth
+Manual bandwidth input
+High-priority processing
+💰 Billing Engine Logic
+Upgrade:
+
+✔ Charge difference
+✔ Apply prorated billing
+
+Downgrade:
+
+✔ Adjust next invoice
+✔ Optional credit note
+
+🔐 Role-Based Access
+
+Admin:
+✔ Full control
+
+Manager:
+✔ Approve + implement
+
+Billing Staff:
+✔ View + billing adjustments
+
+Technician:
+✔ View only
+
+🖥 UI/UX Design
+Clean table layout
+Status color badges:
+
+🟡 Pending
+🟢 Approved
+🔵 Implemented
+🔴 Rejected
+
+Side drawer for request details
+Timeline view for each request
+⚙️ Advanced Features (HIGH VALUE 💎)
+🔄 Scheduled Change
+Apply change on next billing cycle
+⚡ Instant Upgrade
+Apply immediately
+🧾 Auto Credit Note
+For downgrade cases
+📈 Analytics
+Upgrade vs downgrade trends
+Revenue impact report
+🚫 Validation Rules
+
+✔ Cannot downgrade below minimum plan
+✔ Cannot upgrade if dues unpaid
+✔ Cannot change during suspension
+
+🧪 Expected Output
+
+✔ Structured request flow
+✔ No manual errors
+✔ Controlled approvals
+✔ Automatic billing + network sync
+
+📈 Business Impact
+
+🔥 Increase upsell revenue (easy upgrades)
+🔥 Reduce billing errors
+🔥 Improve customer satisfaction
+🔥 Full audit control
