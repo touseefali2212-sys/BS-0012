@@ -2558,7 +2558,28 @@ function CustomerListView({
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [statusCustomer, setStatusCustomer] = useState<Customer | null>(null);
   const [statusAction, setStatusAction] = useState("closed");
+  const [statusReasonSelect, setStatusReasonSelect] = useState("");
   const [statusReason, setStatusReason] = useState("");
+
+  const statusReasonOptions: Record<string, { value: string; label: string }[]> = {
+    active: [
+      { value: "active", label: "Active" },
+      { value: "reactive", label: "Reactive" },
+    ],
+    closed: [
+      { value: "house_shift", label: "House Shift" },
+      { value: "temporary_closed", label: "Temporary Closed" },
+      { value: "shift_to_other_isp", label: "Shift to Other ISP" },
+    ],
+    suspended: [
+      { value: "bill_issue", label: "Bill Issue" },
+      { value: "temporary_suspend", label: "Temporary Suspend" },
+    ],
+    expired: [
+      { value: "recharge_next_month", label: "Recharge on Next Month" },
+      { value: "other", label: "Other" },
+    ],
+  };
 
   const smsCategories = [
     { value: "bill_reminder", label: "Bill Reminder", defaultMsg: "Dear {name}, your bill of {amount} is due. Please pay before the due date to avoid service interruption." },
@@ -2635,7 +2656,9 @@ function CustomerListView({
 
   const openStatusDialog = (customer: Customer) => {
     setStatusCustomer(customer);
-    setStatusAction(customer.status === "active" ? "closed" : "active");
+    const action = customer.status === "active" ? "closed" : "active";
+    setStatusAction(action);
+    setStatusReasonSelect("");
     setStatusReason("");
     setStatusDialogOpen(true);
   };
@@ -3283,7 +3306,7 @@ function CustomerListView({
                     <button
                       key={s.value}
                       type="button"
-                      onClick={() => setStatusAction(s.value)}
+                      onClick={() => { setStatusAction(s.value); setStatusReasonSelect(""); }}
                       className={`flex items-center gap-2 p-3 rounded-lg border-2 text-left transition-all ${
                         statusAction === s.value
                           ? `${s.color} ring-2 ring-offset-1 ring-current font-semibold`
@@ -3302,13 +3325,27 @@ function CustomerListView({
               </div>
 
               <div className="space-y-2">
-                <span className="text-sm font-medium">Reason for Change</span>
+                <span className="text-sm font-medium">Reason</span>
+                <Select value={statusReasonSelect} onValueChange={setStatusReasonSelect}>
+                  <SelectTrigger data-testid="select-status-reason">
+                    <SelectValue placeholder="Select reason..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(statusReasonOptions[statusAction] || []).map(opt => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Additional Notes</span>
                 <Textarea
                   value={statusReason}
                   onChange={e => setStatusReason(e.target.value)}
-                  placeholder="Provide a reason for this status change..."
+                  placeholder="Add any additional notes about this status change..."
                   className="min-h-[80px]"
-                  data-testid="textarea-status-reason"
+                  data-testid="textarea-status-notes"
                 />
               </div>
 
@@ -3322,10 +3359,13 @@ function CustomerListView({
           <DialogFooter>
             <Button variant="outline" onClick={() => setStatusDialogOpen(false)} data-testid="button-cancel-status">Cancel</Button>
             <Button
-              onClick={() => statusCustomer && statusToggleMutation.mutate({
-                customer: statusCustomer, newStatus: statusAction, reason: statusReason,
-              })}
-              disabled={statusToggleMutation.isPending || statusAction === statusCustomer?.status || !statusReason.trim()}
+              onClick={() => {
+                if (!statusCustomer) return;
+                const reasonLabel = (statusReasonOptions[statusAction] || []).find(o => o.value === statusReasonSelect)?.label || statusReasonSelect;
+                const fullReason = statusReason.trim() ? `${reasonLabel} - ${statusReason.trim()}` : reasonLabel;
+                statusToggleMutation.mutate({ customer: statusCustomer, newStatus: statusAction, reason: fullReason });
+              }}
+              disabled={statusToggleMutation.isPending || statusAction === statusCustomer?.status || !statusReasonSelect}
               className={statusAction === "active" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
               data-testid="button-confirm-status"
             >
