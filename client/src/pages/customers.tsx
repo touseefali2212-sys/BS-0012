@@ -2461,7 +2461,13 @@ function CustomerListView({
   const [filterConnType, setFilterConnType] = useState("all");
   const [filterBillingStatus, setFilterBillingStatus] = useState("all");
   const [filterAssignTo, setFilterAssignTo] = useState("all");
-  const [filterCustomStatus, setFilterCustomStatus] = useState("");
+  const [filterProfileStatus, setFilterProfileStatus] = useState("all");
+  const [filterDistrict, setFilterDistrict] = useState("all");
+  const [filterArea, setFilterArea] = useState("all");
+  const [filterVip, setFilterVip] = useState("all");
+  const [filterGender, setFilterGender] = useState("all");
+  const [filterServer, setFilterServer] = useState("all");
+  const [filterDevice, setFilterDevice] = useState("all");
   const [filterFromDate, setFilterFromDate] = useState("");
   const [filterToDate, setFilterToDate] = useState("");
 
@@ -2497,6 +2503,16 @@ function CustomerListView({
     if (filterConnType !== "all" && c.connectionType !== filterConnType) return false;
     if (filterBillingStatus !== "all" && c.billingStatus !== filterBillingStatus) return false;
     if (filterAssignTo !== "all" && c.assignTo !== filterAssignTo) return false;
+    if (filterProfileStatus !== "all" && c.status !== filterProfileStatus) return false;
+    if (filterDistrict !== "all" && c.district !== filterDistrict) return false;
+    if (filterArea !== "all" && c.area !== filterArea) return false;
+    if (filterVip !== "all") {
+      if (filterVip === "yes" && !c.isVipClient) return false;
+      if (filterVip === "no" && c.isVipClient) return false;
+    }
+    if (filterGender !== "all" && c.gender !== filterGender) return false;
+    if (filterServer !== "all" && c.server !== filterServer) return false;
+    if (filterDevice !== "all" && c.device !== filterDevice) return false;
     if (filterFromDate && c.joiningDate && c.joiningDate < filterFromDate) return false;
     if (filterToDate && c.joiningDate && c.joiningDate > filterToDate) return false;
     return true;
@@ -2533,6 +2549,24 @@ function CustomerListView({
   const uniqueConnTypes = Array.from(new Set(allCustomers.map(c => c.connectionType).filter(Boolean)));
   const uniqueBoxes = Array.from(new Set(allCustomers.map(c => c.box).filter(Boolean)));
   const uniqueAssignees = Array.from(new Set(allCustomers.map(c => c.assignTo).filter(Boolean)));
+  const uniqueDistricts = Array.from(new Set(allCustomers.map(c => c.district).filter(Boolean)));
+  const uniqueAreas = Array.from(new Set(allCustomers.map(c => c.area).filter(Boolean)));
+  const uniqueServers = Array.from(new Set(allCustomers.map(c => c.server).filter(Boolean)));
+  const uniqueDevices = Array.from(new Set(allCustomers.map(c => c.device).filter(Boolean)));
+  const uniqueStatuses = Array.from(new Set(allCustomers.map(c => c.status).filter(Boolean)));
+
+  const resetAllFilters = () => {
+    setFilterVendor("all"); setFilterProtocol("all"); setFilterProfile("all");
+    setFilterZone("all"); setFilterSubzone("all"); setFilterBox("all");
+    setFilterPackage("all"); setFilterClientType("all"); setFilterConnType("all");
+    setFilterBillingStatus("all"); setFilterAssignTo("all"); setFilterProfileStatus("all");
+    setFilterDistrict("all"); setFilterArea("all"); setFilterVip("all");
+    setFilterGender("all"); setFilterServer("all"); setFilterDevice("all");
+    setFilterFromDate(""); setFilterToDate("");
+    setStatusFilter("all");
+  };
+
+  const activeFilterCount = [filterVendor, filterProtocol, filterProfile, filterZone, filterSubzone, filterBox, filterPackage, filterClientType, filterConnType, filterBillingStatus, filterAssignTo, filterProfileStatus, filterDistrict, filterArea, filterVip, filterGender, filterServer, filterDevice, statusFilter].filter(v => v !== "all").length + (filterFromDate ? 1 : 0) + (filterToDate ? 1 : 0);
 
   const toggleStatusMutation = useMutation({
     mutationFn: async ({ id, newStatus }: { id: number; newStatus: string }) => {
@@ -2760,14 +2794,25 @@ function CustomerListView({
 
       {showFilters && (
         <Card data-testid="customer-filters-panel">
-          <CardContent className="pt-4 pb-2 space-y-3">
+          <CardContent className="pt-4 pb-3 space-y-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                <ListFilter className="h-3.5 w-3.5" /> Filter Options
+                {activeFilterCount > 0 && <Badge className="bg-blue-600 text-white text-[10px] h-5 px-1.5">{activeFilterCount}</Badge>}
+              </span>
+              {activeFilterCount > 0 && (
+                <Button size="sm" variant="ghost" className="h-6 text-[10px] text-red-500 hover:text-red-600 gap-1" onClick={resetAllFilters} data-testid="button-reset-filters">
+                  <X className="h-3 w-3" /> Reset All
+                </Button>
+              )}
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Connection Service Vendor</label>
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Conn. Service Vendor</label>
                 <Select value={filterVendor} onValueChange={setFilterVendor}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-vendor"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-vendor"><SelectValue placeholder="All Vendors" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Select</SelectItem>
+                    <SelectItem value="all">All Vendors</SelectItem>
                     {(vendors || []).map(v => <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -2775,9 +2820,9 @@ function CustomerListView({
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold uppercase text-muted-foreground">Protocol Type</label>
                 <Select value={filterProtocol} onValueChange={setFilterProtocol}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-protocol"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-protocol"><SelectValue placeholder="All Protocols" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Select</SelectItem>
+                    <SelectItem value="all">All Protocols</SelectItem>
                     {uniqueProtocols.map(p => <SelectItem key={p!} value={p!}>{p}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -2785,9 +2830,9 @@ function CustomerListView({
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold uppercase text-muted-foreground">Profile</label>
                 <Select value={filterProfile} onValueChange={setFilterProfile}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-profile"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-profile"><SelectValue placeholder="All Profiles" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Select</SelectItem>
+                    <SelectItem value="all">All Profiles</SelectItem>
                     {uniqueProfiles.map(p => <SelectItem key={p!} value={p!}>{p}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -2795,9 +2840,9 @@ function CustomerListView({
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold uppercase text-muted-foreground">Zone</label>
                 <Select value={filterZone} onValueChange={setFilterZone}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-zone"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-zone"><SelectValue placeholder="All Zones" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Select</SelectItem>
+                    <SelectItem value="all">All Zones</SelectItem>
                     {uniqueZones.map(z => <SelectItem key={z!} value={z!}>{z}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -2805,9 +2850,9 @@ function CustomerListView({
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold uppercase text-muted-foreground">Sub Zone</label>
                 <Select value={filterSubzone} onValueChange={setFilterSubzone}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-subzone"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-subzone"><SelectValue placeholder="All Sub Zones" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Select</SelectItem>
+                    <SelectItem value="all">All Sub Zones</SelectItem>
                     {uniqueSubzones.map(s => <SelectItem key={s!} value={s!}>{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -2815,22 +2860,31 @@ function CustomerListView({
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold uppercase text-muted-foreground">Box</label>
                 <Select value={filterBox} onValueChange={setFilterBox}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-box"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-box"><SelectValue placeholder="All Boxes" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Select</SelectItem>
+                    <SelectItem value="all">All Boxes</SelectItem>
                     {uniqueBoxes.map(b => <SelectItem key={b!} value={b!}>{b}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div></div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Server</label>
+                <Select value={filterServer} onValueChange={setFilterServer}>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-server"><SelectValue placeholder="All Servers" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Servers</SelectItem>
+                    {uniqueServers.map(s => <SelectItem key={s!} value={s!}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold uppercase text-muted-foreground">Package</label>
                 <Select value={filterPackage} onValueChange={setFilterPackage}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-package"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-package"><SelectValue placeholder="All Packages" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Select</SelectItem>
+                    <SelectItem value="all">All Packages</SelectItem>
                     {(packages || []).map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
@@ -2838,9 +2892,9 @@ function CustomerListView({
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold uppercase text-muted-foreground">Client Type</label>
                 <Select value={filterClientType} onValueChange={setFilterClientType}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-client-type"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-client-type"><SelectValue placeholder="All Types" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Select</SelectItem>
+                    <SelectItem value="all">All Types</SelectItem>
                     <SelectItem value="home">Home</SelectItem>
                     <SelectItem value="corporate">Corporate</SelectItem>
                     <SelectItem value="reseller">Reseller</SelectItem>
@@ -2850,53 +2904,112 @@ function CustomerListView({
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold uppercase text-muted-foreground">Connection Type</label>
                 <Select value={filterConnType} onValueChange={setFilterConnType}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-conn-type"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-conn-type"><SelectValue placeholder="All Conn. Types" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Select</SelectItem>
-                    {uniqueConnTypes.map(ct => <SelectItem key={ct!} value={ct!}>{ct}</SelectItem>)}
+                    <SelectItem value="all">All Conn. Types</SelectItem>
+                    {uniqueConnTypes.map(ct => <SelectItem key={ct!} value={ct!} className="capitalize">{ct}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold uppercase text-muted-foreground">Billing Status</label>
                 <Select value={filterBillingStatus} onValueChange={setFilterBillingStatus}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-billing-status"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-billing-status"><SelectValue placeholder="All" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Select</SelectItem>
+                    <SelectItem value="all">All</SelectItem>
                     <SelectItem value="Active">Active</SelectItem>
                     <SelectItem value="Inactive">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">M.Status</label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-m-status"><SelectValue placeholder="Select" /></SelectTrigger>
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Profile Status</label>
+                <Select value={filterProfileStatus} onValueChange={setFilterProfileStatus}>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-profile-status"><SelectValue placeholder="All Statuses" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Select</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="suspended">Suspended</SelectItem>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    {uniqueStatuses.map(s => <SelectItem key={s!} value={s!} className="capitalize">{s}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <div></div>
-              <div></div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">M.Status</label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-m-status"><SelectValue placeholder="All" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                    <SelectItem value="closed">Closed</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Device</label>
+                <Select value={filterDevice} onValueChange={setFilterDevice}>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-device"><SelectValue placeholder="All Devices" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Devices</SelectItem>
+                    {uniqueDevices.map(d => <SelectItem key={d!} value={d!}>{d}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Assign.Cus.For</label>
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Assigned To</label>
                 <Select value={filterAssignTo} onValueChange={setFilterAssignTo}>
-                  <SelectTrigger className="h-8 text-xs" data-testid="filter-assign-to"><SelectValue placeholder="Select" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-assign-to"><SelectValue placeholder="All" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Select</SelectItem>
+                    <SelectItem value="all">All</SelectItem>
                     {uniqueAssignees.map(a => <SelectItem key={a!} value={a!}>{a}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Custom Status</label>
-                <Input className="h-8 text-xs" placeholder="select custom status" value={filterCustomStatus} onChange={e => setFilterCustomStatus(e.target.value)} data-testid="filter-custom-status" />
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">District</label>
+                <Select value={filterDistrict} onValueChange={setFilterDistrict}>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-district"><SelectValue placeholder="All Districts" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Districts</SelectItem>
+                    {uniqueDistricts.map(d => <SelectItem key={d!} value={d!}>{d}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Area</label>
+                <Select value={filterArea} onValueChange={setFilterArea}>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-area"><SelectValue placeholder="All Areas" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Areas</SelectItem>
+                    {uniqueAreas.map(a => <SelectItem key={a!} value={a!}>{a}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">Gender</label>
+                <Select value={filterGender} onValueChange={setFilterGender}>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-gender"><SelectValue placeholder="All" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="male">Male</SelectItem>
+                    <SelectItem value="female">Female</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">VIP Client</label>
+                <Select value={filterVip} onValueChange={setFilterVip}>
+                  <SelectTrigger className="h-8 text-xs" data-testid="filter-vip"><SelectValue placeholder="All" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="yes">VIP Only</SelectItem>
+                    <SelectItem value="no">Non-VIP</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-semibold uppercase text-muted-foreground">From Date</label>
