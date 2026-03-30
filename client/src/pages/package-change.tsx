@@ -352,6 +352,28 @@ export default function PackageChangePage() {
         </div>
       </div>
 
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+        {[
+          { label: "New Request", value: draftRequests.length, icon: Plus, gradient: "from-blue-500 to-blue-600", bg: "bg-blue-50 dark:bg-blue-950/40" },
+          { label: "Pending Approval", value: pendingRequests.length, icon: Clock, gradient: "from-yellow-500 to-amber-500", bg: "bg-yellow-50 dark:bg-yellow-950/40" },
+          { label: "Approved", value: approvedRequests.length, icon: Check, gradient: "from-green-500 to-emerald-500", bg: "bg-green-50 dark:bg-green-950/40" },
+          { label: "Implementation", value: implementingRequests.length, icon: Settings, gradient: "from-indigo-500 to-blue-500", bg: "bg-indigo-50 dark:bg-indigo-950/40" },
+          { label: "Completed", value: completedRequests.length, icon: CheckCircle2, gradient: "from-emerald-500 to-teal-500", bg: "bg-emerald-50 dark:bg-emerald-950/40" },
+          { label: "Rejected", value: rejectedRequests.length, icon: XCircle, gradient: "from-red-500 to-rose-500", bg: "bg-red-50 dark:bg-red-950/40" },
+          { label: "Total", value: requests.length, icon: Package, gradient: "from-purple-500 to-violet-500", bg: "bg-purple-50 dark:bg-purple-950/40" },
+        ].map((stat, i) => (
+          <div key={i} className={`relative rounded-xl border border-border/60 ${stat.bg} p-3 overflow-hidden`} data-testid={`stat-card-${stat.label.toLowerCase().replace(/\s+/g, "-")}`}>
+            <div className="flex items-center justify-between mb-1">
+              <div className={`h-8 w-8 rounded-lg bg-gradient-to-br ${stat.gradient} flex items-center justify-center shadow-sm`}>
+                <stat.icon className="h-4 w-4 text-white" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold tracking-tight">{stat.value}</div>
+            <div className="text-[10px] font-medium text-muted-foreground leading-tight">{stat.label}</div>
+          </div>
+        ))}
+      </div>
+
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
         {tabs.map(tab => (
           <button
