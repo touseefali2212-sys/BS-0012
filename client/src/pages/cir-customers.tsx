@@ -503,10 +503,16 @@ export default function CirCustomersPage() {
                 <SelectTrigger className="h-9" data-testid="select-customer-type-filter"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Select</SelectItem>
-                  <SelectItem value="individual">Individual</SelectItem>
-                  <SelectItem value="corporate">Corporate</SelectItem>
-                  <SelectItem value="government">Government</SelectItem>
-                  <SelectItem value="isp">ISP</SelectItem>
+                  <SelectItem value="Home">Home</SelectItem>
+                  <SelectItem value="Office">Office</SelectItem>
+                  <SelectItem value="Govt. Office">Govt. Office</SelectItem>
+                  <SelectItem value="School">School</SelectItem>
+                  <SelectItem value="Collage">Collage</SelectItem>
+                  <SelectItem value="University">University</SelectItem>
+                  <SelectItem value="Hospital">Hospital</SelectItem>
+                  <SelectItem value="Factory">Factory</SelectItem>
+                  <SelectItem value="Reseller">Reseller</SelectItem>
+                  <SelectItem value="ISP">ISP</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -502,25 +502,19 @@ export default function CorporateCustomersPage() {
             {showFilters && (<div className="p-4 space-y-3">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Industry Type</label>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Customer Type</label>
                   <Select value={industryFilter} onValueChange={setIndustryFilter}>
                     <SelectTrigger className="h-9" data-testid="select-industry-filter"><SelectValue placeholder="Select" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Select</SelectItem>
-                      {industryOptions.map(i => <SelectItem key={i} value={i}>{i}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Customer Type</label>
-                  <Select value={serviceTypeFilter} onValueChange={setServiceTypeFilter}>
-                    <SelectTrigger className="h-9" data-testid="select-customer-type-filter"><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Select</SelectItem>
-                      <SelectItem value="enterprise">Enterprise</SelectItem>
-                      <SelectItem value="sme">SME</SelectItem>
-                      <SelectItem value="government">Government</SelectItem>
-                      <SelectItem value="ngo">NGO</SelectItem>
+                      <SelectItem value="Home">Home</SelectItem>
+                      <SelectItem value="Office">Office</SelectItem>
+                      <SelectItem value="Govt. Office">Govt. Office</SelectItem>
+                      <SelectItem value="School">School</SelectItem>
+                      <SelectItem value="Collage">Collage</SelectItem>
+                      <SelectItem value="University">University</SelectItem>
+                      <SelectItem value="Hospital">Hospital</SelectItem>
+                      <SelectItem value="Factory">Factory</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
