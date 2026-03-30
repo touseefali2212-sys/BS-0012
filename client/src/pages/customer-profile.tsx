@@ -95,7 +95,7 @@ export default function CustomerProfilePage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("service");
+  const [activeTab, setActiveTab] = useState("personal");
   const [notes, setNotes] = useState("");
   const [notesEditing, setNotesEditing] = useState(false);
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
@@ -188,6 +188,36 @@ export default function CustomerProfilePage() {
     queryFn: async () => {
       const res = await fetch(`/api/customers/${id}/service-requests`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch service requests");
+      return res.json();
+    },
+    enabled: !!id,
+  });
+
+  const { data: auditLogs, isLoading: auditLogsLoading } = useQuery<any[]>({
+    queryKey: ["/api/customers", id, "audit-logs"],
+    queryFn: async () => {
+      const res = await fetch(`/api/customers/${id}/audit-logs`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch audit logs");
+      return res.json();
+    },
+    enabled: !!id,
+  });
+
+  const { data: enableDisableLogs, isLoading: enableDisableLogsLoading } = useQuery<any[]>({
+    queryKey: ["/api/customers", id, "enable-disable-logs"],
+    queryFn: async () => {
+      const res = await fetch(`/api/customers/${id}/enable-disable-logs`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch enable/disable logs");
+      return res.json();
+    },
+    enabled: !!id,
+  });
+
+  const { data: messageHistory, isLoading: messageHistoryLoading } = useQuery<any[]>({
+    queryKey: ["/api/customers", id, "message-history"],
+    queryFn: async () => {
+      const res = await fetch(`/api/customers/${id}/message-history`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch message history");
       return res.json();
     },
     enabled: !!id,
@@ -576,20 +606,20 @@ export default function CustomerProfilePage() {
   };
 
   const tabs = [
-    { key: "service", label: "Service Information" },
-    { key: "network", label: "Network & Infrastructure" },
     { key: "personal", label: "Personal Information" },
     { key: "documents", label: "Documents" },
-    { key: "invoices", label: "Generated & Updated Bill/Invoices" },
-    { key: "received", label: "Received Bill History" },
-    { key: "complain", label: "Complain History" },
-    { key: "remarks", label: "Remarks History" },
-    { key: "messages", label: "Message History" },
+    { key: "service", label: "Service Information" },
+    { key: "network", label: "Network & Infrastructure" },
+    { key: "service_scheduler", label: "Service Scheduler" },
     { key: "changelog", label: "Customer Change Log" },
     { key: "enablelog", label: "Customer Enable/Disable Log" },
     { key: "sales", label: "Product & Service Sales Invoices" },
+    { key: "invoices", label: "Generated & Updated Bill/Invoices" },
+    { key: "received", label: "Received Bill History" },
+    { key: "remarks", label: "Remarks History" },
+    { key: "complain", label: "Support & Ticket History" },
+    { key: "messages", label: "Email/Message History" },
     { key: "referrals", label: "Referrals" },
-    { key: "service_scheduler", label: "Service Scheduler" },
   ];
 
   if (customerLoading) {
@@ -1346,7 +1376,7 @@ export default function CustomerProfilePage() {
 
             {activeTab === "complain" && (
               <div className="space-y-5" data-testid="tab-content-complain">
-                <SectionHeader title="Complain History" />
+                <SectionHeader title="Support & Ticket History" />
                 {ticketsLoading ? (
                   <div className="space-y-3">
                     {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}
@@ -1430,29 +1460,211 @@ export default function CustomerProfilePage() {
 
             {activeTab === "messages" && (
               <div className="space-y-5" data-testid="tab-content-messages">
-                <SectionHeader title="Message History" />
-                <EmptyState icon={MessageCircle} message="No message history available" />
+                <SectionHeader title="Email/Message History" />
+                {messageHistoryLoading ? (
+                  <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+                ) : !messageHistory?.length ? (
+                  <EmptyState icon={MessageCircle} message="No email or message history found for this customer" />
+                ) : (
+                  <div className="bg-card border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-[#1a3a5c] border-[#1a3a5c]">
+                          <TableHead className="text-white text-xs font-semibold">Date</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Channel</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Recipient</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Subject</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Status</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Source</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {messageHistory.map((msg: any, idx: number) => (
+                          <TableRow key={msg.id} data-testid={`row-message-${msg.id}`} className={idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"}>
+                            <TableCell className="text-xs">{formatDate(msg.sentAt)}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className={`text-[10px] capitalize ${
+                                msg.channel === "email" ? "text-blue-700 bg-blue-50" : "text-purple-700 bg-purple-50"
+                              }`}>
+                                {msg.channel === "email" ? "Email" : "SMS"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs">{msg.recipient}</TableCell>
+                            <TableCell className="text-xs max-w-[250px] truncate">{msg.subject || "-"}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className={`text-[10px] capitalize ${
+                                msg.status === "sent" || msg.status === "delivered" ? "text-green-700 bg-green-50" :
+                                msg.status === "failed" ? "text-red-600 bg-red-50" :
+                                "text-amber-600 bg-amber-50"
+                              }`}>{msg.status}</Badge>
+                            </TableCell>
+                            <TableCell className="text-xs capitalize">{msg.source === "notification" ? "Notification" : "Message Log"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </div>
             )}
 
             {activeTab === "changelog" && (
               <div className="space-y-5" data-testid="tab-content-changelog">
                 <SectionHeader title="Customer Change Log" />
-                <EmptyState icon={Clock} message="No change log entries" />
+                {auditLogsLoading ? (
+                  <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+                ) : !auditLogs?.length ? (
+                  <EmptyState icon={Clock} message="No change log entries found for this customer" />
+                ) : (
+                  <div className="bg-card border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-[#1a3a5c] border-[#1a3a5c]">
+                          <TableHead className="text-white text-xs font-semibold">Date & Time</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Action</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Module</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Description</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Changed By</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">IP Address</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {auditLogs.map((log: any, idx: number) => (
+                          <TableRow key={log.id} data-testid={`row-audit-${log.id}`} className={idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"}>
+                            <TableCell className="text-xs">{formatDate(log.createdAt)}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className={`text-[10px] capitalize ${
+                                log.action?.includes("create") ? "text-green-700 bg-green-50" :
+                                log.action?.includes("delete") ? "text-red-600 bg-red-50" :
+                                log.action?.includes("update") ? "text-blue-600 bg-blue-50" :
+                                "text-gray-600 bg-gray-50"
+                              }`}>{log.action}</Badge>
+                            </TableCell>
+                            <TableCell className="text-xs capitalize">{log.module}</TableCell>
+                            <TableCell className="text-xs max-w-[300px] truncate">{log.description}</TableCell>
+                            <TableCell className="text-xs">{log.userName || "System"}</TableCell>
+                            <TableCell className="text-xs font-mono">{log.ipAddress || "-"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </div>
             )}
 
             {activeTab === "enablelog" && (
               <div className="space-y-5" data-testid="tab-content-enablelog">
                 <SectionHeader title="Customer Enable/Disable Log" />
-                <EmptyState icon={RefreshCw} message="No enable/disable log entries" />
+                {enableDisableLogsLoading ? (
+                  <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+                ) : !enableDisableLogs?.length ? (
+                  <EmptyState icon={RefreshCw} message="No enable/disable log entries found for this customer" />
+                ) : (
+                  <div className="bg-card border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-[#1a3a5c] border-[#1a3a5c]">
+                          <TableHead className="text-white text-xs font-semibold">Date & Time</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Action</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Description</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Changed By</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Old Values</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">New Values</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {enableDisableLogs.map((log: any, idx: number) => {
+                          let oldStatus = "-";
+                          let newStatus = "-";
+                          try {
+                            if (log.oldValues) { const parsed = JSON.parse(log.oldValues); oldStatus = parsed.status || "-"; }
+                          } catch {}
+                          try {
+                            if (log.newValues) { const parsed = JSON.parse(log.newValues); newStatus = parsed.status || "-"; }
+                          } catch {}
+                          return (
+                            <TableRow key={log.id} data-testid={`row-enablelog-${log.id}`} className={idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"}>
+                              <TableCell className="text-xs">{formatDate(log.createdAt)}</TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className={`text-[10px] capitalize ${
+                                  log.action?.includes("enable") || log.action?.includes("activate") ? "text-green-700 bg-green-50" :
+                                  log.action?.includes("disable") || log.action?.includes("suspend") ? "text-red-600 bg-red-50" :
+                                  "text-amber-600 bg-amber-50"
+                                }`}>{log.action}</Badge>
+                              </TableCell>
+                              <TableCell className="text-xs max-w-[250px] truncate">{log.description}</TableCell>
+                              <TableCell className="text-xs">{log.userName || "System"}</TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="text-[10px] capitalize">{oldStatus}</Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className={`text-[10px] capitalize ${
+                                  newStatus === "active" ? "text-green-700 bg-green-50" :
+                                  newStatus === "suspended" ? "text-red-600 bg-red-50" :
+                                  newStatus === "inactive" ? "text-gray-600 bg-gray-50" :
+                                  "text-amber-600 bg-amber-50"
+                                }`}>{newStatus}</Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </div>
             )}
 
             {activeTab === "sales" && (
               <div className="space-y-5" data-testid="tab-content-sales">
                 <SectionHeader title="Product & Service Sales Invoices" />
-                <EmptyState icon={FileText} message="No product & service sales invoices" />
+                {invoicesLoading ? (
+                  <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+                ) : (() => {
+                  const salesInvoices = invoices?.filter(inv =>
+                    inv.invoiceType === "product_sale" || inv.invoiceType === "one_time" ||
+                    inv.invoiceType === "service_sale" || inv.invoiceType === "equipment"
+                  ) || [];
+                  return !salesInvoices.length ? (
+                    <EmptyState icon={FileText} message="No product & service sales invoices found" />
+                  ) : (
+                    <div className="bg-card border rounded-lg overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-[#1a3a5c] border-[#1a3a5c]">
+                            <TableHead className="text-white text-xs font-semibold">Invoice #</TableHead>
+                            <TableHead className="text-white text-xs font-semibold">Type</TableHead>
+                            <TableHead className="text-white text-xs font-semibold">Amount</TableHead>
+                            <TableHead className="text-white text-xs font-semibold">Tax</TableHead>
+                            <TableHead className="text-white text-xs font-semibold">Total</TableHead>
+                            <TableHead className="text-white text-xs font-semibold">Status</TableHead>
+                            <TableHead className="text-white text-xs font-semibold">Issue Date</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {salesInvoices.map((inv, idx) => (
+                            <TableRow key={inv.id} data-testid={`row-sales-${inv.id}`} className={idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"}>
+                              <TableCell className="text-xs font-mono">{inv.invoiceNumber}</TableCell>
+                              <TableCell className="text-xs capitalize">{(inv.invoiceType || "sale").replace("_", " ")}</TableCell>
+                              <TableCell className="text-xs">{Number(inv.amount).toFixed(2)}</TableCell>
+                              <TableCell className="text-xs">{Number(inv.tax || 0).toFixed(2)}</TableCell>
+                              <TableCell className="text-xs font-semibold">{Number(inv.totalAmount).toFixed(2)}</TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className={`text-[10px] capitalize ${
+                                  inv.status === "paid" ? "text-green-700 bg-green-50" :
+                                  inv.status === "overdue" ? "text-red-600 bg-red-50" :
+                                  "text-amber-600 bg-amber-50"
+                                }`}>{inv.status}</Badge>
+                              </TableCell>
+                              <TableCell className="text-xs">{formatDate(inv.issueDate)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  );
+                })()}
               </div>
             )}
 

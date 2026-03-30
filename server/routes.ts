@@ -787,6 +787,86 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/customers/:id/audit-logs", requireAuth, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const allLogs = await storage.getAuditLogs();
+      const customerLogs = allLogs.filter(
+        (log) => (log.entityType === "customer" && log.entityId === customerId) ||
+                 (log.module === "customers" && log.description?.includes(`#${customerId}`))
+      );
+      res.json(customerLogs);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch customer audit logs" });
+    }
+  });
+
+  app.get("/api/customers/:id/enable-disable-logs", requireAuth, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const allLogs = await storage.getAuditLogs();
+      const statusLogs = allLogs.filter(
+        (log) => log.entityType === "customer" && log.entityId === customerId &&
+                 (log.action?.toLowerCase().includes("status") ||
+                  log.action?.toLowerCase().includes("enable") ||
+                  log.action?.toLowerCase().includes("disable") ||
+                  log.action?.toLowerCase().includes("activate") ||
+                  log.action?.toLowerCase().includes("suspend") ||
+                  log.description?.toLowerCase().includes("status"))
+      );
+      res.json(statusLogs);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch enable/disable logs" });
+    }
+  });
+
+  app.get("/api/customers/:id/message-history", requireAuth, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const customer = await storage.getCustomer(customerId);
+      if (!customer) return res.status(404).json({ message: "Customer not found" });
+
+      const [dispatches, msgLogs] = await Promise.all([
+        storage.getNotificationDispatches(),
+        storage.getMessageLogs(),
+      ]);
+
+      const contactMatches = [customer.email, customer.phone, customer.mobile].filter(Boolean).map(c => c!.toLowerCase());
+
+      const filteredDispatches = dispatches.filter(d => contactMatches.includes(d.recipient?.toLowerCase()));
+      const filteredMsgLogs = msgLogs.filter(m => contactMatches.includes(m.recipient?.toLowerCase()));
+
+      const combined = [
+        ...filteredDispatches.map(d => ({
+          id: `dispatch-${d.id}`,
+          source: "notification" as const,
+          channel: d.channel,
+          recipient: d.recipient,
+          subject: d.subject,
+          body: d.body,
+          status: d.status,
+          sentAt: d.sentAt || d.createdAt,
+          errorMessage: d.errorMessage,
+        })),
+        ...filteredMsgLogs.map(m => ({
+          id: `msg-${m.id}`,
+          source: "message_log" as const,
+          channel: m.type,
+          recipient: m.recipient,
+          subject: m.subject,
+          body: m.body,
+          status: m.status,
+          sentAt: m.sentAt || m.createdAt,
+          errorMessage: m.failureReason,
+        })),
+      ].sort((a, b) => (b.sentAt || "").localeCompare(a.sentAt || ""));
+
+      res.json(combined);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch message history" });
+    }
+  });
+
   app.post("/api/customers/:id/automate", requireAuth, async (req, res) => {
     const customerId = parseInt(req.params.id);
     const steps: Array<{ step: string; status: "success" | "error" | "skipped"; message: string; data?: any }> = [];
