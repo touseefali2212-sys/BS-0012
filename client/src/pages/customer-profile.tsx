@@ -40,6 +40,8 @@ import {
   Smartphone,
   LocateFixed,
   ArrowUpDown,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,10 +124,6 @@ export default function CustomerProfilePage() {
   const [messageChannel, setMessageChannel] = useState("email");
   const [messageSubject, setMessageSubject] = useState("");
   const [messageBody, setMessageBody] = useState("");
-  const [packageSchedulerOpen, setPackageSchedulerOpen] = useState(false);
-  const [pkgSchedulerPackageId, setPkgSchedulerPackageId] = useState("");
-  const [pkgSchedulerEffective, setPkgSchedulerEffective] = useState("current_month");
-  const [pkgSchedulerNotes, setPkgSchedulerNotes] = useState("");
 
   const { data: customer, isLoading: customerLoading } = useQuery<Customer>({
     queryKey: ["/api/customers", id],
@@ -220,6 +218,16 @@ export default function CustomerProfilePage() {
     queryFn: async () => {
       const res = await fetch(`/api/customers/${id}/message-history`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch message history");
+      return res.json();
+    },
+    enabled: !!id,
+  });
+
+  const { data: pkgChangeHistory, isLoading: pkgChangeLoading } = useQuery<any[]>({
+    queryKey: ["/api/customers", id, "package-change-history"],
+    queryFn: async () => {
+      const res = await fetch(`/api/customers/${id}/package-change-history`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch package change history");
       return res.json();
     },
     enabled: !!id,
@@ -377,40 +385,6 @@ export default function CustomerProfilePage() {
     sendMessageMutation.mutate({ channel: messageChannel, to, subject: messageSubject, body: messageBody });
   };
 
-  const packageSchedulerMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/service-requests", data);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/customers", id, "service-requests"] });
-      setPackageSchedulerOpen(false);
-      setPkgSchedulerPackageId("");
-      setPkgSchedulerEffective("current_month");
-      setPkgSchedulerNotes("");
-      toast({ title: "Package change request submitted successfully" });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const handlePackageSchedulerSubmit = () => {
-    const currentPkg = packages?.find(p => p.id === customer?.packageId);
-    const requestedPkg = packages?.find(p => p.id === parseInt(pkgSchedulerPackageId));
-    const currentPrice = parseFloat(String(currentPkg?.price || 0));
-    const requestedPrice = parseFloat(String(requestedPkg?.price || 0));
-    const changeType = requestedPrice >= currentPrice ? "package_upgrade" : "package_downgrade";
-    packageSchedulerMutation.mutate({
-      customerId: parseInt(id || "0"),
-      requestType: changeType,
-      currentPackageId: customer?.packageId,
-      requestedPackageId: parseInt(pkgSchedulerPackageId),
-      effectiveMonth: pkgSchedulerEffective,
-      description: pkgSchedulerNotes || undefined,
-      priority: "normal",
-    });
-  };
 
   const statusUpdateMutation = useMutation({
     mutationFn: async (status: string) => {
@@ -756,6 +730,7 @@ export default function CustomerProfilePage() {
     { key: "service", label: "Service Information" },
     { key: "network", label: "Network & Infrastructure" },
     { key: "service_scheduler", label: "Service Scheduler" },
+    { key: "pkg_history", label: "Package Upgrade & Downgrade History" },
     { key: "changelog", label: "Customer Change Log" },
     { key: "enablelog", label: "Customer Enable/Disable Log" },
     { key: "sales", label: "Product & Service Sales Invoices" },
@@ -864,11 +839,8 @@ export default function CustomerProfilePage() {
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-send-email" onClick={() => setSendMessageOpen(true)}>
                 <MessageCircle className="h-3 w-3" /> Send Email/Message
               </Button>
-              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-package-scheduler" onClick={() => setPackageSchedulerOpen(true)}>
-                <Package className="h-3 w-3" /> Package Scheduler
-              </Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1 md:col-span-2" data-testid="button-package-change" onClick={() => setLocation(`/package-change?customerType=Normal&customerId=${id}&customerName=${encodeURIComponent(customer?.fullName || customer?.name || "")}`)}>
-                <ArrowUpDown className="h-3 w-3" /> Package Change Request
+                <ArrowUpDown className="h-3 w-3" /> Package Change
               </Button>
             </div>
             <Button size="sm" className="w-full text-xs h-9 gap-1.5 bg-[#0057FF]" data-testid="button-download-info" onClick={handleDownloadInfo}>
@@ -2017,6 +1989,65 @@ export default function CustomerProfilePage() {
                 )}
               </div>
             )}
+
+            {activeTab === "pkg_history" && (
+              <div className="space-y-4" data-testid="tab-content-pkg-history">
+                <SectionHeader title="Package Upgrade & Downgrade History" action={
+                  <Button size="sm" className="gap-1.5 bg-[#0057FF]" onClick={() => setLocation(`/package-change?customerType=Normal&customerId=${id}&customerName=${encodeURIComponent(customer?.fullName || customer?.name || "")}`)} data-testid="button-new-pkg-change">
+                    <Plus className="h-3.5 w-3.5" /> New Package Change
+                  </Button>
+                } />
+                {pkgChangeLoading ? (
+                  <div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>
+                ) : !pkgChangeHistory?.length ? (
+                  <EmptyState icon={ArrowUpDown} message="No package change history found" />
+                ) : (
+                  <div className="bg-card border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-[#1a3a5c]">
+                          <TableHead className="text-white text-xs font-semibold">Request #</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Change Type</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Previous Package</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">New Package</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Bandwidth Change</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Status</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Requested By</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Date</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pkgChangeHistory.map((h: any, idx: number) => (
+                          <TableRow key={h.id} className={idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"}>
+                            <TableCell className="text-xs font-mono text-blue-600">{h.requestNumber}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className={`text-[10px] capitalize ${h.changeType === "upgrade" ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
+                                {h.changeType === "upgrade" ? <TrendingUp className="h-3 w-3 inline mr-1" /> : <TrendingDown className="h-3 w-3 inline mr-1" />}{h.changeType}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs font-medium">{h.currentPackageName || "—"}</TableCell>
+                            <TableCell className="text-xs font-bold text-teal-700 dark:text-teal-400">{h.newPackageName || "—"}</TableCell>
+                            <TableCell className="text-xs">{h.currentBandwidth || "—"} → {h.newBandwidth || "—"}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className={`text-[10px] capitalize ${
+                                h.status === "completed" ? "text-green-700 bg-green-50" :
+                                h.status === "approved" ? "text-blue-700 bg-blue-50" :
+                                h.status === "implementing" ? "text-amber-600 bg-amber-50" :
+                                h.status === "rejected" ? "text-red-600 bg-red-50" :
+                                h.status === "pending" ? "text-yellow-700 bg-yellow-50" :
+                                "text-gray-600 bg-gray-100"
+                              }`}>{h.status}</Badge>
+                            </TableCell>
+                            <TableCell className="text-xs">{h.requestedBy || "—"}</TableCell>
+                            <TableCell className="text-xs">{h.createdAt ? new Date(h.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -2396,94 +2427,6 @@ export default function CustomerProfilePage() {
               data-testid="button-submit-send-msg"
             >
               {sendMessageMutation.isPending ? "Sending..." : messageChannel === "email" ? "Send Email" : "Send SMS"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={packageSchedulerOpen} onOpenChange={setPackageSchedulerOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-[#0057FF]" />
-              Package Scheduler
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="p-3 bg-muted/50 rounded-lg border">
-              <span className="text-xs text-muted-foreground">Current Package</span>
-              <div className="flex items-center justify-between mt-1">
-                <span className="text-sm font-medium" data-testid="text-pkg-current">{packages?.find(p => p.id === customer?.packageId)?.name || "No package assigned"}</span>
-                <Badge variant="secondary" className="text-[10px]" data-testid="badge-pkg-speed">{packages?.find(p => p.id === customer?.packageId)?.speed || "-"}</Badge>
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                Price: {packages?.find(p => p.id === customer?.packageId)?.price ? `$${packages?.find(p => p.id === customer?.packageId)?.price}` : "-"}/month
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-sm font-semibold">Change To Package</span>
-              <Select value={pkgSchedulerPackageId} onValueChange={setPkgSchedulerPackageId}>
-                <SelectTrigger data-testid="select-pkg-scheduler-package"><SelectValue placeholder="Select a package" /></SelectTrigger>
-                <SelectContent>
-                  {packages?.filter(p => p.id !== customer?.packageId && p.isActive !== false).map(p => (
-                    <SelectItem key={p.id} value={p.id.toString()}>
-                      {p.name} - {p.speed || "N/A"} ({p.price ? `$${p.price}/mo` : "N/A"})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {pkgSchedulerPackageId && (() => {
-              const currentPkg = packages?.find(p => p.id === customer?.packageId);
-              const newPkg = packages?.find(p => p.id === parseInt(pkgSchedulerPackageId));
-              const currentPrice = parseFloat(String(currentPkg?.price || 0));
-              const newPrice = parseFloat(String(newPkg?.price || 0));
-              const isUpgrade = newPrice >= currentPrice;
-              return (
-                <div className={`p-3 rounded-md border ${isUpgrade ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800" : "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800"}`}>
-                  <p className="text-xs font-medium" data-testid="text-pkg-change-type">
-                    {isUpgrade ? "↑ Upgrade" : "↓ Downgrade"}: {currentPkg?.name || "None"} → {newPkg?.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Price change: ${currentPrice.toFixed(2)} → ${newPrice.toFixed(2)}/mo ({newPrice >= currentPrice ? "+" : ""}{(newPrice - currentPrice).toFixed(2)})
-                  </p>
-                </div>
-              );
-            })()}
-
-            <div className="space-y-2">
-              <span className="text-sm font-semibold">Effective Period</span>
-              <Select value={pkgSchedulerEffective} onValueChange={setPkgSchedulerEffective}>
-                <SelectTrigger data-testid="select-pkg-scheduler-effective"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="current_month">Current Month</SelectItem>
-                  <SelectItem value="next_month">Next Month</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <span className="text-sm font-semibold">Notes (Optional)</span>
-              <Textarea
-                placeholder="Add any notes about this package change..."
-                value={pkgSchedulerNotes}
-                onChange={(e) => setPkgSchedulerNotes(e.target.value)}
-                className="min-h-[80px]"
-                data-testid="textarea-pkg-scheduler-notes"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setPackageSchedulerOpen(false)} data-testid="button-cancel-pkg-scheduler">Cancel</Button>
-            <Button
-              onClick={handlePackageSchedulerSubmit}
-              disabled={packageSchedulerMutation.isPending || !pkgSchedulerPackageId}
-              className="bg-[#0057FF]"
-              data-testid="button-submit-pkg-scheduler"
-            >
-              {packageSchedulerMutation.isPending ? "Submitting..." : "Schedule Package Change"}
             </Button>
           </DialogFooter>
         </DialogContent>

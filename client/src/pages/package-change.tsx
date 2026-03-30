@@ -94,6 +94,7 @@ export default function PackageChangePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/package-change-requests"] });
       if (variables.customerId) {
         queryClient.invalidateQueries({ queryKey: ["/api/customers", String(variables.customerId), "service-requests"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/customers", String(variables.customerId), "package-change-history"] });
       }
       if (variables.cirCustomerId) {
         queryClient.invalidateQueries({ queryKey: ["/api/cir-customers", String(variables.cirCustomerId), "service-requests"] });

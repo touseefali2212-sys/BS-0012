@@ -867,6 +867,16 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/customers/:id/package-change-history", requireAuth, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const history = await db.select().from(packageChangeRequests)
+        .where(eq(packageChangeRequests.customerId, customerId))
+        .orderBy(desc(packageChangeRequests.createdAt));
+      res.json(history);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
   app.post("/api/customers/:id/automate", requireAuth, async (req, res) => {
     const customerId = parseInt(req.params.id);
     const steps: Array<{ step: string; status: "success" | "error" | "skipped"; message: string; data?: any }> = [];
@@ -7308,7 +7318,11 @@ export async function registerRoutes(
   app.post("/api/package-change-requests", requireAuth, async (req, res) => {
     try {
       const reqNum = "PCR-" + Date.now().toString(36).toUpperCase();
-      const username = (req as any).session?.user?.username || "admin";
+      let username = "admin";
+      if (req.session.userId) {
+        const user = await storage.getUser(req.session.userId);
+        if (user) username = user.username;
+      }
       const [created] = await db.insert(packageChangeRequests).values({
         ...req.body,
         requestNumber: req.body.requestNumber || reqNum,
