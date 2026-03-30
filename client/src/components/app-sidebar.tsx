@@ -17,6 +17,7 @@ import {
   BookOpen,
   ArrowLeftRight,
   ArrowUpDown,
+  CalendarRange,
   ListTodo,
   HardDrive,
   Boxes,
@@ -212,6 +213,7 @@ const customerNav: NavItem[] = [
       { title: "CIR Customers", url: "/cir-customers", icon: Wifi },
       { title: "Corporate Customers", url: "/corporate-customers", icon: Briefcase },
       { title: "Package Change", url: "/package-change", icon: ArrowUpDown },
+      { title: "Service Scheduler", url: "/service-scheduler", icon: CalendarRange },
     ],
   },
   {

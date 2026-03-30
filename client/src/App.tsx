@@ -59,6 +59,7 @@ import RevenueAnalyticsPage from "@/pages/revenue-analytics";
 import AgingReportPage from "@/pages/aging-report";
 import BandwidthUsagePage from "@/pages/bandwidth-usage";
 import PackageChangePage from "@/pages/package-change";
+import ServiceSchedulerPage from "@/pages/service-scheduler";
 import DailyCollectionPage from "@/pages/daily-collection";
 import LeavesPage from "@/pages/leaves";
 import AdvancesPage from "@/pages/advances";
@@ -139,6 +140,7 @@ function Router() {
       <Route path="/corporate-customers" component={CorporateCustomersPage} />
       <Route path="/corporate-customers/:id" component={CorporateCustomerProfilePage} />
       <Route path="/package-change" component={PackageChangePage} />
+      <Route path="/service-scheduler" component={ServiceSchedulerPage} />
       <Route path="/packages" component={PackagesPage} />
       <Route path="/invoices" component={InvoicesPage} />
       <Route path="/tickets" component={TicketsPage} />

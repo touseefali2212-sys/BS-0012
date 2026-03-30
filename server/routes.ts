@@ -7326,6 +7326,8 @@ export async function registerRoutes(
         try {
           await db.insert(serviceSchedulerRequests).values({
             customerId: resolvedCustomerId,
+            customerName: req.body.customerName || null,
+            customerType: custType || "Normal",
             requestType: req.body.changeType === "upgrade" ? "package_upgrade" : "package_downgrade",
             description: `[Package Change ${created.requestNumber}] ${req.body.changeType === "upgrade" ? "Upgrade" : "Downgrade"}: ${req.body.currentPackageName || "Current"} → ${req.body.newPackageName || "New"} (${req.body.currentBandwidth || "—"} → ${req.body.newBandwidth || "—"})`,
             priority: req.body.isUrgent ? "urgent" : "normal",
@@ -7373,6 +7375,70 @@ export async function registerRoutes(
     try {
       const id = parseInt(req.params.id);
       await db.delete(packageChangeRequests).where(eq(packageChangeRequests.id, id));
+      res.json({ success: true });
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+
+  app.get("/api/service-scheduler-requests", requireAuth, async (req, res) => {
+    try {
+      const all = await db.select().from(serviceSchedulerRequests).orderBy(desc(serviceSchedulerRequests.createdAt));
+      res.json(all);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post("/api/service-scheduler-requests", requireAuth, async (req, res) => {
+    try {
+      let username = "admin";
+      if (req.session.userId) {
+        const user = await storage.getUser(req.session.userId);
+        if (user) username = user.username;
+      }
+      const { customerType: custType, customerName, customerId, requestType, scheduledDate, assignedTo, priority, description, isUrgent, effectiveMonth, currentPackageId, requestedPackageId, equipmentType, equipmentAction } = req.body;
+      const [created] = await db.insert(serviceSchedulerRequests).values({
+        customerId: customerId,
+        customerName: customerName || null,
+        customerType: custType || "Normal",
+        requestType: requestType || "other",
+        scheduledDate: scheduledDate || null,
+        assignedTo: assignedTo || null,
+        effectiveMonth: effectiveMonth || null,
+        currentPackageId: currentPackageId || null,
+        requestedPackageId: requestedPackageId || null,
+        equipmentType: equipmentType || null,
+        equipmentAction: equipmentAction || null,
+        description: description || null,
+        isUrgent: isUrgent || false,
+        priority: priority || "normal",
+        requestedBy: username,
+        status: "pending",
+      }).returning();
+      res.json(created);
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+
+  app.patch("/api/service-scheduler-requests/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const allowedFields = ["status", "priority", "assignedTo", "scheduledDate", "description", "processedBy", "processedAt", "equipmentType", "equipmentAction"];
+      const updates: Record<string, any> = {};
+      for (const key of allowedFields) {
+        if (req.body[key] !== undefined) updates[key] = req.body[key];
+      }
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({ message: "No valid fields to update" });
+      }
+      const [updated] = await db.update(serviceSchedulerRequests)
+        .set(updates)
+        .where(eq(serviceSchedulerRequests.id, id))
+        .returning();
+      res.json(updated);
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+
+  app.delete("/api/service-scheduler-requests/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.delete(serviceSchedulerRequests).where(eq(serviceSchedulerRequests.id, id));
       res.json({ success: true });
     } catch (e: any) { res.status(400).json({ message: e.message }); }
   });
