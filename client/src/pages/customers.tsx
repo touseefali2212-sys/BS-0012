@@ -2968,15 +2968,15 @@ function CustomerListView({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold uppercase text-muted-foreground">From Date</label>
-                  <Input type="date" className="h-8 text-xs" value={filterFromDate} onChange={e => setFilterFromDate(e.target.value)} data-testid="filter-from-date" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-semibold uppercase text-muted-foreground">To Date</label>
-                  <Input type="date" className="h-8 text-xs" value={filterToDate} onChange={e => setFilterToDate(e.target.value)} data-testid="filter-to-date" />
-                </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">From Date</label>
+                <Input type="date" className="h-8 text-xs" value={filterFromDate} onChange={e => setFilterFromDate(e.target.value)} data-testid="filter-from-date" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase text-muted-foreground">To Date</label>
+                <Input type="date" className="h-8 text-xs" value={filterToDate} onChange={e => setFilterToDate(e.target.value)} data-testid="filter-to-date" />
               </div>
             </div>
           </CardContent>
