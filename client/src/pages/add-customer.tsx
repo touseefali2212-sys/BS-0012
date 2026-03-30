@@ -1458,11 +1458,6 @@ export default function AddCustomerPage() {
                         <SelectItem value="Hotel">Hotel</SelectItem>
                         <SelectItem value="Restaurants">Restaurants</SelectItem>
                         <SelectItem value="Café">Café</SelectItem>
-                        <SelectItem value="Normal">Normal</SelectItem>
-                        <SelectItem value="CIR">CIR</SelectItem>
-                        <SelectItem value="Corporate">Corporate</SelectItem>
-                        <SelectItem value="Business">Business</SelectItem>
-                        <SelectItem value="Reseller">Reseller</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
