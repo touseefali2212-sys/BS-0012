@@ -2635,11 +2635,12 @@ export default function AddCustomerPage() {
                     <Select value={form.connectionType} onValueChange={v => update("connectionType", v)}>
                       <SelectTrigger data-testid="select-connection-type"><SelectValue placeholder="Select type" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="FTTH">FTTH (Fiber)</SelectItem>
-                        <SelectItem value="Wireless">Wireless</SelectItem>
-                        <SelectItem value="P2P">P2P</SelectItem>
+                        <SelectItem value="FTTH">FTTH</SelectItem>
+                        <SelectItem value="Dedicated Fiber">Dedicated Fiber</SelectItem>
+                        <SelectItem value="Wireless P2MP">Wireless P2MP</SelectItem>
+                        <SelectItem value="Wireless P2P">Wireless P2P</SelectItem>
+                        <SelectItem value="Ethernet Cat6">Ethernet Cat6</SelectItem>
                         <SelectItem value="DSL">DSL</SelectItem>
-                        <SelectItem value="Cable">Cable</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
