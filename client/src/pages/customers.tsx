@@ -3494,6 +3494,10 @@ export default function CustomersPage() {
     queryKey: ["/api/areas"],
   });
 
+  const { data: branchesData } = useQuery<any[]>({
+    queryKey: ["/api/branches"],
+  });
+
   const { data: customerTypesData, isLoading: customerTypesLoading } = useQuery<CustomerTypeRecord[]>({
     queryKey: ["/api/customer-types"],
   });
