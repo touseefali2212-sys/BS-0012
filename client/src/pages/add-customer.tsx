@@ -1112,7 +1112,7 @@ export default function AddCustomerPage() {
       toast({ title: "Email required", description: "Please enter a valid email address", variant: "destructive" }); return;
     }
     if (!corpForm.industryType) {
-      toast({ title: "Industry Type required", description: "Please select an industry type", variant: "destructive" }); return;
+      toast({ title: "Customer Type required", description: "Please select a customer type", variant: "destructive" }); return;
     }
     if (!corpForm.billingAddress || corpForm.billingAddress.trim().length < 3) {
       toast({ title: "Billing Address required", description: "Please enter the billing address", variant: "destructive" }); return;
@@ -2961,11 +2961,18 @@ export default function AddCustomerPage() {
                     </div>
 
                     <div className="space-y-1.5 md:col-span-2">
-                      <label className="text-sm font-medium">Industry Type <span className="text-red-500">*</span></label>
+                      <label className="text-sm font-medium">Customer Type <span className="text-red-500">*</span></label>
                       <Select value={corpForm.industryType} onValueChange={v => updateCorp("industryType", v)}>
-                        <SelectTrigger data-testid="select-corp-industry"><SelectValue placeholder="Select industry type" /></SelectTrigger>
+                        <SelectTrigger data-testid="select-corp-industry"><SelectValue placeholder="Select customer type" /></SelectTrigger>
                         <SelectContent>
-                          {industryOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                          <SelectItem value="Home">Home</SelectItem>
+                          <SelectItem value="Office">Office</SelectItem>
+                          <SelectItem value="Govt. Office">Govt. Office</SelectItem>
+                          <SelectItem value="School">School</SelectItem>
+                          <SelectItem value="Collage">Collage</SelectItem>
+                          <SelectItem value="University">University</SelectItem>
+                          <SelectItem value="Hospital">Hospital</SelectItem>
+                          <SelectItem value="Factory">Factory</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -4000,6 +4007,24 @@ export default function AddCustomerPage() {
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium">City<span className="text-red-500 ml-0.5">*</span></label>
                       <Input placeholder="City" value={cirForm.city} onChange={e => updateCir("city", e.target.value)} data-testid="input-cir-city" />
+                    </div>
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="text-sm font-medium">Customer Type<span className="text-red-500 ml-0.5">*</span></label>
+                      <Select value={cirForm.customerType} onValueChange={v => updateCir("customerType", v)}>
+                        <SelectTrigger data-testid="select-cir-company-customer-type"><SelectValue placeholder="Select customer type" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Home">Home</SelectItem>
+                          <SelectItem value="Office">Office</SelectItem>
+                          <SelectItem value="Govt. Office">Govt. Office</SelectItem>
+                          <SelectItem value="School">School</SelectItem>
+                          <SelectItem value="Collage">Collage</SelectItem>
+                          <SelectItem value="University">University</SelectItem>
+                          <SelectItem value="Hospital">Hospital</SelectItem>
+                          <SelectItem value="Factory">Factory</SelectItem>
+                          <SelectItem value="Reseller">Reseller</SelectItem>
+                          <SelectItem value="ISP">ISP</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
