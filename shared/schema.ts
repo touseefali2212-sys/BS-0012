@@ -3612,3 +3612,50 @@ export const serviceSchedulerRequests = pgTable("service_scheduler_requests", {
 export const insertServiceSchedulerRequestSchema = createInsertSchema(serviceSchedulerRequests).omit({ id: true });
 export type InsertServiceSchedulerRequest = z.infer<typeof insertServiceSchedulerRequestSchema>;
 export type ServiceSchedulerRequest = typeof serviceSchedulerRequests.$inferSelect;
+
+export const packageChangeRequests = pgTable("package_change_requests", {
+  id: serial("id").primaryKey(),
+  requestNumber: text("request_number").notNull(),
+  customerId: integer("customer_id"),
+  cirCustomerId: integer("cir_customer_id"),
+  corporateCustomerId: integer("corporate_customer_id"),
+  customerType: text("customer_type").notNull(),
+  customerName: text("customer_name").notNull(),
+  changeType: text("change_type").notNull(),
+  currentPackageId: integer("current_package_id"),
+  currentPackageName: text("current_package_name"),
+  currentBandwidth: text("current_bandwidth"),
+  currentMonthlyBill: text("current_monthly_bill"),
+  newPackageId: integer("new_package_id"),
+  newPackageName: text("new_package_name"),
+  newBandwidth: text("new_bandwidth"),
+  newMonthlyBill: text("new_monthly_bill"),
+  proratedCharges: text("prorated_charges"),
+  adjustmentAmount: text("adjustment_amount"),
+  taxImpact: text("tax_impact"),
+  finalBillDifference: text("final_bill_difference"),
+  effectiveDate: text("effective_date"),
+  effectiveDateType: text("effective_date_type"),
+  reason: text("reason"),
+  isUrgent: boolean("is_urgent").default(false),
+  attachments: text("attachments"),
+  status: text("status").notNull().default("pending"),
+  requestedBy: text("requested_by"),
+  approvedBy: text("approved_by"),
+  approvedAt: text("approved_at"),
+  rejectedBy: text("rejected_by"),
+  rejectedAt: text("rejected_at"),
+  rejectionReason: text("rejection_reason"),
+  implementedBy: text("implemented_by"),
+  implementedAt: text("implemented_at"),
+  implementationNotes: text("implementation_notes"),
+  networkSyncStatus: text("network_sync_status"),
+  billingUpdated: boolean("billing_updated").default(false),
+  notificationSent: boolean("notification_sent").default(false),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertPackageChangeRequestSchema = createInsertSchema(packageChangeRequests).omit({ id: true });
+export type InsertPackageChangeRequest = z.infer<typeof insertPackageChangeRequestSchema>;
+export type PackageChangeRequest = typeof packageChangeRequests.$inferSelect;

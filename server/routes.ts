@@ -6,7 +6,7 @@ import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
 import { db } from "./db";
-import { purchaseOrderItems, serviceSchedulerRequests, notificationDispatches } from "@shared/schema";
+import { purchaseOrderItems, serviceSchedulerRequests, notificationDispatches, packageChangeRequests } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 import {
   loginSchema, insertCustomerSchema, insertPackageSchema, insertInvoiceSchema,
@@ -7295,6 +7295,46 @@ export async function registerRoutes(
         createdAt: createdAt || new Date().toISOString(),
       }).returning();
       res.json(created);
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+
+  app.get("/api/package-change-requests", requireAuth, async (req, res) => {
+    try {
+      const all = await db.select().from(packageChangeRequests).orderBy(desc(packageChangeRequests.createdAt));
+      res.json(all);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post("/api/package-change-requests", requireAuth, async (req, res) => {
+    try {
+      const reqNum = "PCR-" + Date.now().toString(36).toUpperCase();
+      const [created] = await db.insert(packageChangeRequests).values({
+        ...req.body,
+        requestNumber: req.body.requestNumber || reqNum,
+        requestedBy: (req as any).session?.user?.username || "admin",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }).returning();
+      res.json(created);
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+
+  app.patch("/api/package-change-requests/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const [updated] = await db.update(packageChangeRequests)
+        .set({ ...req.body, updatedAt: new Date().toISOString() })
+        .where(eq(packageChangeRequests.id, id))
+        .returning();
+      res.json(updated);
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+
+  app.delete("/api/package-change-requests/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await db.delete(packageChangeRequests).where(eq(packageChangeRequests.id, id));
+      res.json({ success: true });
     } catch (e: any) { res.status(400).json({ message: e.message }); }
   });
 

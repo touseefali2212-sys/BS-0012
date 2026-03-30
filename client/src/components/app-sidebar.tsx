@@ -16,6 +16,7 @@ import {
   DollarSign,
   BookOpen,
   ArrowLeftRight,
+  ArrowUpDown,
   ListTodo,
   HardDrive,
   Boxes,
@@ -210,6 +211,7 @@ const customerNav: NavItem[] = [
       { title: "Client Request", url: "/customers?tab=query-list", icon: ClipboardList },
       { title: "CIR Customers", url: "/cir-customers", icon: Wifi },
       { title: "Corporate Customers", url: "/corporate-customers", icon: Briefcase },
+      { title: "Package Change", url: "/package-change", icon: ArrowUpDown },
     ],
   },
   {

@@ -58,6 +58,7 @@ import CustomerMapPage from "@/pages/customer-map";
 import RevenueAnalyticsPage from "@/pages/revenue-analytics";
 import AgingReportPage from "@/pages/aging-report";
 import BandwidthUsagePage from "@/pages/bandwidth-usage";
+import PackageChangePage from "@/pages/package-change";
 import DailyCollectionPage from "@/pages/daily-collection";
 import LeavesPage from "@/pages/leaves";
 import AdvancesPage from "@/pages/advances";
@@ -137,6 +138,7 @@ function Router() {
       <Route path="/cir-customers/:id" component={CirCustomerProfilePage} />
       <Route path="/corporate-customers" component={CorporateCustomersPage} />
       <Route path="/corporate-customers/:id" component={CorporateCustomerProfilePage} />
+      <Route path="/package-change" component={PackageChangePage} />
       <Route path="/packages" component={PackagesPage} />
       <Route path="/invoices" component={InvoicesPage} />
       <Route path="/tickets" component={TicketsPage} />

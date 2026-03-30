@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,6 +10,7 @@ import {
   CreditCard, Globe, CheckCircle2, FileText, Plus, BarChart3,
   TrendingUp, TrendingDown, MessageSquare, ShoppingBag, Users,
   Trash2, MoreHorizontal, Wifi, Send, Clock,
+  ArrowUpDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -243,6 +244,7 @@ function ConnectionDialog({ open, onClose, editing, corporateId, onSave, isPendi
 /* ─── Main Profile Page ─── */
 export default function CorporateCustomerProfilePage() {
   const { id } = useParams<{ id: string }>();
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("personal");
   const [editOpen, setEditOpen] = useState(false);
@@ -429,6 +431,7 @@ export default function CorporateCustomerProfilePage() {
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => setActiveTab("service_scheduler")}><CalendarRange className="h-3 w-3" /> Status Scheduler</Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => { setSmsProfileChannel("email"); setSmsProfileSubject(""); setSmsProfileMessage(""); setSmsProfileDialogOpen(true); }}><MessageCircle className="h-3 w-3" /> Send Email/Message</Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => setActiveTab("connections")}><Network className="h-3 w-3" /> View Connections</Button>
+              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1 col-span-2" data-testid="button-package-change" onClick={() => setLocation(`/package-change?customerType=Corporate&customerId=${id}&customerName=${encodeURIComponent(customer.companyName)}`)}><ArrowUpDown className="h-3 w-3" /> Package Change Request</Button>
             </div>
             <Button size="sm" className="w-full text-xs h-9 gap-1.5 bg-[#0057FF]"><Download className="h-3.5 w-3.5" /> Download Information</Button>
             <Link href="/corporate-customers"><Button size="sm" variant="outline" className="w-full text-xs h-9 gap-1.5 text-white border-white/30"><ArrowLeft className="h-3.5 w-3.5" /> Go To Corporate List</Button></Link>

@@ -39,6 +39,7 @@ import {
   Building2,
   Smartphone,
   LocateFixed,
+  ArrowUpDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -865,6 +866,9 @@ export default function CustomerProfilePage() {
               </Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-package-scheduler" onClick={() => setPackageSchedulerOpen(true)}>
                 <Package className="h-3 w-3" /> Package Scheduler
+              </Button>
+              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1 md:col-span-2" data-testid="button-package-change" onClick={() => setLocation(`/package-change?customerType=Normal&customerId=${id}&customerName=${encodeURIComponent(customer?.fullName || customer?.name || "")}`)}>
+                <ArrowUpDown className="h-3 w-3" /> Package Change Request
               </Button>
             </div>
             <Button size="sm" className="w-full text-xs h-9 gap-1.5 bg-[#0057FF]" data-testid="button-download-info" onClick={handleDownloadInfo}>
