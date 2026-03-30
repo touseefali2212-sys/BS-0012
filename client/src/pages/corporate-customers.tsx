@@ -41,7 +41,7 @@ const statusColors: Record<string, string> = {
   inactive: "text-slate-700 bg-slate-100 dark:text-slate-300 dark:bg-slate-800",
 };
 
-const industryOptions = ["Technology", "Finance", "Healthcare", "Manufacturing", "Education", "Retail", "Government", "Telecom", "Real Estate", "Other"];
+const customerTypeOptions = ["Home", "Office", "Govt. Office", "School", "Collage", "University", "Hospital", "Factory"];
 
 type AutoStep = { step: string; status: "pending" | "running" | "success" | "error" | "skipped"; message: string; data?: any };
 
@@ -64,16 +64,19 @@ export default function CorporateCustomersPage() {
   const [showFilters, setShowFilters] = useState(true);
   const [showEntries, setShowEntries] = useState("100");
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [vendorFilter, setVendorFilter] = useState("all");
   const [industryFilter, setIndustryFilter] = useState("all");
   const [serviceTypeFilter, setServiceTypeFilter] = useState("all");
-  const [billingModeFilter, setBillingModeFilter] = useState("all");
+  const [linkTypeFilter, setLinkTypeFilter] = useState("all");
   const [branchFilter, setBranchFilter] = useState("all");
   const [cityFilter, setCityFilter] = useState("all");
   const [managerFilter, setManagerFilter] = useState("all");
-  const [joinDateFilter, setJoinDateFilter] = useState("all");
   const [billingStatusFilter, setBillingStatusFilter] = useState("all");
   const [serviceStatusFilter, setServiceStatusFilter] = useState("all");
   const [contractStatusFilter, setContractStatusFilter] = useState("all");
+  const [monthFilter, setMonthFilter] = useState("all");
+  const [fromDateFilter, setFromDateFilter] = useState("");
+  const [toDateFilter, setToDateFilter] = useState("");
   const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
   const [viewingCorporate, setViewingCorporate] = useState<CorporateCustomer | null>(null);
   const [editingConnection, setEditingConnection] = useState<CorporateConnection | null>(null);
@@ -180,6 +183,7 @@ export default function CorporateCustomersPage() {
   const fromQueryId = new URLSearchParams(window.location.search).get("fromQuery");
 
   const { data: corporateCustomers, isLoading } = useQuery<CorporateCustomer[]>({ queryKey: ["/api/corporate-customers"] });
+  const { data: vendors } = useQuery<any[]>({ queryKey: ["/api/vendors"] });
   const { data: allClientRequests } = useQuery<any[]>({ queryKey: ["/api/customer-queries"] });
   const { data: fromQueryData } = useQuery<any>({
     queryKey: ["/api/customer-queries", fromQueryId],
@@ -396,8 +400,10 @@ export default function CorporateCustomersPage() {
 
   const filtered = allCorp
     .filter(c => statusFilter === "all" || c.status === statusFilter)
+    .filter(c => vendorFilter === "all" || String(c.vendorId || "") === vendorFilter)
     .filter(c => industryFilter === "all" || (c.industryType || "") === industryFilter)
-    .filter(c => billingModeFilter === "all" || (billingModeFilter === "centralized" ? c.centralizedBilling : c.perBranchBilling))
+    .filter(c => serviceTypeFilter === "all" || (c.serviceType || "") === serviceTypeFilter)
+    .filter(c => linkTypeFilter === "all" || (c.linkType || "") === linkTypeFilter)
     .filter(c => branchFilter === "all" || (c.branch || "") === branchFilter)
     .filter(c => cityFilter === "all" || (c.city || "") === cityFilter)
     .filter(c => contractStatusFilter === "all" || (() => {
@@ -430,7 +436,6 @@ export default function CorporateCustomersPage() {
   const billPaid = totalActive;
   const pendingBill = allCorp.filter(c => c.status === "suspended" || c.status === "pending").length;
 
-  const uniqueIndustries = [...new Set(allCorp.map(c => c.industryType).filter(Boolean))];
   const uniqueBranches = [...new Set(allCorp.map(c => c.branch).filter(Boolean))];
   const uniqueCities = [...new Set(allCorp.map(c => c.city).filter(Boolean))];
 
@@ -502,9 +507,19 @@ export default function CorporateCustomersPage() {
             {showFilters && (<div className="p-4 space-y-3">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Vendor</label>
+                  <Select value={vendorFilter} onValueChange={setVendorFilter}>
+                    <SelectTrigger className="h-9" data-testid="select-vendor-filter"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Select</SelectItem>
+                      {(vendors || []).map(v => <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Customer Type</label>
                   <Select value={industryFilter} onValueChange={setIndustryFilter}>
-                    <SelectTrigger className="h-9" data-testid="select-industry-filter"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectTrigger className="h-9" data-testid="select-customer-type-filter"><SelectValue placeholder="Select" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Select</SelectItem>
                       <SelectItem value="Home">Home</SelectItem>
@@ -520,24 +535,29 @@ export default function CorporateCustomersPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Service Type</label>
-                  <Select value={billingModeFilter} onValueChange={setBillingModeFilter}>
+                  <Select value={serviceTypeFilter} onValueChange={setServiceTypeFilter}>
                     <SelectTrigger className="h-9" data-testid="select-service-type-filter"><SelectValue placeholder="Select" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Select</SelectItem>
-                      <SelectItem value="centralized">Centralized Billing</SelectItem>
-                      <SelectItem value="branch">Per Branch Billing</SelectItem>
+                      <SelectItem value="Internet">Internet</SelectItem>
+                      <SelectItem value="MPLS">MPLS</SelectItem>
+                      <SelectItem value="P2P">P2P</SelectItem>
+                      <SelectItem value="IPLC">IPLC</SelectItem>
+                      <SelectItem value="Dark Fiber">Dark Fiber</SelectItem>
+                      <SelectItem value="Colocation">Colocation</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Link Type</label>
-                  <Select value="all" onValueChange={() => {}}>
+                  <Select value={linkTypeFilter} onValueChange={setLinkTypeFilter}>
                     <SelectTrigger className="h-9" data-testid="select-link-type-filter"><SelectValue placeholder="Select" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">Select</SelectItem>
-                      <SelectItem value="dedicated">Dedicated</SelectItem>
-                      <SelectItem value="shared">Shared</SelectItem>
-                      <SelectItem value="mpls">MPLS</SelectItem>
+                      <SelectItem value="Primary">Primary</SelectItem>
+                      <SelectItem value="Secondary">Secondary</SelectItem>
+                      <SelectItem value="Backup">Backup</SelectItem>
+                      <SelectItem value="Redundant">Redundant</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -573,19 +593,6 @@ export default function CorporateCustomersPage() {
                       <SelectItem value="sara">Sara Ahmed</SelectItem>
                       <SelectItem value="kamran">Kamran Malik</SelectItem>
                       <SelectItem value="naveed">Naveed Aslam</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Join Date Status</label>
-                  <Select value={joinDateFilter} onValueChange={setJoinDateFilter}>
-                    <SelectTrigger className="h-9" data-testid="select-join-date-filter"><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Select</SelectItem>
-                      <SelectItem value="this_month">This Month</SelectItem>
-                      <SelectItem value="last_month">Last Month</SelectItem>
-                      <SelectItem value="this_year">This Year</SelectItem>
-                      <SelectItem value="last_year">Last Year</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -627,6 +634,37 @@ export default function CorporateCustomersPage() {
                       <SelectItem value="none">No Contract</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Month</label>
+                  <Select value={monthFilter} onValueChange={setMonthFilter}>
+                    <SelectTrigger className="h-9" data-testid="select-month-filter"><SelectValue placeholder="Select" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Select</SelectItem>
+                      <SelectItem value="01">January</SelectItem>
+                      <SelectItem value="02">February</SelectItem>
+                      <SelectItem value="03">March</SelectItem>
+                      <SelectItem value="04">April</SelectItem>
+                      <SelectItem value="05">May</SelectItem>
+                      <SelectItem value="06">June</SelectItem>
+                      <SelectItem value="07">July</SelectItem>
+                      <SelectItem value="08">August</SelectItem>
+                      <SelectItem value="09">September</SelectItem>
+                      <SelectItem value="10">October</SelectItem>
+                      <SelectItem value="11">November</SelectItem>
+                      <SelectItem value="12">December</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">From Date</label>
+                  <Input type="date" className="h-9" value={fromDateFilter} onChange={e => setFromDateFilter(e.target.value)} data-testid="input-from-date-filter" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">To Date</label>
+                  <Input type="date" className="h-9" value={toDateFilter} onChange={e => setToDateFilter(e.target.value)} data-testid="input-to-date-filter" />
                 </div>
               </div>
             </div>)}
@@ -887,7 +925,7 @@ export default function CorporateCustomersPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <FormField control={form.control} name="ntn" render={({ field }) => (<FormItem><FormLabel>NTN</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="industryType" render={({ field }) => (
-                      <FormItem><FormLabel>Industry Type</FormLabel><Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger data-testid="select-corp-industry"><SelectValue placeholder="Select industry" /></SelectTrigger></FormControl><SelectContent>{industryOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
+                      <FormItem><FormLabel>Customer Type</FormLabel><Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger data-testid="select-corp-customer-type"><SelectValue placeholder="Select customer type" /></SelectTrigger></FormControl><SelectContent>{customerTypeOptions.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>
                     )} />
                   </div>
                   <div className="grid grid-cols-2 gap-4">

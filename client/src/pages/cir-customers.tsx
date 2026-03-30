@@ -65,10 +65,12 @@ export default function CirCustomersPage() {
   const [branchFilter, setBranchFilter] = useState("all");
   const [cityFilter, setCityFilter] = useState("all");
   const [managerFilter, setManagerFilter] = useState("all");
-  const [joinDateFilter, setJoinDateFilter] = useState("all");
   const [billingStatusFilter, setBillingStatusFilter] = useState("all");
   const [serviceStatusFilter, setServiceStatusFilter] = useState("all");
   const [contractStatusFilter, setContractStatusFilter] = useState("all");
+  const [monthFilter, setMonthFilter] = useState("all");
+  const [fromDateFilter, setFromDateFilter] = useState("");
+  const [toDateFilter, setToDateFilter] = useState("");
 
   const [referralsDialogOpen, setReferralsDialogOpen] = useState(false);
   const [viewingReferralsCir, setViewingReferralsCir] = useState<CirCustomer | null>(null);
@@ -419,8 +421,6 @@ export default function CirCustomersPage() {
 
   const uniqueBranches = [...new Set(allCir.map(c => c.branch).filter(Boolean))];
   const uniqueCities = [...new Set(allCir.map(c => c.city).filter(Boolean))];
-  const uniqueLinkTypes = [...new Set(allCir.map(c => c.linkType).filter(Boolean))];
-  const uniqueServiceTypes = [...new Set(allCir.map(c => c.serviceType).filter(Boolean))];
 
   const sections = ["Company Info", "Bandwidth", "IP Config", "Contract & SLA", "Billing", "Monitoring"];
 
@@ -522,11 +522,12 @@ export default function CirCustomersPage() {
                 <SelectTrigger className="h-9" data-testid="select-service-type-filter"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Select</SelectItem>
-                  <SelectItem value="fiber">Fiber</SelectItem>
-                  <SelectItem value="wireless">Wireless</SelectItem>
-                  <SelectItem value="dsl">DSL</SelectItem>
-                  <SelectItem value="leased_line">Leased Line</SelectItem>
-                  {uniqueServiceTypes.filter(t => !["fiber","wireless","dsl","leased_line"].includes(t!)).map(t => <SelectItem key={t} value={t!}>{t}</SelectItem>)}
+                  <SelectItem value="Internet">Internet</SelectItem>
+                  <SelectItem value="MPLS">MPLS</SelectItem>
+                  <SelectItem value="P2P">P2P</SelectItem>
+                  <SelectItem value="IPLC">IPLC</SelectItem>
+                  <SelectItem value="Dark Fiber">Dark Fiber</SelectItem>
+                  <SelectItem value="Colocation">Colocation</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -536,11 +537,10 @@ export default function CirCustomersPage() {
                 <SelectTrigger className="h-9" data-testid="select-link-type-filter"><SelectValue placeholder="Select" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Select</SelectItem>
-                  <SelectItem value="dedicated">Dedicated</SelectItem>
-                  <SelectItem value="shared">Shared</SelectItem>
-                  <SelectItem value="p2p">Point to Point</SelectItem>
-                  <SelectItem value="mpls">MPLS</SelectItem>
-                  {uniqueLinkTypes.filter(t => !["dedicated","shared","p2p","mpls"].includes(t!)).map(t => <SelectItem key={t} value={t!}>{t}</SelectItem>)}
+                  <SelectItem value="Primary">Primary</SelectItem>
+                  <SelectItem value="Secondary">Secondary</SelectItem>
+                  <SelectItem value="Backup">Backup</SelectItem>
+                  <SelectItem value="Redundant">Redundant</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -576,19 +576,6 @@ export default function CirCustomersPage() {
                   <SelectItem value="sara">Sara Ahmed</SelectItem>
                   <SelectItem value="kamran">Kamran Malik</SelectItem>
                   <SelectItem value="naveed">Naveed Aslam</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Join Date Status</label>
-              <Select value={joinDateFilter} onValueChange={setJoinDateFilter}>
-                <SelectTrigger className="h-9" data-testid="select-join-date-filter"><SelectValue placeholder="Select" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Select</SelectItem>
-                  <SelectItem value="this_month">This Month</SelectItem>
-                  <SelectItem value="last_month">Last Month</SelectItem>
-                  <SelectItem value="this_year">This Year</SelectItem>
-                  <SelectItem value="last_year">Last Year</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -630,6 +617,37 @@ export default function CirCustomersPage() {
                   <SelectItem value="none">No Contract</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Month</label>
+              <Select value={monthFilter} onValueChange={setMonthFilter}>
+                <SelectTrigger className="h-9" data-testid="select-month-filter"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Select</SelectItem>
+                  <SelectItem value="01">January</SelectItem>
+                  <SelectItem value="02">February</SelectItem>
+                  <SelectItem value="03">March</SelectItem>
+                  <SelectItem value="04">April</SelectItem>
+                  <SelectItem value="05">May</SelectItem>
+                  <SelectItem value="06">June</SelectItem>
+                  <SelectItem value="07">July</SelectItem>
+                  <SelectItem value="08">August</SelectItem>
+                  <SelectItem value="09">September</SelectItem>
+                  <SelectItem value="10">October</SelectItem>
+                  <SelectItem value="11">November</SelectItem>
+                  <SelectItem value="12">December</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">From Date</label>
+              <Input type="date" className="h-9" value={fromDateFilter} onChange={e => setFromDateFilter(e.target.value)} data-testid="input-from-date-filter" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">To Date</label>
+              <Input type="date" className="h-9" value={toDateFilter} onChange={e => setToDateFilter(e.target.value)} data-testid="input-to-date-filter" />
             </div>
           </div>
         </div>)}
