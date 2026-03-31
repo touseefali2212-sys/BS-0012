@@ -100,6 +100,7 @@ import ActivityLogPage from "@/pages/activity-log";
 import NetworkMapPage from "@/pages/network-map";
 import OltListPage from "@/pages/olt-list";
 import OltManagementPage from "@/pages/olt-management";
+import NocDashboardPage from "@/pages/noc-dashboard";
 import ReportsCustomersPage from "@/pages/reports-customers";
 import ReportsBillingPage from "@/pages/reports-billing";
 import ReportsPaymentsPage from "@/pages/reports-payments";
@@ -227,6 +228,7 @@ function Router() {
       <Route path="/bandwidth-usage" component={BandwidthUsagePage} />
       <Route path="/daily-collection" component={DailyCollectionPage} />
       <Route path="/network-map" component={NetworkMapPage} />
+      <Route path="/noc-dashboard" component={NocDashboardPage} />
       <Route path="/olt-management" component={OltListPage} />
       <Route path="/olt-management/:id" component={OltManagementPage} />
       <Route path="/login">{() => <Redirect to="/" />}</Route>

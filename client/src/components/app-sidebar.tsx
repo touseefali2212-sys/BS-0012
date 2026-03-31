@@ -60,6 +60,7 @@ import {
   FolderOpen,
   Plus,
   Router,
+  Monitor,
   MonitorSmartphone,
   Gauge,
   Map,
@@ -315,6 +316,7 @@ const operationsNav: NavItem[] = [
     icon: Globe,
     module: "network",
     subItems: [
+      { title: "NOC Dashboard", url: "/noc-dashboard", icon: Monitor },
       { title: "Network Monitoring", url: "/network-monitoring", icon: Gauge },
       { title: "MikroTik Integration", url: "/mikrotik", icon: Router },
       { title: "IP Addresses", url: "/ipam", icon: Network },

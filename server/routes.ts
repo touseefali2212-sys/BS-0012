@@ -7527,5 +7527,109 @@ export async function registerRoutes(
     } catch (e: any) { res.status(400).json({ message: e.message }); }
   });
 
+  // ─── NOC Dashboard APIs ─────────────────────────────────────
+  app.get("/api/noc/summary", requireAuth, async (_req, res) => {
+    try {
+      const olts = await storage.getOltDevices();
+      const onus = await storage.getOnuDevices();
+      const customers = await storage.getCustomers();
+      const outagesAll = await storage.getOutages();
+      const tickets = await storage.getTickets();
+
+      const onlineOlts = olts.filter(o => o.status === "active").length;
+      const offlineOlts = olts.filter(o => o.status === "inactive" || o.status === "down").length;
+      const maintenanceOlts = olts.filter(o => o.status === "maintenance").length;
+      const onlineOnus = onus.filter(o => o.status === "online").length;
+      const offlineOnus = onus.filter(o => o.status === "offline").length;
+      const activeCustomers = customers.filter(c => c.status === "active").length;
+      const downCustomers = customers.filter(c => c.status === "suspended" || c.status === "inactive").length;
+
+      const totalDevices = olts.length + onus.length;
+      const onlineDevices = onlineOlts + onlineOnus;
+      const healthScore = totalDevices > 0 ? Math.round((onlineDevices / totalDevices) * 100) : 100;
+
+      const activeOutages = outagesAll.filter(o => o.status === "active" || o.status === "investigating").length;
+      const openTickets = tickets.filter(t => t.status === "open" || t.status === "in_progress").length;
+
+      res.json({
+        totalOlts: olts.length, onlineOlts, offlineOlts, maintenanceOlts,
+        totalOnus: onus.length, onlineOnus, offlineOnus,
+        activeCustomers, downCustomers, totalCustomers: customers.length,
+        healthScore, activeOutages, openTickets,
+      });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get("/api/noc/alerts", requireAuth, async (_req, res) => {
+    try {
+      const olts = await storage.getOltDevices();
+      const onus = await storage.getOnuDevices();
+      const outagesAll = await storage.getOutages();
+      const alerts: any[] = [];
+
+      olts.filter(o => o.status === "inactive" || o.status === "down").forEach(olt => {
+        alerts.push({ id: `olt-down-${olt.id}`, type: "critical", category: "OLT Down", message: `${olt.name} (${olt.ipAddress || "N/A"}) is offline`, device: olt.name, timestamp: new Date().toISOString() });
+      });
+
+      const ponGroups: Record<string, any[]> = {};
+      onus.forEach(onu => {
+        if (onu.status === "offline" && onu.splitterId) {
+          const key = `splitter-${onu.splitterId}`;
+          if (!ponGroups[key]) ponGroups[key] = [];
+          ponGroups[key].push(onu);
+        }
+      });
+      Object.entries(ponGroups).forEach(([key, group]) => {
+        if (group.length >= 5) {
+          alerts.push({ id: `fiber-cut-${key}`, type: "critical", category: "Possible Fiber Cut", message: `${group.length} ONUs offline on same splitter — possible fiber cut`, device: key, timestamp: new Date().toISOString(), affectedCount: group.length });
+        }
+      });
+
+      onus.filter(o => o.status === "offline").forEach(onu => {
+        alerts.push({ id: `onu-offline-${onu.id}`, type: "warning", category: "ONU Offline", message: `ONU ${onu.serialNumber || onu.onuId} is offline`, device: onu.onuId, timestamp: new Date().toISOString() });
+      });
+
+      olts.filter(o => o.status === "maintenance").forEach(olt => {
+        alerts.push({ id: `olt-maint-${olt.id}`, type: "info", category: "Maintenance", message: `${olt.name} is under maintenance`, device: olt.name, timestamp: new Date().toISOString() });
+      });
+
+      outagesAll.filter(o => o.status === "active" || o.status === "investigating").forEach(outage => {
+        alerts.push({ id: `outage-${outage.id}`, type: "critical", category: "Active Outage", message: `Outage: ${outage.title || outage.affectedArea || "Unknown area"}`, device: outage.affectedDevice || "N/A", timestamp: outage.startTime || new Date().toISOString() });
+      });
+
+      res.json(alerts.sort((a, b) => {
+        const priority: Record<string, number> = { critical: 0, warning: 1, info: 2 };
+        return (priority[a.type] ?? 3) - (priority[b.type] ?? 3);
+      }));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get("/api/noc/health", requireAuth, async (_req, res) => {
+    try {
+      const olts = await storage.getOltDevices();
+      const onus = await storage.getOnuDevices();
+      const areas = await storage.getAreas();
+
+      const perOlt = olts.map(olt => {
+        const oltOnus = onus.filter(o => {
+          const splitters = onus.filter(on => on.splitterId);
+          return true;
+        });
+        const deviceOnline = olt.status === "active" ? 1 : 0;
+        const score = Math.round(deviceOnline * 100);
+        return { id: olt.id, name: olt.name, vendor: olt.vendor, ipAddress: olt.ipAddress, status: olt.status, healthScore: score, totalPorts: olt.totalPonPorts || 16, usedPorts: olt.usedPonPorts || 0 };
+      });
+
+      const perArea = areas.map(area => {
+        const areaOlts = olts.filter(o => o.notes?.toLowerCase().includes(area.name.toLowerCase()));
+        const online = areaOlts.filter(o => o.status === "active").length;
+        const score = areaOlts.length > 0 ? Math.round((online / areaOlts.length) * 100) : 100;
+        return { id: area.id, name: area.name, healthScore: score, totalDevices: areaOlts.length, onlineDevices: online };
+      });
+
+      res.json({ perOlt, perArea });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
   return httpServer;
 }
