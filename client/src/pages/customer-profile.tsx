@@ -865,7 +865,7 @@ export default function CustomerProfilePage() {
           <div className="px-4 pt-4 pb-2 space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-update-info" onClick={() => setLocation(`/customers/${id}/edit`)}>
-                <Edit className="h-3 w-3" /> Update Information
+                <Edit className="h-3 w-3" /> Edit Profile
               </Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-status-scheduler" onClick={() => setStatusSchedulerOpen(true)}>
                 <CalendarRange className="h-3 w-3" /> Status Scheduler

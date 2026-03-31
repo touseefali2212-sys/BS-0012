@@ -408,7 +408,7 @@ export default function CorporateCustomerProfilePage() {
           </div>
           <div className="px-4 pt-4 pb-2 space-y-2">
             <div className="grid grid-cols-2 gap-2">
-              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => setLocation(`/add-customer?type=corporate&edit=${id}`)}><Edit className="h-3 w-3" /> Update Information</Button>
+              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => setLocation(`/add-customer?type=corporate&edit=${id}`)}><Edit className="h-3 w-3" /> Edit Profile</Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => setActiveTab("service_scheduler")}><CalendarRange className="h-3 w-3" /> Status Scheduler</Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={openProfileSmsDialog}><MessageCircle className="h-3 w-3" /> Send Email/Message</Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => setActiveTab("connections")}><Network className="h-3 w-3" /> View Connections</Button>
