@@ -3495,6 +3495,13 @@ export const oltDevices = pgTable("olt_devices", {
   usedPonPorts: integer("used_pon_ports").default(0),
   status: text("status").notNull().default("active"),
   notes: text("notes"),
+  snmpVersion: text("snmp_version").default("v2c"),
+  snmpCommunity: text("snmp_community").default("public"),
+  snmpPort: integer("snmp_port").default(161),
+  snmpTimeout: integer("snmp_timeout").default(5),
+  snmpRetries: integer("snmp_retries").default(3),
+  snmpPollingInterval: integer("snmp_polling_interval").default(30),
+  snmpStatus: text("snmp_status").default("active"),
   createdAt: text("created_at").default(sql`now()`),
   updatedAt: text("updated_at").default(sql`now()`),
 });

@@ -453,13 +453,13 @@ export default function OltManagementPage() {
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    ["SNMP Version", "v2c"],
-                    ["Community String", "••••••••"],
-                    ["Port", "161"],
-                    ["Polling Interval", "30s"],
-                    ["Timeout", "5s"],
-                    ["Retries", "3"],
-                    ["Status", "Active"],
+                    ["SNMP Version", olt.snmpVersion || "v2c"],
+                    ["Community String", olt.snmpCommunity ? "••••••••" : "-"],
+                    ["Port", String(olt.snmpPort || 161)],
+                    ["Polling Interval", `${olt.snmpPollingInterval || 30}s`],
+                    ["Timeout", `${olt.snmpTimeout || 5}s`],
+                    ["Retries", String(olt.snmpRetries || 3)],
+                    ["Status", olt.snmpStatus === "active" ? "Active" : "Inactive"],
                     ["Last Poll", new Date().toLocaleTimeString()],
                   ].map(([label, value]) => (
                     <div key={label} className="bg-muted/50 rounded-lg p-3">
@@ -877,18 +877,24 @@ export default function OltManagementPage() {
                 </CardHeader>
                 <CardContent className="divide-y">
                   {[
-                    ["SNMP Version", "v2c"],
-                    ["Community String", "••••••••"],
-                    ["Port", "161"],
-                    ["Timeout", "5 seconds"],
-                    ["Retries", "3"],
-                    ["Polling Interval", "30 seconds"],
+                    ["SNMP Version", olt.snmpVersion || "v2c"],
+                    ["Community String", olt.snmpCommunity ? "••••••••" : "-"],
+                    ["Port", String(olt.snmpPort || 161)],
+                    ["Timeout", `${olt.snmpTimeout || 5} seconds`],
+                    ["Retries", String(olt.snmpRetries || 3)],
+                    ["Polling Interval", `${olt.snmpPollingInterval || 30} seconds`],
+                    ["SNMP Status", olt.snmpStatus === "active" ? "Active" : "Inactive"],
                   ].map(([label, value]) => (
                     <div key={label} className="flex justify-between py-2 text-xs">
                       <span className="text-muted-foreground">{label}</span>
                       <span className="font-medium">{value}</span>
                     </div>
                   ))}
+                  <div className="pt-3">
+                    <Button size="sm" variant="outline" className="w-full text-xs" onClick={() => setConfigDialogOpen(true)} data-testid="button-edit-snmp">
+                      <Edit className="h-3 w-3 mr-1" /> Edit SNMP Configuration
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -999,55 +1005,118 @@ function ConfigForm({ olt, onSave, isPending }: { olt: OltDevice; onSave: (data:
   const [totalPonPorts, setTotalPonPorts] = useState(String(olt.totalPonPorts || 16));
   const [status, setStatus] = useState(olt.status);
   const [notes, setNotes] = useState(olt.notes || "");
+  const [snmpVersion, setSnmpVersion] = useState(olt.snmpVersion || "v2c");
+  const [snmpCommunity, setSnmpCommunity] = useState(olt.snmpCommunity || "public");
+  const [snmpPort, setSnmpPort] = useState(String(olt.snmpPort || 161));
+  const [snmpTimeout, setSnmpTimeout] = useState(String(olt.snmpTimeout || 5));
+  const [snmpRetries, setSnmpRetries] = useState(String(olt.snmpRetries || 3));
+  const [snmpPollingInterval, setSnmpPollingInterval] = useState(String(olt.snmpPollingInterval || 30));
+  const [snmpStatus, setSnmpStatus] = useState(olt.snmpStatus || "active");
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Name</label>
-          <Input value={name} onChange={e => setName(e.target.value)} className="h-9 text-sm" data-testid="input-config-name" />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">IP Address</label>
-          <Input value={ipAddress} onChange={e => setIpAddress(e.target.value)} className="h-9 text-sm" data-testid="input-config-ip" />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Vendor</label>
-          <Select value={vendor} onValueChange={setVendor}>
-            <SelectTrigger className="h-9 text-sm" data-testid="select-config-vendor"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {["Huawei", "ZTE", "FiberHome", "Nokia", "VSOL", "HSGQ", "Other"].map(v => (
-                <SelectItem key={v} value={v}>{v}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Model</label>
-          <Input value={model} onChange={e => setModel(e.target.value)} className="h-9 text-sm" data-testid="input-config-model" />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Total PON Ports</label>
-          <Input type="number" value={totalPonPorts} onChange={e => setTotalPonPorts(e.target.value)} className="h-9 text-sm" data-testid="input-config-ports" />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Status</label>
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="h-9 text-sm" data-testid="select-config-status"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-              <SelectItem value="maintenance">Maintenance</SelectItem>
-            </SelectContent>
-          </Select>
+    <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+      <div>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Device Configuration</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Name</label>
+            <Input value={name} onChange={e => setName(e.target.value)} className="h-9 text-sm" data-testid="input-config-name" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">IP Address</label>
+            <Input value={ipAddress} onChange={e => setIpAddress(e.target.value)} className="h-9 text-sm" data-testid="input-config-ip" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Vendor</label>
+            <Select value={vendor} onValueChange={setVendor}>
+              <SelectTrigger className="h-9 text-sm" data-testid="select-config-vendor"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["Huawei", "ZTE", "FiberHome", "Nokia", "VSOL", "HSGQ", "Other"].map(v => (
+                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Model</label>
+            <Input value={model} onChange={e => setModel(e.target.value)} className="h-9 text-sm" data-testid="input-config-model" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Total PON Ports</label>
+            <Input type="number" value={totalPonPorts} onChange={e => setTotalPonPorts(e.target.value)} className="h-9 text-sm" data-testid="input-config-ports" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Status</label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="h-9 text-sm" data-testid="select-config-status"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="maintenance">Maintenance</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
+
+      <div className="border-t pt-4">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">SNMP Configuration</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">SNMP Version</label>
+            <Select value={snmpVersion} onValueChange={setSnmpVersion}>
+              <SelectTrigger className="h-9 text-sm" data-testid="select-config-snmp-version"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="v1">v1</SelectItem>
+                <SelectItem value="v2c">v2c</SelectItem>
+                <SelectItem value="v3">v3</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Community String</label>
+            <Input value={snmpCommunity} onChange={e => setSnmpCommunity(e.target.value)} placeholder="public" className="h-9 text-sm" data-testid="input-config-snmp-community" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">SNMP Port</label>
+            <Input type="number" value={snmpPort} onChange={e => setSnmpPort(e.target.value)} className="h-9 text-sm" data-testid="input-config-snmp-port" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Timeout (seconds)</label>
+            <Input type="number" value={snmpTimeout} onChange={e => setSnmpTimeout(e.target.value)} className="h-9 text-sm" data-testid="input-config-snmp-timeout" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Retries</label>
+            <Input type="number" value={snmpRetries} onChange={e => setSnmpRetries(e.target.value)} className="h-9 text-sm" data-testid="input-config-snmp-retries" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Polling Interval (seconds)</label>
+            <Input type="number" value={snmpPollingInterval} onChange={e => setSnmpPollingInterval(e.target.value)} className="h-9 text-sm" data-testid="input-config-snmp-polling" />
+          </div>
+          <div className="space-y-1.5 col-span-2">
+            <label className="text-xs font-medium">SNMP Status</label>
+            <Select value={snmpStatus} onValueChange={setSnmpStatus}>
+              <SelectTrigger className="h-9 text-sm" data-testid="select-config-snmp-status"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-1.5">
         <label className="text-xs font-medium">Notes</label>
         <Textarea value={notes} onChange={e => setNotes(e.target.value)} className="text-sm min-h-[80px]" data-testid="textarea-config-notes" />
       </div>
       <DialogFooter>
-        <Button onClick={() => onSave({ name, ipAddress, vendor, model, totalPonPorts: parseInt(totalPonPorts), status, notes })} disabled={isPending || !name.trim()} data-testid="button-save-config">
+        <Button onClick={() => onSave({
+          name, ipAddress, vendor, model, totalPonPorts: parseInt(totalPonPorts), status, notes,
+          snmpVersion, snmpCommunity, snmpPort: parseInt(snmpPort) || 161,
+          snmpTimeout: parseInt(snmpTimeout) || 5, snmpRetries: parseInt(snmpRetries) || 3,
+          snmpPollingInterval: parseInt(snmpPollingInterval) || 30, snmpStatus,
+        })} disabled={isPending || !name.trim()} data-testid="button-save-config">
           {isPending ? "Saving..." : "Save Configuration"}
         </Button>
       </DialogFooter>

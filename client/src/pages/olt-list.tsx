@@ -208,52 +208,105 @@ function AddOltForm({ onSave, isPending }: { onSave: (data: any) => void; isPend
   const [lat, setLat] = useState("0");
   const [lng, setLng] = useState("0");
   const [notes, setNotes] = useState("");
+  const [snmpVersion, setSnmpVersion] = useState("v2c");
+  const [snmpCommunity, setSnmpCommunity] = useState("public");
+  const [snmpPort, setSnmpPort] = useState("161");
+  const [snmpTimeout, setSnmpTimeout] = useState("5");
+  const [snmpRetries, setSnmpRetries] = useState("3");
+  const [snmpPollingInterval, setSnmpPollingInterval] = useState("30");
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Name *</label>
-          <Input value={name} onChange={e => setName(e.target.value)} placeholder="OLT name" className="h-9 text-sm" data-testid="input-add-olt-name" />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">IP Address</label>
-          <Input value={ipAddress} onChange={e => setIpAddress(e.target.value)} placeholder="192.168.1.1" className="h-9 text-sm" data-testid="input-add-olt-ip" />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Vendor</label>
-          <Select value={vendor} onValueChange={setVendor}>
-            <SelectTrigger className="h-9 text-sm" data-testid="select-add-olt-vendor"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {["Huawei", "ZTE", "FiberHome", "Nokia", "VSOL", "HSGQ", "Other"].map(v => (
-                <SelectItem key={v} value={v}>{v}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Model</label>
-          <Input value={model} onChange={e => setModel(e.target.value)} placeholder="e.g. MA5800-X15" className="h-9 text-sm" data-testid="input-add-olt-model" />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Total PON Ports</label>
-          <Input type="number" value={totalPonPorts} onChange={e => setTotalPonPorts(e.target.value)} className="h-9 text-sm" data-testid="input-add-olt-ports" />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Latitude</label>
-          <Input value={lat} onChange={e => setLat(e.target.value)} placeholder="0" className="h-9 text-sm" data-testid="input-add-olt-lat" />
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium">Longitude</label>
-          <Input value={lng} onChange={e => setLng(e.target.value)} placeholder="0" className="h-9 text-sm" data-testid="input-add-olt-lng" />
+    <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+      <div>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Device Information</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Name *</label>
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="OLT name" className="h-9 text-sm" data-testid="input-add-olt-name" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">IP Address</label>
+            <Input value={ipAddress} onChange={e => setIpAddress(e.target.value)} placeholder="192.168.1.1" className="h-9 text-sm" data-testid="input-add-olt-ip" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Vendor</label>
+            <Select value={vendor} onValueChange={setVendor}>
+              <SelectTrigger className="h-9 text-sm" data-testid="select-add-olt-vendor"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {["Huawei", "ZTE", "FiberHome", "Nokia", "VSOL", "HSGQ", "Other"].map(v => (
+                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Model</label>
+            <Input value={model} onChange={e => setModel(e.target.value)} placeholder="e.g. MA5800-X15" className="h-9 text-sm" data-testid="input-add-olt-model" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Total PON Ports</label>
+            <Input type="number" value={totalPonPorts} onChange={e => setTotalPonPorts(e.target.value)} className="h-9 text-sm" data-testid="input-add-olt-ports" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Latitude</label>
+            <Input value={lat} onChange={e => setLat(e.target.value)} placeholder="0" className="h-9 text-sm" data-testid="input-add-olt-lat" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Longitude</label>
+            <Input value={lng} onChange={e => setLng(e.target.value)} placeholder="0" className="h-9 text-sm" data-testid="input-add-olt-lng" />
+          </div>
         </div>
       </div>
+
+      <div className="border-t pt-4">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">SNMP Configuration</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">SNMP Version</label>
+            <Select value={snmpVersion} onValueChange={setSnmpVersion}>
+              <SelectTrigger className="h-9 text-sm" data-testid="select-add-olt-snmp-version"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="v1">v1</SelectItem>
+                <SelectItem value="v2c">v2c</SelectItem>
+                <SelectItem value="v3">v3</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Community String</label>
+            <Input value={snmpCommunity} onChange={e => setSnmpCommunity(e.target.value)} placeholder="public" className="h-9 text-sm" data-testid="input-add-olt-snmp-community" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">SNMP Port</label>
+            <Input type="number" value={snmpPort} onChange={e => setSnmpPort(e.target.value)} className="h-9 text-sm" data-testid="input-add-olt-snmp-port" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Timeout (seconds)</label>
+            <Input type="number" value={snmpTimeout} onChange={e => setSnmpTimeout(e.target.value)} className="h-9 text-sm" data-testid="input-add-olt-snmp-timeout" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Retries</label>
+            <Input type="number" value={snmpRetries} onChange={e => setSnmpRetries(e.target.value)} className="h-9 text-sm" data-testid="input-add-olt-snmp-retries" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">Polling Interval (seconds)</label>
+            <Input type="number" value={snmpPollingInterval} onChange={e => setSnmpPollingInterval(e.target.value)} className="h-9 text-sm" data-testid="input-add-olt-snmp-polling" />
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-1.5">
         <label className="text-xs font-medium">Notes</label>
         <Textarea value={notes} onChange={e => setNotes(e.target.value)} className="text-sm min-h-[60px]" data-testid="textarea-add-olt-notes" />
       </div>
       <DialogFooter>
-        <Button onClick={() => onSave({ oltId: `OLT-${Date.now().toString(36).toUpperCase()}`, name, ipAddress, vendor, model, totalPonPorts: parseInt(totalPonPorts) || 16, lat, lng, notes })} disabled={isPending || !name.trim()} data-testid="button-save-olt">
+        <Button onClick={() => onSave({
+          oltId: `OLT-${Date.now().toString(36).toUpperCase()}`, name, ipAddress, vendor, model,
+          totalPonPorts: parseInt(totalPonPorts) || 16, lat, lng, notes,
+          snmpVersion, snmpCommunity, snmpPort: parseInt(snmpPort) || 161,
+          snmpTimeout: parseInt(snmpTimeout) || 5, snmpRetries: parseInt(snmpRetries) || 3,
+          snmpPollingInterval: parseInt(snmpPollingInterval) || 30, snmpStatus: "active",
+        })} disabled={isPending || !name.trim()} data-testid="button-save-olt">
           {isPending ? "Creating..." : "Create OLT"}
         </Button>
       </DialogFooter>
