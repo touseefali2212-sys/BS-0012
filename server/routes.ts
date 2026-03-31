@@ -2827,6 +2827,49 @@ export async function registerRoutes(
     }
   }
 
+  app.get("/api/ping/:ip", requireAuth, async (req, res) => {
+    try {
+      const ip = req.params.ip;
+      if (!/^[\d.]+$/.test(ip)) return res.status(400).json({ status: "error", message: "Invalid IP" });
+      const { exec } = await import("child_process");
+      const result = await new Promise<{ alive: boolean; latency: number | null }>((resolve) => {
+        exec(`ping -c 1 -W 2 ${ip}`, (error, stdout) => {
+          if (error) return resolve({ alive: false, latency: null });
+          const match = stdout.match(/time[=<]([\d.]+)\s*ms/);
+          resolve({ alive: true, latency: match ? parseFloat(match[1]) : null });
+        });
+      });
+      res.json({ ip, ...result });
+    } catch {
+      res.json({ ip: req.params.ip, alive: false, latency: null });
+    }
+  });
+
+  app.post("/api/ping-batch", requireAuth, async (req, res) => {
+    try {
+      const { ips } = req.body;
+      if (!Array.isArray(ips) || ips.length === 0) return res.status(400).json({ message: "Provide ips array" });
+      const validIps = ips.filter((ip: string) => /^[\d.]+$/.test(ip)).slice(0, 50);
+      const { exec } = await import("child_process");
+      const results = await Promise.all(
+        validIps.map((ip: string) =>
+          new Promise<{ ip: string; alive: boolean; latency: number | null }>((resolve) => {
+            exec(`ping -c 1 -W 2 ${ip}`, (error, stdout) => {
+              if (error) return resolve({ ip, alive: false, latency: null });
+              const match = stdout.match(/time[=<]([\d.]+)\s*ms/);
+              resolve({ ip, alive: true, latency: match ? parseFloat(match[1]) : null });
+            });
+          })
+        )
+      );
+      const map: Record<string, { alive: boolean; latency: number | null }> = {};
+      results.forEach(r => { map[r.ip] = { alive: r.alive, latency: r.latency }; });
+      res.json(map);
+    } catch {
+      res.json({});
+    }
+  });
+
   app.post("/api/sync-customer-ips-to-ipam", requireAuth, async (_req: any, res) => {
     try {
       const results: Array<{ customer: string; type: string; ip: string; status: string }> = [];

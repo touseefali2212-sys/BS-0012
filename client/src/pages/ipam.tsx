@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -386,6 +386,34 @@ export default function IpamPage() {
       toast({ title: "Sync Failed", description: error.message, variant: "destructive" });
     },
   });
+
+  const [pingResults, setPingResults] = useState<Record<string, { alive: boolean; latency: number | null }>>({});
+  const [pingEnabled, setPingEnabled] = useState(false);
+  const pingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const doPingBatch = useCallback(async () => {
+    if (!allIps.length) return;
+    const ips = allIps.map(ip => ip.ipAddress).filter(ip => /^[\d.]+$/.test(ip));
+    if (!ips.length) return;
+    try {
+      const res = await apiRequest("POST", "/api/ping-batch", { ips });
+      const data = await res.json();
+      setPingResults(data);
+    } catch {}
+  }, [allIps]);
+
+  useEffect(() => {
+    if (pingEnabled) {
+      doPingBatch();
+      pingIntervalRef.current = setInterval(doPingBatch, 5000);
+    } else {
+      if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+      pingIntervalRef.current = null;
+    }
+    return () => {
+      if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+    };
+  }, [pingEnabled, doPingBatch]);
 
   const openCreateIp = () => {
     setEditingIp(null);
@@ -877,6 +905,10 @@ export default function IpamPage() {
               <Button variant="outline" size="sm" onClick={() => window.open("/api/export/ip-addresses", "_blank")} data-testid="button-export-allocation">
                 <Download className="h-4 w-4 mr-1" />Export CSV
               </Button>
+              <Button size="sm" variant={pingEnabled ? "default" : "outline"} onClick={() => setPingEnabled(v => !v)} className={pingEnabled ? "bg-green-600 hover:bg-green-700 text-white" : ""} data-testid="button-toggle-ping">
+                <Activity className={`h-4 w-4 mr-1 ${pingEnabled ? "animate-pulse" : ""}`} />
+                {pingEnabled ? "Ping Live" : "Start Ping"}
+              </Button>
               <Button size="sm" variant="outline" onClick={() => syncCustomerIpsMutation.mutate()} disabled={syncCustomerIpsMutation.isPending} data-testid="button-sync-customer-ips">
                 <RefreshCw className={`h-4 w-4 mr-1 ${syncCustomerIpsMutation.isPending ? "animate-spin" : ""}`} />
                 {syncCustomerIpsMutation.isPending ? "Syncing..." : "Sync Customer IPs"}
@@ -919,6 +951,7 @@ export default function IpamPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-slate-50/50 dark:bg-slate-900/50">
+                      <TableHead className="text-xs font-semibold">Ping</TableHead>
                       <TableHead className="text-xs font-semibold">IP Address</TableHead>
                       <TableHead className="text-xs font-semibold">Subnet</TableHead>
                       <TableHead className="text-xs font-semibold">VLAN</TableHead>
@@ -935,11 +968,34 @@ export default function IpamPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredIps.length === 0 ? (
-                      <TableRow><TableCell colSpan={13} className="text-center py-12 text-muted-foreground">
+                      <TableRow><TableCell colSpan={14} className="text-center py-12 text-muted-foreground">
                         <Globe className="h-10 w-10 mx-auto mb-2 opacity-30" />No IP addresses found
                       </TableCell></TableRow>
-                    ) : filteredIps.map(ip => (
+                    ) : filteredIps.map(ip => {
+                      const ping = pingResults[ip.ipAddress];
+                      const pingStatus = !pingEnabled ? "idle" : !ping ? "pending" : ping.alive ? "up" : "down";
+                      return (
                       <TableRow key={ip.id} data-testid={`row-ip-${ip.id}`} className="hover:bg-slate-50 dark:hover:bg-slate-900">
+                        <TableCell>
+                          {pingStatus === "idle" ? (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          ) : pingStatus === "pending" ? (
+                            <div className="flex items-center gap-1.5">
+                              <div className="h-2.5 w-2.5 rounded-full bg-yellow-400 animate-pulse" />
+                              <span className="text-[10px] text-muted-foreground">...</span>
+                            </div>
+                          ) : pingStatus === "up" ? (
+                            <div className="flex items-center gap-1.5" title={`Latency: ${ping?.latency ?? "?"}ms`}>
+                              <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
+                              <span className="text-[10px] font-medium text-emerald-600">{ping?.latency != null ? `${ping.latency}ms` : "Up"}</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5">
+                              <div className="h-2.5 w-2.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)]" />
+                              <span className="text-[10px] font-medium text-red-600">Down</span>
+                            </div>
+                          )}
+                        </TableCell>
                         <TableCell className="font-mono text-sm font-medium">{ip.ipAddress}</TableCell>
                         <TableCell className="font-mono text-xs">{ip.subnet || "—"}</TableCell>
                         <TableCell className="text-xs">{ip.vlan || "—"}</TableCell>
@@ -984,13 +1040,15 @@ export default function IpamPage() {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    );
+                    })}
                   </TableBody>
                 </Table>
               </div>
               {filteredIps.length > 0 && (
-                <div className="px-4 py-2 text-xs text-muted-foreground border-t">
-                  Showing {filteredIps.length} of {allIps.length} IP addresses
+                <div className="px-4 py-2 text-xs text-muted-foreground border-t flex items-center justify-between">
+                  <span>Showing {filteredIps.length} of {allIps.length} IP addresses</span>
+                  {pingEnabled && <span className="flex items-center gap-1.5 text-emerald-600"><Activity className="h-3 w-3 animate-pulse" />Auto-ping every 5s</span>}
                 </div>
               )}
             </CardContent>
