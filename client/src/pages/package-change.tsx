@@ -251,30 +251,39 @@ export default function PackageChangePage() {
   const openEditDialog = (req: PackageChangeRequest) => {
     setSelectedRequest(req);
     setEditData({
-      customerName: req.customerName || "",
-      customerType: req.customerType || "Normal",
+      status: req.status,
       changeType: req.changeType || "upgrade",
-      currentPackageName: req.currentPackageName || "",
-      currentBandwidth: req.currentBandwidth || "",
-      currentMonthlyBill: req.currentMonthlyBill || "",
+      newPackageId: req.newPackageId || "",
       newPackageName: req.newPackageName || "",
       newBandwidth: req.newBandwidth || "",
       newMonthlyBill: req.newMonthlyBill || "",
-      proratedCharges: req.proratedCharges || "",
-      adjustmentAmount: req.adjustmentAmount || "",
-      taxImpact: req.taxImpact || "",
-      finalBillDifference: req.finalBillDifference || "",
-      effectiveDateType: req.effectiveDateType || "immediate",
-      effectiveDate: req.effectiveDate || "",
       reason: req.reason || "",
       isUrgent: req.isUrgent || false,
+      rejectionReason: "",
     });
     setEditDialogOpen(true);
   };
 
   const handleEditSave = () => {
     if (!selectedRequest) return;
-    updateMutation.mutate({ id: selectedRequest.id, data: editData }, {
+    const saveData: any = { ...editData };
+    if (saveData.status === "rejected" && selectedRequest.status !== "rejected") {
+      saveData.rejectedBy = "admin";
+      saveData.rejectedAt = new Date().toISOString();
+    }
+    if (saveData.status === "pending" && selectedRequest.status !== "pending") {
+      saveData.approvedBy = null;
+      saveData.approvedAt = null;
+      saveData.rejectedBy = null;
+      saveData.rejectedAt = null;
+      saveData.rejectionReason = null;
+    }
+    if (saveData.status === selectedRequest.status && selectedRequest.status !== "pending" && selectedRequest.status !== "draft") {
+      delete saveData.status;
+    }
+    delete saveData.rejectionReason;
+    if (editData.rejectionReason) saveData.rejectionReason = editData.rejectionReason;
+    updateMutation.mutate({ id: selectedRequest.id, data: saveData }, {
       onSuccess: () => {
         setEditDialogOpen(false);
         toast({ title: "Updated", description: "Request has been updated successfully." });
@@ -764,113 +773,143 @@ export default function PackageChangePage() {
       </Dialog>
 
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5 text-[#0057FF]" />
               Edit Request — {selectedRequest?.requestNumber}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Customer Name</label>
-                <Input value={editData.customerName || ""} onChange={e => setEditData({ ...editData, customerName: e.target.value })} data-testid="edit-customer-name" />
+          {selectedRequest && (
+            <div className="space-y-4">
+              <div className="p-3 rounded-lg bg-muted/30 border text-xs space-y-1">
+                <p><span className="text-muted-foreground font-medium">Customer:</span> {selectedRequest.customerName} ({selectedRequest.customerType})</p>
+                <p><span className="text-muted-foreground font-medium">Current Status:</span> <Badge className={`text-[10px] ml-1 ${statusColors[selectedRequest.status] || ""}`}>{statusLabels[selectedRequest.status] || selectedRequest.status}</Badge></p>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Change Type</label>
-                <Select value={editData.changeType || "upgrade"} onValueChange={v => setEditData({ ...editData, changeType: v })}>
-                  <SelectTrigger data-testid="edit-change-type"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="upgrade">Upgrade</SelectItem>
-                    <SelectItem value="downgrade">Downgrade</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Current Plan</p>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-medium text-muted-foreground">Current Package</label>
-                  <Input className="h-8 text-xs" value={editData.currentPackageName || ""} onChange={e => setEditData({ ...editData, currentPackageName: e.target.value })} data-testid="edit-current-package" />
+
+              {(selectedRequest.status === "pending" || selectedRequest.status === "draft") && (
+                <>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Change Type</label>
+                    <Select value={editData.changeType || "upgrade"} onValueChange={v => setEditData({ ...editData, changeType: v })}>
+                      <SelectTrigger data-testid="edit-change-type"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="upgrade">Upgrade</SelectItem>
+                        <SelectItem value="downgrade">Downgrade</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {selectedRequest.customerType === "Normal" ? (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">New Package</label>
+                      <Select value={editData.newPackageId ? String(editData.newPackageId) : ""} onValueChange={v => {
+                        const pkg = packages?.find(p => p.id === parseInt(v));
+                        setEditData({ ...editData, newPackageId: parseInt(v), newPackageName: pkg?.name || "", newBandwidth: pkg?.speed || "", newMonthlyBill: pkg?.price || "" });
+                      }}>
+                        <SelectTrigger data-testid="edit-new-package"><SelectValue placeholder="Select package" /></SelectTrigger>
+                        <SelectContent>
+                          {(packages || []).filter(p => p.isActive).map(p => (
+                            <SelectItem key={p.id} value={String(p.id)}>{p.name} — Rs. {p.price} ({p.speed || "—"})</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">New Bandwidth (Mbps)</label>
+                      <Input type="number" placeholder="e.g. 50" value={editData.newBandwidth || ""} onChange={e => setEditData({ ...editData, newBandwidth: e.target.value })} data-testid="edit-new-bw" />
+                    </div>
+                  )}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Reason</label>
+                    <Textarea rows={2} value={editData.reason || ""} onChange={e => setEditData({ ...editData, reason: e.target.value })} data-testid="edit-reason" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch checked={editData.isUrgent || false} onCheckedChange={v => setEditData({ ...editData, isUrgent: v })} data-testid="edit-urgent" />
+                    <label className="text-sm font-medium">Mark as Urgent</label>
+                  </div>
+                </>
+              )}
+
+              {selectedRequest.status === "approved" && (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">Change the status of this approved request:</p>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Move To</label>
+                    <Select value={editData.status || "approved"} onValueChange={v => setEditData({ ...editData, status: v })}>
+                      <SelectTrigger data-testid="edit-status"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="approved">Approved (No Change)</SelectItem>
+                        <SelectItem value="pending">Revert to Pending Approval</SelectItem>
+                        <SelectItem value="rejected">Reject</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {editData.status === "rejected" && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">Rejection Reason</label>
+                      <Textarea rows={2} placeholder="Provide reason for rejection..." value={editData.rejectionReason || ""} onChange={e => setEditData({ ...editData, rejectionReason: e.target.value })} data-testid="edit-reject-reason" />
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-medium text-muted-foreground">Current Bandwidth</label>
-                  <Input className="h-8 text-xs" value={editData.currentBandwidth || ""} onChange={e => setEditData({ ...editData, currentBandwidth: e.target.value })} data-testid="edit-current-bw" />
+              )}
+
+              {selectedRequest.status === "implementing" && (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">Change the status of this implementing request:</p>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Move To</label>
+                    <Select value={editData.status || "implementing"} onValueChange={v => setEditData({ ...editData, status: v })}>
+                      <SelectTrigger data-testid="edit-status"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="implementing">Implementing (No Change)</SelectItem>
+                        <SelectItem value="approved">Revert to Approved</SelectItem>
+                        <SelectItem value="rejected">Reject</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {editData.status === "rejected" && (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-muted-foreground">Rejection Reason</label>
+                      <Textarea rows={2} placeholder="Provide reason for rejection..." value={editData.rejectionReason || ""} onChange={e => setEditData({ ...editData, rejectionReason: e.target.value })} data-testid="edit-reject-reason" />
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-medium text-muted-foreground">Current Monthly Bill</label>
-                  <Input className="h-8 text-xs" value={editData.currentMonthlyBill || ""} onChange={e => setEditData({ ...editData, currentMonthlyBill: e.target.value })} data-testid="edit-current-bill" />
+              )}
+
+              {selectedRequest.status === "completed" && (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">Change the status of this completed request:</p>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Move To</label>
+                    <Select value={editData.status || "completed"} onValueChange={v => setEditData({ ...editData, status: v })}>
+                      <SelectTrigger data-testid="edit-status"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="completed">Completed (No Change)</SelectItem>
+                        <SelectItem value="implementing">Revert to Implementation Queue</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div className="border rounded-lg p-4 space-y-3 bg-blue-50/50 dark:bg-blue-950/20">
-              <p className="text-xs font-semibold text-muted-foreground uppercase">New Plan</p>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-medium text-muted-foreground">New Package</label>
-                  <Input className="h-8 text-xs" value={editData.newPackageName || ""} onChange={e => setEditData({ ...editData, newPackageName: e.target.value })} data-testid="edit-new-package" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-medium text-muted-foreground">New Bandwidth</label>
-                  <Input className="h-8 text-xs" value={editData.newBandwidth || ""} onChange={e => setEditData({ ...editData, newBandwidth: e.target.value })} data-testid="edit-new-bw" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-medium text-muted-foreground">New Monthly Bill</label>
-                  <Input className="h-8 text-xs" value={editData.newMonthlyBill || ""} onChange={e => setEditData({ ...editData, newMonthlyBill: e.target.value })} data-testid="edit-new-bill" />
-                </div>
-              </div>
-            </div>
-            <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
-              <p className="text-xs font-semibold text-muted-foreground uppercase">Financial Details</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-medium text-muted-foreground">Prorated Charges</label>
-                  <Input className="h-8 text-xs" value={editData.proratedCharges || ""} onChange={e => setEditData({ ...editData, proratedCharges: e.target.value })} data-testid="edit-prorated" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-medium text-muted-foreground">Adjustment</label>
-                  <Input className="h-8 text-xs" value={editData.adjustmentAmount || ""} onChange={e => setEditData({ ...editData, adjustmentAmount: e.target.value })} data-testid="edit-adjustment" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-medium text-muted-foreground">Tax Impact</label>
-                  <Input className="h-8 text-xs" value={editData.taxImpact || ""} onChange={e => setEditData({ ...editData, taxImpact: e.target.value })} data-testid="edit-tax" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-medium text-muted-foreground">Final Difference</label>
-                  <Input className="h-8 text-xs" value={editData.finalBillDifference || ""} onChange={e => setEditData({ ...editData, finalBillDifference: e.target.value })} data-testid="edit-final-diff" />
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Effective Date Type</label>
-                <Select value={editData.effectiveDateType || "immediate"} onValueChange={v => setEditData({ ...editData, effectiveDateType: v })}>
-                  <SelectTrigger data-testid="edit-effective-type"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="immediate">Immediate</SelectItem>
-                    <SelectItem value="next_billing">Next Billing Cycle</SelectItem>
-                    <SelectItem value="custom">Custom Date</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {editData.effectiveDateType === "custom" && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground">Effective Date</label>
-                  <Input type="date" value={editData.effectiveDate || ""} onChange={e => setEditData({ ...editData, effectiveDate: e.target.value })} data-testid="edit-effective-date" />
+              )}
+
+              {selectedRequest.status === "rejected" && (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">Reopen this rejected request:</p>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-muted-foreground">Move To</label>
+                    <Select value={editData.status || "rejected"} onValueChange={v => setEditData({ ...editData, status: v })}>
+                      <SelectTrigger data-testid="edit-status"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="rejected">Rejected (No Change)</SelectItem>
+                        <SelectItem value="pending">Reopen as Pending Approval</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               )}
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Reason</label>
-              <Textarea rows={2} value={editData.reason || ""} onChange={e => setEditData({ ...editData, reason: e.target.value })} data-testid="edit-reason" />
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch checked={editData.isUrgent || false} onCheckedChange={v => setEditData({ ...editData, isUrgent: v })} data-testid="edit-urgent" />
-              <label className="text-sm font-medium">Mark as Urgent</label>
-            </div>
-          </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
             <Button className="bg-[#0057FF] hover:bg-[#0044cc]" onClick={handleEditSave} disabled={updateMutation.isPending} data-testid="button-save-edit">
