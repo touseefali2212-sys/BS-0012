@@ -2567,6 +2567,7 @@ export class DatabaseStorage implements IStorage {
         type: ipAddresses.type,
         status: ipAddresses.status,
         customerId: ipAddresses.customerId,
+        customerType: ipAddresses.customerType,
         assignedDate: ipAddresses.assignedDate,
         vlan: ipAddresses.vlan,
         pool: ipAddresses.pool,
@@ -2576,6 +2577,8 @@ export class DatabaseStorage implements IStorage {
         linkedDevice: ipAddresses.linkedDevice,
         subnetId: ipAddresses.subnetId,
         vlanId: ipAddresses.vlanId,
+        vendorId: ipAddresses.vendorId,
+        vendorName: ipAddresses.vendorName,
         customerName: customers.fullName,
       })
       .from(ipAddresses)

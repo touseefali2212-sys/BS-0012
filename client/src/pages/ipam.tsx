@@ -427,7 +427,7 @@ export default function IpamPage() {
   const filteredIps = useMemo(() => {
     return allIps.filter(ip => {
       const q = search.toLowerCase();
-      const matchSearch = !q || ip.ipAddress.toLowerCase().includes(q) || (ip.subnet || "").toLowerCase().includes(q) || (ip.vlan || "").toLowerCase().includes(q) || (ip.pool || "").toLowerCase().includes(q) || (ip.customerName || "").toLowerCase().includes(q);
+      const matchSearch = !q || ip.ipAddress.toLowerCase().includes(q) || (ip.subnet || "").toLowerCase().includes(q) || (ip.vlan || "").toLowerCase().includes(q) || (ip.pool || "").toLowerCase().includes(q) || (ip.customerName || "").toLowerCase().includes(q) || ((ip as any).vendorName || "").toLowerCase().includes(q) || ((ip as any).customerType || "").toLowerCase().includes(q);
       const matchStatus = statusFilter === "all" || ip.status === statusFilter;
       const matchType = typeFilter === "all" || ip.type === typeFilter;
       return matchSearch && matchStatus && matchType;
@@ -903,8 +903,9 @@ export default function IpamPage() {
                       <TableHead className="text-xs font-semibold">Subnet</TableHead>
                       <TableHead className="text-xs font-semibold">VLAN</TableHead>
                       <TableHead className="text-xs font-semibold">Assigned To</TableHead>
+                      <TableHead className="text-xs font-semibold">Customer Type</TableHead>
+                      <TableHead className="text-xs font-semibold">Vendor</TableHead>
                       <TableHead className="text-xs font-semibold">Service Type</TableHead>
-                      <TableHead className="text-xs font-semibold">MAC Address</TableHead>
                       <TableHead className="text-xs font-semibold">Device</TableHead>
                       <TableHead className="text-xs font-semibold">Type</TableHead>
                       <TableHead className="text-xs font-semibold">Status</TableHead>
@@ -914,7 +915,7 @@ export default function IpamPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredIps.length === 0 ? (
-                      <TableRow><TableCell colSpan={11} className="text-center py-12 text-muted-foreground">
+                      <TableRow><TableCell colSpan={13} className="text-center py-12 text-muted-foreground">
                         <Globe className="h-10 w-10 mx-auto mb-2 opacity-30" />No IP addresses found
                       </TableCell></TableRow>
                     ) : filteredIps.map(ip => (
@@ -924,9 +925,12 @@ export default function IpamPage() {
                         <TableCell className="text-xs">{ip.vlan || "—"}</TableCell>
                         <TableCell className="text-sm">{(ip as any).customerName || "—"}</TableCell>
                         <TableCell>
+                          {(ip as any).customerType ? <Badge variant="outline" className={`text-[10px] uppercase ${(ip as any).customerType === "cir" ? "border-blue-300 text-blue-700 bg-blue-50" : (ip as any).customerType === "corporate" ? "border-purple-300 text-purple-700 bg-purple-50" : ""}`}>{(ip as any).customerType}</Badge> : <span className="text-xs text-muted-foreground">—</span>}
+                        </TableCell>
+                        <TableCell className="text-xs">{(ip as any).vendorName || "—"}</TableCell>
+                        <TableCell>
                           {ip.serviceType ? <Badge variant="outline" className="text-[10px] capitalize">{ip.serviceType}</Badge> : <span className="text-xs text-muted-foreground">—</span>}
                         </TableCell>
-                        <TableCell className="font-mono text-xs">{ip.macAddress || "—"}</TableCell>
                         <TableCell className="text-xs">{ip.linkedDevice || "—"}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className="text-[10px] capitalize">{ip.type}</Badge>

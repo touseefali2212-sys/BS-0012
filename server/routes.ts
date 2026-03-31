@@ -2713,11 +2713,141 @@ export async function registerRoutes(
   app.get("/api/cir-customers/:id", requireAuth, async (req, res) => {
     try { const r = await storage.getCirCustomer(parseInt(req.params.id)); if (!r) return res.status(404).json({ message: "Not found" }); res.json(r); } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
+  async function syncCustomerIpToIpam(opts: {
+    customerId: number;
+    customerType: "cir" | "corporate";
+    companyName: string;
+    staticIp?: string | null;
+    subnetMask?: string | null;
+    gateway?: string | null;
+    vlanId?: string | null;
+    publicIpBlock?: string | null;
+    vendorId?: number | null;
+    onuDevice?: string | null;
+    bandwidthProfileName?: string | null;
+  }) {
+    const { customerId, customerType, companyName, staticIp, subnetMask, gateway, vlanId, publicIpBlock, vendorId, onuDevice, bandwidthProfileName } = opts;
+    let vendorName: string | null = null;
+    if (vendorId) {
+      try {
+        const v = await storage.getVendor(vendorId);
+        if (v) vendorName = v.name;
+      } catch (_) {}
+    }
+    const allIps = await storage.getIpAddresses();
+    const ipsToSync: string[] = [];
+    if (staticIp && staticIp.trim()) ipsToSync.push(staticIp.trim());
+    if (publicIpBlock && publicIpBlock.trim()) {
+      const blockIps = publicIpBlock.split(/[,;\s]+/).filter(ip => ip.trim());
+      ipsToSync.push(...blockIps);
+    }
+    const today = new Date().toISOString().split("T")[0];
+    for (const ip of ipsToSync) {
+      const existing = allIps.find(a => a.ipAddress === ip);
+      if (existing) {
+        await storage.updateIpAddress(existing.id, {
+          status: "assigned",
+          customerId,
+          customerType,
+          type: "static",
+          subnet: subnetMask || existing.subnet,
+          gateway: gateway || existing.gateway,
+          vlan: vlanId || existing.vlan,
+          assignedDate: existing.assignedDate || today,
+          serviceType: "internet",
+          linkedDevice: onuDevice || existing.linkedDevice,
+          vendorId: vendorId || existing.vendorId,
+          vendorName: vendorName || existing.vendorName,
+          notes: `${customerType.toUpperCase()} Customer: ${companyName}${bandwidthProfileName ? ` | BW: ${bandwidthProfileName}` : ""}`,
+        });
+        try {
+          await storage.createIpamLog({
+            actionType: "Updated",
+            user: "system",
+            ipAddress: ip,
+            oldValue: `status: ${existing.status}`,
+            newValue: `status: assigned | ${customerType} customer #${customerId} (${companyName})`,
+            details: `Auto-synced from ${customerType.toUpperCase()} customer profile`,
+          });
+        } catch (_) {}
+      } else {
+        try {
+          await storage.createIpAddress({
+            ipAddress: ip,
+            status: "assigned",
+            type: "static",
+            customerId,
+            customerType,
+            subnet: subnetMask || null,
+            gateway: gateway || null,
+            vlan: vlanId || null,
+            assignedDate: today,
+            serviceType: "internet",
+            linkedDevice: onuDevice || null,
+            vendorId: vendorId || null,
+            vendorName: vendorName || null,
+            notes: `${customerType.toUpperCase()} Customer: ${companyName}${bandwidthProfileName ? ` | BW: ${bandwidthProfileName}` : ""}`,
+          });
+          await storage.createIpamLog({
+            actionType: "Created",
+            user: "system",
+            ipAddress: ip,
+            oldValue: null,
+            newValue: `assigned | ${customerType} customer #${customerId} (${companyName})`,
+            details: `Auto-created from ${customerType.toUpperCase()} customer profile`,
+          });
+        } catch (_) {}
+      }
+    }
+    if (vlanId && vlanId.trim()) {
+      const vlanNum = parseInt(vlanId);
+      if (!isNaN(vlanNum) && vlanNum > 0 && vlanNum <= 4094) {
+        try {
+          const existingVlans = await storage.getVlans();
+          const found = existingVlans.find(v => v.vlanIdNumber === vlanNum);
+          if (!found) {
+            await storage.createVlan({
+              vlanIdNumber: vlanNum,
+              name: `VLAN-${vlanNum} (${companyName})`,
+              type: "internet",
+              status: "active",
+              description: `Auto-created from ${customerType.toUpperCase()} customer: ${companyName}`,
+            });
+            await storage.createIpamLog({
+              actionType: "Created",
+              user: "system",
+              ipAddress: `VLAN-${vlanNum}`,
+              oldValue: null,
+              newValue: `VLAN ${vlanNum} — ${companyName}`,
+              details: `Auto-created from ${customerType.toUpperCase()} customer profile`,
+            });
+          }
+        } catch (_) {}
+      }
+    }
+  }
+
   app.post("/api/cir-customers", requireAuth, async (req, res) => {
     try {
       const { insertCirCustomerSchema } = await import("@shared/schema");
       const parsed = insertCirCustomerSchema.parse(req.body);
-      res.status(201).json(await storage.createCirCustomer(parsed));
+      const created = await storage.createCirCustomer(parsed);
+      try {
+        await syncCustomerIpToIpam({
+          customerId: created.id,
+          customerType: "cir",
+          companyName: (created as any).companyName || "",
+          staticIp: (created as any).staticIp,
+          subnetMask: (created as any).subnetMask,
+          gateway: (created as any).gateway,
+          vlanId: (created as any).vlanId,
+          publicIpBlock: (created as any).publicIpBlock,
+          vendorId: (created as any).vendorId,
+          onuDevice: (created as any).onuDevice,
+          bandwidthProfileName: (created as any).bandwidthProfileName,
+        });
+      } catch (_) {}
+      res.status(201).json(created);
     } catch (e: any) { res.status(e.name === "ZodError" ? 400 : 500).json({ message: e.message }); }
   });
   app.patch("/api/cir-customers/:id", requireAuth, async (req, res) => {
@@ -2726,6 +2856,21 @@ export async function registerRoutes(
       const parsed = insertCirCustomerSchema.partial().parse(req.body);
       const r = await storage.updateCirCustomer(parseInt(req.params.id), parsed);
       if (!r) return res.status(404).json({ message: "Not found" });
+      try {
+        await syncCustomerIpToIpam({
+          customerId: r.id,
+          customerType: "cir",
+          companyName: (r as any).companyName || "",
+          staticIp: (r as any).staticIp,
+          subnetMask: (r as any).subnetMask,
+          gateway: (r as any).gateway,
+          vlanId: (r as any).vlanId,
+          publicIpBlock: (r as any).publicIpBlock,
+          vendorId: (r as any).vendorId,
+          onuDevice: (r as any).onuDevice,
+          bandwidthProfileName: (r as any).bandwidthProfileName,
+        });
+      } catch (_) {}
       res.json(r);
     } catch (e: any) { res.status(e.name === "ZodError" ? 400 : 500).json({ message: e.message }); }
   });
@@ -2805,19 +2950,23 @@ export async function registerRoutes(
       } catch (e: any) {
         steps.push({ step: "invoice", status: "error", message: `Invoice generation failed: ${e.message}` });
       }
-      // Step 2: IP Address Add and SYNC in Network
+      // Step 2: IP Address Add and SYNC in Network & IPAM
       try {
-        const staticIp = (cir as any).staticIp || "";
-        const publicIpBlock = (cir as any).publicIpBlock || "";
-        const ipRef = staticIp || publicIpBlock || `cir-${cid}`;
-        await storage.createActivityLog({
-          action: "ip_sync",
-          module: "network",
-          description: `CIR IP block assigned and synced: ${ipRef} | Committed BW: ${(cir as any).committedBandwidth || "N/A"} | VLAN: ${(cir as any).vlanId || "N/A"}`,
-          userId: null,
-          createdAt: new Date().toISOString(),
+        await syncCustomerIpToIpam({
+          customerId: cid,
+          customerType: "cir",
+          companyName: (cir as any).companyName || "",
+          staticIp: (cir as any).staticIp,
+          subnetMask: (cir as any).subnetMask,
+          gateway: (cir as any).gateway,
+          vlanId: (cir as any).vlanId,
+          publicIpBlock: (cir as any).publicIpBlock,
+          vendorId: (cir as any).vendorId,
+          onuDevice: (cir as any).onuDevice,
+          bandwidthProfileName: (cir as any).bandwidthProfileName,
         });
-        steps.push({ step: "ip_sync", status: "success", message: `IP block assigned and synced: ${ipRef || "pending assignment"}`, data: { ip: ipRef, vlan: (cir as any).vlanId || null } });
+        const ipRef = (cir as any).staticIp || (cir as any).publicIpBlock || `cir-${cid}`;
+        steps.push({ step: "ip_sync", status: "success", message: `IP/VLAN synced to IPAM: ${ipRef || "pending assignment"}`, data: { ip: ipRef, vlan: (cir as any).vlanId || null } });
       } catch (e: any) {
         steps.push({ step: "ip_sync", status: "error", message: `IP sync failed: ${e.message}` });
       }
@@ -2898,7 +3047,21 @@ export async function registerRoutes(
     try {
       const { insertCorporateCustomerSchema } = await import("@shared/schema");
       const parsed = insertCorporateCustomerSchema.parse(req.body);
-      res.status(201).json(await storage.createCorporateCustomer(parsed));
+      const created = await storage.createCorporateCustomer(parsed);
+      try {
+        await syncCustomerIpToIpam({
+          customerId: created.id,
+          customerType: "corporate",
+          companyName: (created as any).companyName || "",
+          staticIp: (created as any).staticIp,
+          subnetMask: (created as any).subnetMask,
+          gateway: (created as any).gateway,
+          vlanId: (created as any).vlanId,
+          vendorId: (created as any).vendorId,
+          bandwidthProfileName: (created as any).bandwidthProfileName,
+        });
+      } catch (_) {}
+      res.status(201).json(created);
     } catch (e: any) { res.status(e.name === "ZodError" ? 400 : 500).json({ message: e.message }); }
   });
   app.patch("/api/corporate-customers/:id", requireAuth, async (req, res) => {
@@ -2907,6 +3070,19 @@ export async function registerRoutes(
       const parsed = insertCorporateCustomerSchema.partial().parse(req.body);
       const r = await storage.updateCorporateCustomer(parseInt(req.params.id), parsed);
       if (!r) return res.status(404).json({ message: "Not found" });
+      try {
+        await syncCustomerIpToIpam({
+          customerId: r.id,
+          customerType: "corporate",
+          companyName: (r as any).companyName || "",
+          staticIp: (r as any).staticIp,
+          subnetMask: (r as any).subnetMask,
+          gateway: (r as any).gateway,
+          vlanId: (r as any).vlanId,
+          vendorId: (r as any).vendorId,
+          bandwidthProfileName: (r as any).bandwidthProfileName,
+        });
+      } catch (_) {}
       res.json(r);
     } catch (e: any) { res.status(e.name === "ZodError" ? 400 : 500).json({ message: e.message }); }
   });
@@ -2984,18 +3160,21 @@ export async function registerRoutes(
       } catch (e: any) {
         steps.push({ step: "invoice", status: "error", message: `Invoice generation failed: ${e.message}` });
       }
-      // Step 2: IP Address Add and SYNC in Network
+      // Step 2: IP Address Add and SYNC in Network & IPAM
       try {
-        const bandwidth = (corp as any).totalBandwidth || (corp as any).bandwidthMbps || "N/A";
-        const ipRef = `corp-${cid}-net`;
-        await storage.createActivityLog({
-          action: "ip_sync",
-          module: "network",
-          description: `Corporate IP block assigned: ${ipRef} | Bandwidth: ${bandwidth} | Company: ${(corp as any).companyName}`,
-          userId: null,
-          createdAt: new Date().toISOString(),
+        await syncCustomerIpToIpam({
+          customerId: cid,
+          customerType: "corporate",
+          companyName: (corp as any).companyName || "",
+          staticIp: (corp as any).staticIp,
+          subnetMask: (corp as any).subnetMask,
+          gateway: (corp as any).gateway,
+          vlanId: (corp as any).vlanId,
+          vendorId: (corp as any).vendorId,
+          bandwidthProfileName: (corp as any).bandwidthProfileName,
         });
-        steps.push({ step: "ip_sync", status: "success", message: `IP block assigned for ${bandwidth} bandwidth`, data: { ip: ipRef, bandwidth } });
+        const ipRef = (corp as any).staticIp || `corp-${cid}`;
+        steps.push({ step: "ip_sync", status: "success", message: `IP/VLAN synced to IPAM: ${ipRef || "pending assignment"}`, data: { ip: ipRef, vlan: (corp as any).vlanId || null } });
       } catch (e: any) {
         steps.push({ step: "ip_sync", status: "error", message: `IP sync failed: ${e.message}` });
       }

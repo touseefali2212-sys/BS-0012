@@ -1334,6 +1334,7 @@ export const ipAddresses = pgTable("ip_addresses", {
   type: text("type").notNull().default("dynamic"),
   status: text("status").notNull().default("available"),
   customerId: integer("customer_id"),
+  customerType: text("customer_type"),
   assignedDate: text("assigned_date"),
   vlan: text("vlan"),
   pool: text("pool"),
@@ -1343,6 +1344,8 @@ export const ipAddresses = pgTable("ip_addresses", {
   linkedDevice: text("linked_device"),
   subnetId: integer("subnet_id"),
   vlanId: integer("vlan_id"),
+  vendorId: integer("vendor_id"),
+  vendorName: text("vendor_name"),
 });
 
 export const subnets = pgTable("subnets", {
