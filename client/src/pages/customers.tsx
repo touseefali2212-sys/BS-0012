@@ -2442,6 +2442,7 @@ function CustomerListView({
   setTab: (v: string) => void;
 }) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const { canCreate, canEdit, canDelete } = usePermissions();
   const [showFilters, setShowFilters] = useState(true);
   const [entriesCount, setEntriesCount] = useState(100);
@@ -2452,6 +2453,84 @@ function CustomerListView({
     next.has(id) ? next.delete(id) : next.add(id);
     return next;
   });
+
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [assignEmployeeId, setAssignEmployeeId] = useState("");
+  const [bulkStatusDialogOpen, setBulkStatusDialogOpen] = useState(false);
+  const [bulkStatusAction, setBulkStatusAction] = useState("active");
+  const [bulkStatusReason, setBulkStatusReason] = useState("");
+  const [bulkPackageDialogOpen, setBulkPackageDialogOpen] = useState(false);
+  const [bulkPackageId, setBulkPackageId] = useState("");
+  const [bulkProfileDialogOpen, setBulkProfileDialogOpen] = useState(false);
+  const [bulkProfileField, setBulkProfileField] = useState("customerType");
+  const [bulkProfileValue, setBulkProfileValue] = useState("");
+
+  const bulkAssignMutation = useMutation({
+    mutationFn: async ({ ids, employeeId }: { ids: number[]; employeeId: string }) => {
+      const empName = (employees || []).find((e: any) => String(e.id) === employeeId)?.fullName || employeeId;
+      await Promise.all(ids.map(id => apiRequest("PATCH", `/api/customers/${id}`, { assignTo: empName })));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      toast({ title: "Assigned", description: `${selectedIds.length} customer(s) assigned to employee` });
+      setAssignDialogOpen(false);
+      setSelectedIds([]);
+      setAssignEmployeeId("");
+    },
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
+  const bulkStatusMutation = useMutation({
+    mutationFn: async ({ ids, status, reason }: { ids: number[]; status: string; reason: string }) => {
+      await Promise.all(ids.map(async (id) => {
+        await apiRequest("PATCH", `/api/customers/${id}`, { status });
+        await apiRequest("POST", "/api/audit-logs", {
+          action: status === "active" ? "enable" : "disable",
+          module: "customers",
+          entityType: "customer",
+          entityId: id,
+          oldValues: JSON.stringify({}),
+          newValues: JSON.stringify({ status }),
+          description: `Bulk status change to "${status}". ${reason ? `Reason: ${reason}` : ""}`,
+          createdAt: new Date().toISOString(),
+        });
+      }));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      toast({ title: "Status Updated", description: `${selectedIds.length} customer(s) updated to ${bulkStatusAction}` });
+      setBulkStatusDialogOpen(false);
+      setSelectedIds([]);
+    },
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
+  const bulkPackageMutation = useMutation({
+    mutationFn: async ({ ids, packageId }: { ids: number[]; packageId: number }) => {
+      await Promise.all(ids.map(id => apiRequest("PATCH", `/api/customers/${id}`, { packageId })));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      toast({ title: "Package Updated", description: `${selectedIds.length} customer(s) package changed` });
+      setBulkPackageDialogOpen(false);
+      setSelectedIds([]);
+    },
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
+  const bulkProfileMutation = useMutation({
+    mutationFn: async ({ ids, field, value }: { ids: number[]; field: string; value: string }) => {
+      await Promise.all(ids.map(id => apiRequest("PATCH", `/api/customers/${id}`, { [field]: value })));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      toast({ title: "Profile Updated", description: `${selectedIds.length} customer(s) profile updated` });
+      setBulkProfileDialogOpen(false);
+      setSelectedIds([]);
+    },
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
   const [filterVendor, setFilterVendor] = useState("all");
   const [filterProtocol, setFilterProtocol] = useState("all");
   const [filterClientType, setFilterClientType] = useState("all");
@@ -2517,6 +2596,37 @@ function CustomerListView({
   });
 
   const displayed = filtered.slice(0, entriesCount);
+
+  const handleGenerateExcel = () => {
+    const csvHeaders = ["Customer Code", "ID/IP", "Customer Name", "Mobile", "Zone", "Connection Type", "Customer Type", "Package", "M.Bill", "MAC Addr", "Vendor", "B.Status", "Profile Status"];
+    const csvRows = (filtered.length > 0 ? filtered : allCustomers).map(c => {
+      const pkg = packages?.find(p => p.id === c.packageId);
+      const vend = vendors?.find((v: any) => v.id === c.vendorId);
+      return [c.customerId, c.usernameIp || "", c.fullName, c.phone, c.zone || "", c.connectionType || "", c.customerType, pkg ? `${pkg.name}/${pkg.speed || ""}` : "", c.monthlyBill || "", (c as any).macAddress || "", vend?.name || "", c.billingStatus || "Inactive", c.status || "unknown"];
+    });
+    const csvContent = [csvHeaders, ...csvRows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `customers_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Excel Generated", description: `Exported ${csvRows.length} customer(s) to CSV` });
+  };
+
+  const handleGeneratePdf = () => {
+    const printContent = (filtered.length > 0 ? filtered : allCustomers).map(c => {
+      const pkg = packages?.find(p => p.id === c.packageId);
+      return `<tr><td>${c.customerId}</td><td>${c.fullName}</td><td>${c.phone}</td><td>${c.zone || "-"}</td><td>${c.connectionType || "-"}</td><td>${pkg ? pkg.name : "-"}</td><td>${c.monthlyBill || "-"}</td><td>${c.billingStatus || "Inactive"}</td><td>${c.status || "unknown"}</td></tr>`;
+    }).join("");
+    const win = window.open("", "_blank");
+    if (win) {
+      win.document.write(`<html><head><title>Customer List</title><style>body{font-family:Arial,sans-serif;padding:20px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#1a3a5c;color:white}h2{color:#1a3a5c}</style></head><body><h2>Customer List — ${new Date().toLocaleDateString()}</h2><table><thead><tr><th>Code</th><th>Name</th><th>Phone</th><th>Zone</th><th>Conn. Type</th><th>Package</th><th>M.Bill</th><th>B.Status</th><th>Status</th></tr></thead><tbody>${printContent}</tbody></table><script>window.print();<\/script></body></html>`);
+      win.document.close();
+    }
+    toast({ title: "PDF Generated", description: "Print dialog opened for PDF export" });
+  };
 
   const toggleSelect = (id: number) => {
     setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -2722,22 +2832,27 @@ function CustomerListView({
     <div className="mt-5 space-y-4">
       <div className="flex flex-wrap items-center justify-center gap-2 bg-card border rounded-lg p-3" data-testid="customer-list-toolbar">
         <Button size="sm" variant="outline" className="text-xs gap-1.5" data-testid="button-assign-employee"
-          onClick={() => { if (selectedIds.length === 0) { toast({ title: "Select customers first", description: "Please select customers to assign", variant: "destructive" }); } }}>
+          onClick={() => { if (selectedIds.length === 0) { toast({ title: "Select customers first", description: "Please select customers to assign", variant: "destructive" }); return; } setAssignEmployeeId(""); setAssignDialogOpen(true); }}>
           <UserPlus className="h-3.5 w-3.5" /> Assign To Employee
         </Button>
-        <Button size="sm" variant="outline" className="text-xs gap-1.5" data-testid="button-generate-excel">
+        <Button size="sm" variant="outline" className="text-xs gap-1.5" data-testid="button-generate-excel"
+          onClick={handleGenerateExcel}>
           <FileSpreadsheet className="h-3.5 w-3.5" /> Generate Excel
         </Button>
-        <Button size="sm" variant="outline" className="text-xs gap-1.5" data-testid="button-generate-pdf">
+        <Button size="sm" variant="outline" className="text-xs gap-1.5" data-testid="button-generate-pdf"
+          onClick={handleGeneratePdf}>
           <FileDown className="h-3.5 w-3.5" /> Generate Pdf
         </Button>
-        <Button size="sm" variant="outline" className="text-xs gap-1.5" data-testid="button-bulk-profile">
+        <Button size="sm" variant="outline" className="text-xs gap-1.5" data-testid="button-bulk-profile"
+          onClick={() => { if (selectedIds.length === 0) { toast({ title: "Select customers first", variant: "destructive" }); return; } setBulkProfileField("customerType"); setBulkProfileValue(""); setBulkProfileDialogOpen(true); }}>
           <Settings2 className="h-3.5 w-3.5" /> Bulk Profile Change
         </Button>
-        <Button size="sm" variant="outline" className="text-xs gap-1.5" data-testid="button-bulk-package">
+        <Button size="sm" variant="outline" className="text-xs gap-1.5" data-testid="button-bulk-package"
+          onClick={() => { if (selectedIds.length === 0) { toast({ title: "Select customers first", variant: "destructive" }); return; } setBulkPackageId(""); setBulkPackageDialogOpen(true); }}>
           <Settings2 className="h-3.5 w-3.5" /> Bulk Package Change
         </Button>
-        <Button size="sm" variant="outline" className="text-xs gap-1.5" data-testid="button-bulk-status">
+        <Button size="sm" variant="outline" className="text-xs gap-1.5" data-testid="button-bulk-status"
+          onClick={() => { if (selectedIds.length === 0) { toast({ title: "Select customers first", variant: "destructive" }); return; } setBulkStatusAction("active"); setBulkStatusReason(""); setBulkStatusDialogOpen(true); }}>
           <Settings2 className="h-3.5 w-3.5" /> Bulk Status Change
         </Button>
         <Button size="sm" className="text-xs gap-1.5 bg-[#1a3a5c] ml-auto" data-testid="button-sync-clients"
@@ -3196,7 +3311,7 @@ function CustomerListView({
                           <MessageCircle className="h-4 w-4 mr-2" /> Send SMS
                         </DropdownMenuItem>
                         <DropdownMenuItem data-testid={`action-service-scheduler-${customer.id}`}
-                          onClick={() => toast({ title: "Service Scheduler", description: `Scheduler for ${customer.fullName}` })}>
+                          onClick={() => setLocation(`/service-scheduler?customerType=Normal&customerId=${customer.id}&customerName=${encodeURIComponent(customer.fullName)}`)}>
                           <CalendarRange className="h-4 w-4 mr-2" /> Service Scheduler
                         </DropdownMenuItem>
                         {canEdit("customers") && (
@@ -3459,6 +3574,192 @@ function CustomerListView({
               {statusToggleMutation.isPending ? "Updating..." : (
                 statusAction === "active" ? "Activate" : statusAction === "suspended" ? "Suspend" : statusAction === "expired" ? "Set Expired" : "Close Account"
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent className="max-w-[450px]" data-testid="dialog-assign-employee">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-[#0057FF]" /> Assign Customers to Employee
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm">
+              <span className="font-medium">{selectedIds.length}</span> customer(s) selected for assignment
+            </div>
+            <div className="space-y-2">
+              <span className="text-sm font-medium">Select Employee</span>
+              <Select value={assignEmployeeId} onValueChange={setAssignEmployeeId}>
+                <SelectTrigger data-testid="select-assign-employee"><SelectValue placeholder="Choose employee..." /></SelectTrigger>
+                <SelectContent>
+                  {(employees || []).filter((e: any) => e.status === "active").map((e: any) => (
+                    <SelectItem key={e.id} value={String(e.id)}>{e.fullName}{e.designation ? ` — ${e.designation}` : ""}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>Cancel</Button>
+            <Button className="bg-[#0057FF]" disabled={!assignEmployeeId || bulkAssignMutation.isPending}
+              onClick={() => bulkAssignMutation.mutate({ ids: selectedIds, employeeId: assignEmployeeId })}
+              data-testid="button-confirm-assign">
+              {bulkAssignMutation.isPending ? "Assigning..." : "Assign"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={bulkStatusDialogOpen} onOpenChange={setBulkStatusDialogOpen}>
+        <DialogContent className="max-w-[450px]" data-testid="dialog-bulk-status">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="h-5 w-5 text-[#0057FF]" /> Bulk Status Change
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm">
+              <span className="font-medium">{selectedIds.length}</span> customer(s) selected
+            </div>
+            <div className="space-y-2">
+              <span className="text-sm font-medium">New Status</span>
+              <Select value={bulkStatusAction} onValueChange={setBulkStatusAction}>
+                <SelectTrigger data-testid="select-bulk-status"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="closed">Closed</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <span className="text-sm font-medium">Reason (optional)</span>
+              <Textarea value={bulkStatusReason} onChange={e => setBulkStatusReason(e.target.value)} placeholder="Add reason..." className="min-h-[60px]" data-testid="textarea-bulk-status-reason" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkStatusDialogOpen(false)}>Cancel</Button>
+            <Button className={bulkStatusAction === "active" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}
+              disabled={bulkStatusMutation.isPending}
+              onClick={() => bulkStatusMutation.mutate({ ids: selectedIds, status: bulkStatusAction, reason: bulkStatusReason })}
+              data-testid="button-confirm-bulk-status">
+              {bulkStatusMutation.isPending ? "Updating..." : `Set ${bulkStatusAction}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={bulkPackageDialogOpen} onOpenChange={setBulkPackageDialogOpen}>
+        <DialogContent className="max-w-[450px]" data-testid="dialog-bulk-package">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="h-5 w-5 text-[#0057FF]" /> Bulk Package Change
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm">
+              <span className="font-medium">{selectedIds.length}</span> customer(s) selected
+            </div>
+            <div className="space-y-2">
+              <span className="text-sm font-medium">New Package</span>
+              <Select value={bulkPackageId} onValueChange={setBulkPackageId}>
+                <SelectTrigger data-testid="select-bulk-package"><SelectValue placeholder="Choose package..." /></SelectTrigger>
+                <SelectContent>
+                  {(packages || []).map(p => (
+                    <SelectItem key={p.id} value={String(p.id)}>{p.name} — {p.speed || "N/A"} — ₹{p.price || 0}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkPackageDialogOpen(false)}>Cancel</Button>
+            <Button className="bg-[#0057FF]" disabled={!bulkPackageId || bulkPackageMutation.isPending}
+              onClick={() => bulkPackageMutation.mutate({ ids: selectedIds, packageId: Number(bulkPackageId) })}
+              data-testid="button-confirm-bulk-package">
+              {bulkPackageMutation.isPending ? "Updating..." : "Change Package"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={bulkProfileDialogOpen} onOpenChange={setBulkProfileDialogOpen}>
+        <DialogContent className="max-w-[450px]" data-testid="dialog-bulk-profile">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="h-5 w-5 text-[#0057FF]" /> Bulk Profile Change
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm">
+              <span className="font-medium">{selectedIds.length}</span> customer(s) selected
+            </div>
+            <div className="space-y-2">
+              <span className="text-sm font-medium">Field to Change</span>
+              <Select value={bulkProfileField} onValueChange={v => { setBulkProfileField(v); setBulkProfileValue(""); }}>
+                <SelectTrigger data-testid="select-bulk-profile-field"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="customerType">Customer Type</SelectItem>
+                  <SelectItem value="connectionType">Connection Type</SelectItem>
+                  <SelectItem value="protocolType">Protocol Type</SelectItem>
+                  <SelectItem value="device">Device Type</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <span className="text-sm font-medium">New Value</span>
+              {bulkProfileField === "customerType" && (
+                <Select value={bulkProfileValue} onValueChange={setBulkProfileValue}>
+                  <SelectTrigger data-testid="select-bulk-profile-value"><SelectValue placeholder="Select type..." /></SelectTrigger>
+                  <SelectContent>
+                    {["home", "office", "govt. office", "shop", "hospital", "hostel", "hotel", "restaurants", "café", "school", "collage", "academy"].map(v => (
+                      <SelectItem key={v} value={v}>{v.charAt(0).toUpperCase() + v.slice(1)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {bulkProfileField === "connectionType" && (
+                <Select value={bulkProfileValue} onValueChange={setBulkProfileValue}>
+                  <SelectTrigger data-testid="select-bulk-profile-value"><SelectValue placeholder="Select type..." /></SelectTrigger>
+                  <SelectContent>
+                    {["FTTH", "Dedicated Fiber", "Wireless P2MP", "Wireless P2P", "Ethernet Cat6", "DSL"].map(v => (
+                      <SelectItem key={v} value={v}>{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {bulkProfileField === "protocolType" && (
+                <Select value={bulkProfileValue} onValueChange={setBulkProfileValue}>
+                  <SelectTrigger data-testid="select-bulk-profile-value"><SelectValue placeholder="Select protocol..." /></SelectTrigger>
+                  <SelectContent>
+                    {["PPPoE", "Hotspot", "Static IP", "IPoE", "DHCP"].map(v => (
+                      <SelectItem key={v} value={v}>{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {bulkProfileField === "device" && (
+                <Select value={bulkProfileValue} onValueChange={setBulkProfileValue}>
+                  <SelectTrigger data-testid="select-bulk-profile-value"><SelectValue placeholder="Select device..." /></SelectTrigger>
+                  <SelectContent>
+                    {["ONT", "ONU", "Router", "Modem", "Access Point", "CPE"].map(v => (
+                      <SelectItem key={v} value={v}>{v}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkProfileDialogOpen(false)}>Cancel</Button>
+            <Button className="bg-[#0057FF]" disabled={!bulkProfileValue || bulkProfileMutation.isPending}
+              onClick={() => bulkProfileMutation.mutate({ ids: selectedIds, field: bulkProfileField, value: bulkProfileValue })}
+              data-testid="button-confirm-bulk-profile">
+              {bulkProfileMutation.isPending ? "Updating..." : "Apply Change"}
             </Button>
           </DialogFooter>
         </DialogContent>

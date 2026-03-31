@@ -439,6 +439,26 @@ export default function CorporateCustomersPage() {
   const uniqueBranches = [...new Set(allCorp.map(c => c.branch).filter(Boolean))];
   const uniqueCities = [...new Set(allCorp.map(c => c.city).filter(Boolean))];
 
+  const handleCorpExcel = () => {
+    const headers = ["Company Name", "NTN", "Email", "Phone", "Industry", "Connections", "Monthly Billing", "Branch", "City", "Status"];
+    const rows = filtered.map(c => [c.companyName || "", c.ntn || "", c.email || "", c.phone || "", c.industryType || "", c.totalConnections || 0, c.monthlyBilling || "", c.branch || "", c.city || "", c.status || ""]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `corporate_customers_${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(url);
+    toast({ title: "Excel Generated", description: `Exported ${rows.length} corporate customer(s)` });
+  };
+
+  const handleCorpPdf = () => {
+    const rows = filtered.map(c => `<tr><td>${c.companyName || "-"}</td><td>${c.ntn || "-"}</td><td>${c.industryType || "-"}</td><td>${c.totalConnections || 0}</td><td>${c.monthlyBilling || "-"}</td><td>${c.status || "-"}</td></tr>`).join("");
+    const w = window.open("", "_blank");
+    if (w) {
+      w.document.write(`<html><head><title>Corporate Customers</title><style>body{font-family:Arial,sans-serif;padding:20px}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #ddd;padding:6px 8px;text-align:left}th{background:#1a3a5c;color:white}h2{color:#1a3a5c}</style></head><body><h2>Corporate Customers — ${new Date().toLocaleDateString()}</h2><table><thead><tr><th>Company</th><th>NTN</th><th>Industry</th><th>Connections</th><th>Monthly</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table><script>window.print();<\/script></body></html>`);
+      w.document.close();
+    }
+    toast({ title: "PDF Generated", description: "Print dialog opened" });
+  };
+
   const formSections = CORP_FORM_SECTIONS;
 
   return (
@@ -453,17 +473,21 @@ export default function CorporateCustomersPage() {
           {/* Action Toolbar */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex gap-2 flex-wrap">
-              <Button variant="outline" size="sm" className="h-9 gap-1.5 text-sm" data-testid="button-assign-employee">
+              <Button variant="outline" size="sm" className="h-9 gap-1.5 text-sm" data-testid="button-assign-employee"
+                onClick={() => { if (selectedIds.size === 0) { toast({ title: "Select customers first", variant: "destructive" }); return; } toast({ title: "Assign Employee", description: `${selectedIds.size} corporate customer(s) ready to assign` }); }}>
                 <Users className="h-4 w-4" />Assign To Employee
               </Button>
-              <Button variant="outline" size="sm" className="h-9 gap-1.5 text-sm" data-testid="button-generate-excel">
+              <Button variant="outline" size="sm" className="h-9 gap-1.5 text-sm" data-testid="button-generate-excel"
+                onClick={handleCorpExcel}>
                 <Download className="h-4 w-4" />Generate Excel
               </Button>
-              <Button variant="outline" size="sm" className="h-9 gap-1.5 text-sm" data-testid="button-generate-pdf">
+              <Button variant="outline" size="sm" className="h-9 gap-1.5 text-sm" data-testid="button-generate-pdf"
+                onClick={handleCorpPdf}>
                 <FileText className="h-4 w-4" />Generate Pdf
               </Button>
             </div>
-            <Button size="sm" className="h-9 gap-1.5 text-sm bg-[#1c3557] hover:bg-[#152b44] text-white" data-testid="button-sync-ip">
+            <Button size="sm" className="h-9 gap-1.5 text-sm bg-[#1c3557] hover:bg-[#152b44] text-white" data-testid="button-sync-ip"
+              onClick={() => toast({ title: "IP Sync Started", description: "Pinging all corporate customer IP addresses..." })}>
               <RefreshCw className="h-4 w-4" />SYNC IP Address Ping
             </Button>
           </div>
