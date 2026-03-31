@@ -3530,6 +3530,7 @@ export const onuDevices = pgTable("onu_devices", {
   serialNumber: text("serial_number"),
   macAddress: text("mac_address"),
   customerId: integer("customer_id"),
+  customerType: text("customer_type"),
   splitterId: integer("splitter_id"),
   splitterPort: integer("splitter_port"),
   lat: decimal("lat").notNull(),

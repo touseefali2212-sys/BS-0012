@@ -43,6 +43,10 @@ import {
   TrendingUp,
   TrendingDown,
   Send,
+  Zap,
+  Link2,
+  Unlink,
+  Radio,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -247,6 +251,56 @@ export default function CustomerProfilePage() {
       return res.json();
     },
     enabled: !!id,
+  });
+
+  const [ontAssignDialogOpen, setOntAssignDialogOpen] = useState(false);
+  const [selectedOnuDeviceId, setSelectedOnuDeviceId] = useState("");
+
+  const { data: ontIntegration, isLoading: ontLoading } = useQuery<any[]>({
+    queryKey: ["/api/customers", id, "ont-integration"],
+    queryFn: async () => {
+      const res = await fetch(`/api/customers/${id}/ont-integration?customerType=normal`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!id,
+  });
+
+  const { data: allOnuDevices } = useQuery<any[]>({
+    queryKey: ["/api/onu-devices"],
+    enabled: ontAssignDialogOpen,
+  });
+
+  const assignOnuMutation = useMutation({
+    mutationFn: async (onuDeviceId: string) => {
+      const res = await apiRequest("POST", `/api/customers/${id}/ont-integration`, { onuDeviceId, customerType: "normal" });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers", id, "ont-integration"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/onu-devices"] });
+      setOntAssignDialogOpen(false);
+      setSelectedOnuDeviceId("");
+      toast({ title: "ONT/ONU device assigned successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const unlinkOnuMutation = useMutation({
+    mutationFn: async (onuId: number) => {
+      const res = await apiRequest("DELETE", `/api/customers/${id}/ont-integration/${onuId}?customerType=normal`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers", id, "ont-integration"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/onu-devices"] });
+      toast({ title: "ONT/ONU device unlinked successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
   });
 
   const createServiceRequestMutation = useMutation({
@@ -1224,6 +1278,80 @@ export default function CustomerProfilePage() {
                       <p className="text-xs mt-1">Add a connection to get started</p>
                     </div>
                   </>
+                )}
+
+                <SectionHeader title="ONT/ONU Integration with OLT" action={
+                  <Button size="sm" variant="outline" onClick={() => setOntAssignDialogOpen(true)} className="text-xs" data-testid="button-assign-ont">
+                    <Link2 className="h-3 w-3 mr-1" /> Assign ONT/ONU
+                  </Button>
+                } />
+                {ontLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-20 w-full" />
+                  </div>
+                ) : ontIntegration && ontIntegration.length > 0 ? (
+                  ontIntegration.map((item: any) => (
+                    <div key={item.id} className="bg-card border rounded-lg overflow-hidden" data-testid={`card-ont-${item.id}`}>
+                      <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b">
+                        <div className="flex items-center gap-2">
+                          <Radio className="h-3.5 w-3.5 text-blue-600" />
+                          <span className="text-xs font-semibold">{item.onuId}</span>
+                          <Badge variant="secondary" className={`text-[10px] capitalize ${item.status === "online" ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
+                            {item.status}
+                          </Badge>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => unlinkOnuMutation.mutate(item.id)} data-testid={`button-unlink-ont-${item.id}`}>
+                          <Unlink className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-2 divide-x divide-y">
+                        <InfoRow label="ONU/ONT ID" value={item.onuId || "-"} />
+                        <InfoRow label="Serial Number" value={item.serialNumber || "-"} />
+                        <InfoRow label="MAC Address" value={<span className="font-mono text-xs">{item.macAddress || "-"}</span>} />
+                        <InfoRow label="IP Address" value={<span className="font-mono text-xs">{item.ipAddress || "-"}</span>} />
+                        <InfoRow label="Optical Power" value={item.opticalPower ? `${item.opticalPower} dBm` : "-"} />
+                        <InfoRow label="Service Plan" value={item.servicePlan || "-"} />
+                        <InfoRow label="Activation Date" value={item.activationDate || "-"} />
+                        <InfoRow label="Splitter Port" value={item.splitterPort ? String(item.splitterPort) : "-"} />
+                      </div>
+                      {item.splitter && (
+                        <>
+                          <div className="px-4 py-1.5 bg-blue-50/50 dark:bg-blue-950/20 border-t border-b flex items-center gap-2">
+                            <Zap className="h-3 w-3 text-blue-600" />
+                            <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">Splitter Information</span>
+                          </div>
+                          <div className="grid grid-cols-2 divide-x divide-y">
+                            <InfoRow label="Splitter ID" value={item.splitter.splitterId || "-"} />
+                            <InfoRow label="Splitter Name" value={item.splitter.name || "-"} />
+                            <InfoRow label="Split Ratio" value={item.splitter.splitRatio || "-"} />
+                            <InfoRow label="PON Port" value={item.splitter.ponPort ? String(item.splitter.ponPort) : "-"} />
+                          </div>
+                        </>
+                      )}
+                      {item.olt && (
+                        <>
+                          <div className="px-4 py-1.5 bg-emerald-50/50 dark:bg-emerald-950/20 border-t border-b flex items-center gap-2">
+                            <Globe className="h-3 w-3 text-emerald-600" />
+                            <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">OLT Information</span>
+                          </div>
+                          <div className="grid grid-cols-2 divide-x divide-y">
+                            <InfoRow label="OLT ID" value={item.olt.oltId || "-"} />
+                            <InfoRow label="OLT Name" value={item.olt.name || "-"} />
+                            <InfoRow label="IP Address" value={<span className="font-mono text-xs">{item.olt.ipAddress || "-"}</span>} />
+                            <InfoRow label="Vendor / Model" value={`${item.olt.vendor || "-"} / ${item.olt.model || "-"}`} />
+                            <InfoRow label="PON Ports (Used/Total)" value={`${item.olt.usedPonPorts || 0} / ${item.olt.totalPonPorts || 0}`} />
+                            <InfoRow label="Status" value={<Badge variant="secondary" className={`text-[10px] capitalize ${item.olt.status === "active" ? "text-green-700 bg-green-50" : "text-orange-600 bg-orange-50"}`}>{item.olt.status}</Badge>} />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="bg-card border rounded-lg p-8 text-center text-muted-foreground">
+                    <Radio className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm font-medium">No ONT/ONU device linked</p>
+                    <p className="text-xs mt-1">Assign an ONT/ONU device to view integration details</p>
+                  </div>
                 )}
               </div>
             )}
@@ -2742,6 +2870,39 @@ export default function CustomerProfilePage() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={ontAssignDialogOpen} onOpenChange={setOntAssignDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Radio className="h-4 w-4" /> Assign ONT/ONU Device</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Select Available ONU/ONT Device</label>
+              <Select value={selectedOnuDeviceId} onValueChange={setSelectedOnuDeviceId}>
+                <SelectTrigger data-testid="select-onu-device"><SelectValue placeholder="Select an ONU/ONT device" /></SelectTrigger>
+                <SelectContent>
+                  {(allOnuDevices || []).filter((d: any) => !d.customerId).map((d: any) => (
+                    <SelectItem key={d.id} value={String(d.id)}>
+                      {d.onuId} — {d.serialNumber || "No Serial"} ({d.status})
+                    </SelectItem>
+                  ))}
+                  {(allOnuDevices || []).filter((d: any) => !d.customerId).length === 0 && (
+                    <SelectItem value="__none" disabled>No available devices</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground">Only unassigned ONT/ONU devices are shown. To assign a device already linked to another customer, unlink it first from the Network Map module.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setOntAssignDialogOpen(false); setSelectedOnuDeviceId(""); }} data-testid="button-cancel-ont-assign">Cancel</Button>
+            <Button onClick={() => assignOnuMutation.mutate(selectedOnuDeviceId)} disabled={!selectedOnuDeviceId || assignOnuMutation.isPending} data-testid="button-confirm-ont-assign">
+              {assignOnuMutation.isPending ? "Assigning..." : "Assign Device"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

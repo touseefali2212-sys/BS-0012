@@ -6,7 +6,7 @@ import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
 import { db } from "./db";
-import { purchaseOrderItems, serviceSchedulerRequests, notificationDispatches, packageChangeRequests, bandwidthHistory } from "@shared/schema";
+import { purchaseOrderItems, serviceSchedulerRequests, notificationDispatches, packageChangeRequests, bandwidthHistory, onuDevices, gponSplitters, oltDevices } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 import {
   loginSchema, insertCustomerSchema, insertPackageSchema, insertInvoiceSchema,
@@ -6904,6 +6904,56 @@ export async function registerRoutes(
   });
   app.delete("/api/onu-devices/:id", requireAuth, async (req, res) => {
     try { await storage.deleteOnuDevice(parseInt(req.params.id)); res.json({ message: "Deleted" }); } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // ─── ONT/ONU Integration with OLT (Customer Profile) ──────────
+  app.get("/api/customers/:id/ont-integration", requireAuth, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const customerType = (req.query.customerType as string) || "normal";
+      const validTypes = ["normal", "cir", "corporate"];
+      if (!validTypes.includes(customerType)) return res.status(400).json({ message: "Invalid customerType" });
+      const allOnus = await storage.getOnuDevices();
+      const onus = allOnus.filter(o => o.customerId === customerId && o.customerType === customerType);
+      const splitters = await storage.getGponSplitters();
+      const olts = await storage.getOltDevices();
+      const enriched = onus.map(onu => {
+        const splitter = splitters.find(s => s.id === onu.splitterId);
+        const olt = splitter ? olts.find(o => o.id === splitter.oltId) : null;
+        return { ...onu, splitter: splitter || null, olt: olt || null };
+      });
+      res.json(enriched);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.post("/api/customers/:id/ont-integration", requireAuth, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const { onuDeviceId, customerType } = req.body;
+      if (!onuDeviceId) return res.status(400).json({ message: "ONU device ID is required" });
+      const validTypes = ["normal", "cir", "corporate"];
+      if (!customerType || !validTypes.includes(customerType)) return res.status(400).json({ message: "Valid customerType is required" });
+      const onu = await storage.getOnuDevice(parseInt(onuDeviceId));
+      if (!onu) return res.status(404).json({ message: "ONU device not found" });
+      if (onu.customerId && onu.customerType) return res.status(400).json({ message: "ONU device is already assigned to a customer. Unlink it first." });
+      const updated = await storage.updateOnuDevice(onu.id, { customerId, customerType } as any);
+      res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.delete("/api/customers/:id/ont-integration/:onuId", requireAuth, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const customerType = (req.query.customerType as string) || "normal";
+      const onuId = parseInt(req.params.onuId);
+      const onu = await storage.getOnuDevice(onuId);
+      if (!onu) return res.status(404).json({ message: "ONU device not found" });
+      if (onu.customerId !== customerId || onu.customerType !== customerType) {
+        return res.status(403).json({ message: "ONU device does not belong to this customer" });
+      }
+      await storage.updateOnuDevice(onuId, { customerId: null, customerType: null } as any);
+      res.json({ message: "ONU unlinked from customer" });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
   // ─── Network Map: P2P Links ────────────────────────────────────
