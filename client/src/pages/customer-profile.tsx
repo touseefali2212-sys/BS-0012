@@ -42,6 +42,7 @@ import {
   ArrowUpDown,
   TrendingUp,
   TrendingDown,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -126,6 +127,19 @@ export default function CustomerProfilePage() {
   const [messageChannel, setMessageChannel] = useState("email");
   const [messageSubject, setMessageSubject] = useState("");
   const [messageBody, setMessageBody] = useState("");
+  const [messageCategory, setMessageCategory] = useState("bill_reminder");
+
+  const smsCategories = [
+    { value: "bill_reminder", label: "Bill Reminder", defaultMsg: "Dear {name}, your bill of {amount} is due. Please pay before the due date to avoid service interruption." },
+    { value: "invoice_softcopy", label: "Invoice Softcopy (WhatsApp/Email)", defaultMsg: "Dear {name}, please find your invoice #{invoice} attached. Amount: {amount}." },
+    { value: "account_suspend", label: "Account Suspend Notice", defaultMsg: "Dear {name}, your account has been suspended due to non-payment. Please clear your dues to restore service." },
+    { value: "payment_confirmation", label: "Payment Confirmation", defaultMsg: "Dear {name}, we have received your payment of {amount}. Thank you!" },
+    { value: "service_activation", label: "Service Activation", defaultMsg: "Dear {name}, your internet service has been activated. Enjoy your connection!" },
+    { value: "package_change", label: "Package Change Notification", defaultMsg: "Dear {name}, your package has been changed successfully. New package details will be reflected in your next bill." },
+    { value: "maintenance_notice", label: "Maintenance Notice", defaultMsg: "Dear {name}, scheduled maintenance will be performed in your area. We apologize for any inconvenience." },
+    { value: "welcome_message", label: "Welcome Message", defaultMsg: "Welcome to our network, {name}! We are glad to have you as a customer." },
+    { value: "custom", label: "Custom Message", defaultMsg: "" },
+  ];
 
   const { data: customer, isLoading: customerLoading } = useQuery<Customer>({
     queryKey: ["/api/customers", id],
@@ -342,49 +356,67 @@ export default function CustomerProfilePage() {
   };
 
   const sendMessageMutation = useMutation({
-    mutationFn: async (data: { channel: string; to: string; subject?: string; body: string }) => {
+    mutationFn: async (data: { channel: string; subject: string; message: string; category: string }) => {
       if (data.channel === "email") {
+        if (!customer?.email) throw new Error("Customer has no email address");
         const res = await apiRequest("POST", "/api/notifications/send-email", {
-          to: data.to,
-          subject: data.subject,
-          body: data.body,
+          to: customer.email, subject: data.subject, body: data.message,
         });
         return res.json();
-      } else {
+      } else if (data.channel === "sms") {
+        if (!customer?.phone) throw new Error("Customer has no phone number");
         const res = await apiRequest("POST", "/api/notifications/send-sms", {
-          to: data.to,
-          message: data.body,
+          to: customer.phone, message: data.message,
+        });
+        return res.json();
+      } else if (data.channel === "whatsapp") {
+        if (!customer?.phone && !customer?.phoneNumber) throw new Error("Customer has no phone/mobile number");
+        const res = await apiRequest("POST", "/api/notifications/send-sms", {
+          to: customer.phoneNumber || customer.phone, message: data.message,
+        });
+        return res.json();
+      } else if (data.channel === "in_app") {
+        const res = await apiRequest("POST", "/api/notification-dispatches", {
+          channel: "in_app", recipient: customer?.email || customer?.customerId,
+          subject: data.subject, body: data.message, status: "sent",
+          createdAt: new Date().toISOString(),
         });
         return res.json();
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, vars) => {
+      toast({ title: "Sent Successfully", description: `${vars.channel === "email" ? "Email" : vars.channel === "sms" ? "SMS" : vars.channel === "whatsapp" ? "WhatsApp" : "In-App Notification"} sent to ${customer?.fullName}` });
       setSendMessageOpen(false);
       setMessageSubject("");
       setMessageBody("");
       setMessageChannel("email");
-      toast({ title: "Message sent successfully" });
+      setMessageCategory("bill_reminder");
     },
     onError: (error: Error) => {
-      toast({ title: "Failed to send message", description: error.message, variant: "destructive" });
+      toast({ title: "Failed to Send", description: error.message, variant: "destructive" });
     },
   });
 
-  const handleSendMessage = () => {
-    const to = messageChannel === "email" ? (customer?.email || "") : (customer?.phone || "");
-    if (!to) {
-      toast({ title: "Error", description: `Customer has no ${messageChannel === "email" ? "email address" : "phone number"} on file`, variant: "destructive" });
-      return;
+  const handleCategoryChange = (value: string) => {
+    setMessageCategory(value);
+    const cat = smsCategories.find(c => c.value === value);
+    if (cat && customer) {
+      setMessageBody(cat.defaultMsg.replace("{name}", customer.fullName));
+      if (value === "invoice_softcopy") setMessageSubject("Invoice Copy");
+      else if (value === "bill_reminder") setMessageSubject("Bill Reminder");
+      else if (value === "account_suspend") setMessageSubject("Account Suspension Notice");
+      else if (value === "payment_confirmation") setMessageSubject("Payment Confirmation");
+      else setMessageSubject("");
     }
-    if (!messageBody.trim()) {
-      toast({ title: "Error", description: "Message body is required", variant: "destructive" });
-      return;
-    }
-    if (messageChannel === "email" && !messageSubject.trim()) {
-      toast({ title: "Error", description: "Subject is required for email", variant: "destructive" });
-      return;
-    }
-    sendMessageMutation.mutate({ channel: messageChannel, to, subject: messageSubject, body: messageBody });
+  };
+
+  const openSendMessageDialog = () => {
+    setMessageChannel("sms");
+    setMessageCategory("bill_reminder");
+    const cat = smsCategories.find(c => c.value === "bill_reminder");
+    setMessageBody(cat?.defaultMsg.replace("{name}", customer?.fullName || "") || "");
+    setMessageSubject("");
+    setSendMessageOpen(true);
   };
 
 
@@ -838,7 +870,7 @@ export default function CustomerProfilePage() {
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-status-scheduler" onClick={() => setStatusSchedulerOpen(true)}>
                 <CalendarRange className="h-3 w-3" /> Status Scheduler
               </Button>
-              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-send-email" onClick={() => setSendMessageOpen(true)}>
+              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="button-send-email" onClick={openSendMessageDialog}>
                 <MessageCircle className="h-3 w-3" /> Send Email/Message
               </Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1 md:col-span-2" data-testid="button-package-change" onClick={() => setLocation(`/package-change?customerType=Normal&customerId=${id}&customerName=${encodeURIComponent(customer?.fullName || customer?.name || "")}`)}>
@@ -2513,97 +2545,129 @@ export default function CustomerProfilePage() {
       </Dialog>
 
       <Dialog open={sendMessageOpen} onOpenChange={setSendMessageOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-[600px] max-h-[90vh] overflow-y-auto" data-testid="dialog-send-notification">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <MessageCircle className="h-5 w-5 text-[#0057FF]" />
-              Send Email / Message
+              <Send className="h-5 w-5 text-[#0057FF]" /> Send Notification
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="p-3 bg-muted/50 rounded-lg border">
-              <p className="text-sm font-medium" data-testid="text-msg-customer-name">{customer?.fullName}</p>
-              <div className="flex gap-4 mt-1 text-xs text-muted-foreground">
-                {customer?.email && <span data-testid="text-msg-email"><Mail className="h-3 w-3 inline mr-1" />{customer.email}</span>}
-                {customer?.phone && <span data-testid="text-msg-phone"><Phone className="h-3 w-3 inline mr-1" />{customer.phone}</span>}
+          {customer && (
+            <div className="space-y-5">
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-[#0057FF] flex items-center justify-center text-white font-bold text-sm">
+                    {customer.fullName.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm" data-testid="text-msg-customer-name">{customer.fullName}</p>
+                    <p className="text-xs text-muted-foreground">{customer.customerId} • {customer.phone || "No phone"} • {customer.email || "No email"}</p>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <span className="text-sm font-semibold">Channel</span>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={messageChannel === "email" ? "default" : "outline"}
-                  className={`flex-1 gap-1.5 ${messageChannel === "email" ? "bg-[#0057FF]" : ""}`}
-                  onClick={() => setMessageChannel("email")}
-                  data-testid="btn-channel-email"
-                >
-                  <Mail className="h-3.5 w-3.5" /> Email
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={messageChannel === "sms" ? "default" : "outline"}
-                  className={`flex-1 gap-1.5 ${messageChannel === "sms" ? "bg-[#0057FF]" : ""}`}
-                  onClick={() => setMessageChannel("sms")}
-                  data-testid="btn-channel-sms"
-                >
-                  <Smartphone className="h-3.5 w-3.5" /> SMS
-                </Button>
-              </div>
-            </div>
-
-            {messageChannel === "email" && (
               <div className="space-y-2">
-                <span className="text-sm font-semibold">Subject</span>
-                <Input
-                  placeholder="Enter email subject..."
-                  value={messageSubject}
-                  onChange={(e) => setMessageSubject(e.target.value)}
-                  data-testid="input-msg-subject"
+                <span className="text-sm font-medium">Notification Type</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { value: "in_app", label: "In-App", icon: Bell, color: "text-purple-600 bg-purple-50 border-purple-200" },
+                    { value: "sms", label: "SMS", icon: Smartphone, color: "text-green-600 bg-green-50 border-green-200" },
+                    { value: "whatsapp", label: "WhatsApp", icon: MessageCircle, color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+                    { value: "email", label: "Email", icon: Mail, color: "text-blue-600 bg-blue-50 border-blue-200" },
+                  ].map(ch => (
+                    <button
+                      key={ch.value}
+                      type="button"
+                      onClick={() => setMessageChannel(ch.value)}
+                      className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all ${
+                        messageChannel === ch.value
+                          ? `${ch.color} ring-2 ring-offset-1 ring-current font-semibold`
+                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                      }`}
+                      data-testid={`btn-channel-${ch.value}`}
+                    >
+                      <ch.icon className="h-5 w-5" />
+                      <span className="text-xs">{ch.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Message Category</span>
+                <Select value={messageCategory} onValueChange={handleCategoryChange}>
+                  <SelectTrigger data-testid="select-msg-category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {smsCategories.map(cat => (
+                      <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {(messageChannel === "email" || messageChannel === "in_app") && (
+                <div className="space-y-2">
+                  <span className="text-sm font-medium">Subject</span>
+                  <Input
+                    value={messageSubject}
+                    onChange={e => setMessageSubject(e.target.value)}
+                    placeholder="Enter subject..."
+                    data-testid="input-msg-subject"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Message</span>
+                <Textarea
+                  value={messageBody}
+                  onChange={e => setMessageBody(e.target.value)}
+                  placeholder="Type your message..."
+                  className="min-h-[120px]"
+                  data-testid="textarea-msg-body"
                 />
               </div>
-            )}
 
-            <div className="space-y-2">
-              <span className="text-sm font-semibold">{messageChannel === "email" ? "Email Body" : "Message"}</span>
-              <Textarea
-                placeholder={messageChannel === "email" ? "Write your email content here..." : "Type your SMS message..."}
-                value={messageBody}
-                onChange={(e) => setMessageBody(e.target.value)}
-                className="min-h-[120px]"
-                data-testid="textarea-msg-body"
-              />
+              {messageChannel === "sms" && !customer.phone && (
+                <div className="flex items-center gap-2 text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs">
+                  <AlertCircle className="h-4 w-4 shrink-0" /> Customer has no phone number
+                </div>
+              )}
+              {messageChannel === "email" && !customer.email && (
+                <div className="flex items-center gap-2 text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs">
+                  <AlertCircle className="h-4 w-4 shrink-0" /> Customer has no email address
+                </div>
+              )}
+              {messageChannel === "whatsapp" && !customer.phone && !customer.phoneNumber && (
+                <div className="flex items-center gap-2 text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs">
+                  <AlertCircle className="h-4 w-4 shrink-0" /> Customer has no phone or mobile number
+                </div>
+              )}
             </div>
-
-            {!customer?.email && messageChannel === "email" && (
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md">
-                <p className="text-xs text-amber-700 dark:text-amber-400">
-                  <AlertCircle className="h-3.5 w-3.5 inline mr-1" />
-                  This customer has no email address on file. Please update their profile first.
-                </p>
-              </div>
-            )}
-            {!customer?.phone && messageChannel === "sms" && (
-              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md">
-                <p className="text-xs text-amber-700 dark:text-amber-400">
-                  <AlertCircle className="h-3.5 w-3.5 inline mr-1" />
-                  This customer has no phone number on file. Please update their profile first.
-                </p>
-              </div>
-            )}
-          </div>
+          )}
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setSendMessageOpen(false)} data-testid="button-cancel-send-msg">Cancel</Button>
             <Button
-              onClick={handleSendMessage}
-              disabled={sendMessageMutation.isPending || !messageBody.trim() || (messageChannel === "email" && !messageSubject.trim()) || (messageChannel === "email" && !customer?.email) || (messageChannel === "sms" && !customer?.phone)}
+              onClick={() => sendMessageMutation.mutate({
+                channel: messageChannel, subject: messageSubject, message: messageBody, category: messageCategory,
+              })}
+              disabled={
+                sendMessageMutation.isPending || !messageBody.trim() ||
+                (messageChannel === "email" && (!messageSubject.trim() || !customer?.email)) ||
+                (messageChannel === "sms" && !customer?.phone) ||
+                (messageChannel === "whatsapp" && !customer?.phone && !customer?.phoneNumber) ||
+                (messageChannel === "in_app" && !messageSubject.trim())
+              }
               className="bg-[#0057FF]"
-              data-testid="button-submit-send-msg"
+              data-testid="button-send-notification"
             >
-              {sendMessageMutation.isPending ? "Sending..." : messageChannel === "email" ? "Send Email" : "Send SMS"}
+              {sendMessageMutation.isPending ? "Sending..." : (
+                <>
+                  <Send className="h-4 w-4 mr-1.5" />
+                  {messageChannel === "email" ? "Send Email" : messageChannel === "sms" ? "Send SMS" : messageChannel === "whatsapp" ? "Send WhatsApp" : "Send Notification"}
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

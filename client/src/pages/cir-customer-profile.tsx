@@ -9,7 +9,7 @@ import {
   Calendar, Download, MessageCircle, CalendarRange, User, Hash,
   CreditCard, Globe, CheckCircle2, FileText, Plus, Clock, TrendingUp,
   TrendingDown, BarChart3, MessageSquare, ShoppingBag, Users, Bell, Send,
-  ArrowUpDown, Settings,
+  ArrowUpDown, Settings, Smartphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -256,6 +256,19 @@ export default function CirCustomerProfilePage() {
   const [smsProfileChannel, setSmsProfileChannel] = useState("email");
   const [smsProfileSubject, setSmsProfileSubject] = useState("");
   const [smsProfileMessage, setSmsProfileMessage] = useState("");
+  const [smsProfileCategory, setSmsProfileCategory] = useState("bill_reminder");
+
+  const smsCategories = [
+    { value: "bill_reminder", label: "Bill Reminder", defaultMsg: "Dear {name}, your bill of {amount} is due. Please pay before the due date to avoid service interruption." },
+    { value: "invoice_softcopy", label: "Invoice Softcopy (WhatsApp/Email)", defaultMsg: "Dear {name}, please find your invoice #{invoice} attached. Amount: {amount}." },
+    { value: "account_suspend", label: "Account Suspend Notice", defaultMsg: "Dear {name}, your account has been suspended due to non-payment. Please clear your dues to restore service." },
+    { value: "payment_confirmation", label: "Payment Confirmation", defaultMsg: "Dear {name}, we have received your payment of {amount}. Thank you!" },
+    { value: "service_activation", label: "Service Activation", defaultMsg: "Dear {name}, your internet service has been activated. Enjoy your connection!" },
+    { value: "package_change", label: "Package Change Notification", defaultMsg: "Dear {name}, your package has been changed successfully. New package details will be reflected in your next bill." },
+    { value: "maintenance_notice", label: "Maintenance Notice", defaultMsg: "Dear {name}, scheduled maintenance will be performed in your area. We apologize for any inconvenience." },
+    { value: "welcome_message", label: "Welcome Message", defaultMsg: "Welcome to our network, {name}! We are glad to have you as a customer." },
+    { value: "custom", label: "Custom Message", defaultMsg: "" },
+  ];
 
   const { data: customer, isLoading } = useQuery<CirCustomer>({
     queryKey: ["/api/cir-customers", id],
@@ -307,20 +320,59 @@ export default function CirCustomerProfilePage() {
   });
 
   const sendProfileNotificationMutation = useMutation({
-    mutationFn: async (data: { channel: string; subject: string; message: string }) => {
+    mutationFn: async (data: { channel: string; subject: string; message: string; category: string }) => {
       if (data.channel === "email") {
-        if (!customer?.email) throw new Error("No email address");
+        if (!customer?.email) throw new Error("Customer has no email address");
         const res = await apiRequest("POST", "/api/notifications/send-email", { to: customer.email, subject: data.subject, body: data.message });
         return res.json();
-      } else {
-        if (!customer?.phone) throw new Error("No phone number");
-        const res = await apiRequest("POST", "/api/notifications/send-sms", { to: customer.phone, message: data.message });
+      } else if (data.channel === "sms") {
+        const phone = customer?.phone || customer?.mobileNo2;
+        if (!phone) throw new Error("Customer has no phone number");
+        const res = await apiRequest("POST", "/api/notifications/send-sms", { to: phone, message: data.message });
+        return res.json();
+      } else if (data.channel === "whatsapp") {
+        const phone = customer?.phone || customer?.mobileNo2;
+        if (!phone) throw new Error("Customer has no phone/mobile number");
+        const res = await apiRequest("POST", "/api/notifications/send-sms", { to: phone, message: data.message });
+        return res.json();
+      } else if (data.channel === "in_app") {
+        const res = await apiRequest("POST", "/api/notification-dispatches", {
+          channel: "in_app", recipient: customer?.email || `CIR-${customer?.id}`,
+          subject: data.subject, body: data.message, status: "sent",
+          createdAt: new Date().toISOString(),
+        });
         return res.json();
       }
     },
-    onSuccess: (_, vars) => { toast({ title: "Sent", description: `${vars.channel === "email" ? "Email" : "SMS"} sent successfully` }); setSmsProfileDialogOpen(false); },
-    onError: (err: Error) => { toast({ title: "Failed", description: err.message, variant: "destructive" }); },
+    onSuccess: (_, vars) => {
+      toast({ title: "Sent Successfully", description: `${vars.channel === "email" ? "Email" : vars.channel === "sms" ? "SMS" : vars.channel === "whatsapp" ? "WhatsApp" : "In-App Notification"} sent to ${customer?.companyName || customer?.customerId}` });
+      setSmsProfileDialogOpen(false);
+      setSmsProfileSubject(""); setSmsProfileMessage(""); setSmsProfileChannel("email"); setSmsProfileCategory("bill_reminder");
+    },
+    onError: (err: Error) => { toast({ title: "Failed to Send", description: err.message, variant: "destructive" }); },
   });
+
+  const handleProfileCategoryChange = (value: string) => {
+    setSmsProfileCategory(value);
+    const cat = smsCategories.find(c => c.value === value);
+    if (cat && customer) {
+      setSmsProfileMessage(cat.defaultMsg.replace("{name}", customer.companyName || customer.customerId || ""));
+      if (value === "invoice_softcopy") setSmsProfileSubject("Invoice Copy");
+      else if (value === "bill_reminder") setSmsProfileSubject("Bill Reminder");
+      else if (value === "account_suspend") setSmsProfileSubject("Account Suspension Notice");
+      else if (value === "payment_confirmation") setSmsProfileSubject("Payment Confirmation");
+      else setSmsProfileSubject("");
+    }
+  };
+
+  const openProfileSmsDialog = () => {
+    setSmsProfileChannel("sms");
+    setSmsProfileCategory("bill_reminder");
+    const cat = smsCategories.find(c => c.value === "bill_reminder");
+    setSmsProfileMessage(cat?.defaultMsg.replace("{name}", customer?.companyName || customer?.customerId || "") || "");
+    setSmsProfileSubject("");
+    setSmsProfileDialogOpen(true);
+  };
 
   const vendor = vendors?.find(v => v.id === customer?.vendorId);
 
@@ -407,7 +459,7 @@ export default function CirCustomerProfilePage() {
             <div className="grid grid-cols-2 gap-2">
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => setEditOpen(true)}><Edit className="h-3 w-3" /> Update Information</Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => setActiveTab("service_scheduler")}><CalendarRange className="h-3 w-3" /> Status Scheduler</Button>
-              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => { setSmsProfileChannel("email"); setSmsProfileSubject(""); setSmsProfileMessage(""); setSmsProfileDialogOpen(true); }}><MessageCircle className="h-3 w-3" /> Send Email/Message</Button>
+              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={openProfileSmsDialog}><MessageCircle className="h-3 w-3" /> Send Email/Message</Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => setActiveTab("bwhistory")}><Activity className="h-3 w-3" /> Bandwidth Schedule</Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1 col-span-2" data-testid="button-package-change" onClick={() => setLocation(`/package-change?customerType=CIR&customerId=${id}&customerName=${encodeURIComponent(customer.companyName)}`)}><ArrowUpDown className="h-3 w-3" /> Package Change Request</Button>
             </div>
@@ -1059,46 +1111,112 @@ export default function CirCustomerProfilePage() {
       </Dialog>
 
       <Dialog open={smsProfileDialogOpen} onOpenChange={setSmsProfileDialogOpen}>
-        <DialogContent className="max-w-[500px]" data-testid="dialog-cir-profile-send-message">
+        <DialogContent className="max-w-[600px] max-h-[90vh] overflow-y-auto" data-testid="dialog-cir-profile-send-message">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Send className="h-5 w-5 text-[#0057FF]" /> Send Email / Message</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Send className="h-5 w-5 text-[#0057FF]" /> Send Notification</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <span className="text-sm font-medium">Channel</span>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { value: "email", label: "Email", icon: Mail },
-                  { value: "sms", label: "SMS", icon: Phone },
-                ].map(ch => (
-                  <button key={ch.value} type="button" onClick={() => setSmsProfileChannel(ch.value)}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all ${smsProfileChannel === ch.value ? "border-[#0057FF] bg-blue-50 text-[#0057FF] font-semibold" : "border-gray-200 dark:border-gray-700 hover:border-gray-300"}`}
-                    data-testid={`btn-cir-profile-channel-${ch.value}`}>
-                    <ch.icon className="h-4 w-4" /><span className="text-sm">{ch.label}</span>
-                  </button>
-                ))}
+          {customer && (
+            <div className="space-y-5">
+              <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-[#0057FF] flex items-center justify-center text-white font-bold text-sm">
+                    {(customer.companyName || customer.customerId || "C").charAt(0)}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">{customer.companyName || customer.customerId}</p>
+                    <p className="text-xs text-muted-foreground">{customer.customerId} • {customer.phone || "No phone"} • {customer.email || "No email"}</p>
+                  </div>
+                </div>
               </div>
-            </div>
-            {smsProfileChannel === "email" && (
+
               <div className="space-y-2">
-                <span className="text-sm font-medium">Subject</span>
-                <Input value={smsProfileSubject} onChange={e => setSmsProfileSubject(e.target.value)} placeholder="Enter subject..." data-testid="input-cir-profile-subject" />
+                <span className="text-sm font-medium">Notification Type</span>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { value: "in_app", label: "In-App", icon: Bell, color: "text-purple-600 bg-purple-50 border-purple-200" },
+                    { value: "sms", label: "SMS", icon: Smartphone, color: "text-green-600 bg-green-50 border-green-200" },
+                    { value: "whatsapp", label: "WhatsApp", icon: MessageCircle, color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+                    { value: "email", label: "Email", icon: Mail, color: "text-blue-600 bg-blue-50 border-blue-200" },
+                  ].map(ch => (
+                    <button
+                      key={ch.value}
+                      type="button"
+                      onClick={() => setSmsProfileChannel(ch.value)}
+                      className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border-2 transition-all ${
+                        smsProfileChannel === ch.value
+                          ? `${ch.color} ring-2 ring-offset-1 ring-current font-semibold`
+                          : "border-gray-200 dark:border-gray-700 hover:border-gray-300"
+                      }`}
+                      data-testid={`btn-cir-profile-channel-${ch.value}`}
+                    >
+                      <ch.icon className="h-5 w-5" />
+                      <span className="text-xs">{ch.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            )}
-            <div className="space-y-2">
-              <span className="text-sm font-medium">Message</span>
-              <Textarea value={smsProfileMessage} onChange={e => setSmsProfileMessage(e.target.value)} placeholder="Type your message..." className="min-h-[120px]" data-testid="textarea-cir-profile-message" />
+
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Message Category</span>
+                <Select value={smsProfileCategory} onValueChange={handleProfileCategoryChange}>
+                  <SelectTrigger data-testid="select-cir-profile-category">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {smsCategories.map(cat => (
+                      <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {(smsProfileChannel === "email" || smsProfileChannel === "in_app") && (
+                <div className="space-y-2">
+                  <span className="text-sm font-medium">Subject</span>
+                  <Input value={smsProfileSubject} onChange={e => setSmsProfileSubject(e.target.value)} placeholder="Enter subject..." data-testid="input-cir-profile-subject" />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <span className="text-sm font-medium">Message</span>
+                <Textarea value={smsProfileMessage} onChange={e => setSmsProfileMessage(e.target.value)} placeholder="Type your message..." className="min-h-[120px]" data-testid="textarea-cir-profile-message" />
+              </div>
+
+              {smsProfileChannel === "sms" && !customer.phone && !customer.mobileNo2 && (
+                <div className="flex items-center gap-2 text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs">
+                  <AlertCircle className="h-4 w-4 shrink-0" /> Customer has no phone number
+                </div>
+              )}
+              {smsProfileChannel === "email" && !customer.email && (
+                <div className="flex items-center gap-2 text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs">
+                  <AlertCircle className="h-4 w-4 shrink-0" /> Customer has no email address
+                </div>
+              )}
+              {smsProfileChannel === "whatsapp" && !customer.phone && !customer.mobileNo2 && (
+                <div className="flex items-center gap-2 text-amber-600 bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-xs">
+                  <AlertCircle className="h-4 w-4 shrink-0" /> Customer has no phone or mobile number
+                </div>
+              )}
             </div>
-            <div className="text-xs text-muted-foreground">
-              Sending to: {smsProfileChannel === "email" ? (customer?.email || "No email") : (customer?.phone || "No phone")}
-            </div>
-          </div>
+          )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setSmsProfileDialogOpen(false)}>Cancel</Button>
-            <Button className="bg-[#0057FF]" disabled={sendProfileNotificationMutation.isPending || !smsProfileMessage.trim() || (smsProfileChannel === "email" && !smsProfileSubject.trim())}
-              onClick={() => sendProfileNotificationMutation.mutate({ channel: smsProfileChannel, subject: smsProfileSubject, message: smsProfileMessage })}
+            <Button className="bg-[#0057FF]"
+              disabled={
+                sendProfileNotificationMutation.isPending || !smsProfileMessage.trim() ||
+                (smsProfileChannel === "email" && (!smsProfileSubject.trim() || !customer?.email)) ||
+                (smsProfileChannel === "sms" && !customer?.phone && !customer?.mobileNo2) ||
+                (smsProfileChannel === "whatsapp" && !customer?.phone && !customer?.mobileNo2) ||
+                (smsProfileChannel === "in_app" && !smsProfileSubject.trim())
+              }
+              onClick={() => sendProfileNotificationMutation.mutate({ channel: smsProfileChannel, subject: smsProfileSubject, message: smsProfileMessage, category: smsProfileCategory })}
               data-testid="button-cir-profile-send">
-              {sendProfileNotificationMutation.isPending ? "Sending..." : (<><Send className="h-4 w-4 mr-1.5" />{smsProfileChannel === "email" ? "Send Email" : "Send SMS"}</>)}
+              {sendProfileNotificationMutation.isPending ? "Sending..." : (
+                <>
+                  <Send className="h-4 w-4 mr-1.5" />
+                  {smsProfileChannel === "email" ? "Send Email" : smsProfileChannel === "sms" ? "Send SMS" : smsProfileChannel === "whatsapp" ? "Send WhatsApp" : "Send Notification"}
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
