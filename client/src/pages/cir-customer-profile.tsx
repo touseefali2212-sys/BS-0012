@@ -711,9 +711,7 @@ export default function CirCustomerProfilePage() {
                   </div>
                 )}
 
-                <SectionHeader title="Bandwidth Change History" action={
-                  <Button size="sm" variant="outline" className="text-xs h-8 gap-1" onClick={() => toast({ title: "Add bandwidth change record" })}><Plus className="h-3 w-3" />Add Record</Button>
-                } />
+                <SectionHeader title="Bandwidth Change History" />
                 {bwLoading ? (<div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>)
                 : !bwHistory?.length ? (<EmptyState icon={BarChart3} message="No bandwidth change history found" />)
                 : (
