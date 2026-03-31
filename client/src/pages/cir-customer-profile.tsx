@@ -273,11 +273,6 @@ export default function CirCustomerProfilePage() {
     queryFn: async () => { const res = await fetch(`/api/cir-customers/${id}/tickets`, { credentials: "include" }); if (!res.ok) throw new Error("Failed"); return res.json(); },
     enabled: !!id,
   });
-  const { data: bwHistory, isLoading: bwLoading } = useQuery<any[]>({
-    queryKey: ["/api/cir-customers", id, "bandwidth-history"],
-    queryFn: async () => { const res = await fetch(`/api/cir-customers/${id}/bandwidth-history`, { credentials: "include" }); if (!res.ok) throw new Error("Failed"); return res.json(); },
-    enabled: !!id,
-  });
 
   const { data: packageChangeReqs, isLoading: pcrLoading } = useQuery<any[]>({
     queryKey: ["/api/cir-customers", id, "package-change-requests"],
@@ -713,39 +708,6 @@ export default function CirCustomerProfilePage() {
                   </div>
                 )}
 
-                <SectionHeader title="Bandwidth Change History" />
-                {bwLoading ? (<div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>)
-                : !bwHistory?.length ? (<EmptyState icon={BarChart3} message="No bandwidth change history found" />)
-                : (
-                  <div className="bg-card border rounded-lg overflow-hidden">
-                    <Table>
-                      <TableHeader><TableRow className="bg-[#1a3a5c]">
-                        <TableHead className="text-white text-xs">Date</TableHead>
-                        <TableHead className="text-white text-xs">Change Type</TableHead>
-                        <TableHead className="text-white text-xs">Previous Bandwidth</TableHead>
-                        <TableHead className="text-white text-xs">New Bandwidth</TableHead>
-                        <TableHead className="text-white text-xs">Changed By</TableHead>
-                        <TableHead className="text-white text-xs">Reason</TableHead>
-                      </TableRow></TableHeader>
-                      <TableBody>
-                        {bwHistory.map((h: any) => (
-                          <TableRow key={h.id} data-testid={`row-bwh-${h.id}`}>
-                            <TableCell className="text-xs">{formatDate(h.effectiveDate || h.createdAt)}</TableCell>
-                            <TableCell>
-                              <Badge variant="secondary" className={`text-[10px] capitalize ${h.changeType === "upgrade" ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
-                                {h.changeType === "upgrade" ? <TrendingUp className="h-3 w-3 inline mr-1" /> : <TrendingDown className="h-3 w-3 inline mr-1" />}{h.changeType}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-xs font-medium">{h.previousBandwidth}</TableCell>
-                            <TableCell className="text-xs font-bold text-teal-700 dark:text-teal-400">{h.newBandwidth}</TableCell>
-                            <TableCell className="text-xs">{h.changedBy || "-"}</TableCell>
-                            <TableCell className="text-xs">{h.reason || "-"}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
               </div>
             )}
 
