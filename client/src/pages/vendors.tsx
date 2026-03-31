@@ -3778,16 +3778,16 @@ function VendorPackagesTab() {
 
       {/* Bandwidth Links Management Section */}
       <div className="mt-8 space-y-4">
-        <div className="vendor-page-header">
+        <div className="vendor-page-header px-6 py-5 text-white flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Wifi className="h-5 w-5" />
               Bandwidth Links & IP/VLAN Management
             </h2>
-            <p className="text-sm text-muted-foreground mt-1">Manage bandwidth links, IP addresses, and VLAN details for bandwidth vendors</p>
+            <p className="text-sm text-white/70 mt-1">Manage bandwidth links, IP addresses, and VLAN details for bandwidth vendors</p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">{(bwLinks || []).length} links</span>
+            <span className="text-xs text-white/70">{(bwLinks || []).length} links</span>
             <Button className="btn-vendor-primary no-default-hover-elevate no-default-active-elevate" onClick={() => { setBwLinkEditing(null); bwLinkForm.reset({ vendorId: 0, linkName: "", ipAddress: "", vlanDetail: "", city: "", bandwidthMbps: "0", bandwidthRate: "0", totalMonthlyCost: "0", notes: "" }); setBwLinkDialogOpen(true); }} data-testid="button-add-bandwidth-link">
               <Plus className="h-4 w-4 mr-1" />
               Add Link
