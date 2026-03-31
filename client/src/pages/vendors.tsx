@@ -101,6 +101,10 @@ import {
 } from "@shared/schema";
 import { z } from "zod";
 
+const escHtml = (str: string | number | null | undefined): string => {
+  return String(str ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+};
+
 const formatPKR = (value: string | number | null | undefined) => {
   const num = Number(value || 0);
   return new Intl.NumberFormat("en-PK", {
@@ -1684,20 +1688,79 @@ function VendorListTab() {
   });
 
   const exportVendorsCSV = () => {
-    const allV = vendors || [];
-    const headers = ["Name", "Type", "Contact Person", "Phone", "Email", "Service Type", "Status", "SLA Level", "Bandwidth Cost", "Wallet Balance", "Contract Start", "Contract End"];
+    const allV = filtered;
+    const headers = ["Name", "Type", "Contact Person", "Phone", "Email", "Service Type", "Status", "SLA Level", "City", "Bandwidth Cost", "Wallet Balance", "Contract Start", "Contract End"];
     const rows = allV.map(v => [
       v.name, v.vendorType, v.contactPerson || "", v.phone, v.email || "", v.serviceType, v.status, v.slaLevel || "",
-      v.bandwidthCost || "0", v.walletBalance || "0", v.contractStartDate || "", v.contractEndDate || ""
+      v.city || "", v.bandwidthCost || "0", v.walletBalance || "0", v.contractStartDate || "", v.contractEndDate || ""
     ]);
-    const csv = [headers.join(","), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+    const csv = "\uFEFF" + [headers.join(","), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `vendors_export_${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const generateVendorsPDF = () => {
+    if (filtered.length === 0) return;
+    const rows = filtered.map(v => `
+      <tr>
+        <td>${escHtml(v.name)}</td>
+        <td><span class="badge ${v.vendorType === "bandwidth" ? "badge-blue" : "badge-purple"}">${v.vendorType === "bandwidth" ? "Bandwidth" : "Panel"}</span></td>
+        <td>${escHtml(v.contactPerson || "—")}</td>
+        <td>${escHtml(v.phone)}</td>
+        <td>${escHtml(v.email || "—")}</td>
+        <td class="capitalize">${escHtml(v.serviceType)}</td>
+        <td><span class="badge ${v.status === "active" ? "badge-green" : "badge-red"}">${escHtml(v.status)}</span></td>
+        <td class="capitalize">${escHtml(v.slaLevel || "Standard")}</td>
+        <td>${v.vendorType === "bandwidth" ? formatPKR(v.bandwidthCost) : formatPKR(v.walletBalance)}</td>
+        <td>${escHtml(v.contractEndDate || "—")}</td>
+      </tr>`).join("");
+    const html = `<!DOCTYPE html><html><head><title>Vendor List Report</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: Arial, sans-serif; font-size: 11px; color: #111; padding: 20px; }
+      h1 { font-size: 16px; margin-bottom: 2px; }
+      .meta { font-size: 11px; color: #555; margin-bottom: 16px; }
+      table { width: 100%; border-collapse: collapse; }
+      th { background: #1e293b; color: #fff; padding: 7px 8px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+      td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+      tr:nth-child(even) td { background: #f8fafc; }
+      .capitalize { text-transform: capitalize; }
+      .badge { padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; text-transform: uppercase; }
+      .badge-blue { background: #dbeafe; color: #1d4ed8; }
+      .badge-purple { background: #f3e8ff; color: #7c3aed; }
+      .badge-green { background: #dcfce7; color: #15803d; }
+      .badge-red { background: #fef2f2; color: #dc2626; }
+      .footer { margin-top: 16px; font-size: 10px; color: #888; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+      @media print { body { padding: 10mm; } }
+    </style></head><body>
+    <h1>Vendor List Report</h1>
+    <p class="meta">
+      <strong>Total:</strong> ${filtered.length} vendors &nbsp;&nbsp;
+      <strong>Active:</strong> ${filtered.filter(v => v.status === "active").length} &nbsp;&nbsp;
+      <strong>Bandwidth:</strong> ${filtered.filter(v => v.vendorType === "bandwidth").length} &nbsp;&nbsp;
+      <strong>Panel:</strong> ${filtered.filter(v => v.vendorType === "panel").length} &nbsp;&nbsp;
+      <strong>Generated:</strong> ${new Date().toLocaleString()}
+    </p>
+    <table>
+      <thead><tr>
+        <th>Name</th><th>Type</th><th>Contact</th><th>Phone</th><th>Email</th>
+        <th>Service</th><th>Status</th><th>SLA</th><th>Cost/Balance</th><th>Contract End</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p class="footer">NetSphere Enterprise — Vendor List Report</p>
+    </body></html>`;
+    const win = window.open("", "_blank", "width=1100,height=800");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 400);
   };
 
   const form = useForm<InsertVendor>({
@@ -1923,6 +1986,10 @@ function VendorListTab() {
             <Button size="sm" variant="outline" onClick={exportVendorsCSV} data-testid="button-export-vendors-csv">
               <Download className="h-3.5 w-3.5 mr-1" />
               Export CSV
+            </Button>
+            <Button size="sm" variant="outline" onClick={generateVendorsPDF} data-testid="button-generate-vendors-pdf">
+              <FileText className="h-3.5 w-3.5 mr-1" />
+              Generate PDF
             </Button>
             {canCreate("vendors") && (
               <Button size="sm" className="btn-vendor-primary no-default-hover-elevate no-default-active-elevate" onClick={() => changeTab("add")} data-testid="button-add-new-vendor">
@@ -3152,6 +3219,84 @@ function VendorPackagesTab() {
     setDialogOpen(true);
   };
 
+  const exportPackagesCSV = () => {
+    if (filtered.length === 0) return;
+    const headers = ["Package Name", "Vendor", "Speed", "Vendor Price", "ISP Selling Price", "Reseller Price", "ISP Margin", "Data Limit", "Validity", "Status"];
+    const rows = filtered.map(p => [
+      p.packageName, vendorMap[p.vendorId] || "Unknown", p.speed || "", p.vendorPrice || "0",
+      p.ispSellingPrice || "0", p.resellerPrice || "0", String(calcMargin(p.ispSellingPrice, p.vendorPrice)),
+      p.dataLimit || "Unlimited", p.validity || "30 days", p.isActive ? "Active" : "Inactive"
+    ]);
+    const csv = "\uFEFF" + [headers.join(","), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `vendor_packages_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const generatePackagesPDF = () => {
+    if (filtered.length === 0) return;
+    const rows = filtered.map(p => {
+      const margin = calcMargin(p.ispSellingPrice, p.vendorPrice);
+      return `<tr>
+        <td>${escHtml(p.packageName)}</td>
+        <td>${escHtml(vendorMap[p.vendorId] || "Unknown")}</td>
+        <td>${escHtml(p.speed || "—")}</td>
+        <td>${formatPKR(p.vendorPrice)}</td>
+        <td>${formatPKR(p.ispSellingPrice)}</td>
+        <td>${formatPKR(p.resellerPrice)}</td>
+        <td class="${margin >= 0 ? "text-green" : "text-red"}">${formatPKR(margin)}</td>
+        <td>${escHtml(p.dataLimit || "Unlimited")}</td>
+        <td>${escHtml(p.validity || "30 days")}</td>
+        <td><span class="badge ${p.isActive ? "badge-green" : "badge-red"}">${p.isActive ? "Active" : "Inactive"}</span></td>
+      </tr>`;
+    }).join("");
+    const totalMargin = filtered.reduce((sum, p) => sum + calcMargin(p.ispSellingPrice, p.vendorPrice), 0);
+    const html = `<!DOCTYPE html><html><head><title>Vendor Packages Report</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: Arial, sans-serif; font-size: 11px; color: #111; padding: 20px; }
+      h1 { font-size: 16px; margin-bottom: 2px; }
+      .meta { font-size: 11px; color: #555; margin-bottom: 16px; }
+      table { width: 100%; border-collapse: collapse; }
+      th { background: #1e293b; color: #fff; padding: 7px 6px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+      td { padding: 6px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+      tr:nth-child(even) td { background: #f8fafc; }
+      .text-green { color: #15803d; font-weight: 600; }
+      .text-red { color: #dc2626; font-weight: 600; }
+      .badge { padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; text-transform: uppercase; }
+      .badge-green { background: #dcfce7; color: #15803d; }
+      .badge-red { background: #fef2f2; color: #dc2626; }
+      .footer { margin-top: 16px; font-size: 10px; color: #888; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+      @media print { body { padding: 10mm; } }
+    </style></head><body>
+    <h1>Vendor Packages Report</h1>
+    <p class="meta">
+      <strong>Total:</strong> ${filtered.length} packages &nbsp;&nbsp;
+      <strong>Active:</strong> ${filtered.filter(p => p.isActive).length} &nbsp;&nbsp;
+      <strong>Total ISP Margin:</strong> ${formatPKR(totalMargin)} &nbsp;&nbsp;
+      <strong>Generated:</strong> ${new Date().toLocaleString()}
+    </p>
+    <table>
+      <thead><tr>
+        <th>Package</th><th>Vendor</th><th>Speed</th><th>Vendor Price</th><th>ISP Price</th>
+        <th>Reseller Price</th><th>ISP Margin</th><th>Data Limit</th><th>Validity</th><th>Status</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p class="footer">NetSphere Enterprise — Vendor Packages Report</p>
+    </body></html>`;
+    const win = window.open("", "_blank", "width=1100,height=800");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 400);
+  };
+
   const openCreate = () => {
     setEditingPkg(null);
     form.reset({
@@ -3365,6 +3510,14 @@ function VendorPackagesTab() {
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">{filtered.length} packages</span>
+            <Button size="sm" variant="outline" onClick={() => exportPackagesCSV()} data-testid="button-export-packages-csv">
+              <Download className="h-3.5 w-3.5 mr-1" />
+              Export CSV
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => generatePackagesPDF()} data-testid="button-generate-packages-pdf">
+              <FileText className="h-3.5 w-3.5 mr-1" />
+              Generate PDF
+            </Button>
             <Button className="btn-vendor-primary no-default-hover-elevate no-default-active-elevate" onClick={openCreate} data-testid="button-add-package">
               <Plus className="h-4 w-4 mr-1" />
               Add Package
@@ -5438,6 +5591,86 @@ function BandwidthChangesTab() {
     return true;
   });
 
+  const exportBwChangesCSV = () => {
+    if (filteredHistory.length === 0) return;
+    const headers = ["Date", "Vendor", "Link", "Type", "Previous BW (Mbps)", "New BW (Mbps)", "Previous Rate", "New Rate", "Cost Impact", "Reason", "Requested By"];
+    const rows = filteredHistory.map(h => [
+      h.createdAt ? new Date(h.createdAt).toLocaleString() : "N/A",
+      getVendorName(h.vendorId), getLinkName(h.linkId),
+      h.changeType, h.previousMbps || "", h.newMbps || "",
+      h.previousRate || "", h.newRate || "", h.costImpact || "0",
+      h.reason || "", h.requestedBy || ""
+    ]);
+    const csv = "\uFEFF" + [headers.join(","), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `bandwidth_changes_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const generateBwChangesPDF = () => {
+    if (filteredHistory.length === 0) return;
+    const rows = filteredHistory.map(h => `
+      <tr>
+        <td>${h.createdAt ? new Date(h.createdAt).toLocaleDateString() : "N/A"}</td>
+        <td>${escHtml(getVendorName(h.vendorId))}</td>
+        <td>${escHtml(getLinkName(h.linkId))}</td>
+        <td><span class="badge ${h.changeType === "upgrade" ? "badge-green" : h.changeType === "downgrade" ? "badge-red" : "badge-blue"}">${escHtml(h.changeType)}</span></td>
+        <td>${escHtml(h.previousMbps || "—")} Mbps</td>
+        <td>${escHtml(h.newMbps || "—")} Mbps</td>
+        <td>${formatPKR(h.previousRate)}</td>
+        <td>${formatPKR(h.newRate)}</td>
+        <td class="${Number(h.costImpact || 0) >= 0 ? "text-green" : "text-red"}">${formatPKR(h.costImpact)}</td>
+        <td>${escHtml(h.reason || "—")}</td>
+      </tr>`).join("");
+    const totalImpact = filteredHistory.reduce((sum, h) => sum + Number(h.costImpact || 0), 0);
+    const html = `<!DOCTYPE html><html><head><title>Bandwidth Changes Report</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: Arial, sans-serif; font-size: 11px; color: #111; padding: 20px; }
+      h1 { font-size: 16px; margin-bottom: 2px; }
+      .meta { font-size: 11px; color: #555; margin-bottom: 16px; }
+      table { width: 100%; border-collapse: collapse; }
+      th { background: #1e293b; color: #fff; padding: 7px 6px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+      td { padding: 6px; border-bottom: 1px solid #e2e8f0; vertical-align: top; font-size: 10px; }
+      tr:nth-child(even) td { background: #f8fafc; }
+      .text-green { color: #15803d; font-weight: 600; }
+      .text-red { color: #dc2626; font-weight: 600; }
+      .badge { padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; text-transform: uppercase; }
+      .badge-green { background: #dcfce7; color: #15803d; }
+      .badge-red { background: #fef2f2; color: #dc2626; }
+      .badge-blue { background: #dbeafe; color: #1d4ed8; }
+      .footer { margin-top: 16px; font-size: 10px; color: #888; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+      @media print { body { padding: 10mm; } }
+    </style></head><body>
+    <h1>Bandwidth Changes Report</h1>
+    <p class="meta">
+      <strong>Total Changes:</strong> ${filteredHistory.length} &nbsp;&nbsp;
+      <strong>Upgrades:</strong> ${filteredHistory.filter(h => h.changeType === "upgrade").length} &nbsp;&nbsp;
+      <strong>Downgrades:</strong> ${filteredHistory.filter(h => h.changeType === "downgrade").length} &nbsp;&nbsp;
+      <strong>Net Cost Impact:</strong> ${formatPKR(totalImpact)} &nbsp;&nbsp;
+      <strong>Generated:</strong> ${new Date().toLocaleString()}
+    </p>
+    <table>
+      <thead><tr>
+        <th>Date</th><th>Vendor</th><th>Link</th><th>Type</th><th>Prev BW</th>
+        <th>New BW</th><th>Prev Rate</th><th>New Rate</th><th>Cost Impact</th><th>Reason</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p class="footer">NetSphere Enterprise — Bandwidth Changes Report</p>
+    </body></html>`;
+    const win = window.open("", "_blank", "width=1100,height=800");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 400);
+  };
+
   const upgradeForm = useForm({
     defaultValues: { newMbps: "", newRate: "", reason: "", requestedBy: "", effectiveDate: new Date().toISOString().split("T")[0], notes: "" },
   });
@@ -5655,6 +5888,16 @@ function BandwidthChangesTab() {
                 <SelectItem value="rate_change">Rate Changes</SelectItem>
               </SelectContent>
             </Select>
+            <div className="flex items-center gap-2 ml-auto">
+              <Button size="sm" variant="outline" onClick={exportBwChangesCSV} data-testid="button-export-bwc-csv">
+                <Download className="h-3.5 w-3.5 mr-1" />
+                Export CSV
+              </Button>
+              <Button size="sm" variant="outline" onClick={generateBwChangesPDF} data-testid="button-generate-bwc-pdf">
+                <FileText className="h-3.5 w-3.5 mr-1" />
+                Generate PDF
+              </Button>
+            </div>
           </div>
 
           {filteredHistory.length === 0 ? (
