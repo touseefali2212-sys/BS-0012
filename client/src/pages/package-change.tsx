@@ -6,7 +6,7 @@ import {
   Eye, ChevronDown, ChevronUp, Zap, Calendar, DollarSign, AlertTriangle,
   Send, Shield, Settings, FileText, Filter, RefreshCw, Package,
   Building2, Wifi, Users, MoreHorizontal, History, CheckCircle2, XCircle,
-  ArrowRight, Network, Server, Radio,
+  ArrowRight, Network, Server, Radio, Edit,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +54,8 @@ export default function PackageChangePage() {
   const [rejectReason, setRejectReason] = useState("");
   const [implementNotes, setImplementNotes] = useState("");
   const [implementDialogOpen, setImplementDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editData, setEditData] = useState<any>({});
 
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
@@ -246,6 +248,40 @@ export default function PackageChangePage() {
     updateMutation.mutate({ id: req.id, data: { status: "implementing" } });
   };
 
+  const openEditDialog = (req: PackageChangeRequest) => {
+    setSelectedRequest(req);
+    setEditData({
+      customerName: req.customerName || "",
+      customerType: req.customerType || "Normal",
+      changeType: req.changeType || "upgrade",
+      currentPackageName: req.currentPackageName || "",
+      currentBandwidth: req.currentBandwidth || "",
+      currentMonthlyBill: req.currentMonthlyBill || "",
+      newPackageName: req.newPackageName || "",
+      newBandwidth: req.newBandwidth || "",
+      newMonthlyBill: req.newMonthlyBill || "",
+      proratedCharges: req.proratedCharges || "",
+      adjustmentAmount: req.adjustmentAmount || "",
+      taxImpact: req.taxImpact || "",
+      finalBillDifference: req.finalBillDifference || "",
+      effectiveDateType: req.effectiveDateType || "immediate",
+      effectiveDate: req.effectiveDate || "",
+      reason: req.reason || "",
+      isUrgent: req.isUrgent || false,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSave = () => {
+    if (!selectedRequest) return;
+    updateMutation.mutate({ id: selectedRequest.id, data: editData }, {
+      onSuccess: () => {
+        setEditDialogOpen(false);
+        toast({ title: "Updated", description: "Request has been updated successfully." });
+      },
+    });
+  };
+
   const requests = allRequests || [];
   const pendingRequests = requests.filter(r => r.status === "pending");
   const approvedRequests = requests.filter(r => r.status === "approved");
@@ -319,6 +355,7 @@ export default function PackageChangePage() {
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1" onClick={e => e.stopPropagation()}>
                     <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setSelectedRequest(r); setDetailsOpen(true); }} data-testid={`button-view-${r.id}`}><Eye className="h-3.5 w-3.5" /></Button>
+                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-blue-600 hover:text-blue-700" onClick={() => openEditDialog(r)} data-testid={`button-edit-${r.id}`}><Edit className="h-3.5 w-3.5" /></Button>
                     {showActions === "pending" && (
                       <>
                         <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-green-600 hover:text-green-700" onClick={() => handleApprove(r)} data-testid={`button-approve-${r.id}`}><Check className="h-3.5 w-3.5" /></Button>
@@ -721,6 +758,124 @@ export default function PackageChangePage() {
             <Button className="bg-emerald-600 hover:bg-emerald-700" onClick={handleImplement} disabled={updateMutation.isPending} data-testid="button-confirm-implement">
               {updateMutation.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <CheckCircle2 className="h-4 w-4 mr-1.5" />}
               Complete & Sync
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-[#0057FF]" />
+              Edit Request — {selectedRequest?.requestNumber}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Customer Name</label>
+                <Input value={editData.customerName || ""} onChange={e => setEditData({ ...editData, customerName: e.target.value })} data-testid="edit-customer-name" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Change Type</label>
+                <Select value={editData.changeType || "upgrade"} onValueChange={v => setEditData({ ...editData, changeType: v })}>
+                  <SelectTrigger data-testid="edit-change-type"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="upgrade">Upgrade</SelectItem>
+                    <SelectItem value="downgrade">Downgrade</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
+              <p className="text-xs font-semibold text-muted-foreground uppercase">Current Plan</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-medium text-muted-foreground">Current Package</label>
+                  <Input className="h-8 text-xs" value={editData.currentPackageName || ""} onChange={e => setEditData({ ...editData, currentPackageName: e.target.value })} data-testid="edit-current-package" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-medium text-muted-foreground">Current Bandwidth</label>
+                  <Input className="h-8 text-xs" value={editData.currentBandwidth || ""} onChange={e => setEditData({ ...editData, currentBandwidth: e.target.value })} data-testid="edit-current-bw" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-medium text-muted-foreground">Current Monthly Bill</label>
+                  <Input className="h-8 text-xs" value={editData.currentMonthlyBill || ""} onChange={e => setEditData({ ...editData, currentMonthlyBill: e.target.value })} data-testid="edit-current-bill" />
+                </div>
+              </div>
+            </div>
+            <div className="border rounded-lg p-4 space-y-3 bg-blue-50/50 dark:bg-blue-950/20">
+              <p className="text-xs font-semibold text-muted-foreground uppercase">New Plan</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-medium text-muted-foreground">New Package</label>
+                  <Input className="h-8 text-xs" value={editData.newPackageName || ""} onChange={e => setEditData({ ...editData, newPackageName: e.target.value })} data-testid="edit-new-package" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-medium text-muted-foreground">New Bandwidth</label>
+                  <Input className="h-8 text-xs" value={editData.newBandwidth || ""} onChange={e => setEditData({ ...editData, newBandwidth: e.target.value })} data-testid="edit-new-bw" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-medium text-muted-foreground">New Monthly Bill</label>
+                  <Input className="h-8 text-xs" value={editData.newMonthlyBill || ""} onChange={e => setEditData({ ...editData, newMonthlyBill: e.target.value })} data-testid="edit-new-bill" />
+                </div>
+              </div>
+            </div>
+            <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
+              <p className="text-xs font-semibold text-muted-foreground uppercase">Financial Details</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-medium text-muted-foreground">Prorated Charges</label>
+                  <Input className="h-8 text-xs" value={editData.proratedCharges || ""} onChange={e => setEditData({ ...editData, proratedCharges: e.target.value })} data-testid="edit-prorated" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-medium text-muted-foreground">Adjustment</label>
+                  <Input className="h-8 text-xs" value={editData.adjustmentAmount || ""} onChange={e => setEditData({ ...editData, adjustmentAmount: e.target.value })} data-testid="edit-adjustment" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-medium text-muted-foreground">Tax Impact</label>
+                  <Input className="h-8 text-xs" value={editData.taxImpact || ""} onChange={e => setEditData({ ...editData, taxImpact: e.target.value })} data-testid="edit-tax" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-medium text-muted-foreground">Final Difference</label>
+                  <Input className="h-8 text-xs" value={editData.finalBillDifference || ""} onChange={e => setEditData({ ...editData, finalBillDifference: e.target.value })} data-testid="edit-final-diff" />
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Effective Date Type</label>
+                <Select value={editData.effectiveDateType || "immediate"} onValueChange={v => setEditData({ ...editData, effectiveDateType: v })}>
+                  <SelectTrigger data-testid="edit-effective-type"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="immediate">Immediate</SelectItem>
+                    <SelectItem value="next_billing">Next Billing Cycle</SelectItem>
+                    <SelectItem value="custom">Custom Date</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {editData.effectiveDateType === "custom" && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Effective Date</label>
+                  <Input type="date" value={editData.effectiveDate || ""} onChange={e => setEditData({ ...editData, effectiveDate: e.target.value })} data-testid="edit-effective-date" />
+                </div>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Reason</label>
+              <Textarea rows={2} value={editData.reason || ""} onChange={e => setEditData({ ...editData, reason: e.target.value })} data-testid="edit-reason" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={editData.isUrgent || false} onCheckedChange={v => setEditData({ ...editData, isUrgent: v })} data-testid="edit-urgent" />
+              <label className="text-sm font-medium">Mark as Urgent</label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+            <Button className="bg-[#0057FF] hover:bg-[#0044cc]" onClick={handleEditSave} disabled={updateMutation.isPending} data-testid="button-save-edit">
+              {updateMutation.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Check className="h-4 w-4 mr-1.5" />}
+              Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
