@@ -2752,6 +2752,16 @@ export async function registerRoutes(
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
+  app.get("/api/cir-customers/:id/package-change-requests", requireAuth, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const results = await db.select().from(packageChangeRequests)
+        .where(eq(packageChangeRequests.cirCustomerId, customerId))
+        .orderBy(desc(packageChangeRequests.createdAt));
+      res.json(results);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
   app.post("/api/cir-customers/:id/automate", requireAuth, async (req: any, res) => {
     try {
       const cid = parseInt(req.params.id);
@@ -2920,6 +2930,16 @@ export async function registerRoutes(
     try {
       const record = await storage.createBandwidthHistory({ ...req.body, customerType: "corporate", customerId: parseInt(req.params.id) });
       res.json(record);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  app.get("/api/corporate-customers/:id/package-change-requests", requireAuth, async (req, res) => {
+    try {
+      const customerId = parseInt(req.params.id);
+      const results = await db.select().from(packageChangeRequests)
+        .where(eq(packageChangeRequests.corporateCustomerId, customerId))
+        .orderBy(desc(packageChangeRequests.createdAt));
+      res.json(results);
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 

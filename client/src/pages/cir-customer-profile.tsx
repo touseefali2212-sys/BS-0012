@@ -277,6 +277,12 @@ export default function CirCustomerProfilePage() {
     enabled: !!id,
   });
 
+  const { data: packageChangeReqs, isLoading: pcrLoading } = useQuery<any[]>({
+    queryKey: ["/api/cir-customers", id, "package-change-requests"],
+    queryFn: async () => { const res = await fetch(`/api/cir-customers/${id}/package-change-requests`, { credentials: "include" }); if (!res.ok) return []; return res.json(); },
+    enabled: !!id,
+  });
+
   const { data: serviceRequests } = useQuery<any[]>({
     queryKey: ["/api/cir-customers", id, "service-requests"],
     queryFn: async () => { try { const res = await fetch(`/api/cir-customers/${id}/service-requests`, { credentials: "include" }); if (!res.ok) return []; return res.json(); } catch { return []; } },
@@ -654,8 +660,58 @@ export default function CirCustomerProfilePage() {
 
             {/* BANDWIDTH UPGRADE & DOWNGRADE HISTORY */}
             {activeTab === "bwhistory" && (
-              <div className="space-y-4">
-                <SectionHeader title="Bandwidth Upgrade & Downgrade History" action={
+              <div className="space-y-6">
+                <SectionHeader title="Package Change Requests" action={
+                  <Button size="sm" className="text-xs h-8 gap-1 bg-[#1c67d4] text-white" data-testid="button-submit-change-request" onClick={() => setLocation(`/package-change?customerType=CIR&customerId=${id}&customerName=${encodeURIComponent(customer.companyName)}`)}><Plus className="h-3 w-3" />Submit Request</Button>
+                } />
+                {pcrLoading ? (<div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>)
+                : !packageChangeReqs?.length ? (<EmptyState icon={FileText} message="No package change requests found" />)
+                : (
+                  <div className="bg-card border rounded-lg overflow-hidden">
+                    <Table>
+                      <TableHeader><TableRow className="bg-[#1a3a5c]">
+                        <TableHead className="text-white text-xs">Request #</TableHead>
+                        <TableHead className="text-white text-xs">Date</TableHead>
+                        <TableHead className="text-white text-xs">Type</TableHead>
+                        <TableHead className="text-white text-xs">Previous BW</TableHead>
+                        <TableHead className="text-white text-xs">New BW</TableHead>
+                        <TableHead className="text-white text-xs">New Price</TableHead>
+                        <TableHead className="text-white text-xs">Prorated Charges</TableHead>
+                        <TableHead className="text-white text-xs">Adjustment</TableHead>
+                        <TableHead className="text-white text-xs">Tax Impact</TableHead>
+                        <TableHead className="text-white text-xs">Final Difference</TableHead>
+                        <TableHead className="text-white text-xs">Status</TableHead>
+                      </TableRow></TableHeader>
+                      <TableBody>
+                        {packageChangeReqs.map((r: any) => (
+                          <TableRow key={r.id} data-testid={`row-pcr-${r.id}`}>
+                            <TableCell className="text-xs font-medium text-[#0057FF]">{r.requestNumber}</TableCell>
+                            <TableCell className="text-xs">{formatDate(r.createdAt)}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className={`text-[10px] capitalize ${r.changeType === "upgrade" ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
+                                {r.changeType === "upgrade" ? <TrendingUp className="h-3 w-3 inline mr-1" /> : <TrendingDown className="h-3 w-3 inline mr-1" />}{r.changeType}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-xs">{r.currentBandwidth || "-"}</TableCell>
+                            <TableCell className="text-xs font-bold text-teal-700 dark:text-teal-400">{r.newBandwidth || "-"}</TableCell>
+                            <TableCell className="text-xs font-medium">Rs. {parseFloat(r.newMonthlyBill || "0").toLocaleString()}</TableCell>
+                            <TableCell className="text-xs">Rs. {parseFloat(r.proratedCharges || "0").toLocaleString()}</TableCell>
+                            <TableCell className="text-xs">Rs. {parseFloat(r.adjustmentAmount || "0").toLocaleString()}</TableCell>
+                            <TableCell className="text-xs">Rs. {parseFloat(r.taxImpact || "0").toLocaleString()}</TableCell>
+                            <TableCell className={`text-xs font-bold ${parseFloat(r.finalBillDifference || "0") > 0 ? "text-red-600" : "text-green-600"}`}>Rs. {parseFloat(r.finalBillDifference || "0").toLocaleString()}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className={`text-[10px] capitalize ${r.status === "approved" || r.status === "implemented" || r.status === "completed" ? "text-green-700 bg-green-50" : r.status === "rejected" ? "text-red-600 bg-red-50" : r.status === "pending" ? "text-amber-700 bg-amber-50" : "text-blue-700 bg-blue-50"}`}>
+                                {r.status}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                <SectionHeader title="Bandwidth Change History" action={
                   <Button size="sm" variant="outline" className="text-xs h-8 gap-1" onClick={() => toast({ title: "Add bandwidth change record" })}><Plus className="h-3 w-3" />Add Record</Button>
                 } />
                 {bwLoading ? (<div className="space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full" />)}</div>)
@@ -673,7 +729,7 @@ export default function CirCustomerProfilePage() {
                       </TableRow></TableHeader>
                       <TableBody>
                         {bwHistory.map((h: any) => (
-                          <TableRow key={h.id}>
+                          <TableRow key={h.id} data-testid={`row-bwh-${h.id}`}>
                             <TableCell className="text-xs">{formatDate(h.effectiveDate || h.createdAt)}</TableCell>
                             <TableCell>
                               <Badge variant="secondary" className={`text-[10px] capitalize ${h.changeType === "upgrade" ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
