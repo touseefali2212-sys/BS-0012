@@ -24,7 +24,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Package as PackageType, Vendor, Area, Branch, Employee, Setting } from "@shared/schema";
+import type { Package as PackageType, Vendor, Area, Branch, Employee, Setting, OltDevice } from "@shared/schema";
 
 type AutoStep = { step: string; status: "pending" | "running" | "success" | "error" | "skipped"; message: string; data?: any };
 
@@ -326,6 +326,8 @@ export default function AddCustomerPage() {
     committedBandwidth: "", uploadSpeed: "", downloadSpeed: "", vlanId: "",
     staticIp: "", subnetMask: "", gateway: "", dns1: "", dns2: "",
     radiusProfile: "", bandwidthProfileName: "",
+    networkDeviceType: "", ndtModel: "", ndtMacAddress: "", ndtSerialNo: "", ndtOltId: "",
+    ndtIpAddress: "", ndtUsername: "", ndtPassword: "", ndtSsid: "",
     monitoringEnabled: false, snmpMonitoring: false, trafficAlerts: false,
     billingMode: "fixed", perMbpsRate: "0", bandwidthMbps: "0",
     taxEnabled: false, whTaxPercent: "0", aitTaxPercent: "0", extraFeeTaxPercent: "0",
@@ -347,6 +349,8 @@ export default function AddCustomerPage() {
     customerType: "", serviceType: "", vendorId: "", linkType: "", uplinkPort: "", media: "",
     vendorPort: "",
     committedBandwidth: "", burstBandwidth: "", uploadSpeed: "", downloadSpeed: "",
+    networkDeviceType: "", ndtModel: "", ndtMacAddress: "", ndtSerialNo: "", ndtOltId: "",
+    ndtIpAddress: "", ndtUsername: "", ndtPassword: "", ndtSsid: "",
     contentionRatio: "", vlanId: "", onuDevice: "", staticIp: "", subnetMask: "",
     gateway: "", dns: "", dns2: "", publicIpBlock: "",
     paymentTerms: "", billingMode: "", bandwidthMbps: "", perMbpsRate: "",
@@ -413,6 +417,8 @@ export default function AddCustomerPage() {
     mapLatitude: "", mapLongitude: "", zone: "", subzone: "",
 
     protocolType: "", connectionType: "", device: "", deviceModel: "", deviceMacSerial: "", macAddress: "",
+    networkDeviceType: "", ndtModel: "", ndtMacAddress: "", ndtSerialNo: "", ndtOltId: "",
+    ndtIpAddress: "", ndtUsername: "", ndtPassword: "", ndtSsid: "",
     deviceOwnedBy: "Company", cableRequirement: "", fiberCode: "", numberOfCore: "", coreColor: "",
 
     smsMobile: true, smsWhatsapp: false, emailNotif: false, inAppNotif: true,
@@ -422,6 +428,11 @@ export default function AddCustomerPage() {
   const update = (field: string, value: string | boolean | number) => {
     setForm(prev => {
       const updated = { ...prev, [field]: value };
+
+      if (field === "networkDeviceType") {
+        updated.ndtModel = ""; updated.ndtMacAddress = ""; updated.ndtSerialNo = ""; updated.ndtOltId = "";
+        updated.ndtIpAddress = ""; updated.ndtUsername = ""; updated.ndtPassword = ""; updated.ndtSsid = "";
+      }
 
       if (field === "packageBill" || field === "discountOnPackage") {
         const bill = parseFloat(field === "packageBill" ? String(value) : prev.packageBill) || 0;
@@ -480,6 +491,7 @@ export default function AddCustomerPage() {
   const { data: areas } = useQuery<Area[]>({ queryKey: ["/api/areas"] });
   const { data: branches } = useQuery<Branch[]>({ queryKey: ["/api/branches"] });
   const { data: employees } = useQuery<Employee[]>({ queryKey: ["/api/employees"] });
+  const { data: oltDevices } = useQuery<OltDevice[]>({ queryKey: ["/api/olt-devices"] });
   const { data: allSettings } = useQuery<Setting[]>({ queryKey: ["/api/settings"] });
   const billingTaxSettings = (allSettings || []).filter(s => s.category === "billing");
 
@@ -926,7 +938,7 @@ export default function AddCustomerPage() {
   // Infrastructure required fields
   if (!form.protocolType   || form.protocolType.trim().length < 1)   missingByTab["Infrastructure"].push("Protocol Type");
   if (!form.connectionType || form.connectionType.trim().length < 1) missingByTab["Infrastructure"].push("Connection Type");
-  if (!form.device         || form.device.trim().length < 1)         missingByTab["Infrastructure"].push("Device Type");
+  if (!form.networkDeviceType || form.networkDeviceType.trim().length < 1) missingByTab["Infrastructure"].push("Network Device Type");
   if (!form.deviceOwnedBy  || form.deviceOwnedBy.trim().length < 1)  missingByTab["Infrastructure"].push("Device Owned By");
 
   const allMissing = Object.entries(missingByTab).flatMap(([tab, fields]) =>
@@ -2808,60 +2820,112 @@ export default function AddCustomerPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Device Type <span className="text-red-500">*</span></label>
-                    <Select value={form.device} onValueChange={v => update("device", v)}>
-                      <SelectTrigger data-testid="select-device-type"><SelectValue placeholder="Select device" /></SelectTrigger>
+                    <label className="text-sm font-medium">Network Device Type <span className="text-red-500">*</span></label>
+                    <Select value={form.networkDeviceType} onValueChange={v => { update("networkDeviceType", v); update("device", v); }}>
+                      <SelectTrigger data-testid="select-network-device-type"><SelectValue placeholder="Select network device" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ONT">ONT</SelectItem>
                         <SelectItem value="ONU">ONU</SelectItem>
-                        <SelectItem value="Router">Router</SelectItem>
-                        <SelectItem value="Modem">Modem</SelectItem>
-                        <SelectItem value="AP">Access Point</SelectItem>
-                        <SelectItem value="CPE">CPE</SelectItem>
+                        <SelectItem value="Ethernet">Ethernet</SelectItem>
+                        <SelectItem value="Wireless">Wireless</SelectItem>
+                        <SelectItem value="Wireless Dish">Wireless Dish</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Device Model</label>
-                    <Input
-                      placeholder="e.g. Huawei HG8245H"
-                      value={form.deviceModel}
-                      onChange={e => update("deviceModel", e.target.value)}
-                      data-testid="input-device-model"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Device Serial No</label>
-                    <Input
-                      placeholder="e.g. SN123456789"
-                      value={form.deviceMacSerial}
-                      onChange={e => update("deviceMacSerial", e.target.value)}
-                      data-testid="input-device-serial"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Device MAC Address</label>
-                    <div className="relative">
-                      <Input
-                        placeholder="AA:BB:CC:DD:EE:FF"
-                        value={form.macAddress}
-                        onChange={e => update("macAddress", e.target.value)}
-                        data-testid="input-mac-address"
-                        className={errors.macAddress ? "border-red-500" : ""}
-                        maxLength={17}
-                      />
-                      {form.macAddress && (
-                        <div className={`absolute right-3 top-1/2 -translate-y-1/2 ${validateMac(form.macAddress) ? "text-green-500" : "text-amber-500"}`}>
-                          {validateMac(form.macAddress) ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                        </div>
-                      )}
+                {form.networkDeviceType && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                        <Wifi className="h-4 w-4 text-purple-600" />
+                        {form.networkDeviceType} Details
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {(form.networkDeviceType === "ONT" || form.networkDeviceType === "ONU") && (
+                          <>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">{form.networkDeviceType} Model</label>
+                              <Input placeholder={`e.g. Huawei HG8245H`} value={form.ndtModel} onChange={e => update("ndtModel", e.target.value)} data-testid="input-ndt-model" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">{form.networkDeviceType} MAC Address</label>
+                              <Input placeholder="AA:BB:CC:DD:EE:FF" value={form.ndtMacAddress} onChange={e => update("ndtMacAddress", e.target.value)} data-testid="input-ndt-mac" maxLength={17} />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">{form.networkDeviceType} Serial No.</label>
+                              <Input placeholder="e.g. SN123456789" value={form.ndtSerialNo} onChange={e => update("ndtSerialNo", e.target.value)} data-testid="input-ndt-serial" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">OLT</label>
+                              <Select value={form.ndtOltId} onValueChange={v => update("ndtOltId", v)}>
+                                <SelectTrigger data-testid="select-ndt-olt"><SelectValue placeholder="Select OLT" /></SelectTrigger>
+                                <SelectContent>
+                                  {(oltDevices || []).map(olt => (
+                                    <SelectItem key={olt.id} value={String(olt.id)}>{olt.name} ({olt.ipAddress || olt.oltId})</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </>
+                        )}
+                        {form.networkDeviceType === "Ethernet" && (
+                          <>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Router Model</label>
+                              <Input placeholder="e.g. MikroTik hAP ac2" value={form.ndtModel} onChange={e => update("ndtModel", e.target.value)} data-testid="input-ndt-model" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Router MAC Address</label>
+                              <Input placeholder="AA:BB:CC:DD:EE:FF" value={form.ndtMacAddress} onChange={e => update("ndtMacAddress", e.target.value)} data-testid="input-ndt-mac" maxLength={17} />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Router Serial No.</label>
+                              <Input placeholder="e.g. SN123456789" value={form.ndtSerialNo} onChange={e => update("ndtSerialNo", e.target.value)} data-testid="input-ndt-serial" />
+                            </div>
+                          </>
+                        )}
+                        {(form.networkDeviceType === "Wireless" || form.networkDeviceType === "Wireless Dish") && (
+                          <>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Dish Model</label>
+                              <Input placeholder="e.g. Ubiquiti LiteBeam" value={form.ndtModel} onChange={e => update("ndtModel", e.target.value)} data-testid="input-ndt-model" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Dish MAC Address</label>
+                              <Input placeholder="AA:BB:CC:DD:EE:FF" value={form.ndtMacAddress} onChange={e => update("ndtMacAddress", e.target.value)} data-testid="input-ndt-mac" maxLength={17} />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Dish Serial No.</label>
+                              <Input placeholder="e.g. SN123456789" value={form.ndtSerialNo} onChange={e => update("ndtSerialNo", e.target.value)} data-testid="input-ndt-serial" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Dish IP Address</label>
+                              <Input placeholder="e.g. 192.168.1.100" value={form.ndtIpAddress} onChange={e => update("ndtIpAddress", e.target.value)} data-testid="input-ndt-ip" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Dish Username</label>
+                              <Input placeholder="e.g. admin" value={form.ndtUsername} onChange={e => update("ndtUsername", e.target.value)} data-testid="input-ndt-username" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Dish Password</label>
+                              <Input placeholder="Enter password" value={form.ndtPassword} onChange={e => update("ndtPassword", e.target.value)} data-testid="input-ndt-password" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Dish SSID</label>
+                              <Input placeholder="e.g. MyNetwork-5G" value={form.ndtSsid} onChange={e => update("ndtSsid", e.target.value)} data-testid="input-ndt-ssid" />
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    {errors.macAddress && <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{errors.macAddress}</p>}
-                  </div>
+                  </>
+                )}
 
+                <Separator />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">Device Owned By <span className="text-red-500">*</span></label>
                     <Select value={form.deviceOwnedBy} onValueChange={v => update("deviceOwnedBy", v)}>
@@ -3318,8 +3382,110 @@ export default function AddCustomerPage() {
                           </SelectContent>
                         </Select>
                       </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Network Device Type</label>
+                        <Select value={corpForm.networkDeviceType} onValueChange={v => { updateCorp("networkDeviceType", v); updateCorp("ndtModel", ""); updateCorp("ndtMacAddress", ""); updateCorp("ndtSerialNo", ""); updateCorp("ndtOltId", ""); updateCorp("ndtIpAddress", ""); updateCorp("ndtUsername", ""); updateCorp("ndtPassword", ""); updateCorp("ndtSsid", ""); }}>
+                          <SelectTrigger data-testid="select-corp-network-device-type"><SelectValue placeholder="Select network device" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ONT">ONT</SelectItem>
+                            <SelectItem value="ONU">ONU</SelectItem>
+                            <SelectItem value="Ethernet">Ethernet</SelectItem>
+                            <SelectItem value="Wireless">Wireless</SelectItem>
+                            <SelectItem value="Wireless Dish">Wireless Dish</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
+
+                  {corpForm.networkDeviceType && (
+                    <>
+                      <Separator />
+                      <div>
+                        <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                          <Wifi className="h-4 w-4 text-purple-600" />
+                          {corpForm.networkDeviceType} Details
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {(corpForm.networkDeviceType === "ONT" || corpForm.networkDeviceType === "ONU") && (
+                            <>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">{corpForm.networkDeviceType} Model</label>
+                                <Input placeholder="e.g. Huawei HG8245H" value={corpForm.ndtModel} onChange={e => updateCorp("ndtModel", e.target.value)} data-testid="input-corp-ndt-model" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">{corpForm.networkDeviceType} MAC Address</label>
+                                <Input placeholder="AA:BB:CC:DD:EE:FF" value={corpForm.ndtMacAddress} onChange={e => updateCorp("ndtMacAddress", e.target.value)} data-testid="input-corp-ndt-mac" maxLength={17} />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">{corpForm.networkDeviceType} Serial No.</label>
+                                <Input placeholder="e.g. SN123456789" value={corpForm.ndtSerialNo} onChange={e => updateCorp("ndtSerialNo", e.target.value)} data-testid="input-corp-ndt-serial" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">OLT</label>
+                                <Select value={corpForm.ndtOltId} onValueChange={v => updateCorp("ndtOltId", v)}>
+                                  <SelectTrigger data-testid="select-corp-ndt-olt"><SelectValue placeholder="Select OLT" /></SelectTrigger>
+                                  <SelectContent>
+                                    {(oltDevices || []).map(olt => (
+                                      <SelectItem key={olt.id} value={String(olt.id)}>{olt.name} ({olt.ipAddress || olt.oltId})</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </>
+                          )}
+                          {corpForm.networkDeviceType === "Ethernet" && (
+                            <>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Router Model</label>
+                                <Input placeholder="e.g. MikroTik hAP ac2" value={corpForm.ndtModel} onChange={e => updateCorp("ndtModel", e.target.value)} data-testid="input-corp-ndt-model" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Router MAC Address</label>
+                                <Input placeholder="AA:BB:CC:DD:EE:FF" value={corpForm.ndtMacAddress} onChange={e => updateCorp("ndtMacAddress", e.target.value)} data-testid="input-corp-ndt-mac" maxLength={17} />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Router Serial No.</label>
+                                <Input placeholder="e.g. SN123456789" value={corpForm.ndtSerialNo} onChange={e => updateCorp("ndtSerialNo", e.target.value)} data-testid="input-corp-ndt-serial" />
+                              </div>
+                            </>
+                          )}
+                          {(corpForm.networkDeviceType === "Wireless" || corpForm.networkDeviceType === "Wireless Dish") && (
+                            <>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Dish Model</label>
+                                <Input placeholder="e.g. Ubiquiti LiteBeam" value={corpForm.ndtModel} onChange={e => updateCorp("ndtModel", e.target.value)} data-testid="input-corp-ndt-model" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Dish MAC Address</label>
+                                <Input placeholder="AA:BB:CC:DD:EE:FF" value={corpForm.ndtMacAddress} onChange={e => updateCorp("ndtMacAddress", e.target.value)} data-testid="input-corp-ndt-mac" maxLength={17} />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Dish Serial No.</label>
+                                <Input placeholder="e.g. SN123456789" value={corpForm.ndtSerialNo} onChange={e => updateCorp("ndtSerialNo", e.target.value)} data-testid="input-corp-ndt-serial" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Dish IP Address</label>
+                                <Input placeholder="e.g. 192.168.1.100" value={corpForm.ndtIpAddress} onChange={e => updateCorp("ndtIpAddress", e.target.value)} data-testid="input-corp-ndt-ip" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Dish Username</label>
+                                <Input placeholder="e.g. admin" value={corpForm.ndtUsername} onChange={e => updateCorp("ndtUsername", e.target.value)} data-testid="input-corp-ndt-username" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Dish Password</label>
+                                <Input placeholder="Enter password" value={corpForm.ndtPassword} onChange={e => updateCorp("ndtPassword", e.target.value)} data-testid="input-corp-ndt-password" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Dish SSID</label>
+                                <Input placeholder="e.g. MyNetwork-5G" value={corpForm.ndtSsid} onChange={e => updateCorp("ndtSsid", e.target.value)} data-testid="input-corp-ndt-ssid" />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <Separator />
 
@@ -4315,8 +4481,110 @@ export default function AddCustomerPage() {
                           </SelectContent>
                         </Select>
                       </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Network Device Type</label>
+                        <Select value={cirForm.networkDeviceType} onValueChange={v => { updateCir("networkDeviceType", v); updateCir("ndtModel", ""); updateCir("ndtMacAddress", ""); updateCir("ndtSerialNo", ""); updateCir("ndtOltId", ""); updateCir("ndtIpAddress", ""); updateCir("ndtUsername", ""); updateCir("ndtPassword", ""); updateCir("ndtSsid", ""); }}>
+                          <SelectTrigger data-testid="select-cir-network-device-type"><SelectValue placeholder="Select network device" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="ONT">ONT</SelectItem>
+                            <SelectItem value="ONU">ONU</SelectItem>
+                            <SelectItem value="Ethernet">Ethernet</SelectItem>
+                            <SelectItem value="Wireless">Wireless</SelectItem>
+                            <SelectItem value="Wireless Dish">Wireless Dish</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
+
+                  {cirForm.networkDeviceType && (
+                    <>
+                      <Separator />
+                      <div>
+                        <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                          <Wifi className="h-4 w-4 text-purple-600" />
+                          {cirForm.networkDeviceType} Details
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {(cirForm.networkDeviceType === "ONT" || cirForm.networkDeviceType === "ONU") && (
+                            <>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">{cirForm.networkDeviceType} Model</label>
+                                <Input placeholder="e.g. Huawei HG8245H" value={cirForm.ndtModel} onChange={e => updateCir("ndtModel", e.target.value)} data-testid="input-cir-ndt-model" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">{cirForm.networkDeviceType} MAC Address</label>
+                                <Input placeholder="AA:BB:CC:DD:EE:FF" value={cirForm.ndtMacAddress} onChange={e => updateCir("ndtMacAddress", e.target.value)} data-testid="input-cir-ndt-mac" maxLength={17} />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">{cirForm.networkDeviceType} Serial No.</label>
+                                <Input placeholder="e.g. SN123456789" value={cirForm.ndtSerialNo} onChange={e => updateCir("ndtSerialNo", e.target.value)} data-testid="input-cir-ndt-serial" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">OLT</label>
+                                <Select value={cirForm.ndtOltId} onValueChange={v => updateCir("ndtOltId", v)}>
+                                  <SelectTrigger data-testid="select-cir-ndt-olt"><SelectValue placeholder="Select OLT" /></SelectTrigger>
+                                  <SelectContent>
+                                    {(oltDevices || []).map(olt => (
+                                      <SelectItem key={olt.id} value={String(olt.id)}>{olt.name} ({olt.ipAddress || olt.oltId})</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </>
+                          )}
+                          {cirForm.networkDeviceType === "Ethernet" && (
+                            <>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Router Model</label>
+                                <Input placeholder="e.g. MikroTik hAP ac2" value={cirForm.ndtModel} onChange={e => updateCir("ndtModel", e.target.value)} data-testid="input-cir-ndt-model" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Router MAC Address</label>
+                                <Input placeholder="AA:BB:CC:DD:EE:FF" value={cirForm.ndtMacAddress} onChange={e => updateCir("ndtMacAddress", e.target.value)} data-testid="input-cir-ndt-mac" maxLength={17} />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Router Serial No.</label>
+                                <Input placeholder="e.g. SN123456789" value={cirForm.ndtSerialNo} onChange={e => updateCir("ndtSerialNo", e.target.value)} data-testid="input-cir-ndt-serial" />
+                              </div>
+                            </>
+                          )}
+                          {(cirForm.networkDeviceType === "Wireless" || cirForm.networkDeviceType === "Wireless Dish") && (
+                            <>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Dish Model</label>
+                                <Input placeholder="e.g. Ubiquiti LiteBeam" value={cirForm.ndtModel} onChange={e => updateCir("ndtModel", e.target.value)} data-testid="input-cir-ndt-model" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Dish MAC Address</label>
+                                <Input placeholder="AA:BB:CC:DD:EE:FF" value={cirForm.ndtMacAddress} onChange={e => updateCir("ndtMacAddress", e.target.value)} data-testid="input-cir-ndt-mac" maxLength={17} />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Dish Serial No.</label>
+                                <Input placeholder="e.g. SN123456789" value={cirForm.ndtSerialNo} onChange={e => updateCir("ndtSerialNo", e.target.value)} data-testid="input-cir-ndt-serial" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Dish IP Address</label>
+                                <Input placeholder="e.g. 192.168.1.100" value={cirForm.ndtIpAddress} onChange={e => updateCir("ndtIpAddress", e.target.value)} data-testid="input-cir-ndt-ip" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Dish Username</label>
+                                <Input placeholder="e.g. admin" value={cirForm.ndtUsername} onChange={e => updateCir("ndtUsername", e.target.value)} data-testid="input-cir-ndt-username" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Dish Password</label>
+                                <Input placeholder="Enter password" value={cirForm.ndtPassword} onChange={e => updateCir("ndtPassword", e.target.value)} data-testid="input-cir-ndt-password" />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-sm font-medium">Dish SSID</label>
+                                <Input placeholder="e.g. MyNetwork-5G" value={cirForm.ndtSsid} onChange={e => updateCir("ndtSsid", e.target.value)} data-testid="input-cir-ndt-ssid" />
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <Separator />
 
