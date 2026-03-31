@@ -28,6 +28,11 @@ import {
   ShoppingBag,
   UserCheck,
   ChevronsUpDown,
+  Download,
+  FileText,
+  Copy,
+  Power,
+  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -146,16 +151,32 @@ function TaxExtraFeeTab() {
   const { toast } = useToast();
   const [feeType, setFeeType] = useState("tax_rate");
   const [applyTo, setApplyTo] = useState("all");
+  const [editingFee, setEditingFee] = useState<Setting | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   const { data: allSettings, isLoading } = useQuery<Setting[]>({
     queryKey: ["/api/settings"],
   });
 
-  const billingSettings = (allSettings || []).filter(
-    (s) => s.category === "billing"
-  );
+  const parseDescription = (desc: string | null | undefined) => {
+    try { return JSON.parse(desc || "{}"); }
+    catch { return { type: "unknown", name: desc || "", applyTo: "all" }; }
+  };
+
+  const taxFeeTypes = ["tax_rate", "service_tax", "wh_tax", "ait_tax", "extra_fee"];
+  const billingSettings = (allSettings || []).filter((s) => {
+    if (s.category !== "billing") return false;
+    if (s.key.startsWith("reseller_pkg_")) return false;
+    const meta = parseDescription(s.description);
+    return taxFeeTypes.includes(meta.type);
+  });
 
   const form = useForm<TaxFeeForm>({
+    resolver: zodResolver(taxFeeFormSchema),
+    defaultValues: { key: "", value: "", category: "billing", description: "" },
+  });
+
+  const editForm = useForm<TaxFeeForm>({
     resolver: zodResolver(taxFeeFormSchema),
     defaultValues: { key: "", value: "", category: "billing", description: "" },
   });
@@ -181,6 +202,22 @@ function TaxExtraFeeTab() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: { value: string; description: string } }) => {
+      const res = await apiRequest("PATCH", `/api/settings/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      setEditDialogOpen(false);
+      setEditingFee(null);
+      toast({ title: "Tax/fee updated successfully" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/settings/${id}`);
@@ -194,9 +231,27 @@ function TaxExtraFeeTab() {
     },
   });
 
-  const parseDescription = (desc: string | null | undefined) => {
-    try { return JSON.parse(desc || "{}"); }
-    catch { return { type: "unknown", name: desc || "", applyTo: "all" }; }
+  const [editFeeType, setEditFeeType] = useState("tax_rate");
+  const [editApplyTo, setEditApplyTo] = useState("all");
+
+  const openEditFee = (setting: Setting) => {
+    const meta = parseDescription(setting.description);
+    setEditingFee(setting);
+    setEditFeeType(meta.type || "tax_rate");
+    setEditApplyTo(meta.applyTo || "all");
+    editForm.reset({ key: meta.name || setting.key, value: setting.value, category: "billing", description: "" });
+    setEditDialogOpen(true);
+  };
+
+  const onEditSubmit = (data: TaxFeeForm) => {
+    if (!editingFee) return;
+    updateMutation.mutate({
+      id: editingFee.id,
+      data: {
+        value: data.value,
+        description: JSON.stringify({ type: editFeeType, name: data.key, applyTo: editApplyTo }),
+      },
+    });
   };
 
   const feeTypeLabels: Record<string, string> = {
@@ -295,7 +350,7 @@ function TaxExtraFeeTab() {
                   <TableHead>Name</TableHead>
                   <TableHead>Value</TableHead>
                   <TableHead>Applies To</TableHead>
-                  <TableHead className="w-[60px]">Actions</TableHead>
+                  <TableHead className="w-[90px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -318,9 +373,14 @@ function TaxExtraFeeTab() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(setting.id)} data-testid={`button-delete-fee-${setting.id}`}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => openEditFee(setting)} data-testid={`button-edit-fee-${setting.id}`}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(setting.id)} data-testid={`button-delete-fee-${setting.id}`}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -330,6 +390,69 @@ function TaxExtraFeeTab() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Edit Tax / Fee
+            </DialogTitle>
+          </DialogHeader>
+          <Form {...editForm}>
+            <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Fee Type</label>
+                <Select value={editFeeType} onValueChange={setEditFeeType}>
+                  <SelectTrigger data-testid="select-edit-fee-type"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="tax_rate">Tax Rate (%)</SelectItem>
+                    <SelectItem value="service_tax">Service Tax (%)</SelectItem>
+                    <SelectItem value="wh_tax">WH Tax (%)</SelectItem>
+                    <SelectItem value="ait_tax">AIT Tax (%)</SelectItem>
+                    <SelectItem value="extra_fee">Extra Fee (Fixed Amount)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <FormField control={editForm.control} name="key" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{editFeeType === "extra_fee" ? "Fee Name" : "Tax Name"}</FormLabel>
+                  <FormControl>
+                    <Input placeholder={editFeeType === "extra_fee" ? "e.g. Installation Fee" : "e.g. VAT"} data-testid="input-edit-tax-name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <FormField control={editForm.control} name="value" render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{editFeeType === "extra_fee" ? "Amount (Rs.)" : "Rate (%)"}</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder={editFeeType === "extra_fee" ? "500" : "10"} data-testid="input-edit-tax-value" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )} />
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Apply To</label>
+                <Select value={editApplyTo} onValueChange={setEditApplyTo}>
+                  <SelectTrigger data-testid="select-edit-apply-to"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {applyToOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="secondary" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={updateMutation.isPending} data-testid="button-save-edit-fee">
+                  {updateMutation.isPending ? "Saving..." : "Update"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -776,6 +899,134 @@ export default function PackagesPage() {
     else createMutation.mutate(cleaned);
   };
 
+  const toggleStatusMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
+      const res = await apiRequest("PATCH", `/api/packages/${id}`, { isActive });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/packages"] });
+      toast({ title: "Package status updated" });
+    },
+    onError: (error: Error) => { toast({ title: "Error", description: error.message, variant: "destructive" }); },
+  });
+
+  const duplicatePackage = (pkg: PkgType) => {
+    setEditingPkg(null);
+    form.reset({
+      name: pkg.name + " (Copy)", serviceType: pkg.serviceType || "internet", speed: pkg.speed || "",
+      price: pkg.price, billingCycle: pkg.billingCycle, dataLimit: pkg.dataLimit || "",
+      channels: pkg.channels || "", features: pkg.features || "", description: pkg.description || "",
+      isActive: true, vendorId: pkg.vendorId ?? null,
+      whTax: pkg.whTax ?? "", aitTax: pkg.aitTax ?? "",
+    });
+    setDialogOpen(true);
+  };
+
+  const escHtml = (str: string | number | null | undefined): string => {
+    return String(str ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  };
+
+  const csvSafe = (val: string) => {
+    const s = String(val);
+    if (/^[=+\-@\t\r]/.test(s)) return "'" + s;
+    return s;
+  };
+
+  const exportPackagesCSV = () => {
+    if (filtered.length === 0) return;
+    const headers = ["Package Name", "Service Type", "Vendor", "Price", "WH Tax %", "AIT Tax %", "Speed", "Channels", "Data Limit", "Billing Cycle", "Status", "Active Customers", "Monthly Income"];
+    const rows = filtered.map(p => {
+      const vendor = allVendors.find(v => v.id === p.vendorId);
+      const activeCusts = allCustomers.filter(c => c.packageId === p.id && c.status === "active");
+      const totalIncome = activeCusts.reduce((s, c) => s + Number(c.monthlyBill || p.price || 0), 0);
+      return [
+        p.name, serviceTypeLabels[p.serviceType || "internet"], vendor?.name || "",
+        p.price, p.whTax || "", p.aitTax || "", p.speed || "", p.channels || "",
+        p.dataLimit || "", p.billingCycle, p.isActive ? "Active" : "Inactive",
+        String(activeCusts.length), String(totalIncome)
+      ];
+    });
+    const csv = "\uFEFF" + [headers.join(","), ...rows.map(r => r.map(c => `"${csvSafe(String(c)).replace(/"/g, '""')}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `packages_export_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const generatePackagesPDF = () => {
+    if (filtered.length === 0) return;
+    const totalIncome = filtered.reduce((sum, p) => {
+      const custs = allCustomers.filter(c => c.packageId === p.id && c.status === "active");
+      return sum + custs.reduce((s, c) => s + Number(c.monthlyBill || p.price || 0), 0);
+    }, 0);
+    const rows = filtered.map(p => {
+      const vendor = allVendors.find(v => v.id === p.vendorId);
+      const activeCusts = allCustomers.filter(c => c.packageId === p.id && c.status === "active");
+      const income = activeCusts.reduce((s, c) => s + Number(c.monthlyBill || p.price || 0), 0);
+      const base = Number(p.price);
+      const whAmt = p.whTax ? (base * Number(p.whTax)) / 100 : 0;
+      const aitAmt = p.aitTax ? (base * Number(p.aitTax)) / 100 : 0;
+      const actual = base + whAmt + aitAmt;
+      return `<tr>
+        <td>${escHtml(p.name)}</td>
+        <td><span class="badge ${p.serviceType === "internet" ? "badge-blue" : p.serviceType === "iptv" ? "badge-purple" : p.serviceType === "cable_tv" ? "badge-orange" : "badge-green"}">${escHtml(serviceTypeLabels[p.serviceType || "internet"])}</span></td>
+        <td>${escHtml(vendor?.name || "—")}</td>
+        <td>Rs. ${base.toLocaleString()}${whAmt > 0 || aitAmt > 0 ? `<br/><span class="actual">Actual: Rs. ${actual.toLocaleString()}</span>` : ""}</td>
+        <td>${escHtml(p.speed || p.channels || "—")}</td>
+        <td>${escHtml(p.billingCycle)}</td>
+        <td>${activeCusts.length}</td>
+        <td>Rs. ${income.toLocaleString()}</td>
+        <td><span class="badge ${p.isActive ? "badge-green" : "badge-red"}">${p.isActive ? "Active" : "Inactive"}</span></td>
+      </tr>`;
+    }).join("");
+    const html = `<!DOCTYPE html><html><head><title>Packages Report</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: Arial, sans-serif; font-size: 11px; color: #111; padding: 20px; }
+      h1 { font-size: 16px; margin-bottom: 2px; }
+      .meta { font-size: 11px; color: #555; margin-bottom: 16px; }
+      table { width: 100%; border-collapse: collapse; }
+      th { background: #1e293b; color: #fff; padding: 7px 6px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+      td { padding: 6px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+      tr:nth-child(even) td { background: #f8fafc; }
+      .badge { padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 600; text-transform: uppercase; }
+      .badge-blue { background: #dbeafe; color: #1d4ed8; }
+      .badge-purple { background: #f3e8ff; color: #7c3aed; }
+      .badge-orange { background: #fff7ed; color: #c2410c; }
+      .badge-green { background: #dcfce7; color: #15803d; }
+      .badge-red { background: #fef2f2; color: #dc2626; }
+      .actual { font-size: 9px; color: #15803d; font-weight: 600; }
+      .footer { margin-top: 16px; font-size: 10px; color: #888; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+      @media print { body { padding: 10mm; } }
+    </style></head><body>
+    <h1>Service Packages Report</h1>
+    <p class="meta">
+      <strong>Total:</strong> ${filtered.length} packages &nbsp;&nbsp;
+      <strong>Active:</strong> ${filtered.filter(p => p.isActive).length} &nbsp;&nbsp;
+      <strong>Total Monthly Income:</strong> Rs. ${totalIncome.toLocaleString()} &nbsp;&nbsp;
+      <strong>Generated:</strong> ${new Date().toLocaleString()}
+    </p>
+    <table>
+      <thead><tr>
+        <th>Package</th><th>Type</th><th>Vendor</th><th>Price</th><th>Speed/Channels</th>
+        <th>Billing</th><th>Customers</th><th>Monthly Income</th><th>Status</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p class="footer">NetSphere Enterprise — Service Packages Report</p>
+    </body></html>`;
+    const win = window.open("", "_blank", "width=1100,height=800");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 400);
+  };
+
   const toggleSort = (field: typeof sortField) => {
     if (sortField === field) setSortDir(d => d === "asc" ? "desc" : "asc");
     else { setSortField(field); setSortDir("asc"); }
@@ -829,6 +1080,18 @@ export default function PackagesPage() {
           <p className="text-sm text-muted-foreground mt-0.5">Manage Internet, IPTV & Cable TV service packages</p>
         </div>
         <div className="flex items-center gap-2">
+          {tab === "list" && (
+            <>
+              <Button size="sm" variant="outline" onClick={exportPackagesCSV} data-testid="button-export-packages-csv">
+                <Download className="h-3.5 w-3.5 mr-1" />
+                Export CSV
+              </Button>
+              <Button size="sm" variant="outline" onClick={generatePackagesPDF} data-testid="button-generate-packages-pdf">
+                <FileText className="h-3.5 w-3.5 mr-1" />
+                Generate PDF
+              </Button>
+            </>
+          )}
           {tab === "list" && canCreate("packages") && (
             <Button onClick={openCreate} data-testid="button-add-package">
               <Plus className="h-4 w-4 mr-1" />
@@ -1088,6 +1351,16 @@ export default function PackagesPage() {
                                     {canEdit("packages") && (
                                       <DropdownMenuItem onClick={() => openEdit(pkg)}>
                                         <Edit className="h-4 w-4 mr-2" /> Edit
+                                      </DropdownMenuItem>
+                                    )}
+                                    {canCreate("packages") && (
+                                      <DropdownMenuItem onClick={() => duplicatePackage(pkg)}>
+                                        <Copy className="h-4 w-4 mr-2" /> Duplicate
+                                      </DropdownMenuItem>
+                                    )}
+                                    {canEdit("packages") && (
+                                      <DropdownMenuItem onClick={() => toggleStatusMutation.mutate({ id: pkg.id, isActive: !pkg.isActive })}>
+                                        <Power className="h-4 w-4 mr-2" /> {pkg.isActive ? "Deactivate" : "Activate"}
                                       </DropdownMenuItem>
                                     )}
                                     {canDelete("packages") && (
