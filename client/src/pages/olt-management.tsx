@@ -7,7 +7,7 @@ import {
   Network, Shield, Settings, AlertTriangle, AlertCircle,
   CheckCircle2, XCircle, RefreshCw, Plus, Edit, Trash2,
   Download, Search, Filter, BarChart3, TrendingUp,
-  TrendingDown, Eye, Power, RotateCcw, Link2, Unlink,
+  TrendingDown, Eye, EyeOff, Power, RotateCcw, Link2, Unlink,
   HardDrive, Signal, Monitor, ChevronRight, ChevronDown,
   FileText, Bell, MoreHorizontal, Hash, Cable, ArrowUpDown,
   Gauge, MemoryStick, Database,
@@ -850,11 +850,14 @@ export default function OltManagementPage() {
                 </CardHeader>
                 <CardContent className="divide-y">
                   {[
-                    ["Device Name", olt.name],
+                    ["OLT Name", olt.name],
                     ["OLT ID", olt.oltId],
-                    ["IP Address", olt.ipAddress || "-"],
-                    ["Vendor", olt.vendor || "-"],
-                    ["Model", olt.model || "-"],
+                    ["OLT IP", olt.ipAddress || "-"],
+                    ["Username", olt.username || "-"],
+                    ["Password", olt.password ? "••••••••" : "-"],
+                    ["Company", olt.vendor || "-"],
+                    ["Hardware Version", olt.hardwareVersion || olt.model || "-"],
+                    ["PON Type", olt.ponType || "GPON"],
                     ["Total PON Ports", String(olt.totalPonPorts || 16)],
                     ["Status", olt.status],
                   ].map(([label, value]) => (
@@ -877,13 +880,14 @@ export default function OltManagementPage() {
                 </CardHeader>
                 <CardContent className="divide-y">
                   {[
+                    ["SNMP", olt.snmpEnabled === "off" ? "OFF" : "ON"],
                     ["SNMP Version", olt.snmpVersion || "v2c"],
-                    ["Community String", olt.snmpCommunity ? "••••••••" : "-"],
-                    ["Port", String(olt.snmpPort || 161)],
+                    ["Port Type", olt.snmpPortType || "UDP"],
+                    ["UDP/TCP Port", String(olt.snmpPort || 161)],
+                    ["Read-Write Community", olt.snmpCommunity || "-"],
                     ["Timeout", `${olt.snmpTimeout || 5} seconds`],
                     ["Retries", String(olt.snmpRetries || 3)],
                     ["Polling Interval", `${olt.snmpPollingInterval || 30} seconds`],
-                    ["SNMP Status", olt.snmpStatus === "active" ? "Active" : "Inactive"],
                   ].map(([label, value]) => (
                     <div key={label} className="flex justify-between py-2 text-xs">
                       <span className="text-muted-foreground">{label}</span>
@@ -997,38 +1001,70 @@ export default function OltManagementPage() {
   );
 }
 
+const VENDOR_MODELS: Record<string, string[]> = {
+  Huawei: ["MA5800-X17", "MA5800-X15", "MA5800-X7", "MA5800-X2", "MA5608T", "MA5683T", "MA5680T", "MA5616", "MA5626", "MA5821", "MA5818", "MA5811S"],
+  ZTE: ["ZXA10 C680", "ZXA10 C650", "ZXA10 C620", "ZXA10 C610", "ZXA10 C600", "ZXA10 C320", "ZXA10 C300", "ZXA10 F803", "ZXA10 F821", "ZXA10 F822"],
+  FiberHome: ["AN6000-17", "AN6000-15", "AN6000-7", "AN5516-06B", "AN5516-04", "AN5116-06B", "AN5006-20"],
+  Nokia: ["ISAM FX-16", "ISAM FX-8", "ISAM FX-4", "7360 ISAM FX-16", "7360 ISAM FX-8", "7360 ISAM FX-4", "7302 ISAM"],
+  VSOL: ["V1600G1", "V1600G2", "V1600D4", "V1600D8", "V1600G-B", "V1600G8-A", "V1600G16-A", "V3600-08", "V3600-16"],
+  HSGQ: ["HSGQ-E08", "HSGQ-E16", "HSGQ-G08", "HSGQ-G16", "HSGQ-X08", "HSGQ-X16"],
+  Other: ["Other"],
+};
+
 function ConfigForm({ olt, onSave, isPending }: { olt: OltDevice; onSave: (data: any) => void; isPending: boolean }) {
   const [name, setName] = useState(olt.name);
   const [ipAddress, setIpAddress] = useState(olt.ipAddress || "");
+  const [username, setUsername] = useState(olt.username || "");
+  const [password, setPassword] = useState(olt.password || "");
   const [vendor, setVendor] = useState(olt.vendor || "Huawei");
-  const [model, setModel] = useState(olt.model || "");
+  const [hardwareVersion, setHardwareVersion] = useState(olt.hardwareVersion || olt.model || "");
+  const [ponType, setPonType] = useState(olt.ponType || "GPON");
   const [totalPonPorts, setTotalPonPorts] = useState(String(olt.totalPonPorts || 16));
   const [status, setStatus] = useState(olt.status);
   const [notes, setNotes] = useState(olt.notes || "");
+  const [snmpEnabled, setSnmpEnabled] = useState(olt.snmpEnabled !== "off");
   const [snmpVersion, setSnmpVersion] = useState(olt.snmpVersion || "v2c");
-  const [snmpCommunity, setSnmpCommunity] = useState(olt.snmpCommunity || "public");
+  const [snmpPortType, setSnmpPortType] = useState(olt.snmpPortType || "UDP");
   const [snmpPort, setSnmpPort] = useState(String(olt.snmpPort || 161));
+  const [snmpCommunity, setSnmpCommunity] = useState(olt.snmpCommunity || "public");
   const [snmpTimeout, setSnmpTimeout] = useState(String(olt.snmpTimeout || 5));
   const [snmpRetries, setSnmpRetries] = useState(String(olt.snmpRetries || 3));
   const [snmpPollingInterval, setSnmpPollingInterval] = useState(String(olt.snmpPollingInterval || 30));
-  const [snmpStatus, setSnmpStatus] = useState(olt.snmpStatus || "active");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const availableModels = VENDOR_MODELS[vendor] || VENDOR_MODELS["Other"];
 
   return (
-    <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+    <div className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
       <div>
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Device Configuration</p>
+        <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+          <Server className="h-3.5 w-3.5" /> OLT Details
+        </p>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Name</label>
+            <label className="text-xs font-medium">OLT Name</label>
             <Input value={name} onChange={e => setName(e.target.value)} className="h-9 text-sm" data-testid="input-config-name" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">IP Address</label>
+            <label className="text-xs font-medium">OLT IP</label>
             <Input value={ipAddress} onChange={e => setIpAddress(e.target.value)} className="h-9 text-sm" data-testid="input-config-ip" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Vendor</label>
-            <Select value={vendor} onValueChange={setVendor}>
+            <label className="text-xs font-medium">OLT Username</label>
+            <Input value={username} onChange={e => setUsername(e.target.value)} className="h-9 text-sm" data-testid="input-config-username" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">OLT Password</label>
+            <div className="relative">
+              <Input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className="h-9 text-sm pr-9" data-testid="input-config-password" />
+              <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setShowPassword(!showPassword)}>
+                {showPassword ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">OLT Company</label>
+            <Select value={vendor} onValueChange={(v) => { setVendor(v); setHardwareVersion(""); }}>
               <SelectTrigger className="h-9 text-sm" data-testid="select-config-vendor"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {["Huawei", "ZTE", "FiberHome", "Nokia", "VSOL", "HSGQ", "Other"].map(v => (
@@ -1038,14 +1074,32 @@ function ConfigForm({ olt, onSave, isPending }: { olt: OltDevice; onSave: (data:
             </Select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Model</label>
-            <Input value={model} onChange={e => setModel(e.target.value)} className="h-9 text-sm" data-testid="input-config-model" />
+            <label className="text-xs font-medium">OLT Hardware Version</label>
+            <Select value={hardwareVersion} onValueChange={setHardwareVersion}>
+              <SelectTrigger className="h-9 text-sm" data-testid="select-config-hardware"><SelectValue placeholder="Select model" /></SelectTrigger>
+              <SelectContent>
+                {availableModels.map(m => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">PON Type</label>
+            <Select value={ponType} onValueChange={setPonType}>
+              <SelectTrigger className="h-9 text-sm" data-testid="select-config-pon-type"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="GPON">GPON</SelectItem>
+                <SelectItem value="EPON">EPON</SelectItem>
+                <SelectItem value="XPON">XPON</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium">Total PON Ports</label>
             <Input type="number" value={totalPonPorts} onChange={e => setTotalPonPorts(e.target.value)} className="h-9 text-sm" data-testid="input-config-ports" />
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 col-span-2">
             <label className="text-xs font-medium">Status</label>
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger className="h-9 text-sm" data-testid="select-config-status"><SelectValue /></SelectTrigger>
@@ -1060,49 +1114,69 @@ function ConfigForm({ olt, onSave, isPending }: { olt: OltDevice; onSave: (data:
       </div>
 
       <div className="border-t pt-4">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">SNMP Configuration</p>
+        <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+          <Settings className="h-3.5 w-3.5" /> OLT Configuration
+        </p>
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium">SNMP Version</label>
-            <Select value={snmpVersion} onValueChange={setSnmpVersion}>
-              <SelectTrigger className="h-9 text-sm" data-testid="select-config-snmp-version"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="v1">v1</SelectItem>
-                <SelectItem value="v2c">v2c</SelectItem>
-                <SelectItem value="v3">v3</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium">Community String</label>
-            <Input value={snmpCommunity} onChange={e => setSnmpCommunity(e.target.value)} placeholder="public" className="h-9 text-sm" data-testid="input-config-snmp-community" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium">SNMP Port</label>
-            <Input type="number" value={snmpPort} onChange={e => setSnmpPort(e.target.value)} className="h-9 text-sm" data-testid="input-config-snmp-port" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium">Timeout (seconds)</label>
-            <Input type="number" value={snmpTimeout} onChange={e => setSnmpTimeout(e.target.value)} className="h-9 text-sm" data-testid="input-config-snmp-timeout" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium">Retries</label>
-            <Input type="number" value={snmpRetries} onChange={e => setSnmpRetries(e.target.value)} className="h-9 text-sm" data-testid="input-config-snmp-retries" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium">Polling Interval (seconds)</label>
-            <Input type="number" value={snmpPollingInterval} onChange={e => setSnmpPollingInterval(e.target.value)} className="h-9 text-sm" data-testid="input-config-snmp-polling" />
+          <div className="space-y-1.5 col-span-2">
+            <label className="text-xs font-medium">Hostname or IP</label>
+            <Input value={ipAddress} onChange={e => setIpAddress(e.target.value)} placeholder="192.168.1.1 or olt.example.com" className="h-9 text-sm" data-testid="input-config-hostname" />
           </div>
           <div className="space-y-1.5 col-span-2">
-            <label className="text-xs font-medium">SNMP Status</label>
-            <Select value={snmpStatus} onValueChange={setSnmpStatus}>
-              <SelectTrigger className="h-9 text-sm" data-testid="select-config-snmp-status"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium">SNMP</label>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-medium ${snmpEnabled ? "text-emerald-600" : "text-muted-foreground"}`}>{snmpEnabled ? "ON" : "OFF"}</span>
+                <Switch checked={snmpEnabled} onCheckedChange={setSnmpEnabled} data-testid="switch-config-snmp" />
+              </div>
+            </div>
           </div>
+          {snmpEnabled && (
+            <>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">SNMP Version</label>
+                <Select value={snmpVersion} onValueChange={setSnmpVersion}>
+                  <SelectTrigger className="h-9 text-sm" data-testid="select-config-snmp-version"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="v1">V1</SelectItem>
+                    <SelectItem value="v2c">V2C</SelectItem>
+                    <SelectItem value="v3">V3</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Port Type</label>
+                <Select value={snmpPortType} onValueChange={setSnmpPortType}>
+                  <SelectTrigger className="h-9 text-sm" data-testid="select-config-port-type"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UDP">UDP</SelectItem>
+                    <SelectItem value="TCP">TCP</SelectItem>
+                    <SelectItem value="UDP/TCP">UDP/TCP</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">UDP/TCP Port</label>
+                <Input type="number" value={snmpPort} onChange={e => setSnmpPort(e.target.value)} placeholder="161" className="h-9 text-sm" data-testid="input-config-snmp-port" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Read-Write Community</label>
+                <Input value={snmpCommunity} onChange={e => setSnmpCommunity(e.target.value)} placeholder="public" className="h-9 text-sm" data-testid="input-config-snmp-community" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Timeout (seconds)</label>
+                <Input type="number" value={snmpTimeout} onChange={e => setSnmpTimeout(e.target.value)} className="h-9 text-sm" data-testid="input-config-snmp-timeout" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Retries</label>
+                <Input type="number" value={snmpRetries} onChange={e => setSnmpRetries(e.target.value)} className="h-9 text-sm" data-testid="input-config-snmp-retries" />
+              </div>
+              <div className="space-y-1.5 col-span-2">
+                <label className="text-xs font-medium">Polling Interval (seconds)</label>
+                <Input type="number" value={snmpPollingInterval} onChange={e => setSnmpPollingInterval(e.target.value)} className="h-9 text-sm" data-testid="input-config-snmp-polling" />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -1112,10 +1186,14 @@ function ConfigForm({ olt, onSave, isPending }: { olt: OltDevice; onSave: (data:
       </div>
       <DialogFooter>
         <Button onClick={() => onSave({
-          name, ipAddress, vendor, model, totalPonPorts: parseInt(totalPonPorts), status, notes,
-          snmpVersion, snmpCommunity, snmpPort: parseInt(snmpPort) || 161,
+          name, ipAddress, username, password, vendor, model: hardwareVersion, hardwareVersion, ponType,
+          totalPonPorts: parseInt(totalPonPorts), status, notes,
+          snmpEnabled: snmpEnabled ? "on" : "off",
+          snmpVersion, snmpPortType, snmpCommunity,
+          snmpPort: parseInt(snmpPort) || 161,
           snmpTimeout: parseInt(snmpTimeout) || 5, snmpRetries: parseInt(snmpRetries) || 3,
-          snmpPollingInterval: parseInt(snmpPollingInterval) || 30, snmpStatus,
+          snmpPollingInterval: parseInt(snmpPollingInterval) || 30,
+          snmpStatus: snmpEnabled ? "active" : "inactive",
         })} disabled={isPending || !name.trim()} data-testid="button-save-config">
           {isPending ? "Saving..." : "Save Configuration"}
         </Button>

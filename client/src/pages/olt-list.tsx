@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import {
-  Server, Plus, Search, Edit, Trash2, Eye, Wifi, WifiOff,
-  Cable, Smartphone, MoreHorizontal, Activity, Globe,
+  Server, Plus, Search, Edit, Trash2, Eye, EyeOff, Wifi, WifiOff,
+  Cable, Smartphone, MoreHorizontal, Activity, Globe, Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -199,38 +200,68 @@ export default function OltListPage() {
   );
 }
 
+const VENDOR_MODELS: Record<string, string[]> = {
+  Huawei: ["MA5800-X17", "MA5800-X15", "MA5800-X7", "MA5800-X2", "MA5608T", "MA5683T", "MA5680T", "MA5616", "MA5626", "MA5821", "MA5818", "MA5811S"],
+  ZTE: ["ZXA10 C680", "ZXA10 C650", "ZXA10 C620", "ZXA10 C610", "ZXA10 C600", "ZXA10 C320", "ZXA10 C300", "ZXA10 F803", "ZXA10 F821", "ZXA10 F822"],
+  FiberHome: ["AN6000-17", "AN6000-15", "AN6000-7", "AN5516-06B", "AN5516-04", "AN5116-06B", "AN5006-20"],
+  Nokia: ["ISAM FX-16", "ISAM FX-8", "ISAM FX-4", "7360 ISAM FX-16", "7360 ISAM FX-8", "7360 ISAM FX-4", "7302 ISAM"],
+  VSOL: ["V1600G1", "V1600G2", "V1600D4", "V1600D8", "V1600G-B", "V1600G8-A", "V1600G16-A", "V3600-08", "V3600-16"],
+  HSGQ: ["HSGQ-E08", "HSGQ-E16", "HSGQ-G08", "HSGQ-G16", "HSGQ-X08", "HSGQ-X16"],
+  Other: ["Other"],
+};
+
 function AddOltForm({ onSave, isPending }: { onSave: (data: any) => void; isPending: boolean }) {
   const [name, setName] = useState("");
   const [ipAddress, setIpAddress] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [vendor, setVendor] = useState("Huawei");
-  const [model, setModel] = useState("");
+  const [hardwareVersion, setHardwareVersion] = useState("");
+  const [ponType, setPonType] = useState("GPON");
   const [totalPonPorts, setTotalPonPorts] = useState("16");
   const [lat, setLat] = useState("0");
   const [lng, setLng] = useState("0");
   const [notes, setNotes] = useState("");
+  const [snmpEnabled, setSnmpEnabled] = useState(true);
   const [snmpVersion, setSnmpVersion] = useState("v2c");
-  const [snmpCommunity, setSnmpCommunity] = useState("public");
+  const [snmpPortType, setSnmpPortType] = useState("UDP");
   const [snmpPort, setSnmpPort] = useState("161");
-  const [snmpTimeout, setSnmpTimeout] = useState("5");
-  const [snmpRetries, setSnmpRetries] = useState("3");
-  const [snmpPollingInterval, setSnmpPollingInterval] = useState("30");
+  const [snmpCommunity, setSnmpCommunity] = useState("public");
+  const [showPassword, setShowPassword] = useState(false);
+
+  const availableModels = VENDOR_MODELS[vendor] || VENDOR_MODELS["Other"];
 
   return (
-    <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+    <div className="space-y-5 max-h-[70vh] overflow-y-auto pr-1">
       <div>
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Device Information</p>
+        <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+          <Server className="h-3.5 w-3.5" /> OLT Details
+        </p>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Name *</label>
-            <Input value={name} onChange={e => setName(e.target.value)} placeholder="OLT name" className="h-9 text-sm" data-testid="input-add-olt-name" />
+            <label className="text-xs font-medium">OLT Name *</label>
+            <Input value={name} onChange={e => setName(e.target.value)} placeholder="Enter OLT name" className="h-9 text-sm" data-testid="input-add-olt-name" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">IP Address</label>
+            <label className="text-xs font-medium">OLT IP</label>
             <Input value={ipAddress} onChange={e => setIpAddress(e.target.value)} placeholder="192.168.1.1" className="h-9 text-sm" data-testid="input-add-olt-ip" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Vendor</label>
-            <Select value={vendor} onValueChange={setVendor}>
+            <label className="text-xs font-medium">OLT Username</label>
+            <Input value={username} onChange={e => setUsername(e.target.value)} placeholder="admin" className="h-9 text-sm" data-testid="input-add-olt-username" />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">OLT Password</label>
+            <div className="relative">
+              <Input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="h-9 text-sm pr-9" data-testid="input-add-olt-password" />
+              <button type="button" className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" onClick={() => setShowPassword(!showPassword)} data-testid="button-toggle-password">
+                {showPassword ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">OLT Company</label>
+            <Select value={vendor} onValueChange={(v) => { setVendor(v); setHardwareVersion(""); }}>
               <SelectTrigger className="h-9 text-sm" data-testid="select-add-olt-vendor"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {["Huawei", "ZTE", "FiberHome", "Nokia", "VSOL", "HSGQ", "Other"].map(v => (
@@ -240,8 +271,26 @@ function AddOltForm({ onSave, isPending }: { onSave: (data: any) => void; isPend
             </Select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium">Model</label>
-            <Input value={model} onChange={e => setModel(e.target.value)} placeholder="e.g. MA5800-X15" className="h-9 text-sm" data-testid="input-add-olt-model" />
+            <label className="text-xs font-medium">OLT Hardware Version</label>
+            <Select value={hardwareVersion} onValueChange={setHardwareVersion}>
+              <SelectTrigger className="h-9 text-sm" data-testid="select-add-olt-hardware"><SelectValue placeholder="Select model" /></SelectTrigger>
+              <SelectContent>
+                {availableModels.map(m => (
+                  <SelectItem key={m} value={m}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium">OLT Supported PON Type</label>
+            <Select value={ponType} onValueChange={setPonType}>
+              <SelectTrigger className="h-9 text-sm" data-testid="select-add-olt-pon-type"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="GPON">GPON</SelectItem>
+                <SelectItem value="EPON">EPON</SelectItem>
+                <SelectItem value="XPON">XPON</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium">Total PON Ports</label>
@@ -259,39 +308,57 @@ function AddOltForm({ onSave, isPending }: { onSave: (data: any) => void; isPend
       </div>
 
       <div className="border-t pt-4">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">SNMP Configuration</p>
+        <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+          <Settings className="h-3.5 w-3.5" /> OLT Configuration
+        </p>
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium">SNMP Version</label>
-            <Select value={snmpVersion} onValueChange={setSnmpVersion}>
-              <SelectTrigger className="h-9 text-sm" data-testid="select-add-olt-snmp-version"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="v1">v1</SelectItem>
-                <SelectItem value="v2c">v2c</SelectItem>
-                <SelectItem value="v3">v3</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-1.5 col-span-2">
+            <label className="text-xs font-medium">Hostname or IP</label>
+            <Input value={ipAddress} onChange={e => setIpAddress(e.target.value)} placeholder="192.168.1.1 or olt.example.com" className="h-9 text-sm" data-testid="input-add-olt-hostname" />
           </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium">Community String</label>
-            <Input value={snmpCommunity} onChange={e => setSnmpCommunity(e.target.value)} placeholder="public" className="h-9 text-sm" data-testid="input-add-olt-snmp-community" />
+          <div className="space-y-1.5 col-span-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium">SNMP</label>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-medium ${snmpEnabled ? "text-emerald-600" : "text-muted-foreground"}`}>{snmpEnabled ? "ON" : "OFF"}</span>
+                <Switch checked={snmpEnabled} onCheckedChange={setSnmpEnabled} data-testid="switch-add-olt-snmp" />
+              </div>
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium">SNMP Port</label>
-            <Input type="number" value={snmpPort} onChange={e => setSnmpPort(e.target.value)} className="h-9 text-sm" data-testid="input-add-olt-snmp-port" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium">Timeout (seconds)</label>
-            <Input type="number" value={snmpTimeout} onChange={e => setSnmpTimeout(e.target.value)} className="h-9 text-sm" data-testid="input-add-olt-snmp-timeout" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium">Retries</label>
-            <Input type="number" value={snmpRetries} onChange={e => setSnmpRetries(e.target.value)} className="h-9 text-sm" data-testid="input-add-olt-snmp-retries" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium">Polling Interval (seconds)</label>
-            <Input type="number" value={snmpPollingInterval} onChange={e => setSnmpPollingInterval(e.target.value)} className="h-9 text-sm" data-testid="input-add-olt-snmp-polling" />
-          </div>
+          {snmpEnabled && (
+            <>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">SNMP Version</label>
+                <Select value={snmpVersion} onValueChange={setSnmpVersion}>
+                  <SelectTrigger className="h-9 text-sm" data-testid="select-add-olt-snmp-version"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="v1">V1</SelectItem>
+                    <SelectItem value="v2c">V2C</SelectItem>
+                    <SelectItem value="v3">V3</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Port Type</label>
+                <Select value={snmpPortType} onValueChange={setSnmpPortType}>
+                  <SelectTrigger className="h-9 text-sm" data-testid="select-add-olt-port-type"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UDP">UDP</SelectItem>
+                    <SelectItem value="TCP">TCP</SelectItem>
+                    <SelectItem value="UDP/TCP">UDP/TCP</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">UDP/TCP Port</label>
+                <Input type="number" value={snmpPort} onChange={e => setSnmpPort(e.target.value)} placeholder="161" className="h-9 text-sm" data-testid="input-add-olt-snmp-port" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium">Read-Write Community</label>
+                <Input value={snmpCommunity} onChange={e => setSnmpCommunity(e.target.value)} placeholder="public" className="h-9 text-sm" data-testid="input-add-olt-snmp-community" />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -301,11 +368,13 @@ function AddOltForm({ onSave, isPending }: { onSave: (data: any) => void; isPend
       </div>
       <DialogFooter>
         <Button onClick={() => onSave({
-          oltId: `OLT-${Date.now().toString(36).toUpperCase()}`, name, ipAddress, vendor, model,
+          oltId: `OLT-${Date.now().toString(36).toUpperCase()}`, name, ipAddress, username, password,
+          vendor, model: hardwareVersion, hardwareVersion, ponType,
           totalPonPorts: parseInt(totalPonPorts) || 16, lat, lng, notes,
-          snmpVersion, snmpCommunity, snmpPort: parseInt(snmpPort) || 161,
-          snmpTimeout: parseInt(snmpTimeout) || 5, snmpRetries: parseInt(snmpRetries) || 3,
-          snmpPollingInterval: parseInt(snmpPollingInterval) || 30, snmpStatus: "active",
+          snmpEnabled: snmpEnabled ? "on" : "off",
+          snmpVersion, snmpPortType, snmpCommunity,
+          snmpPort: parseInt(snmpPort) || 161,
+          snmpStatus: snmpEnabled ? "active" : "inactive",
         })} disabled={isPending || !name.trim()} data-testid="button-save-olt">
           {isPending ? "Creating..." : "Create OLT"}
         </Button>
