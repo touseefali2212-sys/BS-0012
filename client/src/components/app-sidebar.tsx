@@ -322,6 +322,7 @@ const operationsNav: NavItem[] = [
       { title: "Bandwidth Usage", url: "/bandwidth-usage", icon: Download },
       { title: "Customer Map", url: "/customer-map", icon: Map },
       { title: "FTTH / P2P Map", url: "/network-map", icon: MapPin },
+      { title: "OLT Management", url: "/olt-management", icon: Server },
     ],
   },
   {

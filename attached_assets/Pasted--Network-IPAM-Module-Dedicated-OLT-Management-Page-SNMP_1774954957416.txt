@@ -1,0 +1,265 @@
+🌐 Network & IPAM Module
+Dedicated OLT Management Page
+(SNMP Monitoring + OLT Integration + ONU/ONT Control)
+🎯 Objective
+
+Develop a comprehensive OLT Management & Monitoring Page that supports:
+
+✔ SNMP-based monitoring
+✔ Multi-brand OLT integration
+✔ Real-time performance tracking
+✔ ONU/ONT management
+✔ GPON topology visibility
+✔ Uplink monitoring
+✔ Fault detection
+
+Supported Vendors:
+
+Huawei
+ZTE
+FiberHome
+Nokia
+VSOL
+HSGQ
+Other GPON OLT brands
+🧩 Page Layout Structure
+
+Design a multi-tab enterprise dashboard:
+
+Tabs:
+OLT Overview
+SNMP Monitoring
+PON Ports
+ONU / ONT Devices
+Uplinks & Interfaces
+Traffic & Bandwidth
+Alarms & Events
+Configuration
+Logs & History
+🖥 1️⃣ OLT Overview Dashboard
+
+Display summary cards:
+
+OLT Name
+Brand / Model
+IP Address
+Location (Branch/Area)
+Status (Online / Offline)
+Total PON Ports
+Used Ports
+Available Ports
+Total ONUs
+Online ONUs
+Offline ONUs
+Visual Indicators:
+
+🟢 Online
+🔴 Offline
+🟡 Warning
+
+📡 2️⃣ SNMP Monitoring
+
+Configure and monitor SNMP:
+
+Settings:
+SNMP Version (v2/v3)
+Community String
+Port
+Timeout / Retry
+Live Monitoring Data:
+
+✔ CPU Usage
+✔ Memory Usage
+✔ Temperature
+✔ Uptime
+✔ Voltage
+
+Auto-refresh every few seconds.
+
+🔌 3️⃣ PON Ports Management
+
+Display all PON ports:
+
+Columns:
+
+PON ID
+Status
+Total ONUs
+Active ONUs
+Signal Strength
+Utilization %
+Features:
+
+✔ Expand to view connected ONUs
+✔ Port-level performance
+✔ Enable / Disable port
+✔ Reset port
+
+📶 4️⃣ ONU / ONT Management
+
+Complete ONU control system:
+
+ONU Details:
+ONU ID
+Serial Number
+MAC Address
+Customer Name
+Status (Online / Offline)
+Optical Power (RX/TX)
+Distance from OLT
+Uptime
+Actions:
+
+✔ Activate ONU
+✔ Deactivate ONU
+✔ Reboot ONU
+✔ Reset ONU
+✔ Assign Service Profile
+✔ Bind to Customer
+
+Advanced:
+
+✔ Auto ONU discovery
+✔ Unauthorized ONU detection
+✔ Bulk ONU import
+
+🔗 5️⃣ Uplinks & Interfaces
+
+Monitor OLT uplinks:
+
+Columns:
+
+Interface Name
+Type (GE / 10GE / SFP)
+Status
+Speed
+Traffic In/Out
+Errors
+Features:
+
+✔ Traffic graph per uplink
+✔ Detect congestion
+✔ Interface enable/disable
+
+📊 6️⃣ Traffic & Bandwidth Monitoring
+
+Provide real-time graphs:
+
+✔ Bandwidth usage
+✔ Peak traffic
+✔ Per PON usage
+✔ Per ONU usage
+
+Charts:
+
+Line Graph
+Area Chart
+🚨 7️⃣ Alarms & Events
+
+Real-time alerts:
+
+✔ ONU Offline
+✔ High Temperature
+✔ Power Failure
+✔ Port Down
+✔ Fiber Cut
+
+Features:
+
+✔ Alarm severity levels:
+
+Critical
+Warning
+Info
+
+✔ Acknowledge alarms
+✔ Filter by type/date
+
+⚙️ 8️⃣ Configuration Panel
+
+Allow configuration:
+
+✔ Add/Edit OLT
+✔ Assign to branch
+✔ Set SNMP credentials
+✔ Define polling interval
+
+Vendor Profiles:
+
+Auto-load vendor-specific configs:
+
+Huawei profile
+ZTE profile
+FiberHome profile
+Nokia profile
+📜 9️⃣ Logs & History
+
+Track all actions:
+
+✔ ONU activation logs
+✔ Configuration changes
+✔ SNMP failures
+✔ User actions
+
+🔄 Integration with System
+
+This page must integrate with:
+
+✔ Customer Module (bind ONU to customer)
+✔ Billing System (activate package)
+✔ Network Map (show OLT & ONUs)
+✔ IPAM System
+✔ Task Management (installation tasks)
+
+🧠 Advanced Features (HIGH VALUE 💎)
+🤖 Auto ONU Provisioning
+Detect new ONU
+Auto assign profile
+📡 Signal Monitoring
+Track optical power trends
+Alert on low signal
+🔍 Search & Filter
+
+Search by:
+
+ONU Serial
+Customer Name
+MAC Address
+📤 Export
+
+✔ Export ONU list
+✔ Export logs
+
+🔐 Role-Based Access
+
+Admin:
+✔ Full control
+
+Network Engineer:
+✔ Full OLT access
+
+Technician:
+✔ View + ONU actions
+
+Support:
+✔ View only
+
+🎨 UI/UX Design
+Dark network theme (NOC style)
+Card-based layout
+Real-time graphs
+Expandable tables
+Status color indicators
+🧪 Expected Output
+
+✔ Real-time OLT monitoring
+✔ Full ONU control
+✔ Quick fault detection
+✔ Smooth ISP operations
+
+📈 Business Impact
+
+🔥 Reduce downtime
+🔥 Faster troubleshooting
+🔥 Better network visibility
+🔥 Professional NOC system
