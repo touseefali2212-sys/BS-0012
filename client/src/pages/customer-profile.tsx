@@ -1993,8 +1993,8 @@ export default function CustomerProfilePage() {
             {activeTab === "pkg_history" && (
               <div className="space-y-4" data-testid="tab-content-pkg-history">
                 <SectionHeader title="Package Upgrade & Downgrade History" action={
-                  <Button size="sm" className="gap-1.5 bg-[#0057FF]" onClick={() => setLocation(`/package-change?customerType=Normal&customerId=${id}&customerName=${encodeURIComponent(customer?.fullName || customer?.name || "")}`)} data-testid="button-new-pkg-change">
-                    <Plus className="h-3.5 w-3.5" /> New Package Change
+                  <Button size="sm" className="gap-1.5 bg-[#0057FF] text-white" onClick={() => setLocation(`/package-change?customerType=Normal&customerId=${id}&customerName=${encodeURIComponent(customer?.fullName || customer?.name || "")}`)} data-testid="button-new-pkg-change">
+                    <Plus className="h-3.5 w-3.5" /> Submit Request
                   </Button>
                 } />
                 {pkgChangeLoading ? (
@@ -2007,19 +2007,24 @@ export default function CustomerProfilePage() {
                       <TableHeader>
                         <TableRow className="bg-[#1a3a5c]">
                           <TableHead className="text-white text-xs font-semibold">Request #</TableHead>
-                          <TableHead className="text-white text-xs font-semibold">Change Type</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Date</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Type</TableHead>
                           <TableHead className="text-white text-xs font-semibold">Previous Package</TableHead>
                           <TableHead className="text-white text-xs font-semibold">New Package</TableHead>
-                          <TableHead className="text-white text-xs font-semibold">Bandwidth Change</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Bandwidth</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">New Price</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Prorated Charges</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Adjustment</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Tax Impact</TableHead>
+                          <TableHead className="text-white text-xs font-semibold">Final Difference</TableHead>
                           <TableHead className="text-white text-xs font-semibold">Status</TableHead>
-                          <TableHead className="text-white text-xs font-semibold">Requested By</TableHead>
-                          <TableHead className="text-white text-xs font-semibold">Date</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {pkgChangeHistory.map((h: any, idx: number) => (
-                          <TableRow key={h.id} className={idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"}>
+                          <TableRow key={h.id} className={idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"} data-testid={`row-pcr-${h.id}`}>
                             <TableCell className="text-xs font-mono text-blue-600">{h.requestNumber}</TableCell>
+                            <TableCell className="text-xs">{h.createdAt ? new Date(h.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</TableCell>
                             <TableCell>
                               <Badge variant="secondary" className={`text-[10px] capitalize ${h.changeType === "upgrade" ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
                                 {h.changeType === "upgrade" ? <TrendingUp className="h-3 w-3 inline mr-1" /> : <TrendingDown className="h-3 w-3 inline mr-1" />}{h.changeType}
@@ -2028,18 +2033,20 @@ export default function CustomerProfilePage() {
                             <TableCell className="text-xs font-medium">{h.currentPackageName || "—"}</TableCell>
                             <TableCell className="text-xs font-bold text-teal-700 dark:text-teal-400">{h.newPackageName || "—"}</TableCell>
                             <TableCell className="text-xs">{h.currentBandwidth || "—"} → {h.newBandwidth || "—"}</TableCell>
+                            <TableCell className="text-xs font-medium">Rs. {parseFloat(h.newMonthlyBill || "0").toLocaleString()}</TableCell>
+                            <TableCell className="text-xs">Rs. {parseFloat(h.proratedCharges || "0").toLocaleString()}</TableCell>
+                            <TableCell className="text-xs">Rs. {parseFloat(h.adjustmentAmount || "0").toLocaleString()}</TableCell>
+                            <TableCell className="text-xs">Rs. {parseFloat(h.taxImpact || "0").toLocaleString()}</TableCell>
+                            <TableCell className={`text-xs font-bold ${parseFloat(h.finalBillDifference || "0") > 0 ? "text-red-600" : "text-green-600"}`}>Rs. {parseFloat(h.finalBillDifference || "0").toLocaleString()}</TableCell>
                             <TableCell>
                               <Badge variant="secondary" className={`text-[10px] capitalize ${
-                                h.status === "completed" ? "text-green-700 bg-green-50" :
-                                h.status === "approved" ? "text-blue-700 bg-blue-50" :
+                                h.status === "completed" || h.status === "approved" || h.status === "implemented" ? "text-green-700 bg-green-50" :
                                 h.status === "implementing" ? "text-amber-600 bg-amber-50" :
                                 h.status === "rejected" ? "text-red-600 bg-red-50" :
                                 h.status === "pending" ? "text-yellow-700 bg-yellow-50" :
                                 "text-gray-600 bg-gray-100"
                               }`}>{h.status}</Badge>
                             </TableCell>
-                            <TableCell className="text-xs">{h.requestedBy || "—"}</TableCell>
-                            <TableCell className="text-xs">{h.createdAt ? new Date(h.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
