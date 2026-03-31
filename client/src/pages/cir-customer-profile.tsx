@@ -97,23 +97,31 @@ function CirEditDialog({ open, onClose, customer, id, vendors }: { open: boolean
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Update CIR Customer — {customer.companyName}</DialogTitle></DialogHeader>
-        <div className="flex flex-wrap gap-1.5 pb-2 border-b">
-          {sections.map((s, i) => (<button key={s} onClick={() => setSection(i)} className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-colors ${section === i ? "bg-[#1c67d4] text-white" : "bg-muted text-muted-foreground hover:text-foreground"}`}>{s}</button>))}
+        <DialogHeader><DialogTitle>Edit CIR Customer</DialogTitle></DialogHeader>
+        <div className="flex gap-1 flex-wrap mb-4">
+          {sections.map((s, i) => (
+            <Button key={s} variant={section === i ? "default" : "outline"} size="sm" onClick={() => setSection(i)}
+              className={section === i ? "bg-gradient-to-r from-[#002B5B] to-[#005EFF] text-white text-xs" : "text-xs"} data-testid={`btn-section-${i}`}>
+              {s}
+            </Button>
+          ))}
         </div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit((d) => updateMutation.mutate(d))} className="space-y-4">
             <CirCustomerFormFields form={form} section={section} vendors={vendors || []} />
-            <div className="flex items-center justify-between gap-2 pt-4 border-t">
-              <div className="flex gap-2">
-                {section > 0 && <Button type="button" variant="outline" size="sm" onClick={() => setSection(s => s - 1)}>← Previous</Button>}
-                {section < sections.length - 1 && <Button type="button" variant="outline" size="sm" onClick={() => setSection(s => s + 1)}>Next →</Button>}
-              </div>
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={onClose}>Cancel</Button>
-                <Button type="submit" size="sm" disabled={updateMutation.isPending} className="bg-[#1c67d4] text-white">
-                  {updateMutation.isPending ? <><RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />Saving...</> : <><Save className="h-3.5 w-3.5 mr-1.5" />Save All</>}
-                </Button>
+            <div className="mt-4 pt-4 border-t">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex gap-2">
+                  {section > 0 && <Button type="button" variant="outline" size="sm" onClick={() => setSection(s => s - 1)}>Previous</Button>}
+                  {section < 5 && <Button type="button" variant="outline" size="sm" onClick={() => setSection(s => s + 1)}>Next</Button>}
+                  <span className="text-xs text-muted-foreground self-center">Step {section + 1} of 6</span>
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+                  <Button type="submit" size="sm" disabled={updateMutation.isPending} className="bg-gradient-to-r from-[#002B5B] to-[#005EFF] text-white" data-testid="button-cir-edit-submit">
+                    {updateMutation.isPending ? <><RefreshCw className="h-3.5 w-3.5 mr-1.5 animate-spin" />Saving...</> : "Update"}
+                  </Button>
+                </div>
               </div>
             </div>
           </form>
