@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
@@ -77,16 +77,28 @@ export default function PackageChangePage() {
   const preCustomerId = urlParams.get("customerId");
   const preCustomerName = urlParams.get("customerName");
 
-  useState(() => {
-    if (preCustomerType && preCustomerId && preCustomerName) {
+  useEffect(() => {
+    if (preCustomerType && preCustomerId) {
       setCustomerType(preCustomerType);
-      setSelectedCustomer({
-        id: parseInt(preCustomerId),
-        name: preCustomerName,
-        type: preCustomerType,
-      });
+      const numId = parseInt(preCustomerId);
+      let found: any = null;
+      if (preCustomerType === "Normal" && customers?.length) {
+        const c = customers.find((x: any) => x.id === numId);
+        if (c) found = { id: c.id, name: c.fullName || c.name || `Customer #${c.id}`, type: "Normal", packageId: c.packageId, monthlyBill: c.packageBill, status: c.status };
+      } else if (preCustomerType === "CIR" && cirCustomers?.length) {
+        const c = cirCustomers.find((x: any) => x.id === numId);
+        if (c) found = { id: c.id, name: c.companyName || `CIR #${c.id}`, type: "CIR", bandwidth: c.bandwidthMbps || c.committedBandwidth, monthlyBill: c.monthlyBilling || c.monthlyCharges, status: c.status };
+      } else if (preCustomerType === "Corporate" && corporateCustomers?.length) {
+        const c = corporateCustomers.find((x: any) => x.id === numId);
+        if (c) found = { id: c.id, name: c.companyName || `Corporate #${c.id}`, type: "Corporate", monthlyBill: c.monthlyCharges || c.monthlyBilling, status: c.status };
+      }
+      if (found) {
+        setSelectedCustomer(found);
+      } else if (preCustomerName) {
+        setSelectedCustomer({ id: numId, name: preCustomerName, type: preCustomerType });
+      }
     }
-  });
+  }, [preCustomerType, preCustomerId, preCustomerName, customers, cirCustomers, corporateCustomers]);
 
   const createMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/package-change-requests", data),
