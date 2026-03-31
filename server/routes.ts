@@ -4117,7 +4117,53 @@ export async function registerRoutes(
     (id) => storage.deleteBulkMessage(id),
   );
 
-  // IP Addresses CRUD
+  // IP Addresses CRUD — custom PATCH with reverse sync to CIR/Corporate customer profiles
+  app.patch("/api/ip-addresses/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const oldIp = await storage.getIpAddress(id);
+      if (!oldIp) return res.status(404).json({ message: "Not found" });
+      const partial = insertIpAddressSchema.partial().safeParse(req.body);
+      if (!partial.success) return res.status(400).json({ message: "Invalid data", errors: partial.error.flatten() });
+      const patchFields = partial.data;
+      const updated = await storage.updateIpAddress(id, patchFields);
+      if (!updated) return res.status(404).json({ message: "Not found" });
+
+      if (updated.customerId && updated.customerType) {
+        const syncData: Record<string, any> = {};
+        if ("ipAddress" in patchFields && patchFields.ipAddress !== oldIp.ipAddress) {
+          syncData.staticIp = patchFields.ipAddress;
+        }
+        if ("subnet" in patchFields && patchFields.subnet !== oldIp.subnet) {
+          syncData.subnetMask = patchFields.subnet ?? "";
+        }
+        if ("gateway" in patchFields && patchFields.gateway !== oldIp.gateway) {
+          syncData.gateway = patchFields.gateway ?? "";
+        }
+        if ("vlan" in patchFields && patchFields.vlan !== oldIp.vlan) {
+          syncData.vlanId = patchFields.vlan ?? "";
+        }
+
+        if (Object.keys(syncData).length > 0) {
+          try {
+            if (updated.customerType === "cir") {
+              await storage.updateCirCustomer(updated.customerId, syncData);
+            } else if (updated.customerType === "corporate") {
+              await storage.updateCorporateCustomer(updated.customerId, syncData);
+            }
+            console.log(`[ipam-reverse-sync] Synced IP #${id} changes to ${updated.customerType} customer #${updated.customerId}:`, syncData);
+          } catch (syncErr: any) {
+            console.error(`[ipam-reverse-sync] Failed to sync IP #${id} to ${updated.customerType} customer #${updated.customerId}:`, syncErr?.message);
+          }
+        }
+      }
+
+      res.json(updated);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to update" });
+    }
+  });
+
   crudRoutes(app, "ip-addresses", insertIpAddressSchema,
     () => storage.getIpAddresses(),
     (id) => storage.getIpAddress(id),
