@@ -371,6 +371,22 @@ export default function IpamPage() {
     },
   });
 
+  const syncCustomerIpsMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/sync-customer-ips-to-ipam");
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/ip-addresses"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vlans"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/ipam-logs"] });
+      toast({ title: "Customer IP Sync Complete", description: data.message });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Sync Failed", description: error.message, variant: "destructive" });
+    },
+  });
+
   const openCreateIp = () => {
     setEditingIp(null);
     ipForm.reset({ ipAddress: "", subnet: "", gateway: "", type: "dynamic", status: "available", customerId: undefined, assignedDate: "", vlan: "", pool: "", notes: "", macAddress: "", serviceType: "", linkedDevice: "" });
@@ -860,6 +876,10 @@ export default function IpamPage() {
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => window.open("/api/export/ip-addresses", "_blank")} data-testid="button-export-allocation">
                 <Download className="h-4 w-4 mr-1" />Export CSV
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => syncCustomerIpsMutation.mutate()} disabled={syncCustomerIpsMutation.isPending} data-testid="button-sync-customer-ips">
+                <RefreshCw className={`h-4 w-4 mr-1 ${syncCustomerIpsMutation.isPending ? "animate-spin" : ""}`} />
+                {syncCustomerIpsMutation.isPending ? "Syncing..." : "Sync Customer IPs"}
               </Button>
               <Button size="sm" onClick={openCreateIp} className="bg-gradient-to-r from-blue-800 to-cyan-600" data-testid="button-add-ip">
                 <Plus className="h-4 w-4 mr-1" />Add IP Address

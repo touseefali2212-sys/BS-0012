@@ -2827,6 +2827,61 @@ export async function registerRoutes(
     }
   }
 
+  app.post("/api/sync-customer-ips-to-ipam", requireAuth, async (_req: any, res) => {
+    try {
+      const results: Array<{ customer: string; type: string; ip: string; status: string }> = [];
+      const cirCustomers = await storage.getCirCustomers();
+      for (const cir of cirCustomers) {
+        const c = cir as any;
+        if (c.staticIp || c.publicIpBlock) {
+          try {
+            await syncCustomerIpToIpam({
+              customerId: c.id,
+              customerType: "cir",
+              companyName: c.companyName || "",
+              staticIp: c.staticIp,
+              subnetMask: c.subnetMask,
+              gateway: c.gateway,
+              vlanId: c.vlanId,
+              publicIpBlock: c.publicIpBlock,
+              vendorId: c.vendorId,
+              onuDevice: c.onuDevice,
+              bandwidthProfileName: c.bandwidthProfileName,
+            });
+            results.push({ customer: c.companyName, type: "cir", ip: c.staticIp || c.publicIpBlock, status: "synced" });
+          } catch (e: any) {
+            results.push({ customer: c.companyName, type: "cir", ip: c.staticIp || "", status: `error: ${e.message}` });
+          }
+        }
+      }
+      const corpCustomers = await storage.getCorporateCustomers();
+      for (const corp of corpCustomers) {
+        const c = corp as any;
+        if (c.staticIp) {
+          try {
+            await syncCustomerIpToIpam({
+              customerId: c.id,
+              customerType: "corporate",
+              companyName: c.companyName || "",
+              staticIp: c.staticIp,
+              subnetMask: c.subnetMask,
+              gateway: c.gateway,
+              vlanId: c.vlanId,
+              vendorId: c.vendorId,
+              bandwidthProfileName: c.bandwidthProfileName,
+            });
+            results.push({ customer: c.companyName, type: "corporate", ip: c.staticIp, status: "synced" });
+          } catch (e: any) {
+            results.push({ customer: c.companyName, type: "corporate", ip: c.staticIp || "", status: `error: ${e.message}` });
+          }
+        }
+      }
+      res.json({ message: `Synced ${results.filter(r => r.status === "synced").length} customer IPs to IPAM`, results });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
   app.post("/api/cir-customers", requireAuth, async (req, res) => {
     try {
       const { insertCirCustomerSchema } = await import("@shared/schema");
