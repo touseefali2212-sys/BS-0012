@@ -120,6 +120,8 @@ export default function CustomerProfilePage() {
   const [scheduledStatus, setScheduledStatus] = useState("inactive");
   const [scheduledDate, setScheduledDate] = useState("");
   const [statusScheduleReason, setStatusScheduleReason] = useState("");
+  const [pcrDetailOpen, setPcrDetailOpen] = useState(false);
+  const [selectedPcr, setSelectedPcr] = useState<any>(null);
   const [sendMessageOpen, setSendMessageOpen] = useState(false);
   const [messageChannel, setMessageChannel] = useState("email");
   const [messageSubject, setMessageSubject] = useState("");
@@ -2022,7 +2024,7 @@ export default function CustomerProfilePage() {
                       </TableHeader>
                       <TableBody>
                         {pkgChangeHistory.map((h: any, idx: number) => (
-                          <TableRow key={h.id} className={idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"} data-testid={`row-pcr-${h.id}`}>
+                          <TableRow key={h.id} className={`cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-950/30 ${idx % 2 === 0 ? "bg-white dark:bg-slate-900" : "bg-slate-50 dark:bg-slate-800/50"}`} data-testid={`row-pcr-${h.id}`} onClick={() => { setSelectedPcr(h); setPcrDetailOpen(true); }}>
                             <TableCell className="text-xs font-mono text-blue-600">{h.requestNumber}</TableCell>
                             <TableCell className="text-xs">{h.createdAt ? new Date(h.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</TableCell>
                             <TableCell>
@@ -2058,6 +2060,174 @@ export default function CustomerProfilePage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={pcrDetailOpen} onOpenChange={setPcrDetailOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-[#0057FF]" />
+              Package Change Request — {selectedPcr?.requestNumber}
+            </DialogTitle>
+          </DialogHeader>
+          {selectedPcr && (
+            <div className="space-y-5">
+              <div className="grid grid-cols-2 gap-4 bg-muted/50 rounded-lg p-4">
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-semibold uppercase">Change Type</p>
+                  <Badge variant="secondary" className={`text-xs capitalize mt-1 ${selectedPcr.changeType === "upgrade" ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
+                    {selectedPcr.changeType === "upgrade" ? <TrendingUp className="h-3 w-3 inline mr-1" /> : <TrendingDown className="h-3 w-3 inline mr-1" />}{selectedPcr.changeType}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-[10px] text-muted-foreground font-semibold uppercase">Current Status</p>
+                  <Badge variant="secondary" className={`text-xs capitalize mt-1 ${
+                    selectedPcr.status === "completed" || selectedPcr.status === "approved" || selectedPcr.status === "implemented" ? "text-green-700 bg-green-50" :
+                    selectedPcr.status === "implementing" ? "text-amber-600 bg-amber-50" :
+                    selectedPcr.status === "rejected" ? "text-red-600 bg-red-50" :
+                    selectedPcr.status === "pending" ? "text-yellow-700 bg-yellow-50" : "text-gray-600 bg-gray-100"
+                  }`}>{selectedPcr.status}</Badge>
+                </div>
+              </div>
+
+              <div className="border rounded-lg overflow-hidden">
+                <div className="bg-[#1a3a5c] text-white text-xs font-semibold px-4 py-2">Package & Billing Details</div>
+                <div className="divide-y text-xs">
+                  <div className="grid grid-cols-2">
+                    <div className="px-4 py-2.5 bg-muted/30"><span className="font-semibold text-muted-foreground">Previous Package</span></div>
+                    <div className="px-4 py-2.5 font-medium">{selectedPcr.currentPackageName || "—"}</div>
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <div className="px-4 py-2.5 bg-muted/30"><span className="font-semibold text-muted-foreground">New Package</span></div>
+                    <div className="px-4 py-2.5 font-bold text-teal-700 dark:text-teal-400">{selectedPcr.newPackageName || "—"}</div>
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <div className="px-4 py-2.5 bg-muted/30"><span className="font-semibold text-muted-foreground">Previous Bandwidth</span></div>
+                    <div className="px-4 py-2.5">{selectedPcr.currentBandwidth || "—"}</div>
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <div className="px-4 py-2.5 bg-muted/30"><span className="font-semibold text-muted-foreground">New Bandwidth</span></div>
+                    <div className="px-4 py-2.5 font-bold text-teal-700 dark:text-teal-400">{selectedPcr.newBandwidth || "—"}</div>
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <div className="px-4 py-2.5 bg-muted/30"><span className="font-semibold text-muted-foreground">Previous Monthly Bill</span></div>
+                    <div className="px-4 py-2.5">Rs. {parseFloat(selectedPcr.currentMonthlyBill || "0").toLocaleString()}</div>
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <div className="px-4 py-2.5 bg-muted/30"><span className="font-semibold text-muted-foreground">New Price</span></div>
+                    <div className="px-4 py-2.5 font-bold">Rs. {parseFloat(selectedPcr.newMonthlyBill || "0").toLocaleString()}</div>
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <div className="px-4 py-2.5 bg-muted/30"><span className="font-semibold text-muted-foreground">Prorated Charges</span></div>
+                    <div className="px-4 py-2.5">Rs. {parseFloat(selectedPcr.proratedCharges || "0").toLocaleString()}</div>
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <div className="px-4 py-2.5 bg-muted/30"><span className="font-semibold text-muted-foreground">Adjustment</span></div>
+                    <div className="px-4 py-2.5">Rs. {parseFloat(selectedPcr.adjustmentAmount || "0").toLocaleString()}</div>
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <div className="px-4 py-2.5 bg-muted/30"><span className="font-semibold text-muted-foreground">Tax Impact</span></div>
+                    <div className="px-4 py-2.5">Rs. {parseFloat(selectedPcr.taxImpact || "0").toLocaleString()}</div>
+                  </div>
+                  <div className="grid grid-cols-2">
+                    <div className="px-4 py-2.5 bg-muted/30"><span className="font-semibold text-muted-foreground">Final Difference</span></div>
+                    <div className={`px-4 py-2.5 font-bold ${parseFloat(selectedPcr.finalBillDifference || "0") > 0 ? "text-red-600" : "text-green-600"}`}>Rs. {parseFloat(selectedPcr.finalBillDifference || "0").toLocaleString()}</div>
+                  </div>
+                  {selectedPcr.reason && (
+                    <div className="grid grid-cols-2">
+                      <div className="px-4 py-2.5 bg-muted/30"><span className="font-semibold text-muted-foreground">Reason</span></div>
+                      <div className="px-4 py-2.5">{selectedPcr.reason}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="border rounded-lg overflow-hidden">
+                <div className="bg-[#1a3a5c] text-white text-xs font-semibold px-4 py-2">Request Tracking Timeline</div>
+                <div className="p-4 space-y-0">
+                  <div className="relative pl-8 pb-6 border-l-2 border-blue-200 dark:border-blue-800 ml-3">
+                    <div className="absolute -left-[13px] top-0 w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center"><Plus className="h-3 w-3 text-white" /></div>
+                    <div className="pt-0.5">
+                      <p className="text-xs font-bold text-blue-700 dark:text-blue-400">New Request Submitted</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{selectedPcr.createdAt ? new Date(selectedPcr.createdAt).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}</p>
+                      <p className="text-xs mt-1">Requested by: <span className="font-medium">{selectedPcr.requestedBy || "—"}</span></p>
+                      {selectedPcr.isUrgent && <Badge variant="secondary" className="text-[10px] mt-1 text-red-600 bg-red-50">Urgent</Badge>}
+                    </div>
+                  </div>
+
+                  {(selectedPcr.status === "approved" || selectedPcr.status === "implementing" || selectedPcr.status === "implemented" || selectedPcr.status === "completed") && (
+                    <div className="relative pl-8 pb-6 border-l-2 border-green-200 dark:border-green-800 ml-3">
+                      <div className="absolute -left-[13px] top-0 w-6 h-6 rounded-full bg-green-500 flex items-center justify-center"><Shield className="h-3 w-3 text-white" /></div>
+                      <div className="pt-0.5">
+                        <p className="text-xs font-bold text-green-700 dark:text-green-400">Approved</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{selectedPcr.approvedAt ? new Date(selectedPcr.approvedAt).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}</p>
+                        <p className="text-xs mt-1">Approved by: <span className="font-medium">{selectedPcr.approvedBy || "—"}</span></p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedPcr.status === "rejected" && (
+                    <div className="relative pl-8 pb-6 border-l-2 border-red-200 dark:border-red-800 ml-3">
+                      <div className="absolute -left-[13px] top-0 w-6 h-6 rounded-full bg-red-500 flex items-center justify-center"><AlertCircle className="h-3 w-3 text-white" /></div>
+                      <div className="pt-0.5">
+                        <p className="text-xs font-bold text-red-700 dark:text-red-400">Rejected</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{selectedPcr.rejectedAt ? new Date(selectedPcr.rejectedAt).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}</p>
+                        <p className="text-xs mt-1">Rejected by: <span className="font-medium">{selectedPcr.rejectedBy || "—"}</span></p>
+                        {selectedPcr.rejectionReason && <p className="text-xs mt-1 text-red-600">Reason: {selectedPcr.rejectionReason}</p>}
+                      </div>
+                    </div>
+                  )}
+
+                  {(selectedPcr.status === "implementing" || selectedPcr.status === "implemented" || selectedPcr.status === "completed") && (
+                    <div className="relative pl-8 pb-6 border-l-2 border-amber-200 dark:border-amber-800 ml-3">
+                      <div className="absolute -left-[13px] top-0 w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center"><Settings className="h-3 w-3 text-white" /></div>
+                      <div className="pt-0.5">
+                        <p className="text-xs font-bold text-amber-700 dark:text-amber-400">Implementation</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{selectedPcr.implementedAt ? new Date(selectedPcr.implementedAt).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "In progress..."}</p>
+                        <p className="text-xs mt-1">Implemented by: <span className="font-medium">{selectedPcr.implementedBy || "—"}</span></p>
+                        {selectedPcr.implementationNotes && <p className="text-xs mt-1">Notes: {selectedPcr.implementationNotes}</p>}
+                        {selectedPcr.networkSyncStatus && <p className="text-xs mt-1">Network Sync: <Badge variant="secondary" className="text-[10px] capitalize">{selectedPcr.networkSyncStatus}</Badge></p>}
+                        {selectedPcr.billingUpdated !== undefined && <p className="text-xs mt-1">Billing Updated: <span className="font-medium">{selectedPcr.billingUpdated ? "Yes" : "No"}</span></p>}
+                      </div>
+                    </div>
+                  )}
+
+                  {(selectedPcr.status === "implemented" || selectedPcr.status === "completed") && (
+                    <div className="relative pl-8 pb-2 ml-3">
+                      <div className="absolute -left-[13px] top-0 w-6 h-6 rounded-full bg-emerald-600 flex items-center justify-center"><Shield className="h-3 w-3 text-white" /></div>
+                      <div className="pt-0.5">
+                        <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Completed</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{selectedPcr.updatedAt ? new Date(selectedPcr.updatedAt).toLocaleString("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}</p>
+                        <p className="text-xs mt-1">Package change is now active and billing has been updated.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedPcr.status === "pending" && (
+                    <div className="relative pl-8 pb-2 ml-3">
+                      <div className="absolute -left-[13px] top-0 w-6 h-6 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center"><Clock className="h-3 w-3 text-white" /></div>
+                      <div className="pt-0.5">
+                        <p className="text-xs font-medium text-muted-foreground">Awaiting Approval...</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {selectedPcr.effectiveDate && (
+                <div className="flex items-center gap-2 text-xs bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3">
+                  <Calendar className="h-4 w-4 text-blue-600" />
+                  <span className="font-medium">Effective Date:</span>
+                  <span>{new Date(selectedPcr.effectiveDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                  {selectedPcr.effectiveDateType && <Badge variant="secondary" className="text-[10px] capitalize">{selectedPcr.effectiveDateType}</Badge>}
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setPcrDetailOpen(false)} data-testid="button-close-pcr-detail">Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={serviceSchedulerOpen} onOpenChange={setServiceSchedulerOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
