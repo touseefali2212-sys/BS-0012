@@ -259,13 +259,31 @@ export default function AddCustomerPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [gpsLocating, setGpsLocating] = useState(false);
 
-  // Pre-fill from client request query
-  const fromQueryId = new URLSearchParams(window.location.search).get("fromQuery");
-  const typeParam = new URLSearchParams(window.location.search).get("type");
+  const searchParams = new URLSearchParams(window.location.search);
+  const fromQueryId = searchParams.get("fromQuery");
+  const typeParam = searchParams.get("type");
+  const editId = searchParams.get("edit");
   const { data: fromQueryData } = useQuery<any>({
     queryKey: ["/api/customer-queries", fromQueryId],
     enabled: !!fromQueryId,
   });
+  const isEditMode = !!editId;
+  const { data: editCorpData, isLoading: editCorpLoading } = useQuery<any>({
+    queryKey: ["/api/corporate-customers", editId],
+    enabled: isEditMode && typeParam === "corporate",
+  });
+  const { data: editCirData, isLoading: editCirLoading } = useQuery<any>({
+    queryKey: ["/api/cir-customers", editId],
+    enabled: isEditMode && typeParam === "cir",
+  });
+  const editDataLoading = isEditMode && (
+    (typeParam === "corporate" && editCorpLoading) ||
+    (typeParam === "cir" && editCirLoading)
+  );
+  const editDataReady = isEditMode && (
+    (typeParam === "corporate" && !!editCorpData) ||
+    (typeParam === "cir" && !!editCirData)
+  );
 
   // Automation modal state
   const [autoModalOpen, setAutoModalOpen] = useState(false);
@@ -625,6 +643,106 @@ export default function AddCustomerPage() {
       }));
     }
   }, [fromQueryData]);
+
+  useEffect(() => {
+    if (!editCorpData) return;
+    const d = editCorpData;
+    setCorpForm(prev => ({
+      ...prev,
+      companyName: d.companyName || "", contactFullName: d.contactFullName || "",
+      registrationNumber: d.registrationNumber || "", ntn: d.ntn || "",
+      industryType: d.industryType || "", headOfficeAddress: d.headOfficeAddress || "",
+      billingAddress: d.billingAddress || "", accountManager: d.accountManager || "",
+      email: d.email || "", mobileNo: d.mobileNo || "", phone: d.phone || "",
+      branch: d.branch || "", city: d.city || "",
+      mapLatitude: d.mapLatitude || "", mapLongitude: d.mapLongitude || "",
+      customerType: d.customerType || "", serviceType: d.serviceType || "",
+      vendorId: d.vendorId ? String(d.vendorId) : "", linkType: d.linkType || "",
+      uplinkPort: d.uplinkPort || "", mediaType: d.mediaType || "",
+      committedBandwidth: d.committedBandwidth || "", uploadSpeed: d.uploadSpeed || "",
+      downloadSpeed: d.downloadSpeed || "", vlanId: d.vlanId || "",
+      staticIp: d.staticIp || "", subnetMask: d.subnetMask || "",
+      gateway: d.gateway || "", dns1: d.dns1 || "", dns2: d.dns2 || "",
+      radiusProfile: d.radiusProfile || "", bandwidthProfileName: d.bandwidthProfileName || "",
+      monitoringEnabled: d.monitoringEnabled ?? false, snmpMonitoring: d.snmpMonitoring ?? false,
+      trafficAlerts: d.trafficAlerts ?? false,
+      billingMode: d.billingMode || "fixed", perMbpsRate: d.perMbpsRate || "0",
+      bandwidthMbps: d.bandwidthMbps || "0",
+      taxEnabled: d.taxEnabled ?? false, whTaxPercent: d.whTaxPercent || "0",
+      aitTaxPercent: d.aitTaxPercent || "0", extraFeeTaxPercent: d.extraFeeTaxPercent || "0",
+      centralizedBilling: d.centralizedBilling ?? true, perBranchBilling: d.perBranchBilling ?? false,
+      customInvoiceFormat: d.customInvoiceFormat || "",
+      paymentTerms: d.paymentTerms || "net_30", creditLimit: d.creditLimit || "0",
+      securityDeposit: d.securityDeposit || "0",
+      contractDuration: d.contractDuration || "", contractStartDate: d.contractStartDate || "",
+      contractExpiryDate: d.contractExpiryDate || "",
+      contractFile: d.contractFile || "", cnicFrontFile: d.cnicFrontFile || "", cnicBackFile: d.cnicBackFile || "",
+      customSla: d.customSla || "", dedicatedAccountManager: d.dedicatedAccountManager || "",
+      customPricingAgreement: d.customPricingAgreement || "",
+      managedRouter: d.managedRouter ?? false, firewall: d.firewall ?? false,
+      loadBalancer: d.loadBalancer ?? false, dedicatedSupport: d.dedicatedSupport ?? false,
+      backupLink: d.backupLink ?? false, monitoringSla: d.monitoringSla ?? false,
+      totalBandwidth: d.totalBandwidth || "", monthlyBilling: d.monthlyBilling || "0",
+      status: d.status || "active", notes: d.notes || "",
+    }));
+    if (d.monthlyBilling) setCorpMonthlyBase(d.monthlyBilling);
+    if (d.appliedTaxIds) {
+      try { setCorpSelectedTaxIds(JSON.parse(d.appliedTaxIds)); } catch {}
+    }
+  }, [editCorpData]);
+
+  useEffect(() => {
+    if (!editCirData) return;
+    const d = editCirData;
+    setCirForm(prev => ({
+      ...prev,
+      companyName: d.companyName || "", contactPerson: d.contactPerson || "",
+      cnic: d.cnic || "", ntn: d.ntn || "", email: d.email || "", phone: d.phone || "",
+      mobileNo2: d.mobileNo2 || "", address: d.address || "", city: d.city || "", branch: d.branch || "",
+      mapLatitude: d.mapLatitude || "", mapLongitude: d.mapLongitude || "",
+      customerType: d.customerType || "", serviceType: d.serviceType || "",
+      vendorId: d.vendorId ? String(d.vendorId) : "", linkType: d.linkType || "",
+      uplinkPort: d.uplinkPort || "", media: d.media || "", vendorPort: d.vendorPort || "",
+      committedBandwidth: d.committedBandwidth || "", burstBandwidth: d.burstBandwidth || "",
+      uploadSpeed: d.uploadSpeed || "", downloadSpeed: d.downloadSpeed || "",
+      contentionRatio: d.contentionRatio || "", vlanId: d.vlanId || "",
+      onuDevice: d.onuDevice || "", staticIp: d.staticIp || "", subnetMask: d.subnetMask || "",
+      gateway: d.gateway || "", dns: d.dns || "", dns2: d.dns2 || "", publicIpBlock: d.publicIpBlock || "",
+      paymentTerms: d.paymentTerms || "", billingMode: d.billingMode || "",
+      bandwidthMbps: d.bandwidthMbps || "", perMbpsRate: d.perMbpsRate || "",
+      monthlyBilling: d.monthlyBilling || "0", billingDiscount: d.billingDiscount || "0",
+      otcAmount: d.otcAmount || "", appliedTaxIds: d.appliedTaxIds || "",
+      accountManager: d.accountManager || "", creditLimit: d.creditLimit || "0",
+      centralizedBilling: d.centralizedBilling ?? false, perBranchBilling: d.perBranchBilling ?? false,
+      customInvoiceFormat: d.customInvoiceFormat || "",
+      contractDuration: d.contractDuration || "", contractStartDate: d.contractStartDate || "",
+      contractEndDate: d.contractEndDate || "", contractExpiryDate: d.contractExpiryDate || "",
+      slaLevel: d.slaLevel || "", slaPenaltyClause: d.slaPenaltyClause || "",
+      autoRenewal: d.autoRenewal ?? false, monthlyCharges: d.monthlyCharges || "0",
+      installationCharges: d.installationCharges || "0",
+      securityDeposit: d.securityDeposit || "0", billingCycle: d.billingCycle || "monthly",
+      invoiceType: d.invoiceType || "tax", lateFeePolicy: d.lateFeePolicy || "",
+      cnicFrontFile: d.cnicFrontFile || "", cnicBackFile: d.cnicBackFile || "",
+      contractFile: d.contractFile || "",
+      dedicatedAccountManager: d.dedicatedAccountManager || "", customSla: d.customSla || "",
+      customPricingAgreement: d.customPricingAgreement || "",
+      managedRouter: d.managedRouter ?? false, firewall: d.firewall ?? false,
+      loadBalancer: d.loadBalancer ?? false, dedicatedSupport: d.dedicatedSupport ?? false,
+      backupLink: d.backupLink ?? false, monitoringSla: d.monitoringSla ?? false,
+      radiusProfile: d.radiusProfile || "", bandwidthProfileName: d.bandwidthProfileName || "",
+      monitoringEnabled: d.monitoringEnabled ?? false, snmpMonitoring: d.snmpMonitoring ?? false,
+      trafficAlerts: d.trafficAlerts ?? false, status: d.status || "active", notes: d.notes || "",
+    }));
+    if (d.monthlyBilling) setCirMonthlyBase(d.monthlyBilling);
+    if (d.billingDiscount) setCirBillingDiscount(d.billingDiscount);
+    if (d.otcAmount && parseFloat(d.otcAmount) > 0) {
+      setCirOtcEnabled(true);
+      setCirOtcAmount(d.otcAmount);
+    }
+    if (d.appliedTaxIds) {
+      try { setCirSelectedTaxIds(JSON.parse(d.appliedTaxIds)); } catch {}
+    }
+  }, [editCirData]);
 
   // Auto-compute installment total from per-item toggles
   useEffect(() => {
@@ -1022,11 +1140,21 @@ export default function AddCustomerPage() {
         monthlyBilling: String(corpFinalMonthly) || "0",
         appliedTaxIds: corpSelectedTaxIds.length > 0 ? JSON.stringify(corpSelectedTaxIds) : null,
       };
+      if (isEditMode && editId) {
+        const res = await apiRequest("PATCH", `/api/corporate-customers/${editId}`, payload);
+        return res.json();
+      }
       const res = await apiRequest("POST", "/api/corporate-customers", payload);
       return res.json();
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/corporate-customers"] });
+      if (isEditMode) {
+        queryClient.invalidateQueries({ queryKey: ["/api/corporate-customers", editId] });
+        toast({ title: "Corporate Customer updated successfully" });
+        setLocation("/corporate-customers");
+        return;
+      }
       setAutoCustomerName(data.companyName || corpForm.companyName);
       const steps = CORP_ADD_STEPS.map(s => ({ step: s.key, status: "pending" as const, message: s.description }));
       setAutoSteps(steps);
@@ -1058,11 +1186,21 @@ export default function AddCustomerPage() {
         otcAmount: cirOtcEnabled ? (cirOtcAmount || "0") : "0",
         appliedTaxIds: cirSelectedTaxIds.length > 0 ? JSON.stringify(cirSelectedTaxIds) : null,
       };
+      if (isEditMode && editId) {
+        const res = await apiRequest("PATCH", `/api/cir-customers/${editId}`, payload);
+        return res.json();
+      }
       const res = await apiRequest("POST", "/api/cir-customers", payload);
       return res.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/cir-customers"] });
+      if (isEditMode) {
+        queryClient.invalidateQueries({ queryKey: ["/api/cir-customers", editId] });
+        toast({ title: "CIR Customer updated successfully" });
+        setLocation("/cir-customers");
+        return;
+      }
       setAutoCustomerName(data.companyName || cirForm.companyName);
       const steps = CIR_ADD_STEPS.map(s => ({ step: s.key, status: "pending" as const, message: s.description }));
       setAutoSteps(steps);
@@ -1078,7 +1216,9 @@ export default function AddCustomerPage() {
     onError: (err: any) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
-  const corpRequiredComplete =
+  const corpRequiredComplete = isEditMode ? (
+    editDataReady && (corpForm.companyName?.trim().length ?? 0) >= 2
+  ) : (
     (corpForm.companyName?.trim().length ?? 0) >= 2 &&
     (corpForm.contactFullName?.trim().length ?? 0) >= 2 &&
     (corpForm.mobileNo?.trim().length ?? 0) >= 5 &&
@@ -1096,64 +1236,69 @@ export default function AddCustomerPage() {
     (corpForm.billingMode === "fixed"
       ? parseFloat(corpMonthlyBase) > 0
       : parseFloat(corpForm.perMbpsRate) > 0) &&
-    (corpOtcEnabled ? parseFloat(corpOtcAmount) > 0 : true);
+    (corpOtcEnabled ? parseFloat(corpOtcAmount) > 0 : true)
+  );
 
   const handleCorpSave = (opts: { activate?: boolean } = {}) => {
     if (!corpForm.companyName || corpForm.companyName.trim().length < 2) {
       toast({ title: "Company Name required", description: "Please enter the company name", variant: "destructive" }); return;
     }
-    if (!corpForm.contactFullName || corpForm.contactFullName.trim().length < 2) {
-      toast({ title: "Full Name required", description: "Please enter the contact person's full name", variant: "destructive" }); return;
-    }
-    if (!corpForm.mobileNo || corpForm.mobileNo.trim().length < 5) {
-      toast({ title: "Mobile No. required", description: "Please enter a valid mobile number", variant: "destructive" }); return;
-    }
-    if (!corpForm.email || !corpForm.email.includes("@")) {
-      toast({ title: "Email required", description: "Please enter a valid email address", variant: "destructive" }); return;
-    }
-    if (!corpForm.industryType) {
-      toast({ title: "Customer Type required", description: "Please select a customer type", variant: "destructive" }); return;
-    }
-    if (!corpForm.billingAddress || corpForm.billingAddress.trim().length < 3) {
-      toast({ title: "Billing Address required", description: "Please enter the billing address", variant: "destructive" }); return;
-    }
-    if (!corpForm.headOfficeAddress || corpForm.headOfficeAddress.trim().length < 3) {
-      toast({ title: "Head Office Address required", description: "Please enter the head office address", variant: "destructive" }); return;
-    }
-    if (!corpForm.branch) {
-      toast({ title: "Branch required", description: "Please select a branch", variant: "destructive" }); return;
-    }
-    if (!corpForm.city || corpForm.city.trim().length < 2) {
-      toast({ title: "City required", description: "Please enter the city", variant: "destructive" }); return;
-    }
-    if (!corpForm.cnicFrontFile) {
-      toast({ title: "CNIC Front required", description: "Please upload the CNIC front image", variant: "destructive" }); return;
-    }
-    if (!corpForm.cnicBackFile) {
-      toast({ title: "CNIC Back required", description: "Please upload the CNIC back image", variant: "destructive" }); return;
-    }
-    if (!corpForm.paymentTerms) {
-      toast({ title: "Payment Terms required", description: "Please select payment terms", variant: "destructive" }); return;
-    }
-    if (!corpForm.billingMode) {
-      toast({ title: "Billing Mode required", description: "Please select a billing mode", variant: "destructive" }); return;
-    }
-    if (!(parseFloat(corpForm.bandwidthMbps) > 0)) {
-      toast({ title: "Bandwidth required", description: "Please enter the bandwidth in Mbps", variant: "destructive" }); return;
-    }
-    if (corpForm.billingMode === "fixed" && !(parseFloat(corpMonthlyBase) > 0)) {
-      toast({ title: "Monthly Billing required", description: "Please enter the monthly billing amount", variant: "destructive" }); return;
-    }
-    if (corpForm.billingMode === "per_mbps" && !(parseFloat(corpForm.perMbpsRate) > 0)) {
-      toast({ title: "Rate per Mbps required", description: "Please enter the rate per Mbps", variant: "destructive" }); return;
-    }
-    if (corpOtcEnabled && !(parseFloat(corpOtcAmount) > 0)) {
-      toast({ title: "OTC Amount required", description: "Please enter the one-time charge amount", variant: "destructive" }); return;
+    if (!isEditMode) {
+      if (!corpForm.contactFullName || corpForm.contactFullName.trim().length < 2) {
+        toast({ title: "Full Name required", description: "Please enter the contact person's full name", variant: "destructive" }); return;
+      }
+      if (!corpForm.mobileNo || corpForm.mobileNo.trim().length < 5) {
+        toast({ title: "Mobile No. required", description: "Please enter a valid mobile number", variant: "destructive" }); return;
+      }
+      if (!corpForm.email || !corpForm.email.includes("@")) {
+        toast({ title: "Email required", description: "Please enter a valid email address", variant: "destructive" }); return;
+      }
+      if (!corpForm.industryType) {
+        toast({ title: "Customer Type required", description: "Please select a customer type", variant: "destructive" }); return;
+      }
+      if (!corpForm.billingAddress || corpForm.billingAddress.trim().length < 3) {
+        toast({ title: "Billing Address required", description: "Please enter the billing address", variant: "destructive" }); return;
+      }
+      if (!corpForm.headOfficeAddress || corpForm.headOfficeAddress.trim().length < 3) {
+        toast({ title: "Head Office Address required", description: "Please enter the head office address", variant: "destructive" }); return;
+      }
+      if (!corpForm.branch) {
+        toast({ title: "Branch required", description: "Please select a branch", variant: "destructive" }); return;
+      }
+      if (!corpForm.city || corpForm.city.trim().length < 2) {
+        toast({ title: "City required", description: "Please enter the city", variant: "destructive" }); return;
+      }
+      if (!corpForm.cnicFrontFile) {
+        toast({ title: "CNIC Front required", description: "Please upload the CNIC front image", variant: "destructive" }); return;
+      }
+      if (!corpForm.cnicBackFile) {
+        toast({ title: "CNIC Back required", description: "Please upload the CNIC back image", variant: "destructive" }); return;
+      }
+      if (!corpForm.paymentTerms) {
+        toast({ title: "Payment Terms required", description: "Please select payment terms", variant: "destructive" }); return;
+      }
+      if (!corpForm.billingMode) {
+        toast({ title: "Billing Mode required", description: "Please select a billing mode", variant: "destructive" }); return;
+      }
+      if (!(parseFloat(corpForm.bandwidthMbps) > 0)) {
+        toast({ title: "Bandwidth required", description: "Please enter the bandwidth in Mbps", variant: "destructive" }); return;
+      }
+      if (corpForm.billingMode === "fixed" && !(parseFloat(corpMonthlyBase) > 0)) {
+        toast({ title: "Monthly Billing required", description: "Please enter the monthly billing amount", variant: "destructive" }); return;
+      }
+      if (corpForm.billingMode === "per_mbps" && !(parseFloat(corpForm.perMbpsRate) > 0)) {
+        toast({ title: "Rate per Mbps required", description: "Please enter the rate per Mbps", variant: "destructive" }); return;
+      }
+      if (corpOtcEnabled && !(parseFloat(corpOtcAmount) > 0)) {
+        toast({ title: "OTC Amount required", description: "Please enter the one-time charge amount", variant: "destructive" }); return;
+      }
     }
     saveCorpMutation.mutate(opts);
   };
 
-  const cirRequiredComplete =
+  const cirRequiredComplete = isEditMode ? (
+    editDataReady && (cirForm.companyName?.trim().length ?? 0) >= 2
+  ) : (
     (cirForm.companyName?.trim().length ?? 0) >= 2 &&
     (cirForm.contactPerson?.trim().length ?? 0) >= 2 &&
     (cirForm.cnic?.trim().length ?? 0) >= 5 &&
@@ -1182,32 +1327,35 @@ export default function AddCustomerPage() {
       : parseFloat(cirForm.perMbpsRate) > 0) &&
     (cirOtcEnabled ? parseFloat(cirOtcAmount) > 0 : true) &&
     !!cirForm.cnicFrontFile &&
-    !!cirForm.cnicBackFile;
+    !!cirForm.cnicBackFile
+  );
 
   const handleCirSave = (opts: { activate?: boolean } = {}) => {
     if (!cirForm.companyName || cirForm.companyName.trim().length < 2) {
       toast({ title: "Company Name required", description: "Please enter the company name", variant: "destructive" }); return;
     }
-    if (!cirForm.contactPerson || cirForm.contactPerson.trim().length < 2) {
-      toast({ title: "Full Name required", description: "Please enter the contact person's full name", variant: "destructive" }); return;
-    }
-    if (!cirForm.cnic || cirForm.cnic.trim().length < 5) {
-      toast({ title: "CNIC No required", description: "Please enter a valid CNIC number", variant: "destructive" }); return;
-    }
-    if (!cirForm.phone || cirForm.phone.trim().length < 5) {
-      toast({ title: "Mobile No required", description: "Please enter a valid mobile number", variant: "destructive" }); return;
-    }
-    if (!cirForm.email || !cirForm.email.includes("@")) {
-      toast({ title: "Email required", description: "Please enter a valid email address", variant: "destructive" }); return;
-    }
-    if (!cirForm.branch) {
-      toast({ title: "Branch required", description: "Please select a branch", variant: "destructive" }); return;
-    }
-    if (!cirForm.city || cirForm.city.trim().length < 2) {
-      toast({ title: "City required", description: "Please enter the city", variant: "destructive" }); return;
-    }
-    if (!cirForm.address || cirForm.address.trim().length < 3) {
-      toast({ title: "Address required", description: "Please enter the address", variant: "destructive" }); return;
+    if (!isEditMode) {
+      if (!cirForm.contactPerson || cirForm.contactPerson.trim().length < 2) {
+        toast({ title: "Full Name required", description: "Please enter the contact person's full name", variant: "destructive" }); return;
+      }
+      if (!cirForm.cnic || cirForm.cnic.trim().length < 5) {
+        toast({ title: "CNIC No required", description: "Please enter a valid CNIC number", variant: "destructive" }); return;
+      }
+      if (!cirForm.phone || cirForm.phone.trim().length < 5) {
+        toast({ title: "Mobile No required", description: "Please enter a valid mobile number", variant: "destructive" }); return;
+      }
+      if (!cirForm.email || !cirForm.email.includes("@")) {
+        toast({ title: "Email required", description: "Please enter a valid email address", variant: "destructive" }); return;
+      }
+      if (!cirForm.branch) {
+        toast({ title: "Branch required", description: "Please select a branch", variant: "destructive" }); return;
+      }
+      if (!cirForm.city || cirForm.city.trim().length < 2) {
+        toast({ title: "City required", description: "Please enter the city", variant: "destructive" }); return;
+      }
+      if (!cirForm.address || cirForm.address.trim().length < 3) {
+        toast({ title: "Address required", description: "Please enter the address", variant: "destructive" }); return;
+      }
     }
     saveCirMutation.mutate(opts);
   };
@@ -1243,17 +1391,28 @@ export default function AddCustomerPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">
-                {customerCategory === "corporate" ? "Add Corporate Customer" : customerCategory === "cir" ? "Add CIR Customer" : "Add New Customer"}
+                {isEditMode
+                  ? (customerCategory === "corporate" ? "Edit Corporate Customer" : customerCategory === "cir" ? "Edit CIR Customer" : "Edit Customer")
+                  : (customerCategory === "corporate" ? "Add Corporate Customer" : customerCategory === "cir" ? "Add CIR Customer" : "Add New Customer")}
               </h1>
               <p className="text-xs text-muted-foreground">
-                {customerCategory === "corporate" ? "Enterprise multi-branch client onboarding" : customerCategory === "cir" ? "Committed Information Rate dedicated link" : "Complete customer onboarding form"}
+                {isEditMode
+                  ? (customerCategory === "corporate" ? "Update corporate customer details" : customerCategory === "cir" ? "Update CIR customer details" : "Update customer details")
+                  : (customerCategory === "corporate" ? "Enterprise multi-branch client onboarding" : customerCategory === "cir" ? "Committed Information Rate dedicated link" : "Complete customer onboarding form")}
               </p>
             </div>
           </div>
         </div>
 
+        {editDataLoading && (
+          <div className="flex items-center justify-center py-20 gap-3">
+            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+            <span className="text-muted-foreground">Loading customer data...</span>
+          </div>
+        )}
+
         {/* Customer Type Selector — hidden when converting from a client request */}
-        {!fromQueryId && !typeParam && (
+        {!fromQueryId && !typeParam && !isEditMode && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {([
               { id: "normal",    label: "Customer",          sub: "Standard internet subscriber",        icon: User,      grad: "from-blue-600 to-indigo-600" },
@@ -4861,23 +5020,27 @@ export default function AddCustomerPage() {
                 )}
                 {customerCategory === "corporate" && (
                   <>
-                    <Button variant="outline" onClick={() => handleCorpSave({ activate: true })} disabled={!corpRequiredComplete || saveCorpMutation.isPending} data-testid="button-corp-save-activate" className="text-sm border-green-500 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 disabled:opacity-50">
-                      <Zap className="h-3.5 w-3.5 mr-1.5" />Save & Activate
-                    </Button>
+                    {!isEditMode && (
+                      <Button variant="outline" onClick={() => handleCorpSave({ activate: true })} disabled={!corpRequiredComplete || saveCorpMutation.isPending} data-testid="button-corp-save-activate" className="text-sm border-green-500 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 disabled:opacity-50">
+                        <Zap className="h-3.5 w-3.5 mr-1.5" />Save & Activate
+                      </Button>
+                    )}
                     <Button onClick={() => handleCorpSave()} disabled={!corpRequiredComplete || saveCorpMutation.isPending} data-testid="button-corp-save" className="bg-gradient-to-br from-[#002B5B] to-[#005EFF] hover:opacity-90 text-white shadow-md gap-2 disabled:opacity-50">
                       {saveCorpMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                      Save Corporate Customer
+                      {isEditMode ? "Update Corporate Customer" : "Save Corporate Customer"}
                     </Button>
                   </>
                 )}
                 {customerCategory === "cir" && (
                   <>
-                    <Button variant="outline" onClick={() => handleCirSave({ activate: true })} disabled={!cirRequiredComplete || saveCirMutation.isPending} data-testid="button-cir-save-activate" className="text-sm border-green-500 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 disabled:opacity-50">
-                      <Zap className="h-3.5 w-3.5 mr-1.5" />Save & Activate
-                    </Button>
+                    {!isEditMode && (
+                      <Button variant="outline" onClick={() => handleCirSave({ activate: true })} disabled={!cirRequiredComplete || saveCirMutation.isPending} data-testid="button-cir-save-activate" className="text-sm border-green-500 text-green-700 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/20 disabled:opacity-50">
+                        <Zap className="h-3.5 w-3.5 mr-1.5" />Save & Activate
+                      </Button>
+                    )}
                     <Button onClick={() => handleCirSave()} disabled={!cirRequiredComplete || saveCirMutation.isPending} data-testid="button-cir-save" className="bg-gradient-to-br from-purple-600 to-indigo-600 hover:opacity-90 text-white shadow-md gap-2 disabled:opacity-50">
                       {saveCirMutation.isPending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                      Save CIR Customer
+                      {isEditMode ? "Update CIR Customer" : "Save CIR Customer"}
                     </Button>
                   </>
                 )}

@@ -787,7 +787,7 @@ export default function CirCustomersPage() {
                             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`button-cir-actions-${c.id}`}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-44">
                               <DropdownMenuItem onClick={() => setLocation(`/cir-customers/${c.id}`)} data-testid={`button-cir-details-${c.id}`}><Eye className="h-4 w-4 mr-2 text-blue-600" />View Profile</DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openEdit(c)}><Edit className="h-4 w-4 mr-2 text-amber-600" />Edit Profile</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setLocation(`/add-customer?type=cir&edit=${c.id}`)}><Edit className="h-4 w-4 mr-2 text-amber-600" />Edit Profile</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => openSmsDialog(c)}><MessageSquare className="h-4 w-4 mr-2 text-green-600" />Send SMS</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => setLocation(`/cir-customers/${c.id}`)}><CalendarClock className="h-4 w-4 mr-2 text-purple-600" />Service Scheduler</DropdownMenuItem>
                               <DropdownMenuItem onClick={() => openStatusDialog(c)}>
