@@ -97,6 +97,7 @@ import {
   type Package as PackageType,
   type Vendor,
   type ServiceSchedulerRequest,
+  type OltDevice,
 } from "@shared/schema";
 
 export default function CustomerProfilePage() {
@@ -161,6 +162,9 @@ export default function CustomerProfilePage() {
 
   const { data: vendors } = useQuery<Vendor[]>({
     queryKey: ["/api/vendors"],
+  });
+  const { data: oltDevices } = useQuery<OltDevice[]>({
+    queryKey: ["/api/olt-devices"],
   });
 
   const { data: invoices, isLoading: invoicesLoading } = useQuery<Invoice[]>({
@@ -1058,7 +1062,7 @@ export default function CustomerProfilePage() {
                           <SectionHeader title="Device Billing" />
                           <div className="bg-card border rounded-lg overflow-hidden">
                             <div className="grid grid-cols-2 divide-x divide-y">
-                              <InfoRow label="Device Type" value={(customer as any).deviceType || "-"} />
+                              <InfoRow label="Network Device Type" value={(customer as any).networkDeviceType || (customer as any).deviceType || "-"} />
                               <InfoRow label="Device Detail" value={(customer as any).deviceDetail || "-"} />
                               <InfoRow label="Device Charges" value={`PKR ${deviceCharges.toFixed(2)}`} />
                             </div>
@@ -1190,12 +1194,47 @@ export default function CustomerProfilePage() {
                 <SectionHeader title="Device Information" />
                 <div className="bg-card border rounded-lg overflow-hidden">
                   <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Device Type" value={(customer as any).deviceType || customer.device || "-"} />
-                    <InfoRow label="Device Model" value={(customer as any).deviceModel || "-"} />
+                    <InfoRow label="Network Device Type" value={(customer as any).networkDeviceType || (customer as any).deviceType || customer.device || "-"} />
+                    {((customer as any).networkDeviceType === "ONT" || (customer as any).networkDeviceType === "ONU") && (
+                      <>
+                        <InfoRow label={`${(customer as any).networkDeviceType} Model`} value={(customer as any).ndtModel || "-"} />
+                        <InfoRow label={`${(customer as any).networkDeviceType} MAC Address`} value={(customer as any).ndtMacAddress || "-"} />
+                        <InfoRow label={`${(customer as any).networkDeviceType} Serial No.`} value={(customer as any).ndtSerialNo || "-"} />
+                        <InfoRow label="OLT" value={(() => {
+                          const oltId = (customer as any).ndtOltId;
+                          if (!oltId) return "-";
+                          const olt = oltDevices?.find(o => String(o.id) === String(oltId));
+                          return olt ? `${olt.name} (${olt.ipAddress || olt.oltId})` : oltId;
+                        })()} />
+                      </>
+                    )}
+                    {(customer as any).networkDeviceType === "Ethernet" && (
+                      <>
+                        <InfoRow label="Router Model" value={(customer as any).ndtModel || "-"} />
+                        <InfoRow label="Router MAC Address" value={(customer as any).ndtMacAddress || "-"} />
+                        <InfoRow label="Router Serial No." value={(customer as any).ndtSerialNo || "-"} />
+                      </>
+                    )}
+                    {((customer as any).networkDeviceType === "Wireless" || (customer as any).networkDeviceType === "Wireless Dish") && (
+                      <>
+                        <InfoRow label="Dish Model" value={(customer as any).ndtModel || "-"} />
+                        <InfoRow label="Dish MAC Address" value={(customer as any).ndtMacAddress || "-"} />
+                        <InfoRow label="Dish Serial No." value={(customer as any).ndtSerialNo || "-"} />
+                        <InfoRow label="Dish IP Address" value={(customer as any).ndtIpAddress || "-"} />
+                        <InfoRow label="Dish Username" value={(customer as any).ndtUsername || "-"} />
+                        <InfoRow label="Dish Password" value={(customer as any).ndtPassword || "-"} />
+                        <InfoRow label="Dish SSID" value={(customer as any).ndtSsid || "-"} />
+                      </>
+                    )}
+                    {!(customer as any).networkDeviceType && (
+                      <>
+                        <InfoRow label="Device Model" value={(customer as any).deviceModel || "-"} />
+                        <InfoRow label="Device Serial No" value={customer.deviceMacSerial || "-"} />
+                        <InfoRow label="Device MAC Address" value={(customer as any).macAddress || "-"} />
+                      </>
+                    )}
                     <InfoRow label="Device Detail" value={(customer as any).deviceDetail || "-"} />
                     <InfoRow label="Device Charges" value={(customer as any).deviceCharges && Number((customer as any).deviceCharges) > 0 ? `PKR ${Number((customer as any).deviceCharges).toFixed(2)}` : "-"} />
-                    <InfoRow label="Device Serial No" value={customer.deviceMacSerial || "-"} />
-                    <InfoRow label="Device MAC Address" value={(customer as any).macAddress || "-"} />
                     <InfoRow label="Device Owned By" value={(customer as any).deviceOwnedBy || "-"} />
                     <InfoRow label="Vendor" value={customerVendor?.name || "-"} />
                     <InfoRow label="Purchase Date" value={formatDate(customer.purchaseDate)} />

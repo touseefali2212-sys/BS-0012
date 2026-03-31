@@ -21,7 +21,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Package as PackageType, Vendor, Area, Branch, Employee, Customer } from "@shared/schema";
+import type { Package as PackageType, Vendor, Area, Branch, Employee, Customer, OltDevice } from "@shared/schema";
 
 function generatePassword(length = 12) {
   const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
@@ -229,6 +229,8 @@ const defaultForm = {
 
   protocolType: "", connectionType: "", device: "", deviceModel: "", deviceMacSerial: "", macAddress: "",
   deviceOwnedBy: "Company", cableRequirement: "", fiberCode: "", numberOfCore: "", coreColor: "",
+  networkDeviceType: "", ndtModel: "", ndtMacAddress: "", ndtSerialNo: "", ndtOltId: "",
+  ndtIpAddress: "", ndtUsername: "", ndtPassword: "", ndtSsid: "",
 
   smsMobile: true, smsWhatsapp: false, emailNotif: false, inAppNotif: true,
   sendSmsToEmployee: false, sendGreetingSms: true,
@@ -270,6 +272,7 @@ export default function EditCustomerPage() {
   const { data: areas } = useQuery<Area[]>({ queryKey: ["/api/areas"] });
   const { data: branches } = useQuery<Branch[]>({ queryKey: ["/api/branches"] });
   const { data: employees } = useQuery<Employee[]>({ queryKey: ["/api/employees"] });
+  const { data: oltDevices } = useQuery<OltDevice[]>({ queryKey: ["/api/olt-devices"] });
 
   useEffect(() => {
     if (!customer || formLoaded) return;
@@ -344,6 +347,15 @@ export default function EditCustomerPage() {
       fiberCode:       customer.fiberCode ?? "",
       numberOfCore:    customer.numberOfCore ?? "",
       coreColor:       customer.coreColor ?? "",
+      networkDeviceType: (customer as any).networkDeviceType ?? "",
+      ndtModel:        (customer as any).ndtModel ?? "",
+      ndtMacAddress:   (customer as any).ndtMacAddress ?? "",
+      ndtSerialNo:     (customer as any).ndtSerialNo ?? "",
+      ndtOltId:        (customer as any).ndtOltId ? String((customer as any).ndtOltId) : "",
+      ndtIpAddress:    (customer as any).ndtIpAddress ?? "",
+      ndtUsername:      (customer as any).ndtUsername ?? "",
+      ndtPassword:     (customer as any).ndtPassword ?? "",
+      ndtSsid:         (customer as any).ndtSsid ?? "",
 
       smsMobile:         true,
       smsWhatsapp:       false,
@@ -369,6 +381,11 @@ export default function EditCustomerPage() {
   const update = (field: string, value: string | boolean | number) => {
     setForm(prev => {
       const updated = { ...prev, [field]: value };
+
+      if (field === "networkDeviceType") {
+        updated.ndtModel = ""; updated.ndtMacAddress = ""; updated.ndtSerialNo = ""; updated.ndtOltId = "";
+        updated.ndtIpAddress = ""; updated.ndtUsername = ""; updated.ndtPassword = ""; updated.ndtSsid = "";
+      }
 
       if (field === "packageBill" || field === "discountOnPackage") {
         const bill = parseFloat(field === "packageBill" ? String(value) : prev.packageBill) || 0;
@@ -612,6 +629,15 @@ export default function EditCustomerPage() {
         fiberCode:       form.fiberCode,
         numberOfCore:    form.numberOfCore,
         coreColor:       form.coreColor,
+        networkDeviceType: form.networkDeviceType || "",
+        ndtModel:        form.ndtModel || "",
+        ndtMacAddress:   form.ndtMacAddress || "",
+        ndtSerialNo:     form.ndtSerialNo || "",
+        ndtOltId:        form.ndtOltId || "",
+        ndtIpAddress:    form.ndtIpAddress || "",
+        ndtUsername:      form.ndtUsername || "",
+        ndtPassword:     form.ndtPassword || "",
+        ndtSsid:         form.ndtSsid || "",
 
         additionalPackages: JSON.stringify(addlPkgs),
         additionalDevices: JSON.stringify(addlDevices),
@@ -1931,60 +1957,112 @@ export default function EditCustomerPage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Device Type</label>
-                    <Select value={form.device} onValueChange={v => update("device", v)}>
-                      <SelectTrigger data-testid="select-device-type"><SelectValue placeholder="Select device" /></SelectTrigger>
+                    <label className="text-sm font-medium">Network Device Type</label>
+                    <Select value={form.networkDeviceType} onValueChange={v => { update("networkDeviceType", v); update("device", v); }}>
+                      <SelectTrigger data-testid="select-network-device-type"><SelectValue placeholder="Select network device" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="ONT">ONT</SelectItem>
                         <SelectItem value="ONU">ONU</SelectItem>
-                        <SelectItem value="Router">Router</SelectItem>
-                        <SelectItem value="Modem">Modem</SelectItem>
-                        <SelectItem value="AP">Access Point</SelectItem>
-                        <SelectItem value="CPE">CPE</SelectItem>
+                        <SelectItem value="Ethernet">Ethernet</SelectItem>
+                        <SelectItem value="Wireless">Wireless</SelectItem>
+                        <SelectItem value="Wireless Dish">Wireless Dish</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Device Model</label>
-                    <Input
-                      placeholder="e.g. Huawei HG8245H"
-                      value={form.deviceModel}
-                      onChange={e => update("deviceModel", e.target.value)}
-                      data-testid="input-device-model"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Device Serial No</label>
-                    <Input
-                      placeholder="e.g. SN123456789"
-                      value={form.deviceMacSerial}
-                      onChange={e => update("deviceMacSerial", e.target.value)}
-                      data-testid="input-device-serial"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Device MAC Address</label>
-                    <div className="relative">
-                      <Input
-                        placeholder="AA:BB:CC:DD:EE:FF"
-                        value={form.macAddress}
-                        onChange={e => update("macAddress", e.target.value)}
-                        data-testid="input-mac-address"
-                        className={errors.macAddress ? "border-red-500" : ""}
-                        maxLength={17}
-                      />
-                      {form.macAddress && (
-                        <div className={`absolute right-3 top-1/2 -translate-y-1/2 ${validateMac(form.macAddress) ? "text-green-500" : "text-amber-500"}`}>
-                          {validateMac(form.macAddress) ? <Check className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                        </div>
-                      )}
+                {form.networkDeviceType && (
+                  <>
+                    <Separator />
+                    <div>
+                      <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                        <Wifi className="h-4 w-4 text-purple-600" />
+                        {form.networkDeviceType} Details
+                      </h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {(form.networkDeviceType === "ONT" || form.networkDeviceType === "ONU") && (
+                          <>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">{form.networkDeviceType} Model</label>
+                              <Input placeholder="e.g. Huawei HG8245H" value={form.ndtModel} onChange={e => update("ndtModel", e.target.value)} data-testid="input-ndt-model" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">{form.networkDeviceType} MAC Address</label>
+                              <Input placeholder="AA:BB:CC:DD:EE:FF" value={form.ndtMacAddress} onChange={e => update("ndtMacAddress", e.target.value)} data-testid="input-ndt-mac" maxLength={17} />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">{form.networkDeviceType} Serial No.</label>
+                              <Input placeholder="e.g. SN123456789" value={form.ndtSerialNo} onChange={e => update("ndtSerialNo", e.target.value)} data-testid="input-ndt-serial" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">OLT</label>
+                              <Select value={form.ndtOltId} onValueChange={v => update("ndtOltId", v)}>
+                                <SelectTrigger data-testid="select-ndt-olt"><SelectValue placeholder="Select OLT" /></SelectTrigger>
+                                <SelectContent>
+                                  {(oltDevices || []).map(olt => (
+                                    <SelectItem key={olt.id} value={String(olt.id)}>{olt.name} ({olt.ipAddress || olt.oltId})</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </>
+                        )}
+                        {form.networkDeviceType === "Ethernet" && (
+                          <>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Router Model</label>
+                              <Input placeholder="e.g. MikroTik hAP ac2" value={form.ndtModel} onChange={e => update("ndtModel", e.target.value)} data-testid="input-ndt-model" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Router MAC Address</label>
+                              <Input placeholder="AA:BB:CC:DD:EE:FF" value={form.ndtMacAddress} onChange={e => update("ndtMacAddress", e.target.value)} data-testid="input-ndt-mac" maxLength={17} />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Router Serial No.</label>
+                              <Input placeholder="e.g. SN123456789" value={form.ndtSerialNo} onChange={e => update("ndtSerialNo", e.target.value)} data-testid="input-ndt-serial" />
+                            </div>
+                          </>
+                        )}
+                        {(form.networkDeviceType === "Wireless" || form.networkDeviceType === "Wireless Dish") && (
+                          <>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Dish Model</label>
+                              <Input placeholder="e.g. Ubiquiti LiteBeam" value={form.ndtModel} onChange={e => update("ndtModel", e.target.value)} data-testid="input-ndt-model" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Dish MAC Address</label>
+                              <Input placeholder="AA:BB:CC:DD:EE:FF" value={form.ndtMacAddress} onChange={e => update("ndtMacAddress", e.target.value)} data-testid="input-ndt-mac" maxLength={17} />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Dish Serial No.</label>
+                              <Input placeholder="e.g. SN123456789" value={form.ndtSerialNo} onChange={e => update("ndtSerialNo", e.target.value)} data-testid="input-ndt-serial" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Dish IP Address</label>
+                              <Input placeholder="e.g. 192.168.1.100" value={form.ndtIpAddress} onChange={e => update("ndtIpAddress", e.target.value)} data-testid="input-ndt-ip" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Dish Username</label>
+                              <Input placeholder="e.g. admin" value={form.ndtUsername} onChange={e => update("ndtUsername", e.target.value)} data-testid="input-ndt-username" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Dish Password</label>
+                              <Input placeholder="Enter password" value={form.ndtPassword} onChange={e => update("ndtPassword", e.target.value)} data-testid="input-ndt-password" />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-sm font-medium">Dish SSID</label>
+                              <Input placeholder="e.g. MyNetwork-5G" value={form.ndtSsid} onChange={e => update("ndtSsid", e.target.value)} data-testid="input-ndt-ssid" />
+                            </div>
+                          </>
+                        )}
+                      </div>
                     </div>
-                    {errors.macAddress && <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle className="h-3 w-3" />{errors.macAddress}</p>}
-                  </div>
+                  </>
+                )}
 
+                <Separator />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">Device Owned By</label>
                     <Select value={form.deviceOwnedBy} onValueChange={v => update("deviceOwnedBy", v)}>
