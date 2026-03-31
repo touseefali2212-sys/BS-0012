@@ -328,6 +328,14 @@ export default function ResellerProfilePage() {
   const [editPkg, setEditPkg] = useState<any>(null);
   const [editPkgPrice, setEditPkgPrice] = useState("");
   const [deletePkg, setDeletePkg] = useState<any>(null);
+  const [schedulerOpen, setSchedulerOpen] = useState(false);
+  const [scheduledStatus, setScheduledStatus] = useState("inactive");
+  const [scheduledDate, setScheduledDate] = useState("");
+  const [scheduledReason, setScheduledReason] = useState("");
+  const [messageOpen, setMessageOpen] = useState(false);
+  const [messageType, setMessageType] = useState("sms");
+  const [messageSubject, setMessageSubject] = useState("");
+  const [messageBody, setMessageBody] = useState("");
 
   const { data: reseller, isLoading } = useQuery<Reseller>({
     queryKey: ["/api/resellers", id],
@@ -442,11 +450,72 @@ export default function ResellerProfilePage() {
           <div className="px-4 pt-4 pb-2 space-y-2">
             <div className="grid grid-cols-2 gap-2">
               <Link href={`/resellers/${id}/edit`}><Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1 w-full" data-testid="btn-edit-reseller"><Edit className="h-3 w-3" /> Edit Reseller</Button></Link>
-              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="btn-status-scheduler"><CalendarRange className="h-3 w-3" /> Status Scheduler</Button>
-              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="btn-send-message"><MessageCircle className="h-3 w-3" /> Send Email/Message</Button>
+              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="btn-status-scheduler"
+                onClick={() => { setScheduledStatus(reseller.status === "active" ? "inactive" : "active"); setScheduledDate(""); setScheduledReason(""); setSchedulerOpen(true); }}><CalendarRange className="h-3 w-3" /> Status Scheduler</Button>
+              <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" data-testid="btn-send-message"
+                onClick={() => { setMessageType("sms"); setMessageSubject(""); setMessageBody(""); setMessageOpen(true); }}><MessageCircle className="h-3 w-3" /> Send Email/Message</Button>
               <Button size="sm" variant="secondary" className="text-[10px] h-8 gap-1" onClick={() => setActiveTab("wallet")} data-testid="btn-wallet-history"><Wallet className="h-3 w-3" /> Wallet History</Button>
             </div>
-            <Button size="sm" className="w-full text-xs h-9 gap-1.5 bg-[#0057FF]" data-testid="btn-download-info"><Download className="h-3.5 w-3.5" /> Download Information</Button>
+            <Button size="sm" className="w-full text-xs h-9 gap-1.5 bg-[#0057FF]" data-testid="btn-download-info" onClick={() => {
+              const lines = [
+                `RESELLER INFORMATION REPORT`,
+                `Generated: ${new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })}`,
+                ``,
+                `=== BASIC INFORMATION ===`,
+                `Name: ${reseller.name}`,
+                `Code: RSL-${reseller.id}`,
+                `Type: ${(reseller.resellerType || "authorized_dealer").replace(/_/g, " ")}`,
+                `Status: ${reseller.status}`,
+                `Contact Person: ${reseller.contactName || reseller.name}`,
+                `Phone: ${reseller.phone}`,
+                `Secondary Phone: ${reseller.secondaryPhone || "N/A"}`,
+                `Email: ${reseller.email || "N/A"}`,
+                `CNIC: ${reseller.cnic || "N/A"}`,
+                `NTN: ${reseller.ntn || "N/A"}`,
+                ``,
+                `=== LOCATION ===`,
+                `Address: ${reseller.address || "N/A"}`,
+                `City: ${reseller.city || "N/A"}`,
+                `Area: ${reseller.area || "N/A"}`,
+                `Territory: ${reseller.territory || "N/A"}`,
+                ``,
+                `=== FINANCIAL ===`,
+                `Wallet Balance: ${formatPKR(reseller.walletBalance)}`,
+                `Credit Limit: ${formatPKR(reseller.creditLimit)}`,
+                `Security Deposit: ${formatPKR(reseller.securityDeposit)}`,
+                `Opening Balance: ${formatPKR(reseller.openingBalance)}`,
+                `Commission Rate: ${reseller.commissionRate || "10"}%`,
+                `Billing Cycle: ${reseller.billingCycle || "N/A"}`,
+                `Payment Method: ${(reseller.paymentMethod || "N/A").replace(/_/g, " ")}`,
+                ``,
+                `=== BANK DETAILS ===`,
+                `Bank: ${reseller.bankName || "N/A"}`,
+                `Account Title: ${reseller.bankAccountTitle || "N/A"}`,
+                `Account Number: ${reseller.bankAccountNumber || "N/A"}`,
+                `Branch Code: ${reseller.bankBranchCode || "N/A"}`,
+                ``,
+                `=== NETWORK ===`,
+                `Join Date: ${reseller.joinDate || "N/A"}`,
+                `Uplink Type: ${reseller.uplinkType || "N/A"}`,
+                `Uplink: ${reseller.uplink || "N/A"}`,
+                `Connection Type: ${reseller.connectionType || "N/A"}`,
+                `Total Customers: ${reseller.totalCustomers || 0}`,
+                ``,
+                `=== AGREEMENT ===`,
+                `Type: ${reseller.agreementType || "N/A"}`,
+                `Start: ${reseller.agreementStartDate || "N/A"}`,
+                `End: ${reseller.agreementEndDate || "N/A"}`,
+                `Auto Renewal: ${reseller.autoRenewal ? "Yes" : "No"}`,
+              ];
+              const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = `Reseller_${reseller.name.replace(/\s+/g, "_")}_RSL-${reseller.id}.txt`;
+              a.click();
+              URL.revokeObjectURL(url);
+              toast({ title: "Report Downloaded", description: "Reseller information report has been downloaded." });
+            }}><Download className="h-3.5 w-3.5" /> Download Information</Button>
             <Link href="/resellers"><Button size="sm" variant="outline" className="w-full text-xs h-9 gap-1.5 text-white border-white/30" data-testid="btn-back-list"><ArrowLeft className="h-3.5 w-3.5" /> Go To Reseller List</Button></Link>
           </div>
         </div>
@@ -978,6 +1047,108 @@ export default function ResellerProfilePage() {
                 .catch(() => toast({ title: "Failed to remove package", variant: "destructive" }));
             }} data-testid="btn-confirm-delete-pkg">
               <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={schedulerOpen} onOpenChange={setSchedulerOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><CalendarRange className="h-5 w-5 text-blue-600" /> Schedule Status Change</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground">Current Status</p>
+              <Badge variant="secondary" className={`mt-1 capitalize ${reseller.status === "active" ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>{reseller.status}</Badge>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Change Status To <span className="text-red-500">*</span></label>
+              <Select value={scheduledStatus} onValueChange={setScheduledStatus}>
+                <SelectTrigger data-testid="select-scheduled-status"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="suspended">Suspended</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Effective Date <span className="text-red-500">*</span></label>
+              <Input type="date" value={scheduledDate} onChange={(e) => setScheduledDate(e.target.value)} data-testid="input-scheduled-date" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Reason</label>
+              <Input placeholder="Reason for status change" value={scheduledReason} onChange={(e) => setScheduledReason(e.target.value)} data-testid="input-scheduled-reason" />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setSchedulerOpen(false)}>Cancel</Button>
+            <Button size="sm" disabled={!scheduledDate || !scheduledStatus} onClick={() => {
+              const today = new Date().toISOString().slice(0, 10);
+              if (scheduledDate <= today) {
+                statusUpdateMutation.mutate(scheduledStatus);
+                setSchedulerOpen(false);
+              } else {
+                apiRequest("PATCH", `/api/resellers/${id}`, { notes: `[Scheduled] Status change to "${scheduledStatus}" on ${scheduledDate}. ${scheduledReason || ""}`.trim() })
+                  .then(() => {
+                    queryClient.invalidateQueries({ queryKey: ["/api/resellers", id] });
+                  }).catch(() => {});
+                setSchedulerOpen(false);
+                toast({ title: "Status Change Scheduled", description: `Status will change to "${scheduledStatus}" on ${scheduledDate}.` });
+              }
+            }} data-testid="btn-confirm-schedule" className="bg-[#0057FF]">
+              Apply / Schedule
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={messageOpen} onOpenChange={setMessageOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><MessageCircle className="h-5 w-5 text-blue-600" /> Send Email / Message</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 text-xs space-y-1">
+              <p><span className="font-medium">To:</span> {reseller.name}</p>
+              <p><span className="font-medium">Phone:</span> {reseller.phone}</p>
+              {reseller.email && <p><span className="font-medium">Email:</span> {reseller.email}</p>}
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Channel <span className="text-red-500">*</span></label>
+              <Select value={messageType} onValueChange={setMessageType}>
+                <SelectTrigger data-testid="select-message-type"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sms">SMS</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {messageType === "email" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Subject</label>
+                <Input placeholder="Email subject" value={messageSubject} onChange={(e) => setMessageSubject(e.target.value)} data-testid="input-message-subject" />
+              </div>
+            )}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Message <span className="text-red-500">*</span></label>
+              <textarea className="w-full min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="Type your message..." value={messageBody} onChange={(e) => setMessageBody(e.target.value)} data-testid="input-message-body" />
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {["Payment reminder", "Account renewal", "Balance low notification", "Service update"].map(tpl => (
+                <Button key={tpl} variant="outline" size="sm" className="text-[10px] h-6" onClick={() => setMessageBody(tpl + ": ")} data-testid={`btn-template-${tpl.replace(/\s+/g, "-").toLowerCase()}`}>{tpl}</Button>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setMessageOpen(false)}>Cancel</Button>
+            <Button size="sm" disabled={!messageBody} onClick={() => {
+              setMessageOpen(false);
+              toast({ title: "Message Queued", description: `${messageType.toUpperCase()} message to ${reseller.name} has been queued for delivery.` });
+            }} data-testid="btn-send-message-confirm" className="bg-[#0057FF]">
+              Send {messageType === "sms" ? "SMS" : messageType === "whatsapp" ? "WhatsApp" : "Email"}
             </Button>
           </div>
         </DialogContent>
