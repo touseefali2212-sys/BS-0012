@@ -563,7 +563,7 @@ export default function ResellerPackagesPage() {
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="list" data-testid="tab-list"><Package className="w-4 h-4 mr-1" />All Packages</TabsTrigger>
           <TabsTrigger value="company" data-testid="tab-company"><Building2 className="w-4 h-4 mr-1" />Company Packages</TabsTrigger>
-          <TabsTrigger value="vendor-mapping" data-testid="tab-vendor"><Handshake className="w-4 h-4 mr-1" />Vendor Mapping</TabsTrigger>
+          <TabsTrigger value="vendor-mapping" data-testid="tab-vendor"><Handshake className="w-4 h-4 mr-1" />V-Panel Packages</TabsTrigger>
           <TabsTrigger value="profit" data-testid="tab-profit"><Percent className="w-4 h-4 mr-1" />Profit Config</TabsTrigger>
           <TabsTrigger value="assignments" data-testid="tab-assignments">
             <Tag className="w-4 h-4 mr-1" />Assignments
@@ -765,84 +765,84 @@ export default function ResellerPackagesPage() {
           </div>
         </TabsContent>
 
-        {/* ─── VENDOR PACKAGES MAPPING ─── */}
+        {/* ─── V-PANEL PACKAGES ─── */}
         <TabsContent value="vendor-mapping" className="space-y-4 mt-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <p className="text-sm text-muted-foreground">
-              Map upstream vendor packages with markup rules for reseller distribution.
+              Packages sourced from vendor panels, ready for reseller distribution.
             </p>
             <Button onClick={() => { setShowAddDialog(true); setAddSourceType("vendor"); vendorForm.reset(); }} data-testid="btn-add-vendor-pkg">
-              <Plus className="w-4 h-4 mr-2" />Map Vendor Package
+              <Plus className="w-4 h-4 mr-2" />Add V-Panel Package
             </Button>
           </div>
 
-          <Card>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Package Name</TableHead>
-                    <TableHead>Vendor</TableHead>
-                    <TableHead>Speed</TableHead>
-                    <TableHead className="text-right">Vendor Price</TableHead>
-                    <TableHead className="text-right">ISP Selling</TableHead>
-                    <TableHead className="text-right">Reseller Price</TableHead>
-                    <TableHead className="text-right">ISP Margin</TableHead>
-                    <TableHead>Validity</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {vLoading ? Array.from({ length: 4 }).map((_, i) => (
-                    <TableRow key={i}>{Array.from({ length: 10 }).map((_, j) => (
-                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                    ))}</TableRow>
-                  )) : (vendorPkgs || []).length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                        No vendor packages mapped yet.
-                      </TableCell>
-                    </TableRow>
-                  ) : (vendorPkgs || []).map(p => {
-                    const vendor = (vendors || []).find(v => v.id === p.vendorId);
-                    const ispMargin = parseFloat(p.ispSellingPrice || "0") - parseFloat(p.vendorPrice || "0");
-                    return (
-                      <TableRow key={p.id} data-testid={`row-vendor-pkg-${p.id}`}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-1.5">
-                            <Handshake className="w-4 h-4 text-blue-500" />{p.packageName}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{vendor?.companyName || `Vendor #${p.vendorId}`}</TableCell>
-                        <TableCell><span className="text-blue-600 font-medium text-sm">{p.speed || "—"}</span></TableCell>
-                        <TableCell className="text-right text-red-600 text-sm">PKR {fmt(p.vendorPrice)}</TableCell>
-                        <TableCell className="text-right font-semibold text-sm">PKR {fmt(p.ispSellingPrice)}</TableCell>
-                        <TableCell className="text-right text-violet-600 text-sm">
-                          {p.resellerPrice ? `PKR ${fmt(p.resellerPrice)}` : "—"}
-                        </TableCell>
-                        <TableCell className={`text-right font-bold text-sm ${ispMargin >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          PKR {fmt(ispMargin)}
-                          {ispMargin < 0 && <AlertTriangle className="w-3 h-3 inline ml-1" />}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground text-sm">{p.validity || "30 days"}</TableCell>
-                        <TableCell>
-                          <Badge variant={p.isActive ? "default" : "secondary"} className="text-xs">{p.isActive ? "Active" : "Inactive"}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => openEditVendor(p)} data-testid={`btn-edit-vendor-${p.id}`}><Edit className="w-4 h-4" /></Button>
-                            <Button variant="ghost" size="icon" onClick={() => openAssign("vendor", p.id)} data-testid={`btn-assign-vendor-${p.id}`}><Tag className="w-4 h-4" /></Button>
-                            <Button variant="ghost" size="icon" className="text-red-500" onClick={() => setDeleteVendorId(p.id)} data-testid={`btn-delete-vendor-${p.id}`}><Trash2 className="w-4 h-4" /></Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+          {vLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Card key={i}><CardContent className="p-4 space-y-3">
+                  <Skeleton className="h-5 w-3/4" /><Skeleton className="h-16 w-full" /><Skeleton className="h-8 w-full" />
+                </CardContent></Card>
+              ))}
             </div>
-          </Card>
+          ) : (vendorPkgs || []).length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <Handshake className="w-12 h-12 mx-auto mb-2 opacity-30" />
+              <p>No V-Panel packages added yet.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {(vendorPkgs || []).map(p => {
+                const vendor = (vendors || []).find(v => v.id === p.vendorId);
+                const sellingPrice = parseFloat(p.ispSellingPrice || "0");
+                const pkgAssign = (assignments || []).filter(a => a.packageType === "vendor" && a.vendorPackageId === p.id);
+                return (
+                  <Card key={p.id} className={`relative ${!p.isActive ? "opacity-60" : ""}`} data-testid={`card-vendor-pkg-${p.id}`}>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Handshake className="w-4 h-4 text-blue-500" />
+                            {p.packageName}
+                          </CardTitle>
+                          <div className="flex gap-1 mt-1 flex-wrap">
+                            <Badge variant="outline" className="text-xs border-blue-300 text-blue-700 bg-blue-50 dark:bg-blue-950/20">V-Panel</Badge>
+                            {p.speed && <Badge variant="outline" className="text-xs">{p.speed}</Badge>}
+                            {p.validity && <Badge variant="secondary" className="text-xs">{p.validity}</Badge>}
+                          </div>
+                        </div>
+                        <Switch checked={p.isActive} onCheckedChange={v =>
+                          updateVendorMutation.mutate({ id: p.id, data: { isActive: v } })
+                        } data-testid={`switch-vendor-${p.id}`} />
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="rounded bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 p-3 text-center">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-0.5">Package Price</p>
+                        <p className="text-xl font-bold text-blue-700 dark:text-blue-400">PKR {fmt(sellingPrice)}</p>
+                        {p.validity && <p className="text-[10px] text-muted-foreground mt-0.5">per {p.validity}</p>}
+                      </div>
+                      <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
+                        {vendor && <span className="font-medium text-foreground">{vendor.name}</span>}
+                        {p.dataLimit && <span>Data: {p.dataLimit}</span>}
+                        <span className="text-primary font-medium">{pkgAssign.length} assigned</span>
+                      </div>
+                      <div className="flex gap-1.5 pt-1">
+                        <Button variant="outline" size="sm" className="flex-1 text-xs h-7" onClick={() => openEditVendor(p)} data-testid={`btn-edit-vendor-${p.id}`}>
+                          <Edit className="w-3 h-3 mr-1" />Edit
+                        </Button>
+                        <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => openAssign("vendor", p.id)} data-testid={`btn-assign-vendor-${p.id}`}>
+                          <Tag className="w-3 h-3 mr-1" />Assign
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => setDeleteVendorId(p.id)} data-testid={`btn-delete-vendor-${p.id}`}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
         </TabsContent>
 
         {/* ─── PROFIT CONFIG ─── */}
