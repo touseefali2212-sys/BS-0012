@@ -164,6 +164,9 @@ export default function ResellerPackagesPage() {
   const [assignProfitValue, setAssignProfitValue] = useState("");
   const [assignNotes, setAssignNotes] = useState("");
   const [assignCustomPrice, setAssignCustomPrice] = useState(""); // direct override
+  // Vendor-first assign flow (step 1)
+  const [assignVendorSource, setAssignVendorSource] = useState<string>(""); // "my-company" | vendor id str
+  const [assignPickedPkgId, setAssignPickedPkgId] = useState<number>(0);
 
 
   // ── Queries ──
@@ -175,6 +178,7 @@ export default function ResellerPackagesPage() {
   });
   const { data: vendors } = useQuery<Vendor[]>({ queryKey: ["/api/vendors"] });
   const { data: resellers } = useQuery<Reseller[]>({ queryKey: ["/api/resellers"] });
+  const { data: companySetting } = useQuery<any>({ queryKey: ["/api/company"] });
   const { data: assignments, isLoading: aLoading } = useQuery<ResellerPackageAssignment[]>({
     queryKey: ["/api/reseller-package-assignments"],
   });
@@ -357,11 +361,19 @@ export default function ResellerPackagesPage() {
     setAssignProfitValue("");
     setAssignNotes("");
     setAssignCustomPrice("");
+    setAssignVendorSource("");
+    setAssignPickedPkgId(0);
   };
 
   const openAssign = (type: "vendor" | "company", id: number) => {
     setAssignPkgType(type); setAssignPkgId(id);
     resetAssignForm(); setShowAssignDialog(true);
+  };
+
+  const openAssignFresh = () => {
+    setAssignPkgId(0);
+    resetAssignForm();
+    setShowAssignDialog(true);
   };
 
   const openEditCompany = (p: ResellerCompanyPackage) => {
@@ -879,7 +891,12 @@ export default function ResellerPackagesPage() {
                 </SelectContent>
               </Select>
             </div>
-            <p className="text-xs text-muted-foreground">{filteredAssignments.length} assignments</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-muted-foreground">{filteredAssignments.length} assignments</p>
+              <Button size="sm" onClick={openAssignFresh} data-testid="btn-assign-new">
+                <Plus className="w-4 h-4 mr-1" />Assign Package
+              </Button>
+            </div>
           </div>
 
           <Card>
@@ -1190,9 +1207,94 @@ export default function ResellerPackagesPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Tag className="w-5 h-5" />Assign Package to Reseller</DialogTitle>
-            <DialogDescription>Set a custom reseller price by adding a profit markup on top of the default package price.</DialogDescription>
+            {assignPkgId > 0 && (
+              <DialogDescription>Set a custom reseller price by adding a profit markup on top of the default package price.</DialogDescription>
+            )}
           </DialogHeader>
 
+          {/* ── Step 1: Vendor + Package Picker (fresh flow) ── */}
+          {assignPkgId === 0 && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Select a vendor source and then choose a package to assign to a reseller.</p>
+
+              {/* Vendor selector */}
+              <div className="space-y-1.5">
+                <Label>Select Vendor / Source *</Label>
+                <Select value={assignVendorSource} onValueChange={v => { setAssignVendorSource(v); setAssignPickedPkgId(0); }} data-testid="select-assign-vendor">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose vendor or your company..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="my-company">
+                      <span className="flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-primary" />
+                        {companySetting?.companyName || "My Company"}
+                      </span>
+                    </SelectItem>
+                    {(vendors || []).map(v => (
+                      <SelectItem key={v.id} value={String(v.id)}>
+                        <span className="flex items-center gap-1.5">
+                          <Handshake className="w-3.5 h-3.5 text-muted-foreground" />
+                          {v.companyName || v.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Package selector — shown once a vendor/source is picked */}
+              {assignVendorSource && (
+                <div className="space-y-1.5">
+                  <Label>Select Package *</Label>
+                  <Select value={assignPickedPkgId > 0 ? String(assignPickedPkgId) : ""} onValueChange={v => setAssignPickedPkgId(Number(v))} data-testid="select-assign-package">
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a package..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {assignVendorSource === "my-company"
+                        ? (companyPkgs || []).filter(p => p.isActive).map(p => (
+                            <SelectItem key={p.id} value={String(p.id)}>
+                              {p.packageName} — PKR {fmt(p.sellingPrice)} {p.speedMbps ? `(${p.speedMbps} Mbps)` : ""}
+                            </SelectItem>
+                          ))
+                        : (vendorPkgs || []).filter(p => p.vendorId === Number(assignVendorSource) && p.isActive).map(p => (
+                            <SelectItem key={p.id} value={String(p.id)}>
+                              {p.packageName} — PKR {fmt(p.ispSellingPrice)} {p.speed ? `(${p.speed})` : ""}
+                            </SelectItem>
+                          ))
+                      }
+                      {assignVendorSource === "my-company" && (companyPkgs || []).filter(p => p.isActive).length === 0 && (
+                        <div className="px-3 py-4 text-sm text-muted-foreground text-center">No active company packages found.</div>
+                      )}
+                      {assignVendorSource !== "my-company" && (vendorPkgs || []).filter(p => p.vendorId === Number(assignVendorSource) && p.isActive).length === 0 && (
+                        <div className="px-3 py-4 text-sm text-muted-foreground text-center">No active packages for this vendor.</div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => { setShowAssignDialog(false); resetAssignForm(); }}>Cancel</Button>
+                <Button
+                  disabled={!assignPickedPkgId}
+                  onClick={() => {
+                    const type = assignVendorSource === "my-company" ? "company" : "vendor";
+                    setAssignPkgType(type);
+                    setAssignPkgId(assignPickedPkgId);
+                  }}
+                  data-testid="btn-assign-continue"
+                >
+                  Continue
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {/* ── Step 2: Reseller + Pricing (shown once package is selected) ── */}
+          {assignPkgId > 0 && (
+          <>
           {/* Package info box */}
           {assignPkgInfo && (
             <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
@@ -1203,6 +1305,15 @@ export default function ResellerPackagesPage() {
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">Speed: {assignPkgInfo.speed}</p>
                   {assignPkgInfo.vendor && <p className="text-xs text-muted-foreground">Vendor: {assignPkgInfo.vendor}</p>}
+                  {assignVendorSource && (
+                    <button
+                      type="button"
+                      className="text-xs text-primary underline mt-1"
+                      onClick={() => { setAssignPkgId(0); setAssignPickedPkgId(0); }}
+                    >
+                      ← Change Package
+                    </button>
+                  )}
                 </div>
                 <SourceBadge type={assignPkgType} />
               </div>
@@ -1334,6 +1445,8 @@ export default function ResellerPackagesPage() {
               Assign at PKR {fmt(liveAssignTotal)}
             </Button>
           </DialogFooter>
+          </>
+          )}
         </DialogContent>
       </Dialog>
 
