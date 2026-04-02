@@ -232,7 +232,6 @@ export default function ResellerPackagesPage() {
   const liveAssignTotal = assignCustomPrice
     ? parseFloat(assignCustomPrice || "0")
     : calcAssignTotal(assignDefaultPrice, assignProfitType, assignProfitValueNum);
-  const liveAssignProfit = liveAssignTotal - assignDefaultPrice;
 
   // ── Selected package info for assign dialog ──
   const assignPkgInfo = useMemo(() => {
@@ -1307,15 +1306,9 @@ export default function ResellerPackagesPage() {
                 <SourceBadge type={assignPkgType} />
               </div>
               <Separator />
-              <div className="grid grid-cols-2 gap-2 text-center">
-                <div className="rounded bg-red-50 dark:bg-red-950/20 p-2">
-                  <p className="text-[10px] text-muted-foreground">Your Cost Price</p>
-                  <p className="text-sm font-bold text-red-600">PKR {fmt(assignPkgInfo.baseCost)}</p>
-                </div>
-                <div className="rounded bg-blue-50 dark:bg-blue-950/20 p-2">
-                  <p className="text-[10px] text-muted-foreground">Default Selling Price</p>
-                  <p className="text-sm font-bold text-blue-700">PKR {fmt(assignPkgInfo.defaultPrice)}</p>
-                </div>
+              <div className="rounded bg-blue-50 dark:bg-blue-950/20 p-2 text-center">
+                <p className="text-[10px] text-muted-foreground">Default Selling Price</p>
+                <p className="text-sm font-bold text-blue-700">PKR {fmt(assignPkgInfo.defaultPrice)}</p>
               </div>
             </div>
           )}
@@ -1421,20 +1414,7 @@ export default function ResellerPackagesPage() {
                     <span>Reseller Total Price</span>
                     <span className="text-primary">PKR {fmt(liveAssignTotal)}</span>
                   </div>
-                  {assignPkgInfo && (
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">Your ISP Profit/Unit</span>
-                      <span className={`font-semibold ${liveAssignTotal - assignPkgInfo.baseCost >= 0 ? "text-green-600" : "text-red-600"}`}>
-                        PKR {fmt(liveAssignTotal - assignPkgInfo.baseCost)}
-                      </span>
-                    </div>
-                  )}
                 </div>
-                {assignPkgInfo && liveAssignTotal < assignPkgInfo.baseCost && (
-                  <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
-                    <AlertTriangle className="w-3 h-3" />Reseller price is below your cost!
-                  </div>
-                )}
               </div>
             </div>
 
@@ -1564,7 +1544,7 @@ function EditAssignmentForm({ assignment, pkgName, resellerName, defaultPrice, b
     : profitType === "fixed" ? defaultPrice + profitVal
     : profitType === "percentage" ? defaultPrice * (1 + profitVal / 100)
     : defaultPrice;
-  const ispProfit = liveTotal - baseCost;
+
 
   return (
     <div className="space-y-4">
@@ -1605,26 +1585,11 @@ function EditAssignmentForm({ assignment, pkgName, resellerName, defaultPrice, b
           <span className="text-muted-foreground">Default Price</span>
           <span>PKR {fmt(defaultPrice)}</span>
         </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Your Cost</span>
-          <span className="text-red-600">PKR {fmt(baseCost)}</span>
-        </div>
         <Separator className="my-1" />
         <div className="flex justify-between font-bold">
           <span>Reseller Price</span>
           <span className="text-primary">PKR {fmt(profitType === "none" ? defaultPrice : liveTotal)}</span>
         </div>
-        <div className="flex justify-between text-xs">
-          <span className="text-muted-foreground">ISP Profit/Unit</span>
-          <span className={ispProfit >= 0 ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
-            PKR {fmt(ispProfit)}
-          </span>
-        </div>
-        {ispProfit < 0 && (
-          <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
-            <AlertTriangle className="w-3 h-3" />Price is below your cost!
-          </div>
-        )}
       </div>
 
       <div className="space-y-1.5">
