@@ -821,6 +821,24 @@ export default function ResellerPackagesPage() {
                         <p className="text-xl font-bold text-blue-700 dark:text-blue-400">PKR {fmt(sellingPrice)}</p>
                         {p.validity && <p className="text-[10px] text-muted-foreground mt-0.5">per {p.validity}</p>}
                       </div>
+                      <div className="grid grid-cols-3 gap-1.5 text-center">
+                        <div className="rounded bg-muted/60 p-1.5">
+                          <p className="text-[9px] text-muted-foreground leading-tight">Vendor Price</p>
+                          <p className="text-xs font-semibold text-red-600">PKR {fmt(parseFloat(p.vendorPrice || "0"))}</p>
+                        </div>
+                        <div className="rounded bg-muted/60 p-1.5">
+                          <p className="text-[9px] text-muted-foreground leading-tight">ISP Margin</p>
+                          <p className={`text-xs font-semibold ${(sellingPrice - parseFloat(p.vendorPrice || "0")) >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            PKR {fmt(sellingPrice - parseFloat(p.vendorPrice || "0"))}
+                          </p>
+                        </div>
+                        <div className="rounded bg-muted/60 p-1.5">
+                          <p className="text-[9px] text-muted-foreground leading-tight">Reseller Price</p>
+                          <p className="text-xs font-semibold text-violet-600">
+                            {p.resellerPrice ? `PKR ${fmt(parseFloat(p.resellerPrice))}` : "—"}
+                          </p>
+                        </div>
+                      </div>
                       <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
                         {vendor && <span className="font-medium text-foreground">{vendor.name}</span>}
                         {p.dataLimit && <span>Data: {p.dataLimit}</span>}
