@@ -220,6 +220,8 @@ export default function AddResellerPage() {
 
   const { data: vendors } = useQuery<Vendor[]>({ queryKey: ["/api/vendors"] });
   const { data: vendorPackagesList } = useQuery<VendorPkg[]>({ queryKey: ["/api/vendor-packages"] });
+  const { data: companyPackagesList } = useQuery<any[]>({ queryKey: ["/api/reseller-company-packages"] });
+  const { data: companySetting } = useQuery<any>({ queryKey: ["/api/company"] });
   const { data: resellerTypesList } = useQuery<ResellerType[]>({ queryKey: ["/api/reseller-types"] });
   const { data: branches } = useQuery<Branch[]>({ queryKey: ["/api/branches"] });
   const { data: areas } = useQuery<Area[]>({ queryKey: ["/api/areas"] });
@@ -422,21 +424,39 @@ export default function AddResellerPage() {
     if (!pkgForm.packageId || !pkgForm.vendorId) {
       toast({ title: "Please select a vendor and package", variant: "destructive" }); return;
     }
-    const pkg = (vendorPackagesList || []).find(p => String(p.id) === pkgForm.packageId);
-    if (!pkg) return;
-    if (addedPackages.some(p => p.packageId === pkg.id)) {
-      toast({ title: "Package already added", variant: "destructive" }); return;
+    const isMyCompany = pkgForm.vendorId === "my-company";
+    if (isMyCompany) {
+      const pkg = (companyPackagesList || []).find((p: any) => String(p.id) === pkgForm.packageId);
+      if (!pkg) return;
+      if (addedPackages.some(p => p.packageId === `cp-${pkg.id}`)) {
+        toast({ title: "Package already added", variant: "destructive" }); return;
+      }
+      setAddedPackages(prev => [...prev, {
+        packageId: `cp-${pkg.id}`, packageName: pkg.packageName,
+        speed: pkg.speedMbps ? `${pkg.speedMbps} Mbps` : "",
+        vendorId: "my-company",
+        vendorName: companySetting?.companyName || "My Company",
+        vendorPrice: pkg.sellingPrice || "0",
+        profit: pkgForm.profit,
+        resellerPrice: pkgResellerPrice,
+      }]);
+    } else {
+      const pkg = (vendorPackagesList || []).find(p => String(p.id) === pkgForm.packageId);
+      if (!pkg) return;
+      if (addedPackages.some(p => p.packageId === pkg.id)) {
+        toast({ title: "Package already added", variant: "destructive" }); return;
+      }
+      const vendor = (vendors || []).find(v => String(v.id) === pkgForm.vendorId);
+      setAddedPackages(prev => [...prev, {
+        packageId: pkg.id, packageName: pkg.packageName,
+        speed: pkg.speed || "",
+        vendorId: pkgForm.vendorId,
+        vendorName: vendor?.name || "",
+        vendorPrice: pkgForm.vendorPrice,
+        profit: pkgForm.profit,
+        resellerPrice: pkgResellerPrice,
+      }]);
     }
-    const vendor = (vendors || []).find(v => String(v.id) === pkgForm.vendorId);
-    setAddedPackages(prev => [...prev, {
-      packageId: pkg.id, packageName: pkg.packageName,
-      speed: pkg.speed || "",
-      vendorId: pkgForm.vendorId,
-      vendorName: vendor?.name || "",
-      vendorPrice: pkgForm.vendorPrice,
-      profit: pkgForm.profit,
-      resellerPrice: pkgResellerPrice,
-    }]);
     setPkgForm({ packageId: "", vendorId: "", vendorPrice: "0", profit: "0" });
   };
 
@@ -913,6 +933,11 @@ export default function AddResellerPage() {
                         >
                           <SelectTrigger data-testid="select-package-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
                           <SelectContent>
+                            {(companyPackagesList || []).some((p: any) => p.isActive) && (
+                              <SelectItem value="my-company">
+                                {companySetting?.companyName || "My Company"} (My Company)
+                              </SelectItem>
+                            )}
                             {(vendors || [])
                               .filter(v => (vendorPackagesList || []).some(vp => vp.vendorId === v.id && vp.isActive))
                               .map(v => (
@@ -927,23 +952,33 @@ export default function AddResellerPage() {
                           value={pkgForm.packageId}
                           disabled={!pkgForm.vendorId}
                           onValueChange={v => {
-                            const pkg = (vendorPackagesList || []).find(p => String(p.id) === v);
-                            setPkgForm(prev => ({
-                              ...prev,
-                              packageId: v,
-                              vendorPrice: pkg?.vendorPrice || "0",
-                            }));
+                            if (pkgForm.vendorId === "my-company") {
+                              const pkg = (companyPackagesList || []).find((p: any) => String(p.id) === v);
+                              setPkgForm(prev => ({ ...prev, packageId: v, vendorPrice: pkg?.sellingPrice || "0" }));
+                            } else {
+                              const pkg = (vendorPackagesList || []).find(p => String(p.id) === v);
+                              setPkgForm(prev => ({ ...prev, packageId: v, vendorPrice: pkg?.vendorPrice || "0" }));
+                            }
                           }}
                         >
                           <SelectTrigger data-testid="select-package"><SelectValue placeholder={pkgForm.vendorId ? "Choose package" : "Select vendor first"} /></SelectTrigger>
                           <SelectContent>
-                            {(vendorPackagesList || [])
-                              .filter(p => p.isActive && String(p.vendorId) === pkgForm.vendorId)
-                              .map(p => (
-                                <SelectItem key={p.id} value={String(p.id)}>
-                                  {p.packageName}{p.speed ? ` — ${p.speed}` : ""}
-                                </SelectItem>
-                              ))}
+                            {pkgForm.vendorId === "my-company"
+                              ? (companyPackagesList || [])
+                                  .filter((p: any) => p.isActive)
+                                  .map((p: any) => (
+                                    <SelectItem key={p.id} value={String(p.id)}>
+                                      {p.packageName}{p.speedMbps ? ` — ${p.speedMbps} Mbps` : ""}
+                                    </SelectItem>
+                                  ))
+                              : (vendorPackagesList || [])
+                                  .filter(p => p.isActive && String(p.vendorId) === pkgForm.vendorId)
+                                  .map(p => (
+                                    <SelectItem key={p.id} value={String(p.id)}>
+                                      {p.packageName}{p.speed ? ` — ${p.speed}` : ""}
+                                    </SelectItem>
+                                  ))
+                            }
                           </SelectContent>
                         </Select>
                       </Field>
