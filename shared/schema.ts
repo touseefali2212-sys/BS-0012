@@ -3714,6 +3714,8 @@ export const resellerPackageAssignments = pgTable("reseller_package_assignments"
   companyPackageId: integer("company_package_id"),
   customPrice: decimal("custom_price", { precision: 10, scale: 2 }),
   profitOverride: decimal("profit_override", { precision: 10, scale: 2 }),
+  profitMarkup: decimal("profit_markup", { precision: 10, scale: 4 }),
+  profitMarkupType: text("profit_markup_type"),
   isEnabled: boolean("is_enabled").notNull().default(true),
   assignedBy: text("assigned_by"),
   notes: text("notes"),

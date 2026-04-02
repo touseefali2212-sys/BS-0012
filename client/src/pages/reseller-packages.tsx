@@ -5,8 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Plus, Search, Edit, Trash2, Package, RefreshCw, Copy,
   DollarSign, TrendingUp, AlertTriangle, CheckCircle2, XCircle,
-  Tag, Building2, Handshake, Percent, ToggleLeft, ToggleRight,
-  Wifi, Star, Filter, MoreHorizontal, ChevronDown, Zap, Lock,
+  Tag, Building2, Handshake, Percent, Filter, MoreHorizontal,
+  Wifi, ChevronDown, ChevronUp, Users, Eye, PenLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,8 +15,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -34,8 +35,11 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
@@ -49,23 +53,76 @@ import type {
 } from "@shared/schema";
 import { z } from "zod";
 
+// ─── Utilities ────────────────────────────────────────────────────────────────
 function fmt(n: number | string | undefined | null, d = 2) {
   return Number(n || 0).toLocaleString("en-PK", { minimumFractionDigits: d, maximumFractionDigits: d });
 }
 
-function calcSellingPrice(baseCost: number, profitType: string, profitValue: number): number {
-  if (profitType === "fixed") return baseCost + profitValue;
-  if (profitType === "percentage") return baseCost * (1 + profitValue / 100);
+function calcSellingPrice(base: number, profitType: string, profitValue: number): number {
+  if (profitType === "fixed") return base + profitValue;
+  if (profitType === "percentage") return base * (1 + profitValue / 100);
   if (profitType === "custom") return profitValue;
-  return baseCost;
+  return base;
 }
 
+function calcAssignTotal(defaultPrice: number, profitType: string, profitValue: number): number {
+  if (profitType === "none") return defaultPrice;
+  if (profitType === "fixed") return defaultPrice + profitValue;
+  if (profitType === "percentage") return defaultPrice * (1 + profitValue / 100);
+  if (profitType === "custom") return profitValue;
+  return defaultPrice;
+}
+
+// ─── Small components ─────────────────────────────────────────────────────────
 const SourceBadge = ({ type }: { type: "vendor" | "company" }) =>
   type === "vendor"
-    ? <Badge className="bg-blue-100 text-blue-700 border-blue-200 gap-1"><Handshake className="w-3 h-3" />Vendor</Badge>
-    : <Badge className="bg-green-100 text-green-700 border-green-200 gap-1"><Building2 className="w-3 h-3" />Company</Badge>;
+    ? <Badge className="bg-blue-100 text-blue-700 border-blue-200 gap-1 text-[10px]"><Handshake className="w-3 h-3" />Vendor</Badge>
+    : <Badge className="bg-green-100 text-green-700 border-green-200 gap-1 text-[10px]"><Building2 className="w-3 h-3" />Company</Badge>;
 
-// ─── Company Package Form ───────────────────────────────────────────────
+// Expandable reseller list shown in the Assigned column
+function AssignedResellersCell({ resellers }: { resellers: { name: string; price: number; enabled: boolean }[] }) {
+  const [open, setOpen] = useState(false);
+  if (resellers.length === 0)
+    return <span className="text-xs text-muted-foreground italic">None</span>;
+  const preview = resellers.slice(0, 2);
+  const rest = resellers.slice(2);
+  return (
+    <div className="space-y-1 min-w-[160px]">
+      {preview.map((r, i) => (
+        <div key={i} className="flex items-center gap-1 flex-wrap">
+          <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border ${r.enabled ? "bg-green-50 border-green-200 text-green-800" : "bg-gray-100 border-gray-200 text-gray-500"}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${r.enabled ? "bg-green-500" : "bg-gray-400"}`} />
+            {r.name}
+          </span>
+          <span className="text-[10px] font-semibold text-primary">PKR {fmt(r.price)}</span>
+        </div>
+      ))}
+      {rest.length > 0 && (
+        <Collapsible open={open} onOpenChange={setOpen}>
+          <CollapsibleTrigger asChild>
+            <button className="text-[10px] text-blue-600 flex items-center gap-0.5 hover:underline">
+              {open ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              {open ? "Show less" : `+${rest.length} more`}
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-1 mt-1">
+            {rest.map((r, i) => (
+              <div key={i} className="flex items-center gap-1 flex-wrap">
+                <span className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border ${r.enabled ? "bg-green-50 border-green-200 text-green-800" : "bg-gray-100 border-gray-200 text-gray-500"}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${r.enabled ? "bg-green-500" : "bg-gray-400"}`} />
+                  {r.name}
+                </span>
+                <span className="text-[10px] font-semibold text-primary">PKR {fmt(r.price)}</span>
+              </div>
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+    </div>
+  );
+}
+
+// ─── Form schemas ─────────────────────────────────────────────────────────────
 const companyPkgFormSchema = insertResellerCompanyPackageSchema.extend({
   speedMbps: z.union([z.number(), z.string()]).transform(v => String(v)),
   uploadMbps: z.union([z.number(), z.string()]).optional().transform(v => v ? String(v) : undefined),
@@ -75,7 +132,6 @@ const companyPkgFormSchema = insertResellerCompanyPackageSchema.extend({
 });
 type CompanyPkgForm = z.infer<typeof companyPkgFormSchema>;
 
-// ─── Vendor Package Form ─────────────────────────────────────────────────
 const vendorPkgFormSchema = insertVendorPackageSchema.extend({
   vendorPrice: z.union([z.number(), z.string()]).transform(v => String(v)),
   ispSellingPrice: z.union([z.number(), z.string()]).transform(v => String(v)),
@@ -85,11 +141,16 @@ const vendorPkgFormSchema = insertVendorPackageSchema.extend({
 });
 type VendorPkgForm = z.infer<typeof vendorPkgFormSchema>;
 
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ResellerPackagesPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("list");
   const [listSearch, setListSearch] = useState("");
   const [listSourceFilter, setListSourceFilter] = useState<"all" | "vendor" | "company">("all");
+  const [assignSearch, setAssignSearch] = useState("");
+  const [assignResellerFilter, setAssignResellerFilter] = useState("all");
+
+  // Dialogs
   const [deleteCompanyId, setDeleteCompanyId] = useState<number | null>(null);
   const [deleteVendorId, setDeleteVendorId] = useState<number | null>(null);
   const [deleteAssignId, setDeleteAssignId] = useState<number | null>(null);
@@ -97,13 +158,23 @@ export default function ResellerPackagesPage() {
   const [editVendorPkg, setEditVendorPkg] = useState<VendorPackage | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [addSourceType, setAddSourceType] = useState<"vendor" | "company">("company");
+  const [editAssignment, setEditAssignment] = useState<ResellerPackageAssignment | null>(null);
+
+  // Assign dialog state
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [assignPkgType, setAssignPkgType] = useState<"vendor" | "company">("company");
   const [assignPkgId, setAssignPkgId] = useState<number>(0);
+  const [assignResellerId, setAssignResellerId] = useState<number>(0);
+  const [assignProfitType, setAssignProfitType] = useState("none");
+  const [assignProfitValue, setAssignProfitValue] = useState("");
+  const [assignNotes, setAssignNotes] = useState("");
+  const [assignCustomPrice, setAssignCustomPrice] = useState(""); // direct override
+
+  // Bulk margin
   const [bulkMarginType, setBulkMarginType] = useState("percentage");
   const [bulkMarginValue, setBulkMarginValue] = useState("10");
 
-  // Queries
+  // ── Queries ──
   const { data: companyPkgs, isLoading: cLoading } = useQuery<ResellerCompanyPackage[]>({
     queryKey: ["/api/reseller-company-packages"],
   });
@@ -115,11 +186,8 @@ export default function ResellerPackagesPage() {
   const { data: assignments, isLoading: aLoading } = useQuery<ResellerPackageAssignment[]>({
     queryKey: ["/api/reseller-package-assignments"],
   });
-  const { data: poolStats } = useQuery<{ costPerMbps?: number }>({
-    queryKey: ["/api/bandwidth-pool/stats"],
-  });
 
-  // Forms
+  // ── Forms ──
   const companyForm = useForm<CompanyPkgForm>({
     resolver: zodResolver(companyPkgFormSchema),
     defaultValues: {
@@ -138,13 +206,7 @@ export default function ResellerPackagesPage() {
     },
   });
 
-  const assignForm = useForm({
-    defaultValues: {
-      resellerId: 0, customPrice: "", profitOverride: "", notes: "", isEnabled: true,
-    },
-  });
-
-  // Live calculation in company form
+  // ── Live calc - company package form ──
   const watchedSpeed = companyForm.watch("speedMbps");
   const watchedCostPerMbps = companyForm.watch("costPerMbps");
   const watchedProfitType = companyForm.watch("profitType");
@@ -153,7 +215,7 @@ export default function ResellerPackagesPage() {
   const liveSellingPrice = calcSellingPrice(liveBaseCost, watchedProfitType, parseFloat(watchedProfitValue || "0"));
   const liveProfit = liveSellingPrice - liveBaseCost;
 
-  // Live calculation in vendor form
+  // ── Live calc - vendor form ──
   const watchedVendorPrice = vendorForm.watch("vendorPrice");
   const watchedIspSellingPrice = vendorForm.watch("ispSellingPrice");
   const watchedResellerPrice = vendorForm.watch("resellerPrice");
@@ -162,7 +224,38 @@ export default function ResellerPackagesPage() {
     ? parseFloat(watchedResellerPrice || "0") - parseFloat(watchedIspSellingPrice || "0")
     : 0;
 
-  // Mutations - Company Packages
+  // ── Package default price for assign dialog ──
+  const assignDefaultPrice = useMemo(() => {
+    if (assignPkgType === "company") {
+      const p = (companyPkgs || []).find(c => c.id === assignPkgId);
+      return parseFloat(p?.sellingPrice || "0");
+    } else {
+      const p = (vendorPkgs || []).find(v => v.id === assignPkgId);
+      return parseFloat(p?.ispSellingPrice || "0");
+    }
+  }, [assignPkgType, assignPkgId, companyPkgs, vendorPkgs]);
+
+  const assignProfitValueNum = parseFloat(assignProfitValue || "0");
+  const liveAssignTotal = assignCustomPrice
+    ? parseFloat(assignCustomPrice || "0")
+    : calcAssignTotal(assignDefaultPrice, assignProfitType, assignProfitValueNum);
+  const liveAssignProfit = liveAssignTotal - assignDefaultPrice;
+
+  // ── Selected package info for assign dialog ──
+  const assignPkgInfo = useMemo(() => {
+    if (assignPkgType === "company") {
+      const p = (companyPkgs || []).find(c => c.id === assignPkgId);
+      if (!p) return null;
+      return { name: p.packageName, speed: `${p.speedMbps} Mbps`, baseCost: parseFloat(p.baseCost || "0"), defaultPrice: parseFloat(p.sellingPrice || "0") };
+    } else {
+      const p = (vendorPkgs || []).find(v => v.id === assignPkgId);
+      const vendor = (vendors || []).find(v => v.id === p?.vendorId);
+      if (!p) return null;
+      return { name: p.packageName, speed: p.speed || "—", baseCost: parseFloat(p.vendorPrice || "0"), defaultPrice: parseFloat(p.ispSellingPrice || "0"), vendor: vendor?.companyName || vendor?.name };
+    }
+  }, [assignPkgType, assignPkgId, companyPkgs, vendorPkgs, vendors]);
+
+  // ── Mutations - Company Packages ──
   const createCompanyMutation = useMutation({
     mutationFn: (data: CompanyPkgForm) => apiRequest("POST", "/api/reseller-company-packages", data),
     onSuccess: () => {
@@ -192,7 +285,7 @@ export default function ResellerPackagesPage() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  // Mutations - Vendor Packages
+  // ── Mutations - Vendor Packages ──
   const createVendorMutation = useMutation({
     mutationFn: (data: VendorPkgForm) => apiRequest("POST", "/api/vendor-packages", data),
     onSuccess: () => {
@@ -222,13 +315,24 @@ export default function ResellerPackagesPage() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  // Mutations - Assignments
+  // ── Mutations - Assignments ──
   const createAssignMutation = useMutation({
     mutationFn: (data: any) => apiRequest("POST", "/api/reseller-package-assignments", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/reseller-package-assignments"] });
-      setShowAssignDialog(false); assignForm.reset();
+      setShowAssignDialog(false); resetAssignForm();
       toast({ title: "Package assigned to reseller" });
+    },
+    onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const updateAssignMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      apiRequest("PATCH", `/api/reseller-package-assignments/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/reseller-package-assignments"] });
+      setEditAssignment(null);
+      toast({ title: "Assignment updated" });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -249,48 +353,19 @@ export default function ResellerPackagesPage() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  // Combined list for "All Packages" tab
-  const combinedPackages = useMemo(() => {
-    const items: {
-      id: string; name: string; source: "vendor" | "company"; vendorName?: string;
-      speed: string; costPrice: number; sellingPrice: number; margin: number;
-      isActive: boolean; assigned: number;
-    }[] = [];
+  // ── Helpers ──
+  const resetAssignForm = () => {
+    setAssignResellerId(0);
+    setAssignProfitType("none");
+    setAssignProfitValue("");
+    setAssignNotes("");
+    setAssignCustomPrice("");
+  };
 
-    (vendorPkgs || []).forEach(p => {
-      const vendor = (vendors || []).find(v => v.id === p.vendorId);
-      const cost = parseFloat(p.vendorPrice || "0");
-      const selling = parseFloat(p.ispSellingPrice || "0");
-      const assigned = (assignments || []).filter(a => a.packageType === "vendor" && a.vendorPackageId === p.id).length;
-      items.push({
-        id: `vendor-${p.id}`, name: p.packageName, source: "vendor",
-        vendorName: vendor?.companyName || vendor?.name || `Vendor #${p.vendorId}`,
-        speed: p.speed || "—", costPrice: cost, sellingPrice: selling,
-        margin: selling - cost, isActive: p.isActive, assigned,
-      });
-    });
-
-    (companyPkgs || []).forEach(p => {
-      const cost = parseFloat(p.baseCost || "0");
-      const selling = parseFloat(p.sellingPrice || "0");
-      const assigned = (assignments || []).filter(a => a.packageType === "company" && a.companyPackageId === p.id).length;
-      items.push({
-        id: `company-${p.id}`, name: p.packageName, source: "company",
-        speed: `${p.speedMbps} Mbps`, costPrice: cost, sellingPrice: selling,
-        margin: selling - cost, isActive: p.isActive, assigned,
-      });
-    });
-
-    return items;
-  }, [vendorPkgs, companyPkgs, vendors, assignments]);
-
-  const filteredList = useMemo(() => {
-    const q = listSearch.toLowerCase();
-    return combinedPackages.filter(p =>
-      (listSourceFilter === "all" || p.source === listSourceFilter) &&
-      (!q || p.name.toLowerCase().includes(q) || (p.vendorName || "").toLowerCase().includes(q))
-    );
-  }, [combinedPackages, listSearch, listSourceFilter]);
+  const openAssign = (type: "vendor" | "company", id: number) => {
+    setAssignPkgType(type); setAssignPkgId(id);
+    resetAssignForm(); setShowAssignDialog(true);
+  };
 
   const openEditCompany = (p: ResellerCompanyPackage) => {
     setEditCompanyPkg(p);
@@ -315,19 +390,13 @@ export default function ResellerPackagesPage() {
   };
 
   const cloneCompanyPkg = (p: ResellerCompanyPackage) => {
-    setShowAddDialog(true);
-    setAddSourceType("company");
+    setShowAddDialog(true); setAddSourceType("company");
     setTimeout(() => companyForm.reset({
       packageName: `${p.packageName} (Copy)`, speedMbps: p.speedMbps,
       contentionRatio: p.contentionRatio || "1:1", validity: p.validity || "30 days",
       costPerMbps: p.costPerMbps || "", profitType: p.profitType,
       profitValue: p.profitValue || "0", isActive: true,
     }), 0);
-  };
-
-  const openAssign = (type: "vendor" | "company", id: number) => {
-    setAssignPkgType(type); setAssignPkgId(id);
-    setShowAssignDialog(true); assignForm.reset();
   };
 
   const handleBulkMarginUpdate = async () => {
@@ -346,10 +415,105 @@ export default function ResellerPackagesPage() {
     toast({ title: `Updated ${count} company packages` });
   };
 
-  const isLoading = cLoading || vLoading;
+  const handleSubmitAssign = () => {
+    if (!assignResellerId) { toast({ title: "Please select a reseller", variant: "destructive" }); return; }
+    // Check for duplicate
+    const exists = (assignments || []).some(a =>
+      a.resellerId === assignResellerId &&
+      a.packageType === assignPkgType &&
+      (assignPkgType === "company" ? a.companyPackageId === assignPkgId : a.vendorPackageId === assignPkgId)
+    );
+    if (exists) { toast({ title: "Already assigned", description: "This package is already assigned to this reseller.", variant: "destructive" }); return; }
+    createAssignMutation.mutate({
+      resellerId: assignResellerId,
+      packageType: assignPkgType,
+      vendorPackageId: assignPkgType === "vendor" ? assignPkgId : undefined,
+      companyPackageId: assignPkgType === "company" ? assignPkgId : undefined,
+      customPrice: liveAssignTotal !== assignDefaultPrice ? String(liveAssignTotal.toFixed(2)) : undefined,
+      profitMarkup: assignProfitType !== "none" ? String(assignProfitValueNum) : undefined,
+      profitMarkupType: assignProfitType !== "none" ? assignProfitType : undefined,
+      notes: assignNotes || undefined,
+      isEnabled: true,
+      assignedBy: "admin",
+    });
+  };
 
+  // ── Combined packages with per-reseller assignment detail ──
+  const combinedPackages = useMemo(() => {
+    const items: {
+      id: string; name: string; source: "vendor" | "company"; vendorName?: string;
+      speed: string; costPrice: number; sellingPrice: number; margin: number;
+      isActive: boolean;
+      assignedResellers: { name: string; price: number; enabled: boolean }[];
+    }[] = [];
+
+    (vendorPkgs || []).forEach(p => {
+      const vendor = (vendors || []).find(v => v.id === p.vendorId);
+      const cost = parseFloat(p.vendorPrice || "0");
+      const selling = parseFloat(p.ispSellingPrice || "0");
+      const pkgAssignments = (assignments || []).filter(a => a.packageType === "vendor" && a.vendorPackageId === p.id);
+      const assignedResellers = pkgAssignments.map(a => {
+        const r = (resellers || []).find(r => r.id === a.resellerId);
+        const price = a.customPrice ? parseFloat(a.customPrice) : selling;
+        return { name: r?.companyName || r?.name || `Reseller #${a.resellerId}`, price, enabled: a.isEnabled };
+      });
+      items.push({
+        id: `vendor-${p.id}`, name: p.packageName, source: "vendor",
+        vendorName: vendor?.companyName || vendor?.name || `Vendor #${p.vendorId}`,
+        speed: p.speed || "—", costPrice: cost, sellingPrice: selling,
+        margin: selling - cost, isActive: p.isActive, assignedResellers,
+      });
+    });
+
+    (companyPkgs || []).forEach(p => {
+      const cost = parseFloat(p.baseCost || "0");
+      const selling = parseFloat(p.sellingPrice || "0");
+      const pkgAssignments = (assignments || []).filter(a => a.packageType === "company" && a.companyPackageId === p.id);
+      const assignedResellers = pkgAssignments.map(a => {
+        const r = (resellers || []).find(r => r.id === a.resellerId);
+        const price = a.customPrice ? parseFloat(a.customPrice) : selling;
+        return { name: r?.companyName || r?.name || `Reseller #${a.resellerId}`, price, enabled: a.isEnabled };
+      });
+      items.push({
+        id: `company-${p.id}`, name: p.packageName, source: "company",
+        speed: `${p.speedMbps} Mbps`, costPrice: cost, sellingPrice: selling,
+        margin: selling - cost, isActive: p.isActive, assignedResellers,
+      });
+    });
+
+    return items;
+  }, [vendorPkgs, companyPkgs, vendors, assignments, resellers]);
+
+  const filteredList = useMemo(() => {
+    const q = listSearch.toLowerCase();
+    return combinedPackages.filter(p =>
+      (listSourceFilter === "all" || p.source === listSourceFilter) &&
+      (!q || p.name.toLowerCase().includes(q) || (p.vendorName || "").toLowerCase().includes(q))
+    );
+  }, [combinedPackages, listSearch, listSourceFilter]);
+
+  // ── Filtered assignments ──
+  const filteredAssignments = useMemo(() => {
+    const q = assignSearch.toLowerCase();
+    return (assignments || []).filter(a => {
+      const reseller = (resellers || []).find(r => r.id === a.resellerId);
+      const vendorPkg = a.packageType === "vendor" ? (vendorPkgs || []).find(p => p.id === a.vendorPackageId) : null;
+      const companyPkg = a.packageType === "company" ? (companyPkgs || []).find(p => p.id === a.companyPackageId) : null;
+      const name = vendorPkg?.packageName || companyPkg?.packageName || "";
+      const rName = reseller?.companyName || reseller?.name || "";
+      const matchSearch = !q || name.toLowerCase().includes(q) || rName.toLowerCase().includes(q);
+      const matchReseller = assignResellerFilter === "all" || String(a.resellerId) === assignResellerFilter;
+      return matchSearch && matchReseller;
+    });
+  }, [assignments, assignSearch, assignResellerFilter, resellers, vendorPkgs, companyPkgs]);
+
+  const isLoading = cLoading || vLoading;
+  const totalActiveAssignments = (assignments || []).filter(a => a.isEnabled).length;
+
+  // ─── RENDER ───────────────────────────────────────────────────────────────
   return (
     <div className="p-4 md:p-6 space-y-6 max-w-full">
+      {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -357,22 +521,21 @@ export default function ResellerPackagesPage() {
             Reseller Packages
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Manage vendor-based and company-owned reseller packages with full profit control
+            Manage vendor-based and company-owned packages with per-reseller pricing control
           </p>
         </div>
         <Button onClick={() => { setShowAddDialog(true); companyForm.reset(); vendorForm.reset(); }} data-testid="btn-add-package">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Package
+          <Plus className="w-4 h-4 mr-2" />Add Package
         </Button>
       </div>
 
-      {/* Summary cards */}
+      {/* KPI cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "Total Packages", value: filteredList.length, icon: Package, color: "text-primary" },
+          { label: "Total Packages", value: combinedPackages.length, icon: Package, color: "text-primary" },
           { label: "Vendor Packages", value: (vendorPkgs || []).length, icon: Handshake, color: "text-blue-600" },
           { label: "Company Packages", value: (companyPkgs || []).length, icon: Building2, color: "text-green-600" },
-          { label: "Assignments", value: (assignments || []).length, icon: Tag, color: "text-violet-600" },
+          { label: "Active Assignments", value: totalActiveAssignments, icon: Users, color: "text-violet-600" },
         ].map((s, i) => (
           <Card key={i}>
             <CardContent className="p-4 flex items-center gap-3">
@@ -392,7 +555,12 @@ export default function ResellerPackagesPage() {
           <TabsTrigger value="company" data-testid="tab-company"><Building2 className="w-4 h-4 mr-1" />Company Packages</TabsTrigger>
           <TabsTrigger value="vendor-mapping" data-testid="tab-vendor"><Handshake className="w-4 h-4 mr-1" />Vendor Mapping</TabsTrigger>
           <TabsTrigger value="profit" data-testid="tab-profit"><Percent className="w-4 h-4 mr-1" />Profit Config</TabsTrigger>
-          <TabsTrigger value="assignments" data-testid="tab-assignments"><Tag className="w-4 h-4 mr-1" />Assignments</TabsTrigger>
+          <TabsTrigger value="assignments" data-testid="tab-assignments">
+            <Tag className="w-4 h-4 mr-1" />Assignments
+            {(assignments || []).length > 0 && (
+              <Badge className="ml-1 h-4 px-1 text-[10px]">{(assignments || []).length}</Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         {/* ─── ALL PACKAGES LIST ─── */}
@@ -415,96 +583,116 @@ export default function ResellerPackagesPage() {
                 </SelectContent>
               </Select>
             </div>
+            <p className="text-xs text-muted-foreground">{filteredList.length} packages</p>
           </div>
 
           <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Package Name</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Vendor</TableHead>
-                  <TableHead>Speed</TableHead>
-                  <TableHead className="text-right">Cost Price</TableHead>
-                  <TableHead className="text-right">Selling Price</TableHead>
-                  <TableHead className="text-right">Profit</TableHead>
-                  <TableHead>Assigned</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>{Array.from({ length: 10 }).map((_, j) => (
-                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                  ))}</TableRow>
-                )) : filteredList.length === 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
-                      No packages found. Add a vendor or company package to get started.
-                    </TableCell>
+                    <TableHead>Package Name</TableHead>
+                    <TableHead>Source</TableHead>
+                    <TableHead>Vendor</TableHead>
+                    <TableHead>Speed</TableHead>
+                    <TableHead className="text-right">Cost Price</TableHead>
+                    <TableHead className="text-right">Default Price</TableHead>
+                    <TableHead className="text-right">ISP Profit</TableHead>
+                    <TableHead>Assigned Resellers & Prices</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ) : filteredList.map(p => (
-                  <TableRow key={p.id} data-testid={`row-pkg-${p.id}`}>
-                    <TableCell className="font-medium">{p.name}</TableCell>
-                    <TableCell><SourceBadge type={p.source} /></TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{p.vendorName || "—"}</TableCell>
-                    <TableCell><span className="font-medium text-blue-600">{p.speed}</span></TableCell>
-                    <TableCell className="text-right">PKR {fmt(p.costPrice)}</TableCell>
-                    <TableCell className="text-right font-semibold">PKR {fmt(p.sellingPrice)}</TableCell>
-                    <TableCell className={`text-right font-bold ${p.margin >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      {p.margin >= 0 ? "+" : ""}PKR {fmt(p.margin)}
-                      {p.margin < 0 && <AlertTriangle className="w-3 h-3 inline ml-1" />}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">{p.assigned} resellers</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={p.isActive ? "default" : "secondary"}>{p.isActive ? "Active" : "Inactive"}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" data-testid={`btn-actions-${p.id}`}>
-                            <MoreHorizontal className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => openAssign(p.source, parseInt(p.id.split("-")[1]))}>
-                            <Tag className="w-4 h-4 mr-2" />Assign to Reseller
-                          </DropdownMenuItem>
-                          {p.source === "company" && (
-                            <DropdownMenuItem onClick={() => {
-                              const pkg = (companyPkgs || []).find(c => c.id === parseInt(p.id.split("-")[1]));
-                              if (pkg) cloneCompanyPkg(pkg);
-                            }}>
-                              <Copy className="w-4 h-4 mr-2" />Clone
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>{Array.from({ length: 10 }).map((_, j) => (
+                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                    ))}</TableRow>
+                  )) : filteredList.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
+                        No packages found. Add a vendor or company package to get started.
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredList.map(p => (
+                    <TableRow key={p.id} data-testid={`row-pkg-${p.id}`}>
+                      <TableCell className="font-medium">{p.name}</TableCell>
+                      <TableCell><SourceBadge type={p.source} /></TableCell>
+                      <TableCell className="text-muted-foreground text-sm">{p.vendorName || "—"}</TableCell>
+                      <TableCell><span className="font-medium text-blue-600 text-sm">{p.speed}</span></TableCell>
+                      <TableCell className="text-right text-red-600 text-sm">PKR {fmt(p.costPrice)}</TableCell>
+                      <TableCell className="text-right font-semibold text-sm">PKR {fmt(p.sellingPrice)}</TableCell>
+                      <TableCell className={`text-right font-bold text-sm ${p.margin >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        {p.margin >= 0 ? "+" : ""}PKR {fmt(p.margin)}
+                        {p.margin < 0 && <AlertTriangle className="w-3 h-3 inline ml-1" />}
+                      </TableCell>
+                      <TableCell className="max-w-[220px]">
+                        <AssignedResellersCell resellers={p.assignedResellers} />
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={p.isActive ? "default" : "secondary"} className="text-xs">
+                          {p.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" data-testid={`btn-actions-${p.id}`}>
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => openAssign(p.source, parseInt(p.id.split("-")[1]))}>
+                              <Tag className="w-4 h-4 mr-2" />Assign to Reseller
                             </DropdownMenuItem>
-                          )}
-                          <DropdownMenuItem className="text-red-600" onClick={() => {
-                            if (p.source === "company") setDeleteCompanyId(parseInt(p.id.split("-")[1]));
-                            else setDeleteVendorId(parseInt(p.id.split("-")[1]));
-                          }}>
-                            <Trash2 className="w-4 h-4 mr-2" />Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                            {p.source === "company" && (
+                              <>
+                                <DropdownMenuItem onClick={() => {
+                                  const pkg = (companyPkgs || []).find(c => c.id === parseInt(p.id.split("-")[1]));
+                                  if (pkg) openEditCompany(pkg);
+                                }}>
+                                  <Edit className="w-4 h-4 mr-2" />Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => {
+                                  const pkg = (companyPkgs || []).find(c => c.id === parseInt(p.id.split("-")[1]));
+                                  if (pkg) cloneCompanyPkg(pkg);
+                                }}>
+                                  <Copy className="w-4 h-4 mr-2" />Clone
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {p.source === "vendor" && (
+                              <DropdownMenuItem onClick={() => {
+                                const pkg = (vendorPkgs || []).find(v => v.id === parseInt(p.id.split("-")[1]));
+                                if (pkg) openEditVendor(pkg);
+                              }}>
+                                <Edit className="w-4 h-4 mr-2" />Edit
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-red-600" onClick={() => {
+                              if (p.source === "company") setDeleteCompanyId(parseInt(p.id.split("-")[1]));
+                              else setDeleteVendorId(parseInt(p.id.split("-")[1]));
+                            }}>
+                              <Trash2 className="w-4 h-4 mr-2" />Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </Card>
         </TabsContent>
 
         {/* ─── COMPANY PACKAGES ─── */}
         <TabsContent value="company" className="space-y-4 mt-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <div>
-              <p className="text-sm text-muted-foreground">
-                Packages created from your own purchased bandwidth. Full cost &amp; pricing control.
-              </p>
-            </div>
+            <p className="text-sm text-muted-foreground">
+              Packages created from your own bandwidth. Full cost &amp; pricing control.
+            </p>
             <Button onClick={() => { setShowAddDialog(true); setAddSourceType("company"); companyForm.reset(); }} data-testid="btn-add-company-pkg">
               <Plus className="w-4 h-4 mr-2" />New Company Package
             </Button>
@@ -516,14 +704,14 @@ export default function ResellerPackagesPage() {
             )) : (companyPkgs || []).length === 0 ? (
               <div className="col-span-3 text-center py-12 text-muted-foreground">
                 <Building2 className="w-12 h-12 mx-auto mb-2 opacity-30" />
-                <p>No company packages yet. Create your first one.</p>
+                <p>No company packages yet.</p>
               </div>
             ) : (companyPkgs || []).map(p => {
               const base = parseFloat(p.baseCost || "0");
               const selling = parseFloat(p.sellingPrice || "0");
               const profit = selling - base;
               const margin = base > 0 ? ((profit / base) * 100).toFixed(1) : "0";
-              const assigned = (assignments || []).filter(a => a.packageType === "company" && a.companyPackageId === p.id).length;
+              const pkgAssign = (assignments || []).filter(a => a.packageType === "company" && a.companyPackageId === p.id);
               return (
                 <Card key={p.id} className={`relative ${!p.isActive ? "opacity-60" : ""}`} data-testid={`card-company-pkg-${p.id}`}>
                   <CardHeader className="pb-2">
@@ -539,7 +727,7 @@ export default function ResellerPackagesPage() {
                           {p.validity && <Badge variant="secondary" className="text-xs">{p.validity}</Badge>}
                         </div>
                       </div>
-                      <Switch checked={p.isActive} onCheckedChange={(v) =>
+                      <Switch checked={p.isActive} onCheckedChange={v =>
                         updateCompanyMutation.mutate({ id: p.id, data: { isActive: v } })
                       } data-testid={`switch-company-${p.id}`} />
                     </div>
@@ -551,31 +739,27 @@ export default function ResellerPackagesPage() {
                         <p className="text-sm font-semibold text-red-600">PKR {fmt(base)}</p>
                       </div>
                       <div className="rounded bg-muted p-2">
-                        <p className="text-[10px] text-muted-foreground">Selling</p>
+                        <p className="text-[10px] text-muted-foreground">Default Price</p>
                         <p className="text-sm font-semibold">PKR {fmt(selling)}</p>
                       </div>
                       <div className={`rounded p-2 ${profit >= 0 ? "bg-green-50 dark:bg-green-950/20" : "bg-red-50 dark:bg-red-950/20"}`}>
-                        <p className="text-[10px] text-muted-foreground">Profit</p>
+                        <p className="text-[10px] text-muted-foreground">ISP Profit</p>
                         <p className={`text-sm font-semibold ${profit >= 0 ? "text-green-600" : "text-red-600"}`}>
                           {profit >= 0 ? "+" : ""}PKR {fmt(profit)}
                         </p>
                       </div>
                     </div>
-
                     {profit < 0 && (
                       <div className="flex items-center gap-1 text-xs text-red-600 bg-red-50 dark:bg-red-950/20 rounded p-2">
-                        <AlertTriangle className="w-3 h-3" />
-                        <span>Selling below cost! Review pricing.</span>
+                        <AlertTriangle className="w-3 h-3" /><span>Selling below cost!</span>
                       </div>
                     )}
-
                     <div className="text-xs text-muted-foreground flex flex-wrap gap-2">
                       {p.contentionRatio && <span>Contention: {p.contentionRatio}</span>}
-                      {p.costPerMbps && <span>Cost/Mbps: PKR {fmt(p.costPerMbps, 4)}</span>}
+                      {p.costPerMbps && <span>PKR {fmt(p.costPerMbps, 4)}/Mbps</span>}
                       <span className="text-violet-600">Margin: {margin}%</span>
-                      <span>{assigned} assigned</span>
+                      <span className="text-primary font-medium">{pkgAssign.length} assigned</span>
                     </div>
-
                     <div className="flex gap-1.5 pt-1">
                       <Button variant="outline" size="sm" className="flex-1 text-xs h-7" onClick={() => openEditCompany(p)} data-testid={`btn-edit-company-${p.id}`}>
                         <Edit className="w-3 h-3 mr-1" />Edit
@@ -609,98 +793,87 @@ export default function ResellerPackagesPage() {
           </div>
 
           <Card>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Package Name</TableHead>
-                  <TableHead>Vendor</TableHead>
-                  <TableHead>Speed</TableHead>
-                  <TableHead className="text-right">Vendor Price</TableHead>
-                  <TableHead className="text-right">ISP Selling</TableHead>
-                  <TableHead className="text-right">Reseller Price</TableHead>
-                  <TableHead className="text-right">ISP Margin</TableHead>
-                  <TableHead>Validity</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {vLoading ? Array.from({ length: 4 }).map((_, i) => (
-                  <TableRow key={i}>{Array.from({ length: 10 }).map((_, j) => (
-                    <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
-                  ))}</TableRow>
-                )) : (vendorPkgs || []).length === 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                      No vendor packages mapped yet. Click "Map Vendor Package" to start.
-                    </TableCell>
+                    <TableHead>Package Name</TableHead>
+                    <TableHead>Vendor</TableHead>
+                    <TableHead>Speed</TableHead>
+                    <TableHead className="text-right">Vendor Price</TableHead>
+                    <TableHead className="text-right">ISP Selling</TableHead>
+                    <TableHead className="text-right">Reseller Price</TableHead>
+                    <TableHead className="text-right">ISP Margin</TableHead>
+                    <TableHead>Validity</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ) : (vendorPkgs || []).map(p => {
-                  const vendor = (vendors || []).find(v => v.id === p.vendorId);
-                  const ispMargin = parseFloat(p.ispSellingPrice || "0") - parseFloat(p.vendorPrice || "0");
-                  return (
-                    <TableRow key={p.id} data-testid={`row-vendor-pkg-${p.id}`}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-1.5">
-                          <Handshake className="w-4 h-4 text-blue-500" />
-                          {p.packageName}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{vendor?.companyName || `Vendor #${p.vendorId}`}</TableCell>
-                      <TableCell><span className="text-blue-600 font-medium">{p.speed || "—"}</span></TableCell>
-                      <TableCell className="text-right text-red-600">PKR {fmt(p.vendorPrice)}</TableCell>
-                      <TableCell className="text-right font-semibold">PKR {fmt(p.ispSellingPrice)}</TableCell>
-                      <TableCell className="text-right text-violet-600">
-                        {p.resellerPrice ? `PKR ${fmt(p.resellerPrice)}` : "—"}
-                      </TableCell>
-                      <TableCell className={`text-right font-bold ${ispMargin >= 0 ? "text-green-600" : "text-red-600"}`}>
-                        PKR {fmt(ispMargin)}
-                        {ispMargin < 0 && <AlertTriangle className="w-3 h-3 inline ml-1" />}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">{p.validity || "30 days"}</TableCell>
-                      <TableCell>
-                        <Badge variant={p.isActive ? "default" : "secondary"}>{p.isActive ? "Active" : "Inactive"}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => openEditVendor(p)} data-testid={`btn-edit-vendor-${p.id}`}>
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => openAssign("vendor", p.id)} data-testid={`btn-assign-vendor-${p.id}`}>
-                            <Tag className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="text-red-500" onClick={() => setDeleteVendorId(p.id)} data-testid={`btn-delete-vendor-${p.id}`}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                </TableHeader>
+                <TableBody>
+                  {vLoading ? Array.from({ length: 4 }).map((_, i) => (
+                    <TableRow key={i}>{Array.from({ length: 10 }).map((_, j) => (
+                      <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
+                    ))}</TableRow>
+                  )) : (vendorPkgs || []).length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                        No vendor packages mapped yet.
                       </TableCell>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                  ) : (vendorPkgs || []).map(p => {
+                    const vendor = (vendors || []).find(v => v.id === p.vendorId);
+                    const ispMargin = parseFloat(p.ispSellingPrice || "0") - parseFloat(p.vendorPrice || "0");
+                    return (
+                      <TableRow key={p.id} data-testid={`row-vendor-pkg-${p.id}`}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-1.5">
+                            <Handshake className="w-4 h-4 text-blue-500" />{p.packageName}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{vendor?.companyName || `Vendor #${p.vendorId}`}</TableCell>
+                        <TableCell><span className="text-blue-600 font-medium text-sm">{p.speed || "—"}</span></TableCell>
+                        <TableCell className="text-right text-red-600 text-sm">PKR {fmt(p.vendorPrice)}</TableCell>
+                        <TableCell className="text-right font-semibold text-sm">PKR {fmt(p.ispSellingPrice)}</TableCell>
+                        <TableCell className="text-right text-violet-600 text-sm">
+                          {p.resellerPrice ? `PKR ${fmt(p.resellerPrice)}` : "—"}
+                        </TableCell>
+                        <TableCell className={`text-right font-bold text-sm ${ispMargin >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          PKR {fmt(ispMargin)}
+                          {ispMargin < 0 && <AlertTriangle className="w-3 h-3 inline ml-1" />}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{p.validity || "30 days"}</TableCell>
+                        <TableCell>
+                          <Badge variant={p.isActive ? "default" : "secondary"} className="text-xs">{p.isActive ? "Active" : "Inactive"}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => openEditVendor(p)} data-testid={`btn-edit-vendor-${p.id}`}><Edit className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => openAssign("vendor", p.id)} data-testid={`btn-assign-vendor-${p.id}`}><Tag className="w-4 h-4" /></Button>
+                            <Button variant="ghost" size="icon" className="text-red-500" onClick={() => setDeleteVendorId(p.id)} data-testid={`btn-delete-vendor-${p.id}`}><Trash2 className="w-4 h-4" /></Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </Card>
         </TabsContent>
 
-        {/* ─── PROFIT CONFIGURATION ─── */}
+        {/* ─── PROFIT CONFIG ─── */}
         <TabsContent value="profit" className="space-y-4 mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Bulk Margin Update */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Percent className="w-5 h-5 text-primary" />
-                  Bulk Margin Update
-                </CardTitle>
+                <CardTitle className="flex items-center gap-2"><Percent className="w-5 h-5 text-primary" />Bulk Margin Update</CardTitle>
                 <CardDescription>Apply a uniform profit rule across all company packages</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Profit Type</Label>
                   <Select value={bulkMarginType} onValueChange={setBulkMarginType}>
-                    <SelectTrigger data-testid="select-bulk-type">
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger data-testid="select-bulk-type"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="fixed">Fixed Amount (PKR)</SelectItem>
                       <SelectItem value="percentage">Percentage (%)</SelectItem>
@@ -709,32 +882,23 @@ export default function ResellerPackagesPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Profit Value</Label>
-                  <Input
-                    type="number" value={bulkMarginValue}
-                    onChange={e => setBulkMarginValue(e.target.value)}
-                    placeholder={bulkMarginType === "percentage" ? "e.g. 20" : "e.g. 500"}
-                    data-testid="input-bulk-margin"
-                  />
+                  <Input type="number" value={bulkMarginValue} onChange={e => setBulkMarginValue(e.target.value)}
+                    placeholder={bulkMarginType === "percentage" ? "e.g. 20" : "e.g. 500"} data-testid="input-bulk-margin" />
                   <p className="text-xs text-muted-foreground">
                     {bulkMarginType === "percentage"
-                      ? `Selling Price = Base Cost × (1 + ${bulkMarginValue}%)`
-                      : `Selling Price = Base Cost + PKR ${bulkMarginValue}`}
+                      ? `Selling = Base Cost × (1 + ${bulkMarginValue}%)`
+                      : `Selling = Base Cost + PKR ${bulkMarginValue}`}
                   </p>
                 </div>
                 <Button onClick={handleBulkMarginUpdate} className="w-full" data-testid="btn-bulk-update">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Apply to All Company Packages ({(companyPkgs || []).length})
+                  <RefreshCw className="w-4 h-4 mr-2" />Apply to All Company Packages ({(companyPkgs || []).length})
                 </Button>
               </CardContent>
             </Card>
 
-            {/* Profit per package preview */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-primary" />
-                  Package Profit Summary
-                </CardTitle>
+                <CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5 text-primary" />Package Profit Summary</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -770,65 +934,44 @@ export default function ResellerPackagesPage() {
               </CardContent>
             </Card>
           </div>
-
-          {/* Pricing Calculator */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-primary" />
-                Live Pricing Calculator
-              </CardTitle>
-              <CardDescription>Preview how profit configuration affects selling price</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-xs">Base Cost (PKR)</Label>
-                  <Input type="number" placeholder="e.g. 1000" id="calc-base" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Profit Type</Label>
-                  <Select defaultValue="fixed">
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fixed">Fixed (PKR)</SelectItem>
-                      <SelectItem value="percentage">Percentage</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Profit Value</Label>
-                  <Input type="number" placeholder="e.g. 200" id="calc-profit" />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Result</Label>
-                  <div className="h-10 px-3 border rounded-md flex items-center bg-green-50 dark:bg-green-950/20">
-                    <span className="text-green-700 font-semibold text-sm">Selling Price Shown Here</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
-        {/* ─── PACKAGE ASSIGNMENTS ─── */}
+        {/* ─── ASSIGNMENTS ─── */}
         <TabsContent value="assignments" className="space-y-4 mt-4">
+          <div className="flex flex-wrap gap-2 items-center justify-between">
+            <div className="flex gap-2">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input placeholder="Search reseller or package..." className="pl-9 w-56" value={assignSearch}
+                  onChange={e => setAssignSearch(e.target.value)} data-testid="input-assign-search" />
+              </div>
+              <Select value={assignResellerFilter} onValueChange={setAssignResellerFilter}>
+                <SelectTrigger className="w-44" data-testid="select-reseller-filter">
+                  <Users className="w-3 h-3 mr-1" /><SelectValue placeholder="All Resellers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Resellers</SelectItem>
+                  {(resellers || []).map(r => (
+                    <SelectItem key={r.id} value={String(r.id)}>{r.companyName || r.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground">{filteredAssignments.length} assignments</p>
+          </div>
+
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Tag className="w-5 h-5 text-primary" />
-                Package Assignments to Resellers
-              </CardTitle>
-              <CardDescription>Control which resellers can offer which packages</CardDescription>
-            </CardHeader>
-            <CardContent>
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Reseller</TableHead>
                     <TableHead>Package Type</TableHead>
-                    <TableHead>Package</TableHead>
-                    <TableHead className="text-right">Custom Price</TableHead>
+                    <TableHead>Package Name</TableHead>
+                    <TableHead className="text-right">Default Price</TableHead>
+                    <TableHead className="text-right">Profit Markup</TableHead>
+                    <TableHead className="text-right">Reseller Price</TableHead>
+                    <TableHead className="text-right">ISP Profit/Unit</TableHead>
                     <TableHead>Enabled</TableHead>
                     <TableHead>Assigned On</TableHead>
                     <TableHead>Actions</TableHead>
@@ -836,80 +979,87 @@ export default function ResellerPackagesPage() {
                 </TableHeader>
                 <TableBody>
                   {aLoading ? Array.from({ length: 4 }).map((_, i) => (
-                    <TableRow key={i}>{Array.from({ length: 7 }).map((_, j) => (
+                    <TableRow key={i}>{Array.from({ length: 10 }).map((_, j) => (
                       <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                     ))}</TableRow>
-                  )) : (assignments || []).length === 0 ? (
+                  )) : filteredAssignments.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                        No package assignments yet. Assign packages to resellers from the Packages tabs.
+                      <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                        No assignments found. Assign packages to resellers from the packages tabs.
                       </TableCell>
                     </TableRow>
-                  ) : (assignments || []).map(a => {
+                  ) : filteredAssignments.map(a => {
                     const reseller = (resellers || []).find(r => r.id === a.resellerId);
                     const vendorPkg = a.packageType === "vendor" ? (vendorPkgs || []).find(p => p.id === a.vendorPackageId) : null;
                     const companyPkg = a.packageType === "company" ? (companyPkgs || []).find(p => p.id === a.companyPackageId) : null;
                     const pkgName = vendorPkg?.packageName || companyPkg?.packageName || "—";
+                    const defaultPrice = vendorPkg
+                      ? parseFloat(vendorPkg.ispSellingPrice || "0")
+                      : companyPkg ? parseFloat(companyPkg.sellingPrice || "0") : 0;
+                    const resellerPrice = a.customPrice ? parseFloat(a.customPrice) : defaultPrice;
+                    const ispProfit = resellerPrice - (vendorPkg ? parseFloat(vendorPkg.vendorPrice || "0") : companyPkg ? parseFloat(companyPkg.baseCost || "0") : 0);
+                    const markupStr = (a as any).profitMarkup && (a as any).profitMarkupType
+                      ? `${fmt((a as any).profitMarkup)} ${(a as any).profitMarkupType === "percentage" ? "%" : "PKR"}`
+                      : "—";
                     return (
                       <TableRow key={a.id} data-testid={`row-assign-${a.id}`}>
-                        <TableCell className="font-medium">{reseller?.companyName || reseller?.name || `Reseller #${a.resellerId}`}</TableCell>
+                        <TableCell className="font-medium">
+                          {reseller?.companyName || reseller?.name || `Reseller #${a.resellerId}`}
+                        </TableCell>
                         <TableCell><SourceBadge type={a.packageType as "vendor" | "company"} /></TableCell>
-                        <TableCell>{pkgName}</TableCell>
-                        <TableCell className="text-right">
-                          {a.customPrice ? `PKR ${fmt(a.customPrice)}` : <span className="text-muted-foreground text-sm">Default</span>}
+                        <TableCell className="text-sm">{pkgName}</TableCell>
+                        <TableCell className="text-right text-sm text-muted-foreground">PKR {fmt(defaultPrice)}</TableCell>
+                        <TableCell className="text-right text-sm text-violet-600">{markupStr}</TableCell>
+                        <TableCell className="text-right font-semibold text-sm">PKR {fmt(resellerPrice)}</TableCell>
+                        <TableCell className={`text-right font-bold text-sm ${ispProfit >= 0 ? "text-green-600" : "text-red-600"}`}>
+                          {ispProfit >= 0 ? "+" : ""}PKR {fmt(ispProfit)}
                         </TableCell>
                         <TableCell>
-                          <Switch
-                            checked={a.isEnabled}
+                          <Switch checked={a.isEnabled}
                             onCheckedChange={v => toggleAssignMutation.mutate({ id: a.id, isEnabled: v })}
-                            data-testid={`switch-assign-${a.id}`}
-                          />
+                            data-testid={`switch-assign-${a.id}`} />
                         </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {(a.createdAt || "").split("T")[0]}
-                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{String(a.createdAt || "").split("T")[0]}</TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="icon" className="text-red-500" onClick={() => setDeleteAssignId(a.id)} data-testid={`btn-delete-assign-${a.id}`}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => setEditAssignment(a)} data-testid={`btn-edit-assign-${a.id}`}>
+                              <PenLine className="w-4 h-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="text-red-500" onClick={() => setDeleteAssignId(a.id)} data-testid={`btn-delete-assign-${a.id}`}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
-            </CardContent>
+            </div>
           </Card>
         </TabsContent>
       </Tabs>
 
-      {/* ─── ADD PACKAGE DIALOG ─── */}
+      {/* ─── ADD/EDIT PACKAGE DIALOG ─── */}
       <Dialog open={showAddDialog || !!editCompanyPkg || !!editVendorPkg} onOpenChange={(open) => {
         if (!open) { setShowAddDialog(false); setEditCompanyPkg(null); setEditVendorPkg(null); }
       }}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {editCompanyPkg ? "Edit Company Package" : editVendorPkg ? "Edit Vendor Package Mapping"
+              {editCompanyPkg ? "Edit Company Package" : editVendorPkg ? "Edit Vendor Package"
                 : addSourceType === "company" ? "New Company Package" : "Map Vendor Package"}
             </DialogTitle>
           </DialogHeader>
 
-          {/* Source selector for new packages */}
           {!editCompanyPkg && !editVendorPkg && (
             <div className="flex gap-2 mb-2">
-              <Button
-                type="button" variant={addSourceType === "company" ? "default" : "outline"}
-                className="flex-1 gap-2" onClick={() => setAddSourceType("company")}
-                data-testid="btn-source-company"
-              >
+              <Button type="button" variant={addSourceType === "company" ? "default" : "outline"} className="flex-1 gap-2"
+                onClick={() => setAddSourceType("company")} data-testid="btn-source-company">
                 <Building2 className="w-4 h-4" />Company Package
               </Button>
-              <Button
-                type="button" variant={addSourceType === "vendor" ? "default" : "outline"}
-                className="flex-1 gap-2" onClick={() => setAddSourceType("vendor")}
-                data-testid="btn-source-vendor"
-              >
+              <Button type="button" variant={addSourceType === "vendor" ? "default" : "outline"} className="flex-1 gap-2"
+                onClick={() => setAddSourceType("vendor")} data-testid="btn-source-vendor">
                 <Handshake className="w-4 h-4" />Vendor Package
               </Button>
             </div>
@@ -931,52 +1081,42 @@ export default function ResellerPackagesPage() {
                 )} />
 
                 <div className="grid grid-cols-3 gap-3">
-                  <FormField control={companyForm.control} name="speedMbps" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Speed (Mbps) *</FormLabel>
-                      <FormControl><Input {...field} type="number" placeholder="10" data-testid="input-speed" /></FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                  <FormField control={companyForm.control} name="uploadMbps" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Upload (Mbps)</FormLabel>
-                      <FormControl><Input {...field} value={field.value ?? ""} type="number" placeholder="10" /></FormControl>
-                    </FormItem>
-                  )} />
-                  <FormField control={companyForm.control} name="downloadMbps" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Download (Mbps)</FormLabel>
-                      <FormControl><Input {...field} value={field.value ?? ""} type="number" placeholder="10" /></FormControl>
-                    </FormItem>
-                  )} />
+                  {[
+                    { name: "speedMbps" as const, label: "Speed (Mbps) *", placeholder: "10" },
+                    { name: "uploadMbps" as const, label: "Upload (Mbps)", placeholder: "10" },
+                    { name: "downloadMbps" as const, label: "Download (Mbps)", placeholder: "10" },
+                  ].map(f => (
+                    <FormField key={f.name} control={companyForm.control} name={f.name} render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{f.label}</FormLabel>
+                        <FormControl><Input {...field} value={field.value ?? ""} type="number" placeholder={f.placeholder} data-testid={`input-${f.name}`} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  ))}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <FormField control={companyForm.control} name="contentionRatio" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Contention Ratio</FormLabel>
-                      <FormControl>
-                        <Select value={field.value ?? "1:1"} onValueChange={field.onChange}>
-                          <SelectTrigger data-testid="select-contention"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {["1:1","1:2","1:4","1:8","1:16"].map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
+                      <Select value={field.value ?? "1:1"} onValueChange={field.onChange}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {["1:1","1:2","1:4","1:8","1:16"].map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </FormItem>
                   )} />
                   <FormField control={companyForm.control} name="validity" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Validity</FormLabel>
-                      <FormControl>
-                        <Select value={field.value ?? "30 days"} onValueChange={field.onChange}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {["7 days","15 days","30 days","60 days","90 days","1 year"].map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
+                      <Select value={field.value ?? "30 days"} onValueChange={field.onChange}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {["7 days","15 days","30 days","60 days","90 days","1 year"].map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </FormItem>
                   )} />
                 </div>
@@ -988,7 +1128,7 @@ export default function ResellerPackagesPage() {
                       <FormLabel>Cost per Mbps (PKR)</FormLabel>
                       <FormControl><Input {...field} value={field.value ?? ""} type="number" step="0.0001" placeholder="e.g. 100" data-testid="input-cost-per-mbps" /></FormControl>
                       <FormDescription className="text-xs">
-                        Base Cost = {fmt(liveBaseCost)} PKR ({watchedSpeed || "0"} Mbps × PKR {watchedCostPerMbps || "0"}/Mbps)
+                        Base Cost = PKR {fmt(liveBaseCost)} ({watchedSpeed || "0"} Mbps × PKR {watchedCostPerMbps || "0"}/Mbps)
                       </FormDescription>
                     </FormItem>
                   )} />
@@ -997,49 +1137,41 @@ export default function ResellerPackagesPage() {
                     <FormField control={companyForm.control} name="profitType" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Profit Type</FormLabel>
-                        <FormControl>
-                          <Select value={field.value} onValueChange={field.onChange}>
-                            <SelectTrigger data-testid="select-profit-type"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="fixed">Fixed (PKR)</SelectItem>
-                              <SelectItem value="percentage">Percentage (%)</SelectItem>
-                              <SelectItem value="custom">Custom Price</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </FormControl>
+                        <Select value={field.value} onValueChange={field.onChange}>
+                          <SelectTrigger data-testid="select-profit-type"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="fixed">Fixed (PKR)</SelectItem>
+                            <SelectItem value="percentage">Percentage (%)</SelectItem>
+                            <SelectItem value="custom">Custom Price</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </FormItem>
                     )} />
                     <FormField control={companyForm.control} name="profitValue" render={({ field }) => (
                       <FormItem>
                         <FormLabel>
-                          {watchedProfitType === "fixed" ? "Profit Amount (PKR)" : watchedProfitType === "percentage" ? "Profit %" : "Selling Price (PKR)"}
+                          {watchedProfitType === "fixed" ? "Profit (PKR)" : watchedProfitType === "percentage" ? "Profit %" : "Selling Price (PKR)"}
                         </FormLabel>
                         <FormControl><Input {...field} value={field.value ?? ""} type="number" placeholder="e.g. 200" data-testid="input-profit-value" /></FormControl>
                       </FormItem>
                     )} />
                   </div>
 
-                  {/* Live preview */}
                   <div className="grid grid-cols-3 gap-2 mt-2">
-                    <div className="text-center p-2 rounded bg-red-50 dark:bg-red-950/20">
-                      <p className="text-[10px] text-muted-foreground">Base Cost</p>
-                      <p className="text-sm font-bold text-red-600">PKR {fmt(liveBaseCost)}</p>
-                    </div>
-                    <div className="text-center p-2 rounded bg-blue-50 dark:bg-blue-950/20">
-                      <p className="text-[10px] text-muted-foreground">Selling Price</p>
-                      <p className="text-sm font-bold">PKR {fmt(liveSellingPrice)}</p>
-                    </div>
-                    <div className={`text-center p-2 rounded ${liveProfit >= 0 ? "bg-green-50 dark:bg-green-950/20" : "bg-orange-50 dark:bg-orange-950/20"}`}>
-                      <p className="text-[10px] text-muted-foreground">Profit</p>
-                      <p className={`text-sm font-bold ${liveProfit >= 0 ? "text-green-600" : "text-orange-600"}`}>
-                        {liveProfit >= 0 ? "+" : ""}PKR {fmt(liveProfit)}
-                      </p>
-                    </div>
+                    {[
+                      { label: "Base Cost", val: liveBaseCost, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/20" },
+                      { label: "Selling Price", val: liveSellingPrice, color: "", bg: "bg-blue-50 dark:bg-blue-950/20" },
+                      { label: "Profit", val: liveProfit, color: liveProfit >= 0 ? "text-green-600" : "text-orange-600", bg: liveProfit >= 0 ? "bg-green-50 dark:bg-green-950/20" : "bg-orange-50 dark:bg-orange-950/20" },
+                    ].map(b => (
+                      <div key={b.label} className={`text-center p-2 rounded ${b.bg}`}>
+                        <p className="text-[10px] text-muted-foreground">{b.label}</p>
+                        <p className={`text-sm font-bold ${b.color}`}>{b.val >= 0 && b.label === "Profit" ? "+" : ""}PKR {fmt(b.val)}</p>
+                      </div>
+                    ))}
                   </div>
                   {liveProfit < 0 && (
                     <div className="flex items-center gap-1.5 text-xs text-red-600 bg-red-50 dark:bg-red-950/20 rounded p-2">
-                      <AlertTriangle className="w-3 h-3" />
-                      Warning: Selling price is below cost!
+                      <AlertTriangle className="w-3 h-3" />Warning: Selling price is below cost!
                     </div>
                   )}
                 </div>
@@ -1047,7 +1179,7 @@ export default function ResellerPackagesPage() {
                 <FormField control={companyForm.control} name="description" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Description</FormLabel>
-                    <FormControl><Textarea {...field} value={field.value ?? ""} rows={2} placeholder="Optional package description..." /></FormControl>
+                    <FormControl><Textarea {...field} value={field.value ?? ""} rows={2} placeholder="Optional..." /></FormControl>
                   </FormItem>
                 )} />
 
@@ -1072,14 +1204,12 @@ export default function ResellerPackagesPage() {
                 <FormField control={vendorForm.control} name="vendorId" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Vendor *</FormLabel>
-                    <FormControl>
-                      <Select value={String(field.value)} onValueChange={v => field.onChange(Number(v))}>
-                        <SelectTrigger data-testid="select-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
-                        <SelectContent>
-                          {(vendors || []).map(v => <SelectItem key={v.id} value={String(v.id)}>{v.companyName || v.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
+                    <Select value={String(field.value)} onValueChange={v => field.onChange(Number(v))}>
+                      <SelectTrigger data-testid="select-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
+                      <SelectContent>
+                        {(vendors || []).map(v => <SelectItem key={v.id} value={String(v.id)}>{v.companyName || v.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )} />
@@ -1124,14 +1254,11 @@ export default function ResellerPackagesPage() {
                       </FormItem>
                     )} />
                   </div>
-
-                  {/* Live margins */}
                   <div className="grid grid-cols-2 gap-2">
                     <div className="text-center p-2 rounded bg-green-50 dark:bg-green-950/20">
                       <p className="text-[10px] text-muted-foreground">ISP Margin</p>
                       <p className={`text-sm font-bold ${liveIspMargin >= 0 ? "text-green-600" : "text-red-600"}`}>
-                        PKR {fmt(liveIspMargin)}
-                        {liveIspMargin < 0 && <AlertTriangle className="w-3 h-3 inline ml-1" />}
+                        PKR {fmt(liveIspMargin)}{liveIspMargin < 0 && <AlertTriangle className="w-3 h-3 inline ml-1" />}
                       </p>
                     </div>
                     <div className="text-center p-2 rounded bg-violet-50 dark:bg-violet-950/20">
@@ -1151,14 +1278,12 @@ export default function ResellerPackagesPage() {
                   <FormField control={vendorForm.control} name="validity" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Validity</FormLabel>
-                      <FormControl>
-                        <Select value={field.value ?? "30 days"} onValueChange={field.onChange}>
-                          <SelectTrigger><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {["7 days","15 days","30 days","60 days","90 days","1 year"].map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
+                      <Select value={field.value ?? "30 days"} onValueChange={field.onChange}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {["7 days","15 days","30 days","60 days","90 days","1 year"].map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </FormItem>
                   )} />
                 </div>
@@ -1177,29 +1302,45 @@ export default function ResellerPackagesPage() {
       </Dialog>
 
       {/* ─── ASSIGN DIALOG ─── */}
-      <Dialog open={showAssignDialog} onOpenChange={(open) => { if (!open) setShowAssignDialog(false); }}>
-        <DialogContent className="max-w-md">
+      <Dialog open={showAssignDialog} onOpenChange={open => { if (!open) { setShowAssignDialog(false); resetAssignForm(); } }}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Assign Package to Reseller</DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Tag className="w-5 h-5" />Assign Package to Reseller</DialogTitle>
+            <DialogDescription>Set a custom reseller price by adding a profit markup on top of the default package price.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            const values = assignForm.getValues();
-            if (!values.resellerId) { toast({ title: "Please select a reseller", variant: "destructive" }); return; }
-            createAssignMutation.mutate({
-              resellerId: Number(values.resellerId),
-              packageType: assignPkgType,
-              vendorPackageId: assignPkgType === "vendor" ? assignPkgId : undefined,
-              companyPackageId: assignPkgType === "company" ? assignPkgId : undefined,
-              customPrice: values.customPrice || undefined,
-              notes: values.notes || undefined,
-              isEnabled: true,
-              assignedBy: "admin",
-            });
-          }} className="space-y-4">
+
+          {/* Package info box */}
+          {assignPkgInfo && (
+            <div className="rounded-lg border bg-muted/40 p-3 space-y-2">
+              <div className="flex items-start justify-between flex-wrap gap-2">
+                <div>
+                  <p className="font-semibold text-sm flex items-center gap-1">
+                    <Wifi className="w-4 h-4 text-primary" />{assignPkgInfo.name}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Speed: {assignPkgInfo.speed}</p>
+                  {assignPkgInfo.vendor && <p className="text-xs text-muted-foreground">Vendor: {assignPkgInfo.vendor}</p>}
+                </div>
+                <SourceBadge type={assignPkgType} />
+              </div>
+              <Separator />
+              <div className="grid grid-cols-2 gap-2 text-center">
+                <div className="rounded bg-red-50 dark:bg-red-950/20 p-2">
+                  <p className="text-[10px] text-muted-foreground">Your Cost Price</p>
+                  <p className="text-sm font-bold text-red-600">PKR {fmt(assignPkgInfo.baseCost)}</p>
+                </div>
+                <div className="rounded bg-blue-50 dark:bg-blue-950/20 p-2">
+                  <p className="text-[10px] text-muted-foreground">Default Selling Price</p>
+                  <p className="text-sm font-bold text-blue-700">PKR {fmt(assignPkgInfo.defaultPrice)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-4">
+            {/* Reseller selector */}
             <div className="space-y-2">
               <Label>Select Reseller *</Label>
-              <Select onValueChange={v => assignForm.setValue("resellerId", Number(v))}>
+              <Select onValueChange={v => setAssignResellerId(Number(v))}>
                 <SelectTrigger data-testid="select-assign-reseller">
                   <SelectValue placeholder="Choose reseller..." />
                 </SelectTrigger>
@@ -1211,38 +1352,149 @@ export default function ResellerPackagesPage() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Custom Price (optional)</Label>
-              <Input type="number" placeholder="Leave empty to use default price"
-                onChange={e => assignForm.setValue("customPrice", e.target.value)}
-                data-testid="input-assign-price"
-              />
-              <p className="text-xs text-muted-foreground">Override the default selling price for this reseller</p>
+            {/* Profit markup section */}
+            <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                <DollarSign className="w-3 h-3" />Reseller Price Configuration
+              </p>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Profit Mode</Label>
+                  <Select value={assignProfitType} onValueChange={v => { setAssignProfitType(v); setAssignCustomPrice(""); }} data-testid="select-assign-profit-type">
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No Markup (Default Price)</SelectItem>
+                      <SelectItem value="fixed">Fixed Add-on (PKR)</SelectItem>
+                      <SelectItem value="percentage">Percentage (%)</SelectItem>
+                      <SelectItem value="custom">Custom Total Price</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {assignProfitType !== "none" && assignProfitType !== "custom" && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">
+                      {assignProfitType === "fixed" ? "Add-on Amount (PKR)" : "Markup Percentage (%)"}
+                    </Label>
+                    <Input
+                      type="number" value={assignProfitValue}
+                      onChange={e => setAssignProfitValue(e.target.value)}
+                      placeholder={assignProfitType === "fixed" ? "e.g. 200" : "e.g. 15"}
+                      data-testid="input-assign-profit-value"
+                    />
+                  </div>
+                )}
+
+                {assignProfitType === "custom" && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Custom Total Price (PKR)</Label>
+                    <Input
+                      type="number" value={assignCustomPrice}
+                      onChange={e => setAssignCustomPrice(e.target.value)}
+                      placeholder="Enter total price for reseller"
+                      data-testid="input-assign-custom-price"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Live pricing breakdown */}
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-1.5">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Pricing Breakdown</p>
+                <div className="space-y-1 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Package Default Price</span>
+                    <span className="font-medium">PKR {fmt(assignDefaultPrice)}</span>
+                  </div>
+                  {assignProfitType !== "none" && (
+                    <div className="flex justify-between text-violet-600">
+                      <span>
+                        + Your Profit Markup
+                        {assignProfitType === "fixed" && assignProfitValue && ` (PKR ${fmt(assignProfitValue)})`}
+                        {assignProfitType === "percentage" && assignProfitValue && ` (${assignProfitValue}%)`}
+                      </span>
+                      <span className="font-medium">PKR {fmt(Math.max(0, liveAssignTotal - assignDefaultPrice))}</span>
+                    </div>
+                  )}
+                  <Separator className="my-1" />
+                  <div className="flex justify-between text-base font-bold">
+                    <span>Reseller Total Price</span>
+                    <span className="text-primary">PKR {fmt(liveAssignTotal)}</span>
+                  </div>
+                  {assignPkgInfo && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-muted-foreground">Your ISP Profit/Unit</span>
+                      <span className={`font-semibold ${liveAssignTotal - assignPkgInfo.baseCost >= 0 ? "text-green-600" : "text-red-600"}`}>
+                        PKR {fmt(liveAssignTotal - assignPkgInfo.baseCost)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                {assignPkgInfo && liveAssignTotal < assignPkgInfo.baseCost && (
+                  <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
+                    <AlertTriangle className="w-3 h-3" />Reseller price is below your cost!
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Notes</Label>
-              <Input placeholder="Optional notes..."
-                onChange={e => assignForm.setValue("notes", e.target.value)} />
+            {/* Notes */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Notes (optional)</Label>
+              <Input placeholder="e.g. Special rate for premium reseller..."
+                value={assignNotes} onChange={e => setAssignNotes(e.target.value)} data-testid="input-assign-notes" />
             </div>
+          </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowAssignDialog(false)}>Cancel</Button>
-              <Button type="submit" disabled={createAssignMutation.isPending} data-testid="btn-submit-assign">
-                {createAssignMutation.isPending && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
-                Assign Package
-              </Button>
-            </DialogFooter>
-          </form>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => { setShowAssignDialog(false); resetAssignForm(); }}>Cancel</Button>
+            <Button onClick={handleSubmitAssign} disabled={createAssignMutation.isPending} data-testid="btn-submit-assign">
+              {createAssignMutation.isPending && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
+              Assign at PKR {fmt(liveAssignTotal)}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirms */}
+      {/* ─── EDIT ASSIGNMENT DIALOG ─── */}
+      {editAssignment && (() => {
+        const vendorPkg = editAssignment.packageType === "vendor" ? (vendorPkgs || []).find(p => p.id === editAssignment.vendorPackageId) : null;
+        const companyPkg = editAssignment.packageType === "company" ? (companyPkgs || []).find(p => p.id === editAssignment.companyPackageId) : null;
+        const pkgName = vendorPkg?.packageName || companyPkg?.packageName || "—";
+        const reseller = (resellers || []).find(r => r.id === editAssignment.resellerId);
+        const defPrice = vendorPkg ? parseFloat(vendorPkg.ispSellingPrice || "0") : companyPkg ? parseFloat(companyPkg.sellingPrice || "0") : 0;
+        const baseCostV = vendorPkg ? parseFloat(vendorPkg.vendorPrice || "0") : companyPkg ? parseFloat(companyPkg.baseCost || "0") : 0;
+        return (
+          <Dialog open={true} onOpenChange={() => setEditAssignment(null)}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2"><PenLine className="w-4 h-4" />Edit Assignment</DialogTitle>
+              </DialogHeader>
+              <EditAssignmentForm
+                assignment={editAssignment}
+                pkgName={pkgName}
+                resellerName={reseller?.companyName || reseller?.name || ""}
+                defaultPrice={defPrice}
+                baseCost={baseCostV}
+                pkgType={editAssignment.packageType as "vendor" | "company"}
+                onSave={(data) => updateAssignMutation.mutate({ id: editAssignment.id, data })}
+                onCancel={() => setEditAssignment(null)}
+                isPending={updateAssignMutation.isPending}
+              />
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+
+      {/* Delete confirms */}
       <AlertDialog open={!!deleteCompanyId} onOpenChange={() => setDeleteCompanyId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Company Package</AlertDialogTitle>
-            <AlertDialogDescription>This will permanently delete the package. Any existing assignments will be affected.</AlertDialogDescription>
+            <AlertDialogDescription>Permanently deletes the package and affects all assignments.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -1258,7 +1510,7 @@ export default function ResellerPackagesPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Vendor Package Mapping</AlertDialogTitle>
-            <AlertDialogDescription>This will remove the vendor package from the reseller catalog.</AlertDialogDescription>
+            <AlertDialogDescription>Removes this vendor package from the reseller catalog.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -1274,7 +1526,7 @@ export default function ResellerPackagesPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Assignment</AlertDialogTitle>
-            <AlertDialogDescription>This will revoke this reseller's access to the package.</AlertDialogDescription>
+            <AlertDialogDescription>Revokes this reseller's access to the package.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -1285,6 +1537,125 @@ export default function ResellerPackagesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+// ─── Edit Assignment Form (sub-component) ─────────────────────────────────────
+function EditAssignmentForm({ assignment, pkgName, resellerName, defaultPrice, baseCost, pkgType, onSave, onCancel, isPending }: {
+  assignment: ResellerPackageAssignment;
+  pkgName: string;
+  resellerName: string;
+  defaultPrice: number;
+  baseCost: number;
+  pkgType: "vendor" | "company";
+  onSave: (data: any) => void;
+  onCancel: () => void;
+  isPending: boolean;
+}) {
+  const currentPrice = assignment.customPrice ? parseFloat(assignment.customPrice) : defaultPrice;
+  const [profitType, setProfitType] = useState<string>((assignment as any).profitMarkupType || "custom");
+  const [profitValue, setProfitValue] = useState(
+    (assignment as any).profitMarkup || String(currentPrice)
+  );
+  const [notes, setNotes] = useState(assignment.notes || "");
+  const [isEnabled, setIsEnabled] = useState(assignment.isEnabled);
+
+  const profitVal = parseFloat(profitValue || "0");
+  const liveTotal = profitType === "custom"
+    ? profitVal
+    : profitType === "fixed" ? defaultPrice + profitVal
+    : profitType === "percentage" ? defaultPrice * (1 + profitVal / 100)
+    : defaultPrice;
+  const ispProfit = liveTotal - baseCost;
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-lg border bg-muted/40 p-3 space-y-1">
+        <div className="flex items-center justify-between text-sm">
+          <span className="font-medium">{pkgName}</span>
+          <SourceBadge type={pkgType} />
+        </div>
+        <p className="text-xs text-muted-foreground">Reseller: <span className="font-medium text-foreground">{resellerName}</span></p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-xs">Price Mode</Label>
+          <Select value={profitType} onValueChange={setProfitType}>
+            <SelectTrigger data-testid="select-edit-profit-type"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Default Price</SelectItem>
+              <SelectItem value="fixed">Fixed Add-on (PKR)</SelectItem>
+              <SelectItem value="percentage">Percentage (%)</SelectItem>
+              <SelectItem value="custom">Custom Total Price</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {profitType !== "none" && (
+          <div className="space-y-1.5">
+            <Label className="text-xs">
+              {profitType === "fixed" ? "Add-on (PKR)" : profitType === "percentage" ? "Markup %" : "Total Price (PKR)"}
+            </Label>
+            <Input type="number" value={profitValue} onChange={e => setProfitValue(e.target.value)}
+              data-testid="input-edit-profit-value" />
+          </div>
+        )}
+      </div>
+
+      <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-1.5 text-sm">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Default Price</span>
+          <span>PKR {fmt(defaultPrice)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Your Cost</span>
+          <span className="text-red-600">PKR {fmt(baseCost)}</span>
+        </div>
+        <Separator className="my-1" />
+        <div className="flex justify-between font-bold">
+          <span>Reseller Price</span>
+          <span className="text-primary">PKR {fmt(profitType === "none" ? defaultPrice : liveTotal)}</span>
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">ISP Profit/Unit</span>
+          <span className={ispProfit >= 0 ? "text-green-600 font-semibold" : "text-red-600 font-semibold"}>
+            PKR {fmt(ispProfit)}
+          </span>
+        </div>
+        {ispProfit < 0 && (
+          <div className="flex items-center gap-1 text-xs text-red-600 mt-1">
+            <AlertTriangle className="w-3 h-3" />Price is below your cost!
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs">Notes</Label>
+        <Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Optional notes..." />
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Switch checked={isEnabled} onCheckedChange={setIsEnabled} data-testid="switch-edit-enabled" />
+        <Label className="text-sm">{isEnabled ? "Enabled for reseller" : "Disabled for reseller"}</Label>
+      </div>
+
+      <DialogFooter>
+        <Button variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button disabled={isPending} onClick={() => {
+          const finalPrice = profitType === "none" ? undefined : (profitType === "custom" ? liveTotal : liveTotal);
+          onSave({
+            customPrice: profitType !== "none" ? String(liveTotal.toFixed(2)) : undefined,
+            profitMarkup: profitType !== "none" && profitType !== "custom" ? String(profitVal) : undefined,
+            profitMarkupType: profitType !== "none" && profitType !== "custom" ? profitType : undefined,
+            notes: notes || undefined,
+            isEnabled,
+          });
+        }} data-testid="btn-save-edit-assign">
+          {isPending && <RefreshCw className="w-4 h-4 mr-2 animate-spin" />}
+          Save Changes
+        </Button>
+      </DialogFooter>
     </div>
   );
 }
