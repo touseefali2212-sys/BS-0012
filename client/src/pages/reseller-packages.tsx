@@ -1345,9 +1345,22 @@ export default function ResellerPackagesPage() {
                   <SelectValue placeholder="Choose reseller..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {(resellers || []).filter(r => r.status === "active").map(r => (
-                    <SelectItem key={r.id} value={String(r.id)}>{r.companyName || r.name}</SelectItem>
-                  ))}
+                  {(() => {
+                    const alreadyAssigned = new Set(
+                      (assignments || [])
+                        .filter(a =>
+                          a.packageType === assignPkgType &&
+                          (assignPkgType === "company" ? a.companyPackageId === assignPkgId : a.vendorPackageId === assignPkgId)
+                        )
+                        .map(a => a.resellerId)
+                    );
+                    const available = (resellers || []).filter(r => r.status === "active" && !alreadyAssigned.has(r.id));
+                    if (available.length === 0)
+                      return <div className="px-3 py-4 text-sm text-muted-foreground text-center">All active resellers are already assigned this package.</div>;
+                    return available.map(r => (
+                      <SelectItem key={r.id} value={String(r.id)}>{r.companyName || r.name}</SelectItem>
+                    ));
+                  })()}
                 </SelectContent>
               </Select>
             </div>
