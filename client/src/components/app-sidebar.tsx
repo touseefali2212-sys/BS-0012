@@ -466,19 +466,18 @@ function CollapsibleNavItem({ item }: { item: NavItem }) {
     return (
       <SidebarMenuItem>
         <SidebarMenuButton
-          asChild
           data-active={isActive}
+          data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}
+          onClick={(e) => { e.preventDefault(); navigate(item.url || "/"); }}
           className={`group relative mx-1 rounded-lg ${
             isActive
               ? "bg-white/12 text-white shadow-[0_0_12px_rgba(0,135,255,0.15)] border border-white/10"
               : "text-blue-100/70 border border-transparent"
           }`}
         >
-          <Link href={item.url || "/"} data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, "-")}`}>
-            <item.icon className={`h-4 w-4 transition-colors ${isActive ? "text-blue-300" : "text-blue-200/50 group-hover:text-blue-300/80"}`} />
-            <span className="flex-1 text-[13px] font-medium">{item.title}</span>
-            {isActive && <ChevronRight className="h-3.5 w-3.5 text-blue-300/60" />}
-          </Link>
+          <item.icon className={`h-4 w-4 transition-colors ${isActive ? "text-blue-300" : "text-blue-200/50 group-hover:text-blue-300/80"}`} />
+          <span className="flex-1 text-[13px] font-medium">{item.title}</span>
+          {isActive && <ChevronRight className="h-3.5 w-3.5 text-blue-300/60" />}
         </SidebarMenuButton>
       </SidebarMenuItem>
     );
