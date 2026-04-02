@@ -129,6 +129,7 @@ const companyPkgFormSchema = insertResellerCompanyPackageSchema.extend({
   downloadMbps: z.union([z.number(), z.string()]).optional().transform(v => v ? String(v) : undefined),
   costPerMbps: z.union([z.number(), z.string()]).optional().transform(v => v ? String(v) : undefined),
   profitValue: z.union([z.number(), z.string()]).optional().transform(v => v ? String(v) : "0"),
+  packagePrice: z.union([z.number(), z.string()]).transform(v => String(v)),
 });
 type CompanyPkgForm = z.infer<typeof companyPkgFormSchema>;
 
@@ -193,7 +194,8 @@ export default function ResellerPackagesPage() {
     defaultValues: {
       packageName: "", speedMbps: "", uploadMbps: "", downloadMbps: "",
       contentionRatio: "1:1", validity: "30 days", costPerMbps: "",
-      profitType: "fixed", profitValue: "0", description: "", isActive: true,
+      profitType: "custom", profitValue: "0", description: "", isActive: true,
+      packagePrice: "0",
     },
   });
 
@@ -205,15 +207,6 @@ export default function ResellerPackagesPage() {
       ispMargin: "", resellerMargin: "", isActive: true,
     },
   });
-
-  // ── Live calc - company package form ──
-  const watchedSpeed = companyForm.watch("speedMbps");
-  const watchedCostPerMbps = companyForm.watch("costPerMbps");
-  const watchedProfitType = companyForm.watch("profitType");
-  const watchedProfitValue = companyForm.watch("profitValue");
-  const liveBaseCost = parseFloat(watchedSpeed || "0") * parseFloat(watchedCostPerMbps || "0");
-  const liveSellingPrice = calcSellingPrice(liveBaseCost, watchedProfitType, parseFloat(watchedProfitValue || "0"));
-  const liveProfit = liveSellingPrice - liveBaseCost;
 
   // ── Live calc - vendor form ──
   const watchedVendorPrice = vendorForm.watch("vendorPrice");
@@ -257,7 +250,12 @@ export default function ResellerPackagesPage() {
 
   // ── Mutations - Company Packages ──
   const createCompanyMutation = useMutation({
-    mutationFn: (data: CompanyPkgForm) => apiRequest("POST", "/api/reseller-company-packages", data),
+    mutationFn: (data: CompanyPkgForm) => {
+      const price = String(parseFloat(data.packagePrice || "0").toFixed(2));
+      return apiRequest("POST", "/api/reseller-company-packages", {
+        ...data, sellingPrice: price, baseCost: price, profitType: "custom", profitValue: price,
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/reseller-company-packages"] });
       setShowAddDialog(false); setEditCompanyPkg(null); companyForm.reset();
@@ -267,8 +265,17 @@ export default function ResellerPackagesPage() {
   });
 
   const updateCompanyMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<CompanyPkgForm> }) =>
-      apiRequest("PATCH", `/api/reseller-company-packages/${id}`, data),
+    mutationFn: ({ id, data }: { id: number; data: Partial<CompanyPkgForm> }) => {
+      const payload: any = { ...data };
+      if (data.packagePrice !== undefined) {
+        const price = String(parseFloat(data.packagePrice || "0").toFixed(2));
+        payload.sellingPrice = price;
+        payload.baseCost = price;
+        payload.profitType = "custom";
+        payload.profitValue = price;
+      }
+      return apiRequest("PATCH", `/api/reseller-company-packages/${id}`, payload);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/reseller-company-packages"] });
       setEditCompanyPkg(null); toast({ title: "Package updated" });
@@ -373,8 +380,9 @@ export default function ResellerPackagesPage() {
       packageName: p.packageName, speedMbps: p.speedMbps, uploadMbps: p.uploadMbps || "",
       downloadMbps: p.downloadMbps || "", contentionRatio: p.contentionRatio || "1:1",
       validity: p.validity || "30 days", costPerMbps: p.costPerMbps || "",
-      profitType: p.profitType || "fixed", profitValue: p.profitValue || "0",
+      profitType: "custom", profitValue: p.sellingPrice || "0",
       description: p.description || "", isActive: p.isActive,
+      packagePrice: p.sellingPrice || "0",
     });
   };
 
@@ -393,9 +401,11 @@ export default function ResellerPackagesPage() {
     setShowAddDialog(true); setAddSourceType("company");
     setTimeout(() => companyForm.reset({
       packageName: `${p.packageName} (Copy)`, speedMbps: p.speedMbps,
+      uploadMbps: p.uploadMbps || "", downloadMbps: p.downloadMbps || "",
       contentionRatio: p.contentionRatio || "1:1", validity: p.validity || "30 days",
-      costPerMbps: p.costPerMbps || "", profitType: p.profitType,
-      profitValue: p.profitValue || "0", isActive: true,
+      profitType: "custom", profitValue: p.sellingPrice || "0",
+      description: p.description || "", isActive: true,
+      packagePrice: p.sellingPrice || "0",
     }), 0);
   };
 
@@ -1121,60 +1131,22 @@ export default function ResellerPackagesPage() {
                   )} />
                 </div>
 
-                <div className="border rounded-lg p-3 space-y-3 bg-muted/30">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pricing & Profit</p>
-                  <FormField control={companyForm.control} name="costPerMbps" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cost per Mbps (PKR)</FormLabel>
-                      <FormControl><Input {...field} value={field.value ?? ""} type="number" step="0.0001" placeholder="e.g. 100" data-testid="input-cost-per-mbps" /></FormControl>
-                      <FormDescription className="text-xs">
-                        Base Cost = PKR {fmt(liveBaseCost)} ({watchedSpeed || "0"} Mbps × PKR {watchedCostPerMbps || "0"}/Mbps)
-                      </FormDescription>
-                    </FormItem>
-                  )} />
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField control={companyForm.control} name="profitType" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Profit Type</FormLabel>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger data-testid="select-profit-type"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="fixed">Fixed (PKR)</SelectItem>
-                            <SelectItem value="percentage">Percentage (%)</SelectItem>
-                            <SelectItem value="custom">Custom Price</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )} />
-                    <FormField control={companyForm.control} name="profitValue" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>
-                          {watchedProfitType === "fixed" ? "Profit (PKR)" : watchedProfitType === "percentage" ? "Profit %" : "Selling Price (PKR)"}
-                        </FormLabel>
-                        <FormControl><Input {...field} value={field.value ?? ""} type="number" placeholder="e.g. 200" data-testid="input-profit-value" /></FormControl>
-                      </FormItem>
-                    )} />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2 mt-2">
-                    {[
-                      { label: "Base Cost", val: liveBaseCost, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/20" },
-                      { label: "Selling Price", val: liveSellingPrice, color: "", bg: "bg-blue-50 dark:bg-blue-950/20" },
-                      { label: "Profit", val: liveProfit, color: liveProfit >= 0 ? "text-green-600" : "text-orange-600", bg: liveProfit >= 0 ? "bg-green-50 dark:bg-green-950/20" : "bg-orange-50 dark:bg-orange-950/20" },
-                    ].map(b => (
-                      <div key={b.label} className={`text-center p-2 rounded ${b.bg}`}>
-                        <p className="text-[10px] text-muted-foreground">{b.label}</p>
-                        <p className={`text-sm font-bold ${b.color}`}>{b.val >= 0 && b.label === "Profit" ? "+" : ""}PKR {fmt(b.val)}</p>
+                <FormField control={companyForm.control} name="packagePrice" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Package Price (PKR) *</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">PKR</span>
+                        <Input {...field} value={field.value ?? ""} type="number" min="0" step="0.01"
+                          placeholder="e.g. 2000" className="pl-14" data-testid="input-package-price" />
                       </div>
-                    ))}
-                  </div>
-                  {liveProfit < 0 && (
-                    <div className="flex items-center gap-1.5 text-xs text-red-600 bg-red-50 dark:bg-red-950/20 rounded p-2">
-                      <AlertTriangle className="w-3 h-3" />Warning: Selling price is below cost!
-                    </div>
-                  )}
-                </div>
+                    </FormControl>
+                    <FormDescription className="text-xs">
+                      This is the selling price of the package for resellers.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )} />
 
                 <FormField control={companyForm.control} name="description" render={({ field }) => (
                   <FormItem>
