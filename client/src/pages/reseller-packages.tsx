@@ -1115,10 +1115,7 @@ export default function ResellerPackagesPage() {
                       <SelectTrigger data-testid="select-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="my-company">
-                          <span className="flex items-center gap-1.5">
-                            <Building2 className="w-3.5 h-3.5 text-primary" />
-                            {companySetting?.companyName || "My Company"}
-                          </span>
+                          ★ {companySetting?.companyName || "My Company"} (My Company)
                         </SelectItem>
                         {(vendors || []).map(v => <SelectItem key={v.id} value={String(v.id)}>{v.companyName || v.name}</SelectItem>)}
                       </SelectContent>
@@ -1238,17 +1235,11 @@ export default function ResellerPackagesPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="my-company">
-                      <span className="flex items-center gap-1.5">
-                        <Building2 className="w-3.5 h-3.5 text-primary" />
-                        {companySetting?.companyName || "My Company"}
-                      </span>
+                      ★ {companySetting?.companyName || "My Company"} (My Company)
                     </SelectItem>
                     {(vendors || []).map(v => (
                       <SelectItem key={v.id} value={String(v.id)}>
-                        <span className="flex items-center gap-1.5">
-                          <Handshake className="w-3.5 h-3.5 text-muted-foreground" />
-                          {v.companyName || v.name}
-                        </span>
+                        {v.companyName || v.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
