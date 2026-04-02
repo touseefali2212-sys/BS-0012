@@ -376,15 +376,20 @@ export default function ResellerPackagesPage() {
     setShowAssignDialog(true);
   };
 
+  const stripNum = (v: string | null | undefined) => v ? String(parseFloat(v)) : "";
+
   const openEditCompany = (p: ResellerCompanyPackage) => {
     setEditCompanyPkg(p);
     companyForm.reset({
-      packageName: p.packageName, speedMbps: p.speedMbps, uploadMbps: p.uploadMbps || "",
-      downloadMbps: p.downloadMbps || "", contentionRatio: p.contentionRatio || "1:1",
+      packageName: p.packageName,
+      speedMbps: stripNum(p.speedMbps),
+      uploadMbps: stripNum(p.uploadMbps),
+      downloadMbps: stripNum(p.downloadMbps),
+      contentionRatio: p.contentionRatio || "1:1",
       validity: p.validity || "30 days", costPerMbps: p.costPerMbps || "",
-      profitType: "custom", profitValue: p.sellingPrice || "0",
+      profitType: "custom", profitValue: stripNum(p.sellingPrice) || "0",
       description: p.description || "", isActive: p.isActive,
-      packagePrice: p.sellingPrice || "0",
+      packagePrice: stripNum(p.sellingPrice) || "0",
     });
   };
 
@@ -402,12 +407,14 @@ export default function ResellerPackagesPage() {
   const cloneCompanyPkg = (p: ResellerCompanyPackage) => {
     setShowAddDialog(true); setAddSourceType("company");
     setTimeout(() => companyForm.reset({
-      packageName: `${p.packageName} (Copy)`, speedMbps: p.speedMbps,
-      uploadMbps: p.uploadMbps || "", downloadMbps: p.downloadMbps || "",
+      packageName: `${p.packageName} (Copy)`,
+      speedMbps: stripNum(p.speedMbps),
+      uploadMbps: stripNum(p.uploadMbps),
+      downloadMbps: stripNum(p.downloadMbps),
       contentionRatio: p.contentionRatio || "1:1", validity: p.validity || "30 days",
-      profitType: "custom", profitValue: p.sellingPrice || "0",
+      profitType: "custom", profitValue: stripNum(p.sellingPrice) || "0",
       description: p.description || "", isActive: true,
-      packagePrice: p.sellingPrice || "0",
+      packagePrice: stripNum(p.sellingPrice) || "0",
     }), 0);
   };
 
