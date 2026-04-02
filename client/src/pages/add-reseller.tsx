@@ -462,10 +462,13 @@ export default function AddResellerPage() {
 
   const handleAddVendorPanel = () => {
     if (!vpForm.vendorId || !vpForm.panelUrl) return;
-    const vendor = (vendors || []).find(v => String(v.id) === vpForm.vendorId);
+    const isMyCompany = vpForm.vendorId === "my-company";
+    const vendorName = isMyCompany
+      ? (companySetting?.companyName?.trim() || "My Company")
+      : ((vendors || []).find(v => String(v.id) === vpForm.vendorId)?.name || "");
     setAddedVendorPanels(prev => [...prev, {
       vendorId: vpForm.vendorId,
-      vendorName: vendor?.name || "",
+      vendorName,
       panelUrl: vpForm.panelUrl,
       panelUsername: vpForm.panelUsername,
       panelPassword: vpForm.panelPassword,
@@ -1084,6 +1087,9 @@ export default function AddResellerPage() {
                             <Select value={vpForm.vendorId} onValueChange={v => setVpForm(prev => ({ ...prev, vendorId: v }))}>
                               <SelectTrigger data-testid="select-vp-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
                               <SelectContent>
+                                <SelectItem value="my-company">
+                                  {companySetting?.companyName?.trim() || "My Company"} (My Company)
+                                </SelectItem>
                                 {(vendors || []).map(v => (
                                   <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>
                                 ))}
