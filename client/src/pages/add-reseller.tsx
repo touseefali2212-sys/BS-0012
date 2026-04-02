@@ -261,14 +261,15 @@ export default function AddResellerPage() {
   const update = (field: string, value: string | boolean | number) =>
     setForm(prev => ({ ...prev, [field]: value }));
 
-  const [vlanIds, setVlanIds] = useState<string[]>([]);
+  const [vlanIds, setVlanIds] = useState<{ id: string; note: string }[]>([]);
   const addVlanId = () => {
     const v = form.vlanInput.trim();
-    if (!v || vlanIds.includes(v)) { update("vlanInput", ""); return; }
-    setVlanIds(prev => [...prev, v]);
+    if (!v || vlanIds.some(x => x.id === v)) { update("vlanInput", ""); return; }
+    setVlanIds(prev => [...prev, { id: v, note: form.vlanIdNote.trim() }]);
     update("vlanInput", "");
+    update("vlanIdNote", "");
   };
-  const removeVlanId = (id: string) => setVlanIds(prev => prev.filter(v => v !== id));
+  const removeVlanId = (id: string) => setVlanIds(prev => prev.filter(x => x.id !== id));
 
   const [addedPackages, setAddedPackages] = useState<Array<{
     packageId: number; packageName: string; speed: string;
@@ -373,8 +374,8 @@ export default function AddResellerPage() {
         bandwidthPlan: form.bandwidthPlan || null,
         ipAssignment: form.ipAssignment, nasId: form.nasId || null,
         serviceZone: form.serviceZone || null,
-        vlanIdAllowed: form.vlanIdAllowed, vlanIdNote: form.vlanIdNote || null,
-        vlanId: vlanIds.length > 0 ? vlanIds.join(",") : form.vlanId || null,
+        vlanIdAllowed: form.vlanIdAllowed, vlanIdNote: null,
+        vlanId: vlanIds.length > 0 ? JSON.stringify(vlanIds) : form.vlanId || null,
         vendorPanelAllowed: form.vendorPanelAllowed,
         assignedVendorPanels: addedVendorPanels.length > 0 ? JSON.stringify(addedVendorPanels) : null,
         walletBalance: form.walletBalance, creditLimit: form.creditLimit,
@@ -877,9 +878,17 @@ export default function AddResellerPage() {
                           value={form.vlanInput}
                           onChange={e => update("vlanInput", e.target.value)}
                           onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addVlanId(); } }}
-                          placeholder="Enter VLAN ID and press Add"
-                          className="flex-1"
+                          placeholder="VLAN ID (e.g. 100)"
+                          className="w-36 shrink-0"
                           data-testid="input-vlan-id"
+                        />
+                        <Input
+                          value={form.vlanIdNote}
+                          onChange={e => update("vlanIdNote", e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addVlanId(); } }}
+                          placeholder="Note (optional, e.g. Main Uplink)"
+                          className="flex-1"
+                          data-testid="input-vlan-note"
                         />
                         <Button
                           type="button" variant="outline" size="sm"
@@ -892,21 +901,29 @@ export default function AddResellerPage() {
                         </Button>
                       </div>
                       {vlanIds.length > 0 && (
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          {vlanIds.map(id => (
+                        <div className="border rounded-lg overflow-hidden mt-2">
+                          <div className="px-3 py-2 bg-muted text-xs font-semibold text-muted-foreground uppercase tracking-wide grid grid-cols-[auto_1fr_auto] gap-3">
+                            <span>VLAN ID</span>
+                            <span>Note</span>
+                            <span></span>
+                          </div>
+                          {vlanIds.map(entry => (
                             <div
-                              key={id}
-                              className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-800 text-xs font-medium px-2.5 py-1 rounded-full"
-                              data-testid={`badge-vlan-${id}`}
+                              key={entry.id}
+                              className="px-3 py-2 border-t text-sm grid grid-cols-[auto_1fr_auto] gap-3 items-center"
+                              data-testid={`badge-vlan-${entry.id}`}
                             >
-                              <span>VLAN {id}</span>
+                              <span className="font-mono font-semibold text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 px-2 py-0.5 rounded text-xs">
+                                {entry.id}
+                              </span>
+                              <span className="text-muted-foreground text-xs truncate">{entry.note || <span className="italic">—</span>}</span>
                               <button
                                 type="button"
-                                onClick={() => removeVlanId(id)}
-                                className="text-blue-500 hover:text-red-500 transition-colors"
-                                data-testid={`remove-vlan-${id}`}
+                                onClick={() => removeVlanId(entry.id)}
+                                className="text-muted-foreground hover:text-red-500 transition-colors"
+                                data-testid={`remove-vlan-${entry.id}`}
                               >
-                                <X className="h-3 w-3" />
+                                <X className="h-3.5 w-3.5" />
                               </button>
                             </div>
                           ))}
