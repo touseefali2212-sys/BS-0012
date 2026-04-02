@@ -444,7 +444,7 @@ function useSearch() {
 }
 
 function CollapsibleNavItem({ item }: { item: NavItem }) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const currentPath = location.split("?")[0];
   const currentSearch = useSearch();
 
@@ -516,17 +516,16 @@ function CollapsibleNavItem({ item }: { item: NavItem }) {
               return (
                 <SidebarMenuButton
                   key={sub.title}
-                  asChild
                   className={`rounded-md h-7 text-[12px] mx-0 ${
                     isSubActive
                       ? "bg-white/10 text-white font-medium"
                       : "text-blue-100/55 hover:text-blue-100/80 hover:bg-white/5"
                   }`}
+                  onClick={(e) => { e.preventDefault(); navigate(sub.url); }}
+                  data-testid={`nav-sub-${sub.title.toLowerCase().replace(/\s+/g, "-")}`}
                 >
-                  <Link href={sub.url} data-testid={`nav-sub-${sub.title.toLowerCase().replace(/\s+/g, "-")}`}>
-                    <sub.icon className={`h-3 w-3 ${isSubActive ? "text-blue-300" : "text-blue-200/40"}`} />
-                    <span>{sub.title}</span>
-                  </Link>
+                  <sub.icon className={`h-3 w-3 ${isSubActive ? "text-blue-300" : "text-blue-200/40"}`} />
+                  <span>{sub.title}</span>
                 </SidebarMenuButton>
               );
             })}
