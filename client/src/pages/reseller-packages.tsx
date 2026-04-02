@@ -1105,9 +1105,21 @@ export default function ResellerPackagesPage() {
                 <FormField control={vendorForm.control} name="vendorId" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Vendor *</FormLabel>
-                    <Select value={String(field.value)} onValueChange={v => field.onChange(Number(v))}>
+                    <Select
+                      value={String(field.value)}
+                      onValueChange={v => {
+                        if (v === "my-company") { setAddSourceType("company"); vendorForm.reset(); return; }
+                        field.onChange(Number(v));
+                      }}
+                    >
                       <SelectTrigger data-testid="select-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="my-company">
+                          <span className="flex items-center gap-1.5">
+                            <Building2 className="w-3.5 h-3.5 text-primary" />
+                            {companySetting?.companyName || "My Company"}
+                          </span>
+                        </SelectItem>
                         {(vendors || []).map(v => <SelectItem key={v.id} value={String(v.id)}>{v.companyName || v.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
