@@ -605,9 +605,7 @@ export default function ResellerPackagesPage() {
                     <TableHead>Source</TableHead>
                     <TableHead>Vendor</TableHead>
                     <TableHead>Speed</TableHead>
-                    <TableHead className="text-right">Cost Price</TableHead>
-                    <TableHead className="text-right">Default Price</TableHead>
-                    <TableHead className="text-right">ISP Profit</TableHead>
+                    <TableHead className="text-right">Package Price</TableHead>
                     <TableHead>Assigned Resellers & Prices</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
@@ -615,12 +613,12 @@ export default function ResellerPackagesPage() {
                 </TableHeader>
                 <TableBody>
                   {isLoading ? Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}>{Array.from({ length: 10 }).map((_, j) => (
+                    <TableRow key={i}>{Array.from({ length: 8 }).map((_, j) => (
                       <TableCell key={j}><Skeleton className="h-4 w-full" /></TableCell>
                     ))}</TableRow>
                   )) : filteredList.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-10 text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
                         No packages found. Add a vendor or company package to get started.
                       </TableCell>
                     </TableRow>
@@ -630,12 +628,7 @@ export default function ResellerPackagesPage() {
                       <TableCell><SourceBadge type={p.source} /></TableCell>
                       <TableCell className="text-muted-foreground text-sm">{p.vendorName || "—"}</TableCell>
                       <TableCell><span className="font-medium text-blue-600 text-sm">{p.speed}</span></TableCell>
-                      <TableCell className="text-right text-red-600 text-sm">PKR {fmt(p.costPrice)}</TableCell>
                       <TableCell className="text-right font-semibold text-sm">PKR {fmt(p.sellingPrice)}</TableCell>
-                      <TableCell className={`text-right font-bold text-sm ${p.margin >= 0 ? "text-green-600" : "text-red-600"}`}>
-                        {p.margin >= 0 ? "+" : ""}PKR {fmt(p.margin)}
-                        {p.margin < 0 && <AlertTriangle className="w-3 h-3 inline ml-1" />}
-                      </TableCell>
                       <TableCell className="max-w-[220px]">
                         <AssignedResellersCell resellers={p.assignedResellers} />
                       </TableCell>
@@ -717,10 +710,7 @@ export default function ResellerPackagesPage() {
                 <p>No company packages yet.</p>
               </div>
             ) : (companyPkgs || []).map(p => {
-              const base = parseFloat(p.baseCost || "0");
               const selling = parseFloat(p.sellingPrice || "0");
-              const profit = selling - base;
-              const margin = base > 0 ? ((profit / base) * 100).toFixed(1) : "0";
               const pkgAssign = (assignments || []).filter(a => a.packageType === "company" && a.companyPackageId === p.id);
               return (
                 <Card key={p.id} className={`relative ${!p.isActive ? "opacity-60" : ""}`} data-testid={`card-company-pkg-${p.id}`}>
@@ -743,31 +733,15 @@ export default function ResellerPackagesPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      <div className="rounded bg-muted p-2">
-                        <p className="text-[10px] text-muted-foreground">Base Cost</p>
-                        <p className="text-sm font-semibold text-red-600">PKR {fmt(base)}</p>
-                      </div>
-                      <div className="rounded bg-muted p-2">
-                        <p className="text-[10px] text-muted-foreground">Default Price</p>
-                        <p className="text-sm font-semibold">PKR {fmt(selling)}</p>
-                      </div>
-                      <div className={`rounded p-2 ${profit >= 0 ? "bg-green-50 dark:bg-green-950/20" : "bg-red-50 dark:bg-red-950/20"}`}>
-                        <p className="text-[10px] text-muted-foreground">ISP Profit</p>
-                        <p className={`text-sm font-semibold ${profit >= 0 ? "text-green-600" : "text-red-600"}`}>
-                          {profit >= 0 ? "+" : ""}PKR {fmt(profit)}
-                        </p>
-                      </div>
+                    <div className="rounded bg-primary/5 border border-primary/20 p-3 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-0.5">Package Price</p>
+                      <p className="text-xl font-bold text-primary">PKR {fmt(selling)}</p>
+                      {p.validity && <p className="text-[10px] text-muted-foreground mt-0.5">per {p.validity}</p>}
                     </div>
-                    {profit < 0 && (
-                      <div className="flex items-center gap-1 text-xs text-red-600 bg-red-50 dark:bg-red-950/20 rounded p-2">
-                        <AlertTriangle className="w-3 h-3" /><span>Selling below cost!</span>
-                      </div>
-                    )}
-                    <div className="text-xs text-muted-foreground flex flex-wrap gap-2">
-                      {p.contentionRatio && <span>Contention: {p.contentionRatio}</span>}
-                      {p.costPerMbps && <span>PKR {fmt(p.costPerMbps, 4)}/Mbps</span>}
-                      <span className="text-violet-600">Margin: {margin}%</span>
+                    <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
+                      {p.uploadMbps && <span>↑ {p.uploadMbps} Mbps</span>}
+                      {p.downloadMbps && <span>↓ {p.downloadMbps} Mbps</span>}
+                      {p.contentionRatio && <span>Ratio: {p.contentionRatio}</span>}
                       <span className="text-primary font-medium">{pkgAssign.length} assigned</span>
                     </div>
                     <div className="flex gap-1.5 pt-1">
