@@ -59,6 +59,7 @@ import RevenueAnalyticsPage from "@/pages/revenue-analytics";
 import AgingReportPage from "@/pages/aging-report";
 import BandwidthUsagePage from "@/pages/bandwidth-usage";
 import BandwidthAccountingPage from "@/pages/bandwidth-accounting";
+import ResellerPackagesPage from "@/pages/reseller-packages";
 import PackageChangePage from "@/pages/package-change";
 import ServiceSchedulerPage from "@/pages/service-scheduler";
 import DailyCollectionPage from "@/pages/daily-collection";
@@ -228,6 +229,7 @@ function Router() {
       <Route path="/aging-report" component={AgingReportPage} />
       <Route path="/bandwidth-usage" component={BandwidthUsagePage} />
       <Route path="/bandwidth-accounting" component={BandwidthAccountingPage} />
+      <Route path="/reseller-packages" component={ResellerPackagesPage} />
       <Route path="/daily-collection" component={DailyCollectionPage} />
       <Route path="/network-map" component={NetworkMapPage} />
       <Route path="/noc-dashboard" component={NocDashboardPage} />

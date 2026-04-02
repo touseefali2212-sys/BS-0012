@@ -7,7 +7,7 @@ import fs from "fs";
 import { storage } from "./storage";
 import { db } from "./db";
 import { purchaseOrderItems, serviceSchedulerRequests, notificationDispatches, packageChangeRequests, bandwidthHistory, onuDevices, gponSplitters, oltDevices, bandwidthPurchases } from "@shared/schema";
-import { insertBandwidthPurchaseSchema } from "@shared/schema";
+import { insertBandwidthPurchaseSchema, insertResellerCompanyPackageSchema, insertResellerPackageAssignmentSchema } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 import {
   loginSchema, insertCustomerSchema, insertPackageSchema, insertInvoiceSchema,
@@ -1383,6 +1383,96 @@ export async function registerRoutes(
       }
 
       res.json(months);
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  // Reseller Company Packages API
+  app.get("/api/reseller-company-packages", requireAuth, async (req, res) => {
+    try { res.json(await storage.getResellerCompanyPackages()); }
+    catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  app.get("/api/reseller-company-packages/:id", requireAuth, async (req, res) => {
+    try {
+      const row = await storage.getResellerCompanyPackage(parseInt(req.params.id));
+      if (!row) return res.status(404).json({ message: "Not found" });
+      res.json(row);
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  app.post("/api/reseller-company-packages", requireAuth, async (req, res) => {
+    try {
+      const parsed = insertResellerCompanyPackageSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+      const data = parsed.data;
+      const speed = parseFloat(String(data.speedMbps));
+      const costPerMbps = parseFloat(String(data.costPerMbps || "0"));
+      const baseCost = (speed * costPerMbps).toFixed(2);
+      const profitValue = parseFloat(String(data.profitValue || "0"));
+      let sellingPrice = parseFloat(baseCost);
+      if (data.profitType === "fixed") sellingPrice = parseFloat(baseCost) + profitValue;
+      else if (data.profitType === "percentage") sellingPrice = parseFloat(baseCost) * (1 + profitValue / 100);
+      else if (data.profitType === "custom") sellingPrice = profitValue;
+      const row = await storage.createResellerCompanyPackage({ ...data, baseCost, sellingPrice: sellingPrice.toFixed(2) });
+      res.json(row);
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  app.patch("/api/reseller-company-packages/:id", requireAuth, async (req, res) => {
+    try {
+      const data = req.body;
+      if (data.speedMbps && data.costPerMbps) {
+        const speed = parseFloat(String(data.speedMbps));
+        const costPerMbps = parseFloat(String(data.costPerMbps));
+        const baseCost = (speed * costPerMbps).toFixed(2);
+        const profitValue = parseFloat(String(data.profitValue || "0"));
+        let sellingPrice = parseFloat(baseCost);
+        if (data.profitType === "fixed") sellingPrice = parseFloat(baseCost) + profitValue;
+        else if (data.profitType === "percentage") sellingPrice = parseFloat(baseCost) * (1 + profitValue / 100);
+        else if (data.profitType === "custom") sellingPrice = profitValue;
+        data.baseCost = baseCost;
+        data.sellingPrice = sellingPrice.toFixed(2);
+      }
+      const row = await storage.updateResellerCompanyPackage(parseInt(req.params.id), data);
+      res.json(row);
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  app.delete("/api/reseller-company-packages/:id", requireAuth, async (req, res) => {
+    try {
+      await storage.deleteResellerCompanyPackage(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  // Reseller Package Assignments API
+  app.get("/api/reseller-package-assignments", requireAuth, async (req, res) => {
+    try {
+      const resellerId = req.query.resellerId ? parseInt(req.query.resellerId as string) : undefined;
+      res.json(await storage.getResellerPackageAssignments(resellerId));
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  app.post("/api/reseller-package-assignments", requireAuth, async (req, res) => {
+    try {
+      const parsed = insertResellerPackageAssignmentSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+      const row = await storage.createResellerPackageAssignment(parsed.data);
+      res.json(row);
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  app.patch("/api/reseller-package-assignments/:id", requireAuth, async (req, res) => {
+    try {
+      const row = await storage.updateResellerPackageAssignment(parseInt(req.params.id), req.body);
+      res.json(row);
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  app.delete("/api/reseller-package-assignments/:id", requireAuth, async (req, res) => {
+    try {
+      await storage.deleteResellerPackageAssignment(parseInt(req.params.id));
+      res.json({ success: true });
     } catch (error: any) { res.status(500).json({ message: error.message }); }
   });
 

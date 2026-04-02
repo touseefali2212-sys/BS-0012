@@ -149,7 +149,7 @@ const managementNav: NavItem[] = [
     subItems: [
       { title: "Packages List", url: "/packages?tab=list", icon: List },
       { title: "Tax & Extra Fee", url: "/packages?tab=tax", icon: Receipt },
-      { title: "Reseller Packages", url: "/packages?tab=reseller", icon: Handshake },
+      { title: "Reseller Packages", url: "/reseller-packages", icon: Handshake },
     ],
   },
   {
@@ -233,6 +233,7 @@ const customerNav: NavItem[] = [
       { title: "Reseller List", url: "/resellers?tab=list", icon: List },
       { title: "Wallet & Transaction", url: "/resellers?tab=wallet", icon: Wallet },
       { title: "Commission Report", url: "/resellers?tab=commission", icon: TrendingUp },
+      { title: "Reseller Packages", url: "/reseller-packages", icon: Package },
       { title: "Bandwidth Accounting", url: "/bandwidth-accounting", icon: Wifi },
     ],
   },

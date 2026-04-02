@@ -186,6 +186,10 @@ import {
   type ServiceSchedulerRequest, type InsertServiceSchedulerRequest,
   bandwidthPurchases,
   type BandwidthPurchase, type InsertBandwidthPurchase,
+  resellerCompanyPackages,
+  type ResellerCompanyPackage, type InsertResellerCompanyPackage,
+  resellerPackageAssignments,
+  type ResellerPackageAssignment, type InsertResellerPackageAssignment,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -302,6 +306,17 @@ export interface IStorage {
   createBandwidthPurchase(data: InsertBandwidthPurchase): Promise<BandwidthPurchase>;
   updateBandwidthPurchase(id: number, data: Partial<InsertBandwidthPurchase>): Promise<BandwidthPurchase>;
   deleteBandwidthPurchase(id: number): Promise<void>;
+
+  getResellerCompanyPackages(): Promise<ResellerCompanyPackage[]>;
+  getResellerCompanyPackage(id: number): Promise<ResellerCompanyPackage | undefined>;
+  createResellerCompanyPackage(data: InsertResellerCompanyPackage): Promise<ResellerCompanyPackage>;
+  updateResellerCompanyPackage(id: number, data: Partial<InsertResellerCompanyPackage>): Promise<ResellerCompanyPackage>;
+  deleteResellerCompanyPackage(id: number): Promise<void>;
+
+  getResellerPackageAssignments(resellerId?: number): Promise<ResellerPackageAssignment[]>;
+  createResellerPackageAssignment(data: InsertResellerPackageAssignment): Promise<ResellerPackageAssignment>;
+  updateResellerPackageAssignment(id: number, data: Partial<InsertResellerPackageAssignment>): Promise<ResellerPackageAssignment>;
+  deleteResellerPackageAssignment(id: number): Promise<void>;
 
   getVendorPackages(vendorId?: number): Promise<VendorPackage[]>;
   getVendorPackage(id: number): Promise<VendorPackage | undefined>;
@@ -1585,6 +1600,50 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBandwidthPurchase(id: number): Promise<void> {
     await db.delete(bandwidthPurchases).where(eq(bandwidthPurchases.id, id));
+  }
+
+  async getResellerCompanyPackages(): Promise<ResellerCompanyPackage[]> {
+    return db.select().from(resellerCompanyPackages).orderBy(desc(resellerCompanyPackages.id));
+  }
+
+  async getResellerCompanyPackage(id: number): Promise<ResellerCompanyPackage | undefined> {
+    const [row] = await db.select().from(resellerCompanyPackages).where(eq(resellerCompanyPackages.id, id));
+    return row;
+  }
+
+  async createResellerCompanyPackage(data: InsertResellerCompanyPackage): Promise<ResellerCompanyPackage> {
+    const [row] = await db.insert(resellerCompanyPackages).values(data).returning();
+    return row;
+  }
+
+  async updateResellerCompanyPackage(id: number, data: Partial<InsertResellerCompanyPackage>): Promise<ResellerCompanyPackage> {
+    const [row] = await db.update(resellerCompanyPackages).set(data).where(eq(resellerCompanyPackages.id, id)).returning();
+    return row;
+  }
+
+  async deleteResellerCompanyPackage(id: number): Promise<void> {
+    await db.delete(resellerCompanyPackages).where(eq(resellerCompanyPackages.id, id));
+  }
+
+  async getResellerPackageAssignments(resellerId?: number): Promise<ResellerPackageAssignment[]> {
+    if (resellerId) {
+      return db.select().from(resellerPackageAssignments).where(eq(resellerPackageAssignments.resellerId, resellerId)).orderBy(desc(resellerPackageAssignments.id));
+    }
+    return db.select().from(resellerPackageAssignments).orderBy(desc(resellerPackageAssignments.id));
+  }
+
+  async createResellerPackageAssignment(data: InsertResellerPackageAssignment): Promise<ResellerPackageAssignment> {
+    const [row] = await db.insert(resellerPackageAssignments).values(data).returning();
+    return row;
+  }
+
+  async updateResellerPackageAssignment(id: number, data: Partial<InsertResellerPackageAssignment>): Promise<ResellerPackageAssignment> {
+    const [row] = await db.update(resellerPackageAssignments).set(data).where(eq(resellerPackageAssignments.id, id)).returning();
+    return row;
+  }
+
+  async deleteResellerPackageAssignment(id: number): Promise<void> {
+    await db.delete(resellerPackageAssignments).where(eq(resellerPackageAssignments.id, id));
   }
 
   async getVendorPackages(vendorId?: number): Promise<VendorPackage[]> {

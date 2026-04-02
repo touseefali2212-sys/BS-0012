@@ -3682,6 +3682,48 @@ export const insertPackageChangeRequestSchema = createInsertSchema(packageChange
 export type InsertPackageChangeRequest = z.infer<typeof insertPackageChangeRequestSchema>;
 export type PackageChangeRequest = typeof packageChangeRequests.$inferSelect;
 
+// Company-Owned Reseller Packages (bandwidth-pool-based)
+export const resellerCompanyPackages = pgTable("reseller_company_packages", {
+  id: serial("id").primaryKey(),
+  packageName: text("package_name").notNull(),
+  speedMbps: decimal("speed_mbps", { precision: 10, scale: 2 }).notNull(),
+  uploadMbps: decimal("upload_mbps", { precision: 10, scale: 2 }),
+  downloadMbps: decimal("download_mbps", { precision: 10, scale: 2 }),
+  contentionRatio: text("contention_ratio").default("1:1"),
+  validity: text("validity").default("30 days"),
+  costPerMbps: decimal("cost_per_mbps", { precision: 10, scale: 4 }),
+  baseCost: decimal("base_cost", { precision: 10, scale: 2 }),
+  profitType: text("profit_type").notNull().default("fixed"),
+  profitValue: decimal("profit_value", { precision: 10, scale: 2 }).default("0"),
+  sellingPrice: decimal("selling_price", { precision: 10, scale: 2 }),
+  description: text("description"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertResellerCompanyPackageSchema = createInsertSchema(resellerCompanyPackages).omit({ id: true, createdAt: true });
+export type InsertResellerCompanyPackage = z.infer<typeof insertResellerCompanyPackageSchema>;
+export type ResellerCompanyPackage = typeof resellerCompanyPackages.$inferSelect;
+
+// Reseller Package Assignments
+export const resellerPackageAssignments = pgTable("reseller_package_assignments", {
+  id: serial("id").primaryKey(),
+  resellerId: integer("reseller_id").notNull(),
+  packageType: text("package_type").notNull().default("vendor"),
+  vendorPackageId: integer("vendor_package_id"),
+  companyPackageId: integer("company_package_id"),
+  customPrice: decimal("custom_price", { precision: 10, scale: 2 }),
+  profitOverride: decimal("profit_override", { precision: 10, scale: 2 }),
+  isEnabled: boolean("is_enabled").notNull().default(true),
+  assignedBy: text("assigned_by"),
+  notes: text("notes"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertResellerPackageAssignmentSchema = createInsertSchema(resellerPackageAssignments).omit({ id: true, createdAt: true });
+export type InsertResellerPackageAssignment = z.infer<typeof insertResellerPackageAssignmentSchema>;
+export type ResellerPackageAssignment = typeof resellerPackageAssignments.$inferSelect;
+
 // Bandwidth Purchases - tracks bulk bandwidth purchased from upstream vendors
 export const bandwidthPurchases = pgTable("bandwidth_purchases", {
   id: serial("id").primaryKey(),

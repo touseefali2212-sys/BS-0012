@@ -1,0 +1,171 @@
+Packages Module
+Reseller Packages 
+(Vendor-Based + Company Bandwidth-Based Packages)
+________________________________________
+🎯 Objective
+Develop a dedicated Reseller Packages that allows the ISP to:
+✔ Create and manage reseller-specific packages
+✔ Support both:
+•	Vendor Panel Packages 
+•	Company-Owned Bandwidth Packages 
+✔ Apply fixed or dynamic profit margins
+✔ Provide resellers with controlled, profitable package offerings
+________________________________________
+🧠 Core Concept
+The system must support two package sources:
+________________________________________
+1️⃣ Vendor-Based Packages (Panel Vendor Model)
+•	Packages provided by upstream vendor panels 
+•	Example: 4Mbps, 6Mbps, 10Mbps 
+✔ Admin selects vendor package
+✔ Applies profit margin
+✔ Assigns to reseller
+________________________________________
+2️⃣ Company-Based Packages (Bandwidth Pool Model) 🔥
+•	Packages created from company’s own purchased bandwidth 
+•	Fully controlled by ISP 
+✔ Define speed, price, and limits
+✔ No dependency on vendor
+✔ Higher profit control
+________________________________________
+🧩 Page Structure
+Design a tab-based interface:
+Tabs:
+1.	Reseller Packages List 
+2.	Add New Reseller Package 
+3.	Vendor Packages Mapping 
+4.	Company Packages (Bandwidth-Based) 
+5.	Profit Configuration 
+6.	Package Assignment to Resellers 
+________________________________________
+📋 1️⃣ Reseller Packages List
+Display all packages available to resellers:
+Columns:
+•	Package Name 
+•	Source Type (Vendor / Company) 
+•	Vendor Name (if applicable) 
+•	Speed (Mbps) 
+•	Cost Price 
+•	Profit Margin 
+•	Selling Price 
+•	Assigned Resellers 
+•	Status (Active / Inactive) 
+________________________________________
+Features:
+✔ Search & filters
+✔ Bulk enable/disable
+✔ Clone package
+✔ Edit pricing
+________________________________________
+➕ 2️⃣ Add New Reseller Package
+🔹 Step 1: Select Package Source
+•	Vendor Package 
+•	Company Package 
+________________________________________
+🔹 Step 2A: Vendor Package Flow
+Fields:
+•	Select Vendor 
+•	Select Vendor Package (Auto-fetch) 
+•	Vendor Price 
+________________________________________
+🔹 Step 2B: Company Package Flow 🔥
+Fields:
+•	Package Name 
+•	Bandwidth Speed (Mbps) 
+•	Base Cost (calculated from bandwidth purchase) 
+________________________________________
+💰 3️⃣ Profit Margin Configuration
+Allow flexible pricing:
+•	Fixed Profit (e.g., +PKR 200) 
+•	Percentage Profit (%) 
+•	Custom Reseller Price 
+________________________________________
+Auto Calculation:
+Selling Price = Cost Price + Profit Margin
+________________________________________
+Advanced:
+✔ Different margin per reseller
+✔ Bulk margin update
+________________________________________
+🔗 4️⃣ Vendor Packages Mapping
+Map vendor packages to reseller offerings:
+✔ Sync vendor package list
+✔ Apply markup rules
+✔ Enable/disable per reseller
+________________________________________
+🌐 5️⃣ Company Packages (Bandwidth Engine)
+Create internal ISP packages:
+Fields:
+•	Package Name 
+•	Speed (Mbps) 
+•	Upload/Download Ratio 
+•	Contention Ratio 
+•	Validity (30 Days, etc.) 
+•	Cost per Mbps (from bandwidth pool) 
+________________________________________
+Logic:
+✔ Cost auto-calculated from:
+Cost = Bandwidth Cost per Mbps × Package Speed
+________________________________________
+👥 6️⃣ Package Assignment to Resellers
+Assign packages:
+✔ Select Reseller(s)
+✔ Assign specific packages
+✔ Define custom pricing (optional)
+________________________________________
+Controls:
+•	Enable/Disable package per reseller 
+•	Override default profit 
+________________________________________
+⚙️ Smart Features (HIGH VALUE 💎)
+🔄 Dual Package Engine
+✔ Vendor-based resale
+✔ Company-based direct distribution
+________________________________________
+📊 Profit Tracking per Package
+Track:
+•	Cost vs Selling price 
+•	Profit per package 
+•	Reseller-wise profit 
+________________________________________
+⚖️ Dynamic Pricing Engine
+✔ Auto adjust pricing based on bandwidth cost
+________________________________________
+🚫 Loss Prevention
+✔ Alert if selling below cost
+✔ Block negative margin packages
+________________________________________
+📈 Usage-Based Package (Optional)
+✔ Deduct reseller balance based on usage
+________________________________________
+🔁 Package Cloning
+✔ Duplicate package with new pricing
+________________________________________
+🔐 Role-Based Access
+Admin:
+✔ Full control
+Manager:
+✔ Create & assign packages
+Reseller:
+✔ View assigned packages only
+________________________________________
+🎨 UI/UX Design
+•	Clean card-based layout 
+•	Source type badges: 
+o	🔵 Vendor 
+o	🟢 Company 
+•	Pricing calculator preview 
+•	Toggle-based controls 
+________________________________________
+🧪 Expected Output
+✔ Flexible reseller package system
+✔ Dual revenue model
+✔ High profit control
+✔ Scalable reseller ecosystem
+________________________________________
+📈 Business Impact
+🔥 Increase profit margins
+🔥 Reduce vendor dependency
+🔥 Enable hybrid ISP model
+🔥 Competitive reseller offerings
+
