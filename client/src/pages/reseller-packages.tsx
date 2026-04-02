@@ -58,12 +58,6 @@ function fmt(n: number | string | undefined | null, d = 2) {
   return Number(n || 0).toLocaleString("en-PK", { minimumFractionDigits: d, maximumFractionDigits: d });
 }
 
-function calcSellingPrice(base: number, profitType: string, profitValue: number): number {
-  if (profitType === "fixed") return base + profitValue;
-  if (profitType === "percentage") return base * (1 + profitValue / 100);
-  if (profitType === "custom") return profitValue;
-  return base;
-}
 
 function calcAssignTotal(defaultPrice: number, profitType: string, profitValue: number): number {
   if (profitType === "none") return defaultPrice;
@@ -171,9 +165,6 @@ export default function ResellerPackagesPage() {
   const [assignNotes, setAssignNotes] = useState("");
   const [assignCustomPrice, setAssignCustomPrice] = useState(""); // direct override
 
-  // Bulk margin
-  const [bulkMarginType, setBulkMarginType] = useState("percentage");
-  const [bulkMarginValue, setBulkMarginValue] = useState("10");
 
   // ── Queries ──
   const { data: companyPkgs, isLoading: cLoading } = useQuery<ResellerCompanyPackage[]>({
@@ -408,21 +399,6 @@ export default function ResellerPackagesPage() {
     }), 0);
   };
 
-  const handleBulkMarginUpdate = async () => {
-    const val = parseFloat(bulkMarginValue);
-    if (isNaN(val)) return;
-    let count = 0;
-    for (const p of companyPkgs || []) {
-      const base = parseFloat(p.baseCost || "0");
-      const selling = calcSellingPrice(base, bulkMarginType, val);
-      await apiRequest("PATCH", `/api/reseller-company-packages/${p.id}`, {
-        profitType: bulkMarginType, profitValue: String(val), sellingPrice: selling.toFixed(2),
-      });
-      count++;
-    }
-    queryClient.invalidateQueries({ queryKey: ["/api/reseller-company-packages"] });
-    toast({ title: `Updated ${count} company packages` });
-  };
 
   const handleSubmitAssign = () => {
     if (!assignResellerId) { toast({ title: "Please select a reseller", variant: "destructive" }); return; }
@@ -451,7 +427,7 @@ export default function ResellerPackagesPage() {
   const combinedPackages = useMemo(() => {
     const items: {
       id: string; name: string; source: "vendor" | "company"; vendorName?: string;
-      speed: string; costPrice: number; sellingPrice: number; margin: number;
+      speed: string; costPrice: number; sellingPrice: number;
       isActive: boolean;
       assignedResellers: { name: string; price: number; enabled: boolean }[];
     }[] = [];
@@ -470,7 +446,7 @@ export default function ResellerPackagesPage() {
         id: `vendor-${p.id}`, name: p.packageName, source: "vendor",
         vendorName: vendor?.companyName || vendor?.name || `Vendor #${p.vendorId}`,
         speed: p.speed || "—", costPrice: cost, sellingPrice: selling,
-        margin: selling - cost, isActive: p.isActive, assignedResellers,
+        isActive: p.isActive, assignedResellers,
       });
     });
 
@@ -486,7 +462,7 @@ export default function ResellerPackagesPage() {
       items.push({
         id: `company-${p.id}`, name: p.packageName, source: "company",
         speed: `${p.speedMbps} Mbps`, costPrice: cost, sellingPrice: selling,
-        margin: selling - cost, isActive: p.isActive, assignedResellers,
+        isActive: p.isActive, assignedResellers,
       });
     });
 
@@ -563,7 +539,6 @@ export default function ResellerPackagesPage() {
           <TabsTrigger value="list" data-testid="tab-list"><Package className="w-4 h-4 mr-1" />All Packages</TabsTrigger>
           <TabsTrigger value="company" data-testid="tab-company"><Building2 className="w-4 h-4 mr-1" />Company Packages</TabsTrigger>
           <TabsTrigger value="vendor-mapping" data-testid="tab-vendor"><Handshake className="w-4 h-4 mr-1" />V-Panel Packages</TabsTrigger>
-          <TabsTrigger value="profit" data-testid="tab-profit"><Percent className="w-4 h-4 mr-1" />Profit Config</TabsTrigger>
           <TabsTrigger value="assignments" data-testid="tab-assignments">
             <Tag className="w-4 h-4 mr-1" />Assignments
             {(assignments || []).length > 0 && (
@@ -882,80 +857,6 @@ export default function ResellerPackagesPage() {
           )}
         </TabsContent>
 
-        {/* ─── PROFIT CONFIG ─── */}
-        <TabsContent value="profit" className="space-y-4 mt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><Percent className="w-5 h-5 text-primary" />Bulk Margin Update</CardTitle>
-                <CardDescription>Apply a uniform profit rule across all company packages</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Profit Type</Label>
-                  <Select value={bulkMarginType} onValueChange={setBulkMarginType}>
-                    <SelectTrigger data-testid="select-bulk-type"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="fixed">Fixed Amount (PKR)</SelectItem>
-                      <SelectItem value="percentage">Percentage (%)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Profit Value</Label>
-                  <Input type="number" value={bulkMarginValue} onChange={e => setBulkMarginValue(e.target.value)}
-                    placeholder={bulkMarginType === "percentage" ? "e.g. 20" : "e.g. 500"} data-testid="input-bulk-margin" />
-                  <p className="text-xs text-muted-foreground">
-                    {bulkMarginType === "percentage"
-                      ? `Selling = Base Cost × (1 + ${bulkMarginValue}%)`
-                      : `Selling = Base Cost + PKR ${bulkMarginValue}`}
-                  </p>
-                </div>
-                <Button onClick={handleBulkMarginUpdate} className="w-full" data-testid="btn-bulk-update">
-                  <RefreshCw className="w-4 h-4 mr-2" />Apply to All Company Packages ({(companyPkgs || []).length})
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5 text-primary" />Package Profit Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {(companyPkgs || []).map(p => {
-                    const base = parseFloat(p.baseCost || "0");
-                    const selling = parseFloat(p.sellingPrice || "0");
-                    const profit = selling - base;
-                    const margin = base > 0 ? ((profit / base) * 100).toFixed(1) : "0";
-                    return (
-                      <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/50" data-testid={`profit-row-${p.id}`}>
-                        <div className="flex items-center gap-2">
-                          {profit < 0
-                            ? <XCircle className="w-4 h-4 text-red-500 shrink-0" />
-                            : <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />}
-                          <div>
-                            <p className="text-sm font-medium">{p.packageName}</p>
-                            <p className="text-xs text-muted-foreground">{p.speedMbps} Mbps · {p.profitType}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className={`text-sm font-bold ${profit >= 0 ? "text-green-600" : "text-red-600"}`}>
-                            {profit >= 0 ? "+" : ""}PKR {fmt(profit)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">{margin}% margin</p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {(companyPkgs || []).length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-4">No company packages yet</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
 
         {/* ─── ASSIGNMENTS ─── */}
         <TabsContent value="assignments" className="space-y-4 mt-4">
