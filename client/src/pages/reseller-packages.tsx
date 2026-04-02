@@ -1019,6 +1019,16 @@ export default function ResellerPackagesPage() {
                   </FormItem>
                 )} />
 
+                {/* Vendor (company name) — read-only display */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium">Vendor</Label>
+                  <div className="flex items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm">
+                    <Building2 className="w-4 h-4 text-primary shrink-0" />
+                    <span className="font-medium">{companySetting?.companyName || "My Company"}</span>
+                    <Badge variant="outline" className="ml-auto text-[10px]">My Company</Badge>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-3 gap-3">
                   {[
                     { name: "speedMbps" as const, label: "Speed (Mbps) *", placeholder: "10" },
@@ -1105,18 +1115,9 @@ export default function ResellerPackagesPage() {
                 <FormField control={vendorForm.control} name="vendorId" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Vendor *</FormLabel>
-                    <Select
-                      value={String(field.value)}
-                      onValueChange={v => {
-                        if (v === "my-company") { setAddSourceType("company"); vendorForm.reset(); return; }
-                        field.onChange(Number(v));
-                      }}
-                    >
+                    <Select value={String(field.value)} onValueChange={v => field.onChange(Number(v))}>
                       <SelectTrigger data-testid="select-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="my-company">
-                          ★ {companySetting?.companyName || "My Company"} (My Company)
-                        </SelectItem>
                         {(vendors || []).map(v => <SelectItem key={v.id} value={String(v.id)}>{v.companyName || v.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
