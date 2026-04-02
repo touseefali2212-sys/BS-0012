@@ -712,6 +712,11 @@ export default function ResellerPackagesPage() {
             ) : (companyPkgs || []).map(p => {
               const selling = parseFloat(p.sellingPrice || "0");
               const pkgAssign = (assignments || []).filter(a => a.packageType === "company" && a.companyPackageId === p.id);
+              const assignedResellersData = pkgAssign.map(a => {
+                const r = (resellers || []).find(r => r.id === a.resellerId);
+                const price = a.customPrice ? parseFloat(a.customPrice) : selling;
+                return { name: r?.companyName || r?.name || `Reseller #${a.resellerId}`, price, enabled: a.isEnabled };
+              });
               return (
                 <Card key={p.id} className={`relative ${!p.isActive ? "opacity-60" : ""}`} data-testid={`card-company-pkg-${p.id}`}>
                   <CardHeader className="pb-2">
@@ -742,8 +747,13 @@ export default function ResellerPackagesPage() {
                       {p.uploadMbps && <span>↑ {p.uploadMbps} Mbps</span>}
                       {p.downloadMbps && <span>↓ {p.downloadMbps} Mbps</span>}
                       {p.contentionRatio && <span>Ratio: {p.contentionRatio}</span>}
-                      <span className="text-primary font-medium">{pkgAssign.length} assigned</span>
                     </div>
+                    {assignedResellersData.length > 0 && (
+                      <div className="border-t pt-2 space-y-1">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Assigned Resellers</p>
+                        <AssignedResellersCell resellers={assignedResellersData} />
+                      </div>
+                    )}
                     <div className="flex gap-1.5 pt-1">
                       <Button variant="outline" size="sm" className="flex-1 text-xs h-7" onClick={() => openEditCompany(p)} data-testid={`btn-edit-company-${p.id}`}>
                         <Edit className="w-3 h-3 mr-1" />Edit
@@ -795,6 +805,11 @@ export default function ResellerPackagesPage() {
                 const vendor = (vendors || []).find(v => v.id === p.vendorId);
                 const sellingPrice = parseFloat(p.ispSellingPrice || "0");
                 const pkgAssign = (assignments || []).filter(a => a.packageType === "vendor" && a.vendorPackageId === p.id);
+                const assignedResellersData = pkgAssign.map(a => {
+                  const r = (resellers || []).find(r => r.id === a.resellerId);
+                  const price = a.customPrice ? parseFloat(a.customPrice) : sellingPrice;
+                  return { name: r?.companyName || r?.name || `Reseller #${a.resellerId}`, price, enabled: a.isEnabled };
+                });
                 return (
                   <Card key={p.id} className={`relative ${!p.isActive ? "opacity-60" : ""}`} data-testid={`card-vendor-pkg-${p.id}`}>
                     <CardHeader className="pb-2">
@@ -842,8 +857,13 @@ export default function ResellerPackagesPage() {
                       <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
                         {vendor && <span className="font-medium text-foreground">{vendor.name}</span>}
                         {p.dataLimit && <span>Data: {p.dataLimit}</span>}
-                        <span className="text-primary font-medium">{pkgAssign.length} assigned</span>
                       </div>
+                      {assignedResellersData.length > 0 && (
+                        <div className="border-t pt-2 space-y-1">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium">Assigned Resellers</p>
+                          <AssignedResellersCell resellers={assignedResellersData} />
+                        </div>
+                      )}
                       <div className="flex gap-1.5 pt-1">
                         <Button variant="outline" size="sm" className="flex-1 text-xs h-7" onClick={() => openEditVendor(p)} data-testid={`btn-edit-vendor-${p.id}`}>
                           <Edit className="w-3 h-3 mr-1" />Edit
