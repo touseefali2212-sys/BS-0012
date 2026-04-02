@@ -6,7 +6,8 @@ import path from "path";
 import fs from "fs";
 import { storage } from "./storage";
 import { db } from "./db";
-import { purchaseOrderItems, serviceSchedulerRequests, notificationDispatches, packageChangeRequests, bandwidthHistory, onuDevices, gponSplitters, oltDevices } from "@shared/schema";
+import { purchaseOrderItems, serviceSchedulerRequests, notificationDispatches, packageChangeRequests, bandwidthHistory, onuDevices, gponSplitters, oltDevices, bandwidthPurchases } from "@shared/schema";
+import { insertBandwidthPurchaseSchema } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 import {
   loginSchema, insertCustomerSchema, insertPackageSchema, insertInvoiceSchema,
@@ -1266,6 +1267,122 @@ export async function registerRoutes(
     try {
       await storage.deleteResellerMonthlySummary(parseInt(req.params.id));
       res.json({ success: true });
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  // Bandwidth Purchases API
+  app.get("/api/bandwidth-purchases", requireAuth, async (req, res) => {
+    try {
+      const vendorId = req.query.vendorId ? parseInt(req.query.vendorId as string) : undefined;
+      res.json(await storage.getBandwidthPurchases(vendorId));
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  app.get("/api/bandwidth-purchases/:id", requireAuth, async (req, res) => {
+    try {
+      const row = await storage.getBandwidthPurchase(parseInt(req.params.id));
+      if (!row) return res.status(404).json({ message: "Not found" });
+      res.json(row);
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  app.post("/api/bandwidth-purchases", requireAuth, async (req, res) => {
+    try {
+      const parsed = insertBandwidthPurchaseSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+      const data = parsed.data;
+      const capacityMbps = parseFloat(String(data.capacityMbps));
+      const costAmount = parseFloat(String(data.costAmount));
+      const costPerMbps = capacityMbps > 0 ? (costAmount / capacityMbps).toFixed(4) : "0";
+      const row = await storage.createBandwidthPurchase({ ...data, costPerMbps });
+      res.json(row);
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  app.patch("/api/bandwidth-purchases/:id", requireAuth, async (req, res) => {
+    try {
+      const row = await storage.updateBandwidthPurchase(parseInt(req.params.id), req.body);
+      res.json(row);
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  app.delete("/api/bandwidth-purchases/:id", requireAuth, async (req, res) => {
+    try {
+      await storage.deleteBandwidthPurchase(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  // Bandwidth Pool Stats API
+  app.get("/api/bandwidth-pool/stats", requireAuth, async (req, res) => {
+    try {
+      const purchases = await storage.getBandwidthPurchases();
+      const resellers = await storage.getResellers();
+      const allResellerTxns = await storage.getAllResellerWalletTransactions();
+
+      const activePurchases = purchases.filter(p => p.status === "active");
+      const totalPurchasedMbps = activePurchases.reduce((sum, p) => sum + parseFloat(p.capacityMbps || "0"), 0);
+      const totalPurchaseCost = activePurchases.reduce((sum, p) => sum + parseFloat(p.costAmount || "0"), 0);
+
+      // Allocated bandwidth = sum of reseller bandwidth plans
+      const allocatedMbps = resellers.reduce((sum, r) => {
+        const bw = parseFloat(r.bandwidthPlan || "0");
+        return sum + (isNaN(bw) ? 0 : bw);
+      }, 0);
+
+      const availableMbps = Math.max(0, totalPurchasedMbps - allocatedMbps);
+      const utilizationPct = totalPurchasedMbps > 0 ? ((allocatedMbps / totalPurchasedMbps) * 100).toFixed(1) : "0";
+
+      // Financial stats
+      const totalRechargeRevenue = allResellerTxns
+        .filter(t => t.type === "credit" || t.type === "recharge")
+        .reduce((sum, t) => sum + parseFloat(t.amount || "0"), 0);
+
+      const netProfit = totalRechargeRevenue - totalPurchaseCost;
+
+      res.json({
+        totalPurchasedMbps,
+        allocatedMbps,
+        availableMbps,
+        utilizationPct,
+        totalPurchaseCost,
+        totalRechargeRevenue,
+        netProfit,
+        totalPurchases: activePurchases.length,
+        totalResellers: resellers.length,
+        activeResellers: resellers.filter(r => r.status === "active").length,
+      });
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  // Profit/Loss Report API
+  app.get("/api/profit-loss-report", requireAuth, async (req, res) => {
+    try {
+      const { month, year } = req.query as Record<string, string>;
+      const purchases = await storage.getBandwidthPurchases();
+      const allResellerTxns = await storage.getAllResellerWalletTransactions();
+
+      // Build monthly data for the last 12 months
+      const now = new Date();
+      const months: { label: string; key: string; purchaseCost: number; rechargeRevenue: number; profit: number }[] = [];
+
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        const monthLabel = d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+
+        const purchaseCost = purchases
+          .filter(p => (p.purchaseDate || "").startsWith(monthKey))
+          .reduce((sum, p) => sum + parseFloat(p.costAmount || "0"), 0);
+
+        const rechargeRevenue = allResellerTxns
+          .filter(t => (t.type === "credit" || t.type === "recharge") && (t.createdAt || "").startsWith(monthKey))
+          .reduce((sum, t) => sum + parseFloat(t.amount || "0"), 0);
+
+        months.push({ label: monthLabel, key: monthKey, purchaseCost, rechargeRevenue, profit: rechargeRevenue - purchaseCost });
+      }
+
+      res.json(months);
     } catch (error: any) { res.status(500).json({ message: error.message }); }
   });
 

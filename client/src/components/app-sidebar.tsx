@@ -233,6 +233,7 @@ const customerNav: NavItem[] = [
       { title: "Reseller List", url: "/resellers?tab=list", icon: List },
       { title: "Wallet & Transaction", url: "/resellers?tab=wallet", icon: Wallet },
       { title: "Commission Report", url: "/resellers?tab=commission", icon: TrendingUp },
+      { title: "Bandwidth Accounting", url: "/bandwidth-accounting", icon: Wifi },
     ],
   },
 ];

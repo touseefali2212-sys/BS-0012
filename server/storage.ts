@@ -184,6 +184,8 @@ import {
   type BandwidthHistory, type InsertBandwidthHistory,
   serviceSchedulerRequests,
   type ServiceSchedulerRequest, type InsertServiceSchedulerRequest,
+  bandwidthPurchases,
+  type BandwidthPurchase, type InsertBandwidthPurchase,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -294,6 +296,12 @@ export interface IStorage {
   getResellerMonthlySummary(id: number): Promise<ResellerMonthlySummary | undefined>;
   upsertResellerMonthlySummary(data: InsertResellerMonthlySummary): Promise<ResellerMonthlySummary>;
   deleteResellerMonthlySummary(id: number): Promise<void>;
+
+  getBandwidthPurchases(vendorId?: number): Promise<BandwidthPurchase[]>;
+  getBandwidthPurchase(id: number): Promise<BandwidthPurchase | undefined>;
+  createBandwidthPurchase(data: InsertBandwidthPurchase): Promise<BandwidthPurchase>;
+  updateBandwidthPurchase(id: number, data: Partial<InsertBandwidthPurchase>): Promise<BandwidthPurchase>;
+  deleteBandwidthPurchase(id: number): Promise<void>;
 
   getVendorPackages(vendorId?: number): Promise<VendorPackage[]>;
   getVendorPackage(id: number): Promise<VendorPackage | undefined>;
@@ -1551,6 +1559,32 @@ export class DatabaseStorage implements IStorage {
 
   async deleteResellerMonthlySummary(id: number): Promise<void> {
     await db.delete(resellerMonthlySummaries).where(eq(resellerMonthlySummaries.id, id));
+  }
+
+  async getBandwidthPurchases(vendorId?: number): Promise<BandwidthPurchase[]> {
+    if (vendorId) {
+      return db.select().from(bandwidthPurchases).where(eq(bandwidthPurchases.vendorId, vendorId)).orderBy(desc(bandwidthPurchases.id));
+    }
+    return db.select().from(bandwidthPurchases).orderBy(desc(bandwidthPurchases.id));
+  }
+
+  async getBandwidthPurchase(id: number): Promise<BandwidthPurchase | undefined> {
+    const [row] = await db.select().from(bandwidthPurchases).where(eq(bandwidthPurchases.id, id));
+    return row;
+  }
+
+  async createBandwidthPurchase(data: InsertBandwidthPurchase): Promise<BandwidthPurchase> {
+    const [row] = await db.insert(bandwidthPurchases).values(data).returning();
+    return row;
+  }
+
+  async updateBandwidthPurchase(id: number, data: Partial<InsertBandwidthPurchase>): Promise<BandwidthPurchase> {
+    const [row] = await db.update(bandwidthPurchases).set(data).where(eq(bandwidthPurchases.id, id)).returning();
+    return row;
+  }
+
+  async deleteBandwidthPurchase(id: number): Promise<void> {
+    await db.delete(bandwidthPurchases).where(eq(bandwidthPurchases.id, id));
   }
 
   async getVendorPackages(vendorId?: number): Promise<VendorPackage[]> {

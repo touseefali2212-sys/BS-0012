@@ -3681,3 +3681,27 @@ export const packageChangeRequests = pgTable("package_change_requests", {
 export const insertPackageChangeRequestSchema = createInsertSchema(packageChangeRequests).omit({ id: true });
 export type InsertPackageChangeRequest = z.infer<typeof insertPackageChangeRequestSchema>;
 export type PackageChangeRequest = typeof packageChangeRequests.$inferSelect;
+
+// Bandwidth Purchases - tracks bulk bandwidth purchased from upstream vendors
+export const bandwidthPurchases = pgTable("bandwidth_purchases", {
+  id: serial("id").primaryKey(),
+  vendorId: integer("vendor_id").notNull(),
+  vendorName: text("vendor_name"),
+  capacityMbps: decimal("capacity_mbps", { precision: 10, scale: 2 }).notNull(),
+  costAmount: decimal("cost_amount", { precision: 12, scale: 2 }).notNull(),
+  currency: text("currency").notNull().default("PKR"),
+  purchaseDate: text("purchase_date").notNull(),
+  contractDurationMonths: integer("contract_duration_months"),
+  contractEndDate: text("contract_end_date"),
+  costPerMbps: decimal("cost_per_mbps", { precision: 10, scale: 4 }),
+  notes: text("notes"),
+  status: text("status").notNull().default("active"),
+  reference: text("reference"),
+  approvedBy: text("approved_by"),
+  performedBy: text("performed_by"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertBandwidthPurchaseSchema = createInsertSchema(bandwidthPurchases).omit({ id: true, createdAt: true });
+export type InsertBandwidthPurchase = z.infer<typeof insertBandwidthPurchaseSchema>;
+export type BandwidthPurchase = typeof bandwidthPurchases.$inferSelect;

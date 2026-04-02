@@ -1,0 +1,193 @@
+NetSphere – Bandwidth-Based Reseller Management & Accounting Module
+(Professional Replit AI Description)
+🎯 Objective
+
+Develop an advanced Bandwidth-Based Reseller Management & Accounting System for ISP operations, where the company:
+
+✔ Purchases bandwidth in bulk from upstream vendors
+✔ Manages a centralized internal bandwidth pool
+✔ Distributes balance-based services to resellers
+✔ Tracks real-time profitability, usage, and financial performance
+
+👉 This system replaces traditional vendor panel dependency with a fully controlled internal ISP distribution model.
+
+🧠 Core Concept
+
+Unlike standard reseller systems:
+
+❌ No direct vendor package reselling
+✅ Full internal control of bandwidth + pricing + distribution
+
+The system operates on:
+
+Bandwidth Purchase → Internal Pool → Reseller Balance → Customer Services → Revenue Tracking
+🧩 Module Architecture
+1️⃣ Vendor Bandwidth Purchase Management
+Features:
+Add & manage upstream bandwidth vendors
+Record bandwidth purchases:
+Capacity (Mbps / Gbps)
+Cost (PKR/USD)
+Purchase date
+Vendor-specific rates
+Data Tracking:
+
+✔ Purchase history
+✔ Cost per Mbps
+✔ Multi-vendor comparison
+✔ Contract duration (optional)
+
+2️⃣ Central Bandwidth Pool System
+Functionality:
+Maintain a virtual bandwidth pool
+Aggregate total purchased capacity
+Deduct allocated bandwidth dynamically
+Metrics:
+Total Purchased Bandwidth
+Allocated Bandwidth
+Available Bandwidth
+Utilization %
+3️⃣ Reseller Panel & Balance Management
+Features:
+Create reseller accounts
+Assign panel access
+Maintain reseller wallet/balance
+Key Logic:
+
+✔ Resellers do NOT consume bandwidth directly
+✔ They operate using prepaid balance system
+
+4️⃣ Recharge-Based Distribution Model
+Workflow:
+Reseller sends payment (e.g., PKR 10,000)
+Admin credits reseller wallet
+Reseller uses balance to sell services
+System Tracks:
+Total recharge per reseller
+Balance usage
+Remaining credit
+Transaction history
+5️⃣ Profit Margin Configuration Engine
+Flexible Profit Models:
+
+✔ Fixed margin per Mbps
+✔ Percentage-based margin
+✔ Package-based pricing override
+
+Dynamic Application:
+Profit applied during:
+Balance allocation
+Package assignment
+Service provisioning
+6️⃣ Monthly Accounting & Profit/Loss Engine
+Automated Monthly Calculation:
+
+System generates:
+
+Total Bandwidth Purchase Cost
+Total Reseller Recharge Amount
+Total Revenue
+Net Profit / Loss
+Formula:
+Profit = Total Reseller Recharge – Total Bandwidth Purchase Cost
+Advanced:
+
+✔ Date-range filtering
+✔ Branch-wise profit
+✔ Vendor-wise cost analysis
+
+7️⃣ Financial Dashboard (Real-Time)
+Dashboard Widgets:
+Bandwidth Capacity vs Usage
+Total Reseller Balance
+Revenue vs Cost Graph
+Profit Trend (Daily/Monthly)
+Top Resellers
+Visualization:
+
+✔ Line charts
+✔ Bar graphs
+✔ Pie charts
+
+8️⃣ Transaction & Audit Logging System
+
+Track all financial and operational activities:
+
+✔ Vendor bandwidth purchases
+✔ Reseller recharges
+✔ Balance adjustments
+✔ Profit calculations
+
+Features:
+Immutable logs
+Time-stamped entries
+User tracking
+9️⃣ Alerts & Notification Engine
+System Alerts:
+Low bandwidth capacity
+High utilization warning
+Negative profit margin alert
+Pending reseller payments
+Channels:
+
+✔ SMS
+✔ WhatsApp
+✔ Email
+✔ In-App
+
+🔄 System Workflow
+Vendor Purchase → Bandwidth Pool → Reseller Recharge → Balance Usage → Revenue → Profit Calculation
+📊 Use Case Scenario
+Admin purchases bandwidth: PKR 100,000
+Resellers recharge: PKR 150,000
+System Output:
+Revenue: 150,000
+Cost: 100,000
+Profit: 50,000
+🔐 Role-Based Access
+
+Admin:
+✔ Full control (vendors, pricing, accounting)
+
+Accountant:
+✔ Financial reports + transactions
+
+Reseller:
+✔ View balance + usage + recharge
+
+Manager:
+✔ Analytics + performance monitoring
+
+⚙️ Advanced Features (HIGH VALUE 💎)
+📈 Profit Analytics Engine
+Per reseller profit tracking
+Per Mbps cost vs revenue
+⚖️ Dynamic Pricing Engine
+Auto adjust pricing based on cost changes
+🔄 Auto Balance Deduction
+Deduct balance based on usage or sales
+📉 Loss Prevention System
+Alert when selling below cost
+📊 Reseller Performance Scoring
+Rank resellers by revenue
+🔁 Multi-Vendor Optimization
+Suggest cheapest vendor bandwidth
+🎨 UI/UX Design
+Enterprise dashboard layout
+Blue gradient theme
+Financial widgets
+Clean tables with filters
+Real-time updates
+🧪 Expected Output
+
+✔ Full control over bandwidth distribution
+✔ Transparent financial tracking
+✔ Real-time profit visibility
+✔ Scalable reseller ecosystem
+
+📈 Business Impact
+
+🔥 Increase profit margins
+🔥 Eliminate vendor dependency
+🔥 Better financial control
+🔥 Scalable ISP business model
