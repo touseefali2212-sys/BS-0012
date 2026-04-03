@@ -1725,7 +1725,7 @@ export default function ResellersPage() {
                                   <DropdownMenuItem onClick={() => setLocation(`/resellers/${reseller.id}/edit`)} data-testid={`button-edit-${reseller.id}`}>
                                     <Edit className="h-4 w-4 mr-2" /> Edit Reseller
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => { setRechargeReseller(reseller); setRechargeAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeDialogOpen(true); }} data-testid={`action-credit-${reseller.id}`}>
+                                  <DropdownMenuItem onClick={() => { setRechargeReseller(reseller); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeDialogOpen(true); }} data-testid={`action-credit-${reseller.id}`}>
                                     <Wallet className="h-4 w-4 mr-2" /> Adjust Credit
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => { setSelectedWalletResellerId(String(reseller.id)); changeTab("wallet"); }} data-testid={`action-transactions-${reseller.id}`}>
@@ -2029,7 +2029,7 @@ export default function ResellersPage() {
                 <Button size="sm" className="flex-1 bg-gradient-to-r from-[#002B5B] to-[#007BFF] text-white" onClick={() => { setLocation(`/resellers/${detailReseller.id}/edit`); setDetailReseller(null); }} data-testid="detail-btn-edit">
                   <Edit className="h-4 w-4 mr-1" /> Edit
                 </Button>
-                <Button size="sm" variant="outline" className="flex-1" onClick={() => { setRechargeReseller(detailReseller); setRechargeAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeDialogOpen(true); setDetailReseller(null); }} data-testid="detail-btn-credit">
+                <Button size="sm" variant="outline" className="flex-1" onClick={() => { setRechargeReseller(detailReseller); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeDialogOpen(true); setDetailReseller(null); }} data-testid="detail-btn-credit">
                   <Wallet className="h-4 w-4 mr-1" /> Adjust Credit
                 </Button>
               </div>
@@ -2199,7 +2199,7 @@ export default function ResellersPage() {
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" className="bg-gradient-to-r from-teal-600 to-teal-500 text-white gap-1"
                   data-testid="btn-add-recharge"
-                  onClick={() => { setRechargeReseller(selReseller); setRechargeAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash"); setRechargeRemarks(""); setRechargeDialogOpen(true); }}>
+                  onClick={() => { setRechargeReseller(selReseller); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeDialogOpen(true); }}>
                   <ArrowUpCircle className="h-4 w-4" /> Add Recharge
                 </Button>
                 <Button size="sm" className="bg-gradient-to-r from-red-600 to-red-500 text-white gap-1"
