@@ -185,13 +185,14 @@ export default function ResellersPage() {
   const [editingReseller, setEditingReseller] = useState<Reseller | null>(null);
   const [rechargeDialogOpen, setRechargeDialogOpen] = useState(false);
   const [rechargeReseller, setRechargeReseller] = useState<Reseller | null>(null);
-  const [rechargeAmount, setRechargeAmount] = useState("");
+  const [rechargeVendorRows, setRechargeVendorRows] = useState<Array<{ id: string; vendorId: string; amount: string }>>([{ id: "1", vendorId: "", amount: "" }]);
+  const [rechargePaidAmount, setRechargePaidAmount] = useState("");
   const [rechargeReference, setRechargeReference] = useState("");
   const [rechargePaymentMethod, setRechargePaymentMethod] = useState("cash_in_hand");
   const [rechargePaymentStatus, setRechargePaymentStatus] = useState("paid");
   const [rechargeRemarks, setRechargeRemarks] = useState("");
-  const [rechargeVendorId, setRechargeVendorId] = useState("");
   const [rechargeBankAccountId, setRechargeBankAccountId] = useState("");
+  const [rechargeSubmitting, setRechargeSubmitting] = useState(false);
   const [deductDialogOpen, setDeductDialogOpen] = useState(false);
   const [deductReseller, setDeductReseller] = useState<Reseller | null>(null);
   const [deductAmount, setDeductAmount] = useState("");
@@ -362,28 +363,10 @@ export default function ResellersPage() {
     },
   });
 
-  const rechargeMutation = useMutation({
+  const rechargeApiCall = useMutation({
     mutationFn: async (data: { resellerId: number; amount: number; reference: string; paymentMethod?: string; remarks?: string; paymentStatus?: string; vendorId?: number; bankAccountId?: number }) => {
       const res = await apiRequest("POST", "/api/reseller-wallet/recharge", data);
       return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/resellers"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/reseller-wallet-transactions", selectedWalletResellerId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/company-bank-accounts"] });
-      setRechargeDialogOpen(false);
-      setRechargeReseller(null);
-      setRechargeAmount("");
-      setRechargeReference("");
-      setRechargePaymentMethod("cash_in_hand");
-      setRechargePaymentStatus("paid");
-      setRechargeRemarks("");
-      setRechargeVendorId("");
-      setRechargeBankAccountId("");
-      toast({ title: "Wallet recharged successfully" });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
 
@@ -592,18 +575,43 @@ export default function ResellersPage() {
     });
   };
 
-  const handleRecharge = () => {
-    if (!rechargeReseller || !rechargeAmount) return;
-    rechargeMutation.mutate({
-      resellerId: rechargeReseller.id,
-      amount: parseFloat(rechargeAmount),
-      reference: rechargeReference,
-      paymentMethod: rechargePaymentMethod,
-      paymentStatus: rechargePaymentStatus,
-      remarks: rechargeRemarks,
-      vendorId: rechargeVendorId ? parseInt(rechargeVendorId) : undefined,
-      bankAccountId: rechargeBankAccountId ? parseInt(rechargeBankAccountId) : undefined,
-    });
+  const handleRecharge = async () => {
+    if (!rechargeReseller || rechargeSubmitting) return;
+    const validRows = rechargeVendorRows.filter(r => r.amount && parseFloat(r.amount) > 0);
+    if (validRows.length === 0) return;
+    setRechargeSubmitting(true);
+    try {
+      const remarksStr = [rechargeRemarks, rechargePaidAmount ? `Paid Amount: Rs.${rechargePaidAmount}` : ""].filter(Boolean).join(" | ");
+      for (const row of validRows) {
+        await rechargeApiCall.mutateAsync({
+          resellerId: rechargeReseller.id,
+          amount: parseFloat(row.amount),
+          reference: rechargeReference,
+          paymentMethod: rechargePaymentMethod,
+          paymentStatus: rechargePaymentStatus,
+          remarks: remarksStr || undefined,
+          vendorId: row.vendorId && row.vendorId !== "none" ? parseInt(row.vendorId) : undefined,
+          bankAccountId: rechargeBankAccountId && rechargeBankAccountId !== "none" ? parseInt(rechargeBankAccountId) : undefined,
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/resellers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reseller-wallet-transactions", selectedWalletResellerId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/company-bank-accounts"] });
+      setRechargeDialogOpen(false);
+      setRechargeReseller(null);
+      setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]);
+      setRechargePaidAmount("");
+      setRechargeReference("");
+      setRechargePaymentMethod("cash_in_hand");
+      setRechargePaymentStatus("paid");
+      setRechargeRemarks("");
+      setRechargeBankAccountId("");
+      toast({ title: `Wallet recharged successfully${validRows.length > 1 ? ` (${validRows.length} entries)` : ""}` });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setRechargeSubmitting(false);
+    }
   };
 
   const filtered = (resellers || []).filter((r) => {
@@ -2783,40 +2791,99 @@ export default function ResellersPage() {
           </DialogHeader>
           <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
             {/* Balance Preview */}
-            {rechargeReseller && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
-                  <p className="text-xs text-muted-foreground mb-1">Current Balance</p>
-                  <p className="text-xl font-bold" data-testid="text-recharge-current-balance">{formatPKR(rechargeReseller.walletBalance)}</p>
+            {rechargeReseller && (() => {
+              const total = rechargeVendorRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+              return (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+                    <p className="text-xs text-muted-foreground mb-1">Current Balance</p>
+                    <p className="text-xl font-bold" data-testid="text-recharge-current-balance">{formatPKR(rechargeReseller.walletBalance)}</p>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                    <p className="text-xs text-muted-foreground mb-1">After Recharge</p>
+                    <p className="text-xl font-bold text-green-600" data-testid="text-recharge-after-balance">
+                      {formatPKR(parseFloat(String(rechargeReseller.walletBalance || "0")) + total)}
+                    </p>
+                  </div>
                 </div>
-                <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-3 border border-green-200 dark:border-green-800">
-                  <p className="text-xs text-muted-foreground mb-1">After Recharge</p>
-                  <p className="text-xl font-bold text-green-600" data-testid="text-recharge-after-balance">
-                    {formatPKR(parseFloat(String(rechargeReseller.walletBalance || "0")) + (parseFloat(rechargeAmount) || 0))}
-                  </p>
-                </div>
-              </div>
-            )}
+              );
+            })()}
 
-            {/* Recharge Balance + Vendor */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Recharge Balance <span className="text-red-500">*</span></label>
-                <Input type="number" step="0.01" min="1" placeholder="Enter amount"
-                  value={rechargeAmount} onChange={(e) => setRechargeAmount(e.target.value)} data-testid="input-recharge-amount" />
+            {/* Vendor Breakdown (multi-row) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Vendor Breakdown <span className="text-red-500">*</span></label>
+                <Button size="sm" variant="outline" type="button"
+                  onClick={() => setRechargeVendorRows(prev => [...prev, { id: Date.now().toString(), vendorId: "", amount: "" }])}
+                  data-testid="button-add-vendor-row">
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Add Vendor
+                </Button>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Vendor</label>
-                <Select value={rechargeVendorId} onValueChange={setRechargeVendorId}>
-                  <SelectTrigger data-testid="select-recharge-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">— No Vendor —</SelectItem>
-                    {(vendors || []).map(v => (
-                      <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="grid grid-cols-[1fr_120px_36px] gap-0 bg-slate-50 dark:bg-slate-900 px-3 py-1.5 text-xs font-medium text-muted-foreground border-b border-slate-200 dark:border-slate-700">
+                  <span>Vendor</span><span className="text-center">Amount</span><span />
+                </div>
+                {rechargeVendorRows.map((row, idx) => (
+                  <div key={row.id} className={`grid grid-cols-[1fr_120px_36px] gap-0 items-center px-2 py-1.5 ${idx > 0 ? "border-t border-slate-100 dark:border-slate-800" : ""}`}>
+                    <Select value={row.vendorId}
+                      onValueChange={(val) => setRechargeVendorRows(prev => prev.map(r => r.id === row.id ? { ...r, vendorId: val } : r))}>
+                      <SelectTrigger className="h-8 text-sm border-0 shadow-none focus:ring-0" data-testid={`select-vendor-row-${idx}`}>
+                        <SelectValue placeholder="Select vendor (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">— No Vendor —</SelectItem>
+                        {(vendors || []).map(v => (
+                          <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input type="number" step="0.01" min="0.01" placeholder="0.00"
+                      className="h-8 text-sm text-right pr-2"
+                      value={row.amount}
+                      onChange={(e) => setRechargeVendorRows(prev => prev.map(r => r.id === row.id ? { ...r, amount: e.target.value } : r))}
+                      data-testid={`input-vendor-amount-${idx}`} />
+                    <div className="flex justify-center">
+                      {rechargeVendorRows.length > 1 ? (
+                        <button type="button" className="h-7 w-7 flex items-center justify-center rounded text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                          onClick={() => setRechargeVendorRows(prev => prev.filter(r => r.id !== row.id))}
+                          data-testid={`button-remove-vendor-row-${idx}`}>
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      ) : <span />}
+                    </div>
+                  </div>
+                ))}
+                {/* Total row */}
+                {rechargeVendorRows.length > 1 && (() => {
+                  const total = rechargeVendorRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+                  return (
+                    <div className="grid grid-cols-[1fr_120px_36px] items-center px-3 py-2 bg-green-50 dark:bg-green-950/20 border-t border-green-200 dark:border-green-800">
+                      <span className="text-sm font-semibold text-green-700 dark:text-green-400">Total Recharge</span>
+                      <span className="text-sm font-bold text-green-700 dark:text-green-400 text-right pr-2">{formatPKR(total)}</span>
+                      <span />
+                    </div>
+                  );
+                })()}
               </div>
+            </div>
+
+            {/* Paid Amount */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Paid Amount</label>
+              <Input type="number" step="0.01" min="0" placeholder="Amount actually paid by reseller"
+                value={rechargePaidAmount} onChange={(e) => setRechargePaidAmount(e.target.value)}
+                data-testid="input-recharge-paid-amount" />
+              {(() => {
+                const total = rechargeVendorRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+                const paid = parseFloat(rechargePaidAmount) || 0;
+                if (rechargePaidAmount && total > 0 && paid < total) {
+                  return <p className="text-xs text-amber-600 dark:text-amber-400">Remaining unpaid: {formatPKR(total - paid)}</p>;
+                }
+                if (rechargePaidAmount && total > 0 && paid >= total) {
+                  return <p className="text-xs text-green-600 dark:text-green-400">Fully paid</p>;
+                }
+                return null;
+              })()}
             </div>
 
             {/* Payment Status */}
@@ -2919,10 +2986,11 @@ export default function ResellersPage() {
             )}
           </div>
           <DialogFooter className="gap-2 pt-2">
-            <Button variant="secondary" onClick={() => setRechargeDialogOpen(false)} data-testid="button-cancel-recharge">Cancel</Button>
-            <Button onClick={handleRecharge} disabled={!rechargeAmount || rechargeMutation.isPending}
+            <Button variant="secondary" onClick={() => setRechargeDialogOpen(false)} disabled={rechargeSubmitting} data-testid="button-cancel-recharge">Cancel</Button>
+            <Button onClick={handleRecharge}
+              disabled={rechargeSubmitting || rechargeVendorRows.every(r => !r.amount || parseFloat(r.amount) <= 0)}
               className="bg-gradient-to-r from-green-600 to-green-500 text-white" data-testid="button-submit-recharge">
-              {rechargeMutation.isPending ? "Processing..." : "Confirm Recharge"}
+              {rechargeSubmitting ? "Processing..." : `Confirm Recharge${rechargeVendorRows.filter(r => r.amount && parseFloat(r.amount) > 0).length > 1 ? ` (${rechargeVendorRows.filter(r => r.amount && parseFloat(r.amount) > 0).length} entries)` : ""}`}
             </Button>
           </DialogFooter>
         </DialogContent>
