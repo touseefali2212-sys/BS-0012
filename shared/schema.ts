@@ -161,6 +161,11 @@ export const packages = pgTable("packages", {
   vendorId: integer("vendor_id"),
   whTax: decimal("wh_tax", { precision: 5, scale: 2 }),
   aitTax: decimal("ait_tax", { precision: 5, scale: 2 }),
+  promotionStartDate: text("promotion_start_date"),
+  promotionEndDate: text("promotion_end_date"),
+  discountType: text("discount_type"),
+  discountValue: decimal("discount_value", { precision: 10, scale: 2 }),
+  discountUnit: text("discount_unit"),
 });
 
 export const invoices = pgTable("invoices", {

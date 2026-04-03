@@ -33,6 +33,10 @@ import {
   Copy,
   Power,
   DollarSign,
+  Tag,
+  CalendarRange,
+  Clock,
+  Infinity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -105,6 +109,11 @@ const packageFormSchema = insertPackageSchema.extend({
   vendorId: z.number().nullable().optional(),
   whTax: z.string().nullable().optional(),
   aitTax: z.string().nullable().optional(),
+  promotionStartDate: z.string().nullable().optional(),
+  promotionEndDate: z.string().nullable().optional(),
+  discountType: z.string().nullable().optional(),
+  discountValue: z.string().nullable().optional(),
+  discountUnit: z.string().nullable().optional(),
 });
 
 const serviceTypeLabels: Record<string, string> = {
@@ -112,6 +121,7 @@ const serviceTypeLabels: Record<string, string> = {
   iptv: "IPTV",
   cable_tv: "Cable TV",
   bundle: "Bundle",
+  promotion: "Promotion",
 };
 
 const serviceTypeColors: Record<string, string> = {
@@ -119,6 +129,7 @@ const serviceTypeColors: Record<string, string> = {
   iptv: "text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950",
   cable_tv: "text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950",
   bundle: "text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950",
+  promotion: "text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950",
 };
 
 function getServiceIcon(type: string) {
@@ -126,6 +137,7 @@ function getServiceIcon(type: string) {
     case "iptv": return <Tv className="h-4 w-4 text-purple-600 dark:text-purple-400" />;
     case "cable_tv": return <Radio className="h-4 w-4 text-orange-600 dark:text-orange-400" />;
     case "bundle": return <Layers className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />;
+    case "promotion": return <Tag className="h-4 w-4 text-rose-500 dark:text-rose-400" />;
     default: return <Wifi className="h-4 w-4 text-blue-500 dark:text-blue-400" />;
   }
 }
@@ -145,6 +157,7 @@ const applyToOptions = [
   { value: "iptv", label: "IPTV" },
   { value: "cable_tv", label: "Cable TV" },
   { value: "bundle", label: "Bundle" },
+  { value: "promotion", label: "Promotion" },
 ];
 
 function TaxExtraFeeTab() {
@@ -833,8 +846,10 @@ export default function PackagesPage() {
   });
 
   const watchedServiceType = useWatch({ control: form.control, name: "serviceType" });
+  const watchedDiscountType = useWatch({ control: form.control, name: "discountType" as any });
   const showInternetFields = watchedServiceType === "internet" || watchedServiceType === "bundle";
   const showTvFields = watchedServiceType === "iptv" || watchedServiceType === "cable_tv" || watchedServiceType === "bundle";
+  const showPromotionFields = watchedServiceType === "promotion";
 
   const createMutation = useMutation({
     mutationFn: async (data: InsertPackage) => {
@@ -873,7 +888,7 @@ export default function PackagesPage() {
 
   const openCreate = () => {
     setEditingPkg(null);
-    form.reset({ name: "", serviceType: "internet", speed: "", price: "0", billingCycle: "monthly", dataLimit: "", channels: "", features: "", description: "", isActive: true, vendorId: null, whTax: "", aitTax: "" });
+    form.reset({ name: "", serviceType: "internet", speed: "", price: "0", billingCycle: "monthly", dataLimit: "", channels: "", features: "", description: "", isActive: true, vendorId: null, whTax: "", aitTax: "", promotionStartDate: "", promotionEndDate: "", discountType: "limited_time", discountValue: "", discountUnit: "percentage" } as any);
     setDialogOpen(true);
   };
 
@@ -885,15 +900,27 @@ export default function PackagesPage() {
       channels: pkg.channels || "", features: pkg.features || "", description: pkg.description || "",
       isActive: pkg.isActive, vendorId: pkg.vendorId ?? null,
       whTax: pkg.whTax ?? "", aitTax: pkg.aitTax ?? "",
-    });
+      promotionStartDate: (pkg as any).promotionStartDate ?? "",
+      promotionEndDate: (pkg as any).promotionEndDate ?? "",
+      discountType: (pkg as any).discountType ?? "limited_time",
+      discountValue: (pkg as any).discountValue ?? "",
+      discountUnit: (pkg as any).discountUnit ?? "percentage",
+    } as any);
     setDialogOpen(true);
   };
 
   const onSubmit = (data: InsertPackage) => {
+    const d = data as any;
+    const isPromo = d.serviceType === "promotion";
     const cleaned = {
       ...data,
-      whTax: (data as any).whTax === "" ? null : (data as any).whTax || null,
-      aitTax: (data as any).aitTax === "" ? null : (data as any).aitTax || null,
+      whTax: d.whTax === "" ? null : d.whTax || null,
+      aitTax: d.aitTax === "" ? null : d.aitTax || null,
+      promotionStartDate: isPromo && d.promotionStartDate ? d.promotionStartDate : null,
+      promotionEndDate: isPromo && d.discountType === "limited_time" && d.promotionEndDate ? d.promotionEndDate : null,
+      discountType: isPromo && d.discountType ? d.discountType : null,
+      discountValue: isPromo && d.discountValue ? d.discountValue : null,
+      discountUnit: isPromo && d.discountUnit ? d.discountUnit : null,
     };
     if (editingPkg) updateMutation.mutate({ id: editingPkg.id, data: cleaned });
     else createMutation.mutate(cleaned);
@@ -919,7 +946,12 @@ export default function PackagesPage() {
       channels: pkg.channels || "", features: pkg.features || "", description: pkg.description || "",
       isActive: true, vendorId: pkg.vendorId ?? null,
       whTax: pkg.whTax ?? "", aitTax: pkg.aitTax ?? "",
-    });
+      promotionStartDate: (pkg as any).promotionStartDate ?? "",
+      promotionEndDate: (pkg as any).promotionEndDate ?? "",
+      discountType: (pkg as any).discountType ?? "limited_time",
+      discountValue: (pkg as any).discountValue ?? "",
+      discountUnit: (pkg as any).discountUnit ?? "percentage",
+    } as any);
     setDialogOpen(true);
   };
 
@@ -1287,6 +1319,34 @@ export default function PackagesPage() {
                               {pkg.channels || pkg.dataLimit || pkg.features}
                             </p>
                           )}
+
+                          {pkg.serviceType === "promotion" && ((pkg as any).discountValue || (pkg as any).promotionStartDate) && (
+                            <div className="mt-2 rounded-lg border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/30 p-2 space-y-1">
+                              {(pkg as any).discountValue && (
+                                <div className="flex items-center gap-1.5">
+                                  {(pkg as any).discountType === "lifetime"
+                                    ? <Infinity className="h-3 w-3 text-rose-500 shrink-0" />
+                                    : <Clock className="h-3 w-3 text-rose-500 shrink-0" />}
+                                  <span className="text-[10px] font-bold text-rose-700 dark:text-rose-300">
+                                    {(pkg as any).discountValue}{(pkg as any).discountUnit === "percentage" ? "%" : " Rs."} OFF
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground capitalize">
+                                    ({(pkg as any).discountType === "lifetime" ? "Lifetime" : "Limited Time"})
+                                  </span>
+                                </div>
+                              )}
+                              {(pkg as any).promotionStartDate && (
+                                <div className="flex items-center gap-1.5">
+                                  <CalendarRange className="h-3 w-3 text-rose-400 shrink-0" />
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {(pkg as any).promotionStartDate}
+                                    {(pkg as any).promotionEndDate && ` → ${(pkg as any).promotionEndDate}`}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
                           {pkg.description && (
                             <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{pkg.description}</p>
                           )}
@@ -1370,6 +1430,7 @@ export default function PackagesPage() {
                       <SelectItem value="iptv">IPTV</SelectItem>
                       <SelectItem value="cable_tv">Cable TV</SelectItem>
                       <SelectItem value="bundle">Bundle (Internet + TV)</SelectItem>
+                      <SelectItem value="promotion">Promotion</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -1504,6 +1565,90 @@ export default function PackagesPage() {
                       <FormMessage />
                     </FormItem>
                   )} />
+                </div>
+              )}
+
+              {showPromotionFields && (
+                <div className="space-y-4 rounded-xl border border-rose-200 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/20 p-4">
+                  <div className="flex items-center gap-2 text-rose-700 dark:text-rose-300 font-semibold text-sm">
+                    <Tag className="h-4 w-4" />
+                    Promotion Details
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name={"promotionStartDate" as any} render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Promotion Date From</FormLabel>
+                        <FormControl>
+                          <Input type="date" data-testid="input-promo-start" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name={"promotionEndDate" as any} render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className={watchedDiscountType === "lifetime" ? "text-muted-foreground" : ""}>
+                          Promotion Date To
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="date"
+                            data-testid="input-promo-end"
+                            {...field}
+                            value={field.value || ""}
+                            disabled={watchedDiscountType === "lifetime"}
+                          />
+                        </FormControl>
+                        {watchedDiscountType === "lifetime" && (
+                          <p className="text-[10px] text-muted-foreground">No end date for lifetime discount</p>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
+
+                  <FormField control={form.control} name={"discountType" as any} render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Discount Duration</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || "limited_time"}>
+                        <FormControl>
+                          <SelectTrigger data-testid="select-discount-type"><SelectValue /></SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="limited_time">Limited Time</SelectItem>
+                          <SelectItem value="lifetime">Lifetime</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField control={form.control} name={"discountValue" as any} render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Discount Value</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="e.g. 20" data-testid="input-discount-value" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                    <FormField control={form.control} name={"discountUnit" as any} render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Discount Unit</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || "percentage"}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-discount-unit"><SelectValue /></SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="percentage">Percentage (%)</SelectItem>
+                            <SelectItem value="fixed">Fixed Amount (Rs.)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )} />
+                  </div>
                 </div>
               )}
 
