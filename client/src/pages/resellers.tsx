@@ -187,6 +187,7 @@ export default function ResellersPage() {
   const [rechargeAmount, setRechargeAmount] = useState("");
   const [rechargeReference, setRechargeReference] = useState("");
   const [rechargePaymentMethod, setRechargePaymentMethod] = useState("cash");
+  const [rechargePaymentStatus, setRechargePaymentStatus] = useState("paid");
   const [rechargeRemarks, setRechargeRemarks] = useState("");
   const [deductDialogOpen, setDeductDialogOpen] = useState(false);
   const [deductReseller, setDeductReseller] = useState<Reseller | null>(null);
@@ -355,7 +356,7 @@ export default function ResellersPage() {
   });
 
   const rechargeMutation = useMutation({
-    mutationFn: async (data: { resellerId: number; amount: number; reference: string; paymentMethod?: string; remarks?: string }) => {
+    mutationFn: async (data: { resellerId: number; amount: number; reference: string; paymentMethod?: string; remarks?: string; paymentStatus?: string }) => {
       const res = await apiRequest("POST", "/api/reseller-wallet/recharge", data);
       return res.json();
     },
@@ -369,6 +370,7 @@ export default function ResellersPage() {
       setRechargeAmount("");
       setRechargeReference("");
       setRechargePaymentMethod("cash");
+      setRechargePaymentStatus("paid");
       setRechargeRemarks("");
       toast({ title: "Wallet recharged successfully" });
     },
@@ -589,6 +591,7 @@ export default function ResellersPage() {
       amount: parseFloat(rechargeAmount),
       reference: rechargeReference,
       paymentMethod: rechargePaymentMethod,
+      paymentStatus: rechargePaymentStatus,
       remarks: rechargeRemarks,
     });
   };
@@ -1704,7 +1707,7 @@ export default function ResellersPage() {
                                   <DropdownMenuItem onClick={() => setLocation(`/resellers/${reseller.id}/edit`)} data-testid={`button-edit-${reseller.id}`}>
                                     <Edit className="h-4 w-4 mr-2" /> Edit Reseller
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => { setRechargeReseller(reseller); setRechargeDialogOpen(true); }} data-testid={`action-credit-${reseller.id}`}>
+                                  <DropdownMenuItem onClick={() => { setRechargeReseller(reseller); setRechargeAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeDialogOpen(true); }} data-testid={`action-credit-${reseller.id}`}>
                                     <Wallet className="h-4 w-4 mr-2" /> Adjust Credit
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => { setSelectedWalletResellerId(String(reseller.id)); changeTab("wallet"); }} data-testid={`action-transactions-${reseller.id}`}>
@@ -2008,7 +2011,7 @@ export default function ResellersPage() {
                 <Button size="sm" className="flex-1 bg-gradient-to-r from-[#002B5B] to-[#007BFF] text-white" onClick={() => { setLocation(`/resellers/${detailReseller.id}/edit`); setDetailReseller(null); }} data-testid="detail-btn-edit">
                   <Edit className="h-4 w-4 mr-1" /> Edit
                 </Button>
-                <Button size="sm" variant="outline" className="flex-1" onClick={() => { setRechargeReseller(detailReseller); setRechargeDialogOpen(true); setDetailReseller(null); }} data-testid="detail-btn-credit">
+                <Button size="sm" variant="outline" className="flex-1" onClick={() => { setRechargeReseller(detailReseller); setRechargeAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeDialogOpen(true); setDetailReseller(null); }} data-testid="detail-btn-credit">
                   <Wallet className="h-4 w-4 mr-1" /> Adjust Credit
                 </Button>
               </div>
@@ -2032,6 +2035,9 @@ export default function ResellersPage() {
         const monthTxns = txns.filter(t => { const d = new Date(t.createdAt); return d.getMonth() === thisMonth && d.getFullYear() === thisYear; });
         const totalRechargeMonth = monthTxns.filter(t => t.type === "credit").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
         const totalDeductionMonth = monthTxns.filter(t => t.type === "debit").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
+        const totalPaidMonth = monthTxns.filter(t => t.type === "credit" && (t as any).paymentStatus === "paid").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
+        const totalUnpaidAll = txns.filter(t => t.type === "credit" && (t as any).paymentStatus === "unpaid").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
+        const secDeposit = isAllResellers ? allResellers.reduce((s, r) => s + parseFloat(String(r.securityDeposit || "0")), 0) : (selReseller ? parseFloat(String(selReseller.securityDeposit || "0")) : 0);
         const filteredTxns = txns.filter(t => {
           const matchType = txnTypeFilter === "all" || t.type === txnTypeFilter;
           const matchSearch = !txnSearch || (t.reference || "").toLowerCase().includes(txnSearch.toLowerCase()) || (t.description || "").toLowerCase().includes(txnSearch.toLowerCase());
@@ -2095,34 +2101,77 @@ export default function ResellersPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 {[
-                  { label: isAllResellers ? "Total Balance" : "Wallet Balance", value: formatPKR(walletBal), icon: Wallet, color: walletBal < 0 ? "from-red-600 to-red-500" : "from-green-600 to-green-500" },
-                  { label: isAllResellers ? "Total Credit Limit" : "Credit Limit", value: formatPKR(creditLim), icon: Shield, color: "from-blue-600 to-blue-500" },
-                  { label: isAllResellers ? "Total Available" : "Available Credit", value: formatPKR(availableCredit), icon: CreditCard, color: "from-indigo-600 to-indigo-500" },
-                  { label: "Recharge (Month)", value: formatPKR(totalRechargeMonth), icon: ArrowUpCircle, color: "from-teal-600 to-teal-500" },
-                  { label: "Deduction (Month)", value: formatPKR(totalDeductionMonth), icon: ArrowDownCircle, color: "from-orange-600 to-orange-500" },
-                  ...(!isAllResellers && selReseller ? [
-                    {
-                      label: (selReseller as any).commissionType === "profit_percentage" ? "Profit Commission" : (selReseller as any).commissionType === "both" ? "Fixed Commission" : "Commission Rate",
-                      value: (selReseller.commissionRate || "10") + "%",
-                      icon: Percent, color: "from-purple-600 to-purple-500"
-                    },
-                    { label: "Security Deposit", value: formatPKR(selReseller.securityDeposit), icon: Landmark, color: "from-slate-600 to-slate-500" },
-                  ] : [
-                    { label: "Total Resellers", value: String(allResellers.length), icon: Users, color: "from-purple-600 to-purple-500" },
-                    { label: "Active", value: String(allResellers.filter(r => r.status === "active").length), icon: CheckCircle2, color: "from-slate-600 to-slate-500" },
-                  ]),
+                  {
+                    label: isAllResellers ? "Total Wallet Balance" : "Wallet Balance",
+                    sublabel: "Current Month",
+                    value: formatPKR(walletBal),
+                    sub: `${monthTxns.filter(t => t.type === "credit").length} recharges this month`,
+                    icon: Wallet,
+                    color: walletBal < 0 ? "from-red-600 to-red-500" : "from-emerald-600 to-emerald-500",
+                    badge: walletBal < 0 ? "Overdrawn" : null,
+                    badgeColor: "bg-white/20",
+                  },
+                  {
+                    label: "Recharge",
+                    sublabel: "Current Month",
+                    value: formatPKR(totalRechargeMonth),
+                    sub: `${monthTxns.filter(t => t.type === "credit").length} transactions`,
+                    icon: ArrowUpCircle,
+                    color: "from-teal-600 to-teal-500",
+                    badge: null, badgeColor: "",
+                  },
+                  {
+                    label: "Paid Payment",
+                    sublabel: "Current Month",
+                    value: formatPKR(totalPaidMonth),
+                    sub: `${monthTxns.filter(t => t.type === "credit" && (t as any).paymentStatus === "paid").length} paid transactions`,
+                    icon: CheckCircle2,
+                    color: "from-green-600 to-green-500",
+                    badge: null, badgeColor: "",
+                  },
+                  {
+                    label: "Unpaid Balance",
+                    sublabel: "All-time Unpaid",
+                    value: formatPKR(totalUnpaidAll),
+                    sub: `${txns.filter(t => t.type === "credit" && (t as any).paymentStatus === "unpaid").length} unpaid entries`,
+                    icon: AlertTriangle,
+                    color: totalUnpaidAll > 0 ? "from-rose-600 to-rose-500" : "from-slate-500 to-slate-400",
+                    badge: totalUnpaidAll > 0 ? "Pending" : null,
+                    badgeColor: "bg-white/20",
+                  },
+                  {
+                    label: isAllResellers ? "Total Credit Limit" : "Credit Limit",
+                    sublabel: "Configured Limit",
+                    value: formatPKR(creditLim),
+                    sub: `Available: ${formatPKR(availableCredit)}`,
+                    icon: Shield,
+                    color: "from-blue-600 to-blue-500",
+                    badge: null, badgeColor: "",
+                  },
+                  {
+                    label: isAllResellers ? "Total Security Deposit" : "Security Deposit",
+                    sublabel: "On File",
+                    value: formatPKR(secDeposit),
+                    sub: isAllResellers ? `${allResellers.length} resellers` : (selReseller?.area || "—"),
+                    icon: Landmark,
+                    color: "from-violet-600 to-violet-500",
+                    badge: null, badgeColor: "",
+                  },
                 ].map((kpi, idx) => (
                   <Card key={idx} className={`bg-gradient-to-br ${kpi.color} border-0 shadow-md`} data-testid={`wallet-kpi-${idx}`}>
                     <CardContent className="p-3">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-[10px] font-medium text-white/80 leading-tight">{kpi.label}</p>
-                          <p className="text-lg font-bold text-white mt-1 tabular-nums" data-testid={`wallet-kpi-value-${idx}`}>{kpi.value}</p>
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-semibold text-white/60 uppercase tracking-wide leading-tight truncate">{kpi.sublabel}</p>
+                          <p className="text-[11px] font-medium text-white/90 leading-tight mt-0.5">{kpi.label}</p>
                         </div>
-                        <kpi.icon className="h-4 w-4 text-white/60" />
+                        <kpi.icon className="h-4 w-4 text-white/50 shrink-0 ml-1" />
                       </div>
+                      <p className="text-xl font-bold text-white tabular-nums" data-testid={`wallet-kpi-value-${idx}`}>{kpi.value}</p>
+                      <p className="text-[10px] text-white/60 mt-1 leading-tight truncate">{kpi.sub}</p>
+                      {kpi.badge && <span className={`inline-block mt-1 text-[9px] font-bold text-white px-1.5 py-0.5 rounded-full ${kpi.badgeColor}`}>{kpi.badge}</span>}
                     </CardContent>
                   </Card>
                 ))}
@@ -2204,6 +2253,7 @@ export default function ResellersPage() {
                         {isAllResellers && <th className="px-3 py-2.5 text-left font-medium text-xs">Reseller</th>}
                         <th className="px-3 py-2.5 text-left font-medium text-xs">Txn ID</th>
                         <th className="px-3 py-2.5 text-left font-medium text-xs">Type</th>
+                        <th className="px-3 py-2.5 text-left font-medium text-xs">Status</th>
                         <th className="px-3 py-2.5 text-left font-medium text-xs hidden md:table-cell">Category</th>
                         <th className="px-3 py-2.5 text-left font-medium text-xs hidden md:table-cell">Reference</th>
                         <th className="px-3 py-2.5 text-left font-medium text-xs hidden lg:table-cell">Description</th>
@@ -2239,6 +2289,19 @@ export default function ResellersPage() {
                                 {isCredit ? <ArrowUpCircle className="h-3 w-3" /> : <ArrowDownCircle className="h-3 w-3" />}
                                 {txn.type}
                               </Badge>
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {isCredit ? (
+                                <Badge variant="secondary"
+                                  className={`no-default-active-elevate text-[10px] capitalize ${(txn as any).paymentStatus === "unpaid"
+                                    ? "text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950"
+                                    : "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950"}`}
+                                  data-testid={`txn-status-${txn.id}`}>
+                                  {(txn as any).paymentStatus === "unpaid" ? "Unpaid" : "Paid"}
+                                </Badge>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground">—</span>
+                              )}
                             </td>
                             <td className="px-3 py-2.5 hidden md:table-cell">
                               <span className="text-xs capitalize">{(txn.category || "general").replace(/_/g, " ")}</span>
@@ -2732,19 +2795,33 @@ export default function ResellersPage() {
                   value={rechargeAmount} onChange={(e) => setRechargeAmount(e.target.value)} data-testid="input-recharge-amount" />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Payment Method</label>
-                <Select value={rechargePaymentMethod} onValueChange={setRechargePaymentMethod}>
-                  <SelectTrigger data-testid="select-recharge-payment-method"><SelectValue /></SelectTrigger>
+                <label className="text-sm font-medium">Payment Status <span className="text-red-500">*</span></label>
+                <Select value={rechargePaymentStatus} onValueChange={setRechargePaymentStatus}>
+                  <SelectTrigger data-testid="select-recharge-payment-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                    <SelectItem value="online">Online Payment</SelectItem>
-                    <SelectItem value="cheque">Cheque</SelectItem>
-                    <SelectItem value="jazzcash">JazzCash</SelectItem>
-                    <SelectItem value="easypaisa">Easypaisa</SelectItem>
+                    <SelectItem value="paid">
+                      <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-green-500 inline-block" />Paid</span>
+                    </SelectItem>
+                    <SelectItem value="unpaid">
+                      <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-rose-500 inline-block" />Unpaid</span>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Payment Method</label>
+              <Select value={rechargePaymentMethod} onValueChange={setRechargePaymentMethod}>
+                <SelectTrigger data-testid="select-recharge-payment-method"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="online">Online Payment</SelectItem>
+                  <SelectItem value="cheque">Cheque</SelectItem>
+                  <SelectItem value="jazzcash">JazzCash</SelectItem>
+                  <SelectItem value="easypaisa">Easypaisa</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Reference / Receipt No.</label>
@@ -2754,6 +2831,12 @@ export default function ResellersPage() {
               <label className="text-sm font-medium">Remarks</label>
               <Input placeholder="Optional notes about this recharge" value={rechargeRemarks} onChange={(e) => setRechargeRemarks(e.target.value)} data-testid="input-recharge-remarks" />
             </div>
+            {rechargePaymentStatus === "unpaid" && (
+              <div className="flex items-start gap-2 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-lg p-3">
+                <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+                <p className="text-xs text-rose-700 dark:text-rose-400">This recharge will be recorded as <strong>unpaid</strong>. It will appear in the Unpaid Balance stat until marked as paid.</p>
+              </div>
+            )}
           </div>
           <DialogFooter className="gap-2">
             <Button variant="secondary" onClick={() => setRechargeDialogOpen(false)} data-testid="button-cancel-recharge">Cancel</Button>

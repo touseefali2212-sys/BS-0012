@@ -867,6 +867,7 @@ export const resellerWalletTransactions = pgTable("reseller_wallet_transactions"
   reference: text("reference"),
   description: text("description"),
   paymentMethod: text("payment_method"),
+  paymentStatus: text("payment_status").default("paid"),
   vendorId: integer("vendor_id"),
   customerId: integer("customer_id"),
   createdBy: text("created_by"),

@@ -293,7 +293,7 @@ export interface IStorage {
   getResellerWalletTransactions(resellerId: number): Promise<ResellerWalletTransaction[]>;
   getAllResellerWalletTransactions(): Promise<ResellerWalletTransaction[]>;
   createResellerWalletTransaction(t: InsertResellerWalletTransaction): Promise<ResellerWalletTransaction>;
-  rechargeResellerWallet(resellerId: number, amount: number, reference?: string, paymentMethod?: string, remarks?: string, createdBy?: string): Promise<Reseller>;
+  rechargeResellerWallet(resellerId: number, amount: number, reference?: string, paymentMethod?: string, remarks?: string, createdBy?: string, paymentStatus?: string): Promise<Reseller>;
   deductResellerWallet(resellerId: number, amount: number, vendorId?: number, customerId?: number, reference?: string, category?: string, createdBy?: string): Promise<Reseller>;
 
   getResellerMonthlySummaries(resellerId: number, month?: string): Promise<ResellerMonthlySummary[]>;
@@ -1491,7 +1491,7 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async rechargeResellerWallet(resellerId: number, amount: number, reference?: string, paymentMethod?: string, remarks?: string, createdBy?: string): Promise<Reseller> {
+  async rechargeResellerWallet(resellerId: number, amount: number, reference?: string, paymentMethod?: string, remarks?: string, createdBy?: string, paymentStatus?: string): Promise<Reseller> {
     const reseller = await this.getReseller(resellerId);
     if (!reseller) throw new Error("Reseller not found");
     const currentBalance = parseFloat(reseller.walletBalance || "0");
@@ -1506,6 +1506,7 @@ export class DatabaseStorage implements IStorage {
       reference: reference || `Recharge-${Date.now()}`,
       description: remarks || `Wallet recharge of ${amount}`,
       paymentMethod: paymentMethod || "cash",
+      paymentStatus: paymentStatus || "paid",
       createdBy: createdBy || "admin",
       createdAt: now,
     });
