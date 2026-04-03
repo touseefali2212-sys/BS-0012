@@ -1313,6 +1313,72 @@ export async function registerRoutes(
     } catch (error: any) { res.status(500).json({ message: error.message }); }
   });
 
+  // Company Bank & Cash Accounts
+  app.get("/api/company-bank-accounts", requireAuth, async (req, res) => {
+    try { res.json(await storage.getCompanyBankAccounts()); } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+  app.get("/api/company-bank-accounts/:id", requireAuth, async (req, res) => {
+    try {
+      const account = await storage.getCompanyBankAccount(parseInt(req.params.id));
+      if (!account) return res.status(404).json({ message: "Account not found" });
+      res.json(account);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+  app.post("/api/company-bank-accounts", requireAuth, async (req, res) => {
+    try {
+      const { insertCompanyBankAccountSchema } = await import("@shared/schema");
+      const parsed = insertCompanyBankAccountSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+      res.json(await storage.createCompanyBankAccount(parsed.data));
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+  app.patch("/api/company-bank-accounts/:id", requireAuth, async (req, res) => {
+    try {
+      res.json(await storage.updateCompanyBankAccount(parseInt(req.params.id), req.body));
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+  app.delete("/api/company-bank-accounts/:id", requireAuth, async (req, res) => {
+    try {
+      await storage.deleteCompanyBankAccount(parseInt(req.params.id));
+      res.json({ success: true });
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+
+  // Company Account Ledger
+  app.get("/api/company-account-ledger", requireAuth, async (req, res) => {
+    try {
+      const accountId = req.query.accountId ? parseInt(req.query.accountId as string) : undefined;
+      res.json(await storage.getCompanyAccountLedger(accountId));
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+  app.post("/api/company-account-ledger/credit", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({ accountId: z.number().int().positive(), amount: z.union([z.number(), z.string()]).transform(v => parseFloat(String(v))).refine(v => v > 0), referenceModule: z.string().optional(), referenceId: z.string().optional(), description: z.string().optional(), remarks: z.string().optional() });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data" });
+      const { accountId, amount, referenceModule, referenceId, description, remarks } = parsed.data;
+      res.json(await storage.creditCompanyAccount(accountId, amount, referenceModule, referenceId, description, remarks, "admin"));
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+  app.post("/api/company-account-ledger/debit", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({ accountId: z.number().int().positive(), amount: z.union([z.number(), z.string()]).transform(v => parseFloat(String(v))).refine(v => v > 0), referenceModule: z.string().optional(), referenceId: z.string().optional(), description: z.string().optional(), remarks: z.string().optional() });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data" });
+      const { accountId, amount, referenceModule, referenceId, description, remarks } = parsed.data;
+      res.json(await storage.debitCompanyAccount(accountId, amount, referenceModule, referenceId, description, remarks, "admin"));
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+  app.post("/api/company-account-ledger/transfer", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({ fromAccountId: z.number().int().positive(), toAccountId: z.number().int().positive(), amount: z.union([z.number(), z.string()]).transform(v => parseFloat(String(v))).refine(v => v > 0), remarks: z.string().optional() });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data" });
+      await storage.transferBetweenAccounts(parsed.data.fromAccountId, parsed.data.toAccountId, parsed.data.amount, parsed.data.remarks, "admin");
+      res.json({ success: true });
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+
   // Bandwidth Pool Stats API
   app.get("/api/bandwidth-pool/stats", requireAuth, async (req, res) => {
     try {

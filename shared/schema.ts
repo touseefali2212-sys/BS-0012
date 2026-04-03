@@ -3760,3 +3760,43 @@ export const bandwidthPurchases = pgTable("bandwidth_purchases", {
 export const insertBandwidthPurchaseSchema = createInsertSchema(bandwidthPurchases).omit({ id: true, createdAt: true });
 export type InsertBandwidthPurchase = z.infer<typeof insertBandwidthPurchaseSchema>;
 export type BandwidthPurchase = typeof bandwidthPurchases.$inferSelect;
+
+// Company Bank & Cash Accounts
+export const companyBankAccounts = pgTable("company_bank_accounts", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  accountType: text("account_type").notNull().default("bank"),
+  bankName: text("bank_name"),
+  accountNumber: text("account_number"),
+  iban: text("iban"),
+  openingBalance: decimal("opening_balance", { precision: 14, scale: 2 }).notNull().default("0"),
+  currentBalance: decimal("current_balance", { precision: 14, scale: 2 }).notNull().default("0"),
+  currency: text("currency").notNull().default("PKR"),
+  branch: text("branch"),
+  description: text("description"),
+  status: text("status").notNull().default("active"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertCompanyBankAccountSchema = createInsertSchema(companyBankAccounts).omit({ id: true, createdAt: true });
+export type InsertCompanyBankAccount = z.infer<typeof insertCompanyBankAccountSchema>;
+export type CompanyBankAccount = typeof companyBankAccounts.$inferSelect;
+
+// Company Account Ledger (all transactions linked to a company account)
+export const companyAccountLedger = pgTable("company_account_ledger", {
+  id: serial("id").primaryKey(),
+  accountId: integer("account_id").notNull(),
+  type: text("type").notNull(),
+  amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
+  balanceAfter: decimal("balance_after", { precision: 14, scale: 2 }).notNull(),
+  referenceModule: text("reference_module"),
+  referenceId: text("reference_id"),
+  description: text("description"),
+  remarks: text("remarks"),
+  createdBy: text("created_by"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertCompanyAccountLedgerSchema = createInsertSchema(companyAccountLedger).omit({ id: true, createdAt: true });
+export type InsertCompanyAccountLedger = z.infer<typeof insertCompanyAccountLedgerSchema>;
+export type CompanyAccountLedgerEntry = typeof companyAccountLedger.$inferSelect;

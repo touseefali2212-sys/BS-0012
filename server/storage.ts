@@ -190,6 +190,10 @@ import {
   type ResellerCompanyPackage, type InsertResellerCompanyPackage,
   resellerPackageAssignments,
   type ResellerPackageAssignment, type InsertResellerPackageAssignment,
+  companyBankAccounts,
+  type CompanyBankAccount, type InsertCompanyBankAccount,
+  companyAccountLedger,
+  type CompanyAccountLedgerEntry, type InsertCompanyAccountLedger,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -306,6 +310,17 @@ export interface IStorage {
   createBandwidthPurchase(data: InsertBandwidthPurchase): Promise<BandwidthPurchase>;
   updateBandwidthPurchase(id: number, data: Partial<InsertBandwidthPurchase>): Promise<BandwidthPurchase>;
   deleteBandwidthPurchase(id: number): Promise<void>;
+
+  getCompanyBankAccounts(): Promise<CompanyBankAccount[]>;
+  getCompanyBankAccount(id: number): Promise<CompanyBankAccount | undefined>;
+  createCompanyBankAccount(data: InsertCompanyBankAccount): Promise<CompanyBankAccount>;
+  updateCompanyBankAccount(id: number, data: Partial<InsertCompanyBankAccount>): Promise<CompanyBankAccount>;
+  deleteCompanyBankAccount(id: number): Promise<void>;
+  creditCompanyAccount(accountId: number, amount: number, referenceModule?: string, referenceId?: string, description?: string, remarks?: string, createdBy?: string): Promise<CompanyBankAccount>;
+  debitCompanyAccount(accountId: number, amount: number, referenceModule?: string, referenceId?: string, description?: string, remarks?: string, createdBy?: string): Promise<CompanyBankAccount>;
+  transferBetweenAccounts(fromAccountId: number, toAccountId: number, amount: number, remarks?: string, createdBy?: string): Promise<void>;
+  getCompanyAccountLedger(accountId?: number): Promise<CompanyAccountLedgerEntry[]>;
+  createCompanyAccountLedgerEntry(data: InsertCompanyAccountLedger): Promise<CompanyAccountLedgerEntry>;
 
   getResellerCompanyPackages(): Promise<ResellerCompanyPackage[]>;
   getResellerCompanyPackage(id: number): Promise<ResellerCompanyPackage | undefined>;
@@ -1601,6 +1616,72 @@ export class DatabaseStorage implements IStorage {
 
   async deleteBandwidthPurchase(id: number): Promise<void> {
     await db.delete(bandwidthPurchases).where(eq(bandwidthPurchases.id, id));
+  }
+
+  async getCompanyBankAccounts(): Promise<CompanyBankAccount[]> {
+    return db.select().from(companyBankAccounts).orderBy(desc(companyBankAccounts.id));
+  }
+
+  async getCompanyBankAccount(id: number): Promise<CompanyBankAccount | undefined> {
+    const [row] = await db.select().from(companyBankAccounts).where(eq(companyBankAccounts.id, id));
+    return row;
+  }
+
+  async createCompanyBankAccount(data: InsertCompanyBankAccount): Promise<CompanyBankAccount> {
+    const balance = data.openingBalance || "0";
+    const [row] = await db.insert(companyBankAccounts).values({ ...data, currentBalance: balance }).returning();
+    return row;
+  }
+
+  async updateCompanyBankAccount(id: number, data: Partial<InsertCompanyBankAccount>): Promise<CompanyBankAccount> {
+    const [row] = await db.update(companyBankAccounts).set(data).where(eq(companyBankAccounts.id, id)).returning();
+    return row;
+  }
+
+  async deleteCompanyBankAccount(id: number): Promise<void> {
+    await db.delete(companyAccountLedger).where(eq(companyAccountLedger.accountId, id));
+    await db.delete(companyBankAccounts).where(eq(companyBankAccounts.id, id));
+  }
+
+  async createCompanyAccountLedgerEntry(data: InsertCompanyAccountLedger): Promise<CompanyAccountLedgerEntry> {
+    const [row] = await db.insert(companyAccountLedger).values(data).returning();
+    return row;
+  }
+
+  async getCompanyAccountLedger(accountId?: number): Promise<CompanyAccountLedgerEntry[]> {
+    if (accountId) {
+      return db.select().from(companyAccountLedger).where(eq(companyAccountLedger.accountId, accountId)).orderBy(desc(companyAccountLedger.id));
+    }
+    return db.select().from(companyAccountLedger).orderBy(desc(companyAccountLedger.id));
+  }
+
+  async creditCompanyAccount(accountId: number, amount: number, referenceModule?: string, referenceId?: string, description?: string, remarks?: string, createdBy?: string): Promise<CompanyBankAccount> {
+    const account = await this.getCompanyBankAccount(accountId);
+    if (!account) throw new Error("Company account not found");
+    const newBalance = parseFloat(account.currentBalance || "0") + amount;
+    await this.createCompanyAccountLedgerEntry({
+      accountId, type: "credit", amount: amount.toString(), balanceAfter: newBalance.toString(),
+      referenceModule, referenceId, description, remarks, createdBy: createdBy || "admin",
+    });
+    const [updated] = await db.update(companyBankAccounts).set({ currentBalance: newBalance.toString() }).where(eq(companyBankAccounts.id, accountId)).returning();
+    return updated;
+  }
+
+  async debitCompanyAccount(accountId: number, amount: number, referenceModule?: string, referenceId?: string, description?: string, remarks?: string, createdBy?: string): Promise<CompanyBankAccount> {
+    const account = await this.getCompanyBankAccount(accountId);
+    if (!account) throw new Error("Company account not found");
+    const newBalance = parseFloat(account.currentBalance || "0") - amount;
+    await this.createCompanyAccountLedgerEntry({
+      accountId, type: "debit", amount: amount.toString(), balanceAfter: newBalance.toString(),
+      referenceModule, referenceId, description, remarks, createdBy: createdBy || "admin",
+    });
+    const [updated] = await db.update(companyBankAccounts).set({ currentBalance: newBalance.toString() }).where(eq(companyBankAccounts.id, accountId)).returning();
+    return updated;
+  }
+
+  async transferBetweenAccounts(fromAccountId: number, toAccountId: number, amount: number, remarks?: string, createdBy?: string): Promise<void> {
+    await this.debitCompanyAccount(fromAccountId, amount, "transfer", String(toAccountId), `Transfer to account #${toAccountId}`, remarks, createdBy);
+    await this.creditCompanyAccount(toAccountId, amount, "transfer", String(fromAccountId), `Transfer from account #${fromAccountId}`, remarks, createdBy);
   }
 
   async getResellerCompanyPackages(): Promise<ResellerCompanyPackage[]> {

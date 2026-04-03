@@ -71,6 +71,7 @@ import {
   Briefcase,
   Server,
   Smartphone,
+  Landmark,
   ClipboardCheck,
   type LucideIcon,
 } from "lucide-react";
@@ -268,6 +269,7 @@ const billingNav: NavItem[] = [
     icon: BookOpen,
     module: "accounting",
     subItems: [
+      { title: "Company Bank & Cash Accounts", url: "/company-bank-accounts", icon: Landmark },
       { title: "Account Types", url: "/accounting?tab=types", icon: Hash },
       { title: "Add New Account", url: "/accounting?tab=add", icon: UserPlus },
       { title: "Account List", url: "/accounting?tab=accounts", icon: BookOpen },

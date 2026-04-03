@@ -1,0 +1,212 @@
+Accounting Module
+Company Bank & Cash Accounts Page
+(Centralized Financial Account Management System)
+🎯 Objective
+
+Develop a dedicated “Company Bank & Cash Accounts” page within the Accounting Module to:
+
+✔ Manage all company financial accounts (Bank, Cash, Wallets)
+✔ Link every transaction across the system to a specific account
+✔ Maintain real-time balances
+✔ Ensure accurate accounting, reconciliation, and reporting
+
+👉 This page will act as the core financial ledger controller for all incoming and outgoing payments.
+
+🧠 Core Concept
+
+Every financial transaction in the system MUST be linked to a Company Account.
+
+This includes:
+
+Customer Collections
+Reseller Recharges
+Inventory Sales Payments
+Vendor Payments
+Expenses
+
+👉 No transaction should exist without selecting a Company Account.
+
+🧩 Page Structure
+Tabs / Sections:
+Account List
+Add / Edit Account
+Account Ledger (Transactions)
+Balance Summary
+Transfer Between Accounts
+Reconciliation
+📋 1️⃣ Account List
+
+Display all financial accounts:
+
+Account Types:
+Bank Account
+Cash in Hand
+Mobile Wallet (JazzCash, EasyPaisa)
+Payment Gateway
+Columns:
+Account Name
+Account Type
+Bank / Provider Name
+Account Number / IBAN
+Current Balance
+Status
+Features:
+
+✔ Search & filter
+✔ Activate / deactivate account
+✔ Quick balance view
+
+➕ 2️⃣ Add / Edit Account
+Fields:
+Account Name
+Account Type (Bank / Cash / Wallet / Gateway)
+Bank Name / Provider
+Account Number / IBAN
+Opening Balance
+Currency
+Branch (optional)
+Description
+Validations:
+
+✔ Prevent duplicate accounts
+✔ Required fields enforcement
+
+📊 3️⃣ Account Ledger (Transactions)
+
+A detailed ledger for each account:
+
+Transaction Types:
+Credit (Money In)
+Debit (Money Out)
+Columns:
+Transaction ID
+Date
+Account Name
+Type (Credit/Debit)
+Amount
+Reference Module:
+Customer Collection
+Reseller Recharge
+Inventory Sale
+Expense
+Reference ID (Invoice / Customer / Reseller)
+Remarks
+Filters:
+
+✔ Date range
+✔ Account
+✔ Transaction type
+
+🔄 4️⃣ Integration with All Modules (CRITICAL 🔥)
+
+This account system must be tightly integrated with:
+
+💵 Customer Collections
+
+✔ Select account while receiving payment
+✔ Auto update:
+
+Account Balance += Payment Amount
+💳 Reseller Recharge
+
+✔ Payment credited into selected account
+✔ Linked with reseller transaction
+
+🛒 Inventory Sales
+
+✔ Payment received into selected account
+
+📦 Expense / Vendor Payments
+
+✔ Deduct from selected account
+
+Account Balance -= Payment Amount
+
+👉 Every module must have a “Select Account” dropdown
+
+💰 5️⃣ Real-Time Balance System
+
+Each account should calculate:
+
+Opening Balance
+Total Credits
+Total Debits
+Current Balance
+Formula:
+Current Balance = Opening Balance + Credits – Debits
+🔁 6️⃣ Transfer Between Accounts
+
+Allow internal fund transfers:
+
+Fields:
+From Account
+To Account
+Amount
+Remarks
+Logic:
+
+✔ Debit from source account
+✔ Credit to destination account
+✔ Create dual transaction entries
+
+📑 7️⃣ Reconciliation System
+Features:
+
+✔ Match system transactions with bank statement
+✔ Mark entries as reconciled
+✔ Highlight mismatches
+
+📊 8️⃣ Financial Summary Dashboard
+
+Show key metrics:
+
+Total Bank Balance
+Cash in Hand
+Daily Collections
+Total Expenses
+Net Cash Flow
+🔐 Role-Based Access
+
+Admin:
+✔ Full control
+
+Accountant:
+✔ Manage accounts + transactions
+
+Manager:
+✔ View reports
+
+Staff:
+✔ Limited access (only select account in forms)
+
+⚙️ Advanced Features (HIGH VALUE 💎)
+🧾 Auto Journal Entries
+Auto create accounting entries for each transaction
+🔍 Full Audit Trail
+Track who created/edited transactions
+⚠️ Low Balance Alerts
+Notify when account balance is low
+📤 Export Ledger
+Excel / PDF
+🔄 Multi-Branch Support
+Separate accounts per branch
+💳 Payment Gateway Mapping
+Auto map online payments to accounts
+🎨 UI/UX Design
+Clean financial layout
+Balance cards on top
+Green = Credit / Red = Debit
+Sticky filters for ledger
+🧪 Expected Output
+
+✔ Centralized financial tracking
+✔ Accurate account balances
+✔ Seamless integration across modules
+✔ No financial mismatch
+
+📈 Business Impact
+
+🔥 Strong financial control
+🔥 Transparent accounting
+🔥 Better decision-making
+🔥 Scalable ERP foundation

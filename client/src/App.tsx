@@ -27,6 +27,7 @@ import AddResellerPage from "@/pages/add-reseller";
 import EditResellerPage from "@/pages/edit-reseller";
 import ResellerProfilePage from "@/pages/reseller-profile";
 import AccountingPage from "@/pages/accounting";
+import CompanyBankAccountsPage from "@/pages/company-bank-accounts";
 import TransactionsPage from "@/pages/transactions";
 import TasksPage from "@/pages/tasks";
 import ProjectsPage from "@/pages/projects";
@@ -156,6 +157,7 @@ function Router() {
       <Route path="/resellers/:id" component={ResellerProfilePage} />
       <Route path="/resellers" component={ResellersPage} />
       <Route path="/accounting" component={AccountingPage} />
+      <Route path="/company-bank-accounts" component={CompanyBankAccountsPage} />
       <Route path="/transactions" component={TransactionsPage} />
       <Route path="/tasks" component={TasksPage} />
       <Route path="/projects" component={ProjectsPage} />
