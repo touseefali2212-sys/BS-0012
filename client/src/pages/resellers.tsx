@@ -115,6 +115,7 @@ import {
   type Vendor,
   type ResellerWalletTransaction,
   type Package,
+  type CompanyBankAccount,
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -186,9 +187,11 @@ export default function ResellersPage() {
   const [rechargeReseller, setRechargeReseller] = useState<Reseller | null>(null);
   const [rechargeAmount, setRechargeAmount] = useState("");
   const [rechargeReference, setRechargeReference] = useState("");
-  const [rechargePaymentMethod, setRechargePaymentMethod] = useState("cash");
+  const [rechargePaymentMethod, setRechargePaymentMethod] = useState("cash_in_hand");
   const [rechargePaymentStatus, setRechargePaymentStatus] = useState("paid");
   const [rechargeRemarks, setRechargeRemarks] = useState("");
+  const [rechargeVendorId, setRechargeVendorId] = useState("");
+  const [rechargeBankAccountId, setRechargeBankAccountId] = useState("");
   const [deductDialogOpen, setDeductDialogOpen] = useState(false);
   const [deductReseller, setDeductReseller] = useState<Reseller | null>(null);
   const [deductAmount, setDeductAmount] = useState("");
@@ -245,6 +248,10 @@ export default function ResellersPage() {
       queryKey: ["/api/reseller-wallet-transactions", selectedWalletResellerId],
       enabled: !!selectedWalletResellerId,
     });
+
+  const { data: companyBankAccounts } = useQuery<CompanyBankAccount[]>({
+    queryKey: ["/api/company-bank-accounts"],
+  });
 
   const resellerDefaults: InsertReseller = {
     name: "", resellerType: "authorized_dealer", gender: "", occupation: "", dateOfBirth: "",
@@ -356,22 +363,23 @@ export default function ResellersPage() {
   });
 
   const rechargeMutation = useMutation({
-    mutationFn: async (data: { resellerId: number; amount: number; reference: string; paymentMethod?: string; remarks?: string; paymentStatus?: string }) => {
+    mutationFn: async (data: { resellerId: number; amount: number; reference: string; paymentMethod?: string; remarks?: string; paymentStatus?: string; vendorId?: number; bankAccountId?: number }) => {
       const res = await apiRequest("POST", "/api/reseller-wallet/recharge", data);
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/resellers"] });
-      queryClient.invalidateQueries({
-        queryKey: ["/api/reseller-wallet-transactions", selectedWalletResellerId],
-      });
+      queryClient.invalidateQueries({ queryKey: ["/api/reseller-wallet-transactions", selectedWalletResellerId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/company-bank-accounts"] });
       setRechargeDialogOpen(false);
       setRechargeReseller(null);
       setRechargeAmount("");
       setRechargeReference("");
-      setRechargePaymentMethod("cash");
+      setRechargePaymentMethod("cash_in_hand");
       setRechargePaymentStatus("paid");
       setRechargeRemarks("");
+      setRechargeVendorId("");
+      setRechargeBankAccountId("");
       toast({ title: "Wallet recharged successfully" });
     },
     onError: (error: Error) => {
@@ -593,6 +601,8 @@ export default function ResellersPage() {
       paymentMethod: rechargePaymentMethod,
       paymentStatus: rechargePaymentStatus,
       remarks: rechargeRemarks,
+      vendorId: rechargeVendorId ? parseInt(rechargeVendorId) : undefined,
+      bankAccountId: rechargeBankAccountId ? parseInt(rechargeBankAccountId) : undefined,
     });
   };
 
@@ -2771,66 +2781,136 @@ export default function ResellersPage() {
               Recharge Wallet {rechargeReseller ? `— ${rechargeReseller.name}` : ""}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+            {/* Balance Preview */}
             {rechargeReseller && (
-              <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Current Balance</p>
-                  <p className="text-lg font-bold" data-testid="text-recharge-current-balance">{formatPKR(rechargeReseller.walletBalance)}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+                  <p className="text-xs text-muted-foreground mb-1">Current Balance</p>
+                  <p className="text-xl font-bold" data-testid="text-recharge-current-balance">{formatPKR(rechargeReseller.walletBalance)}</p>
                 </div>
-                {rechargeAmount && parseFloat(rechargeAmount) > 0 && (
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">After Recharge</p>
-                    <p className="text-lg font-bold text-green-600" data-testid="text-recharge-after-balance">
-                      {formatPKR(parseFloat(String(rechargeReseller.walletBalance || "0")) + parseFloat(rechargeAmount))}
-                    </p>
-                  </div>
-                )}
+                <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                  <p className="text-xs text-muted-foreground mb-1">After Recharge</p>
+                  <p className="text-xl font-bold text-green-600" data-testid="text-recharge-after-balance">
+                    {formatPKR(parseFloat(String(rechargeReseller.walletBalance || "0")) + (parseFloat(rechargeAmount) || 0))}
+                  </p>
+                </div>
               </div>
             )}
+
+            {/* Recharge Balance + Vendor */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Amount <span className="text-red-500">*</span></label>
+                <label className="text-sm font-medium">Recharge Balance <span className="text-red-500">*</span></label>
                 <Input type="number" step="0.01" min="1" placeholder="Enter amount"
                   value={rechargeAmount} onChange={(e) => setRechargeAmount(e.target.value)} data-testid="input-recharge-amount" />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Payment Status <span className="text-red-500">*</span></label>
-                <Select value={rechargePaymentStatus} onValueChange={setRechargePaymentStatus}>
-                  <SelectTrigger data-testid="select-recharge-payment-status"><SelectValue /></SelectTrigger>
+                <label className="text-sm font-medium">Vendor</label>
+                <Select value={rechargeVendorId} onValueChange={setRechargeVendorId}>
+                  <SelectTrigger data-testid="select-recharge-vendor"><SelectValue placeholder="Select vendor" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="paid">
-                      <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-green-500 inline-block" />Paid</span>
-                    </SelectItem>
-                    <SelectItem value="unpaid">
-                      <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-rose-500 inline-block" />Unpaid</span>
-                    </SelectItem>
+                    <SelectItem value="none">— No Vendor —</SelectItem>
+                    {(vendors || []).map(v => (
+                      <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
+
+            {/* Payment Status */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Payment Method</label>
-              <Select value={rechargePaymentMethod} onValueChange={setRechargePaymentMethod}>
-                <SelectTrigger data-testid="select-recharge-payment-method"><SelectValue /></SelectTrigger>
+              <label className="text-sm font-medium">Payment Status <span className="text-red-500">*</span></label>
+              <Select value={rechargePaymentStatus} onValueChange={setRechargePaymentStatus}>
+                <SelectTrigger data-testid="select-recharge-payment-status"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="online">Online Payment</SelectItem>
-                  <SelectItem value="cheque">Cheque</SelectItem>
-                  <SelectItem value="jazzcash">JazzCash</SelectItem>
-                  <SelectItem value="easypaisa">Easypaisa</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="unpaid">Unpaid</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Payment Type */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Reference / Receipt No.</label>
-              <Input placeholder="e.g., TXN-2025-001 or receipt number" value={rechargeReference} onChange={(e) => setRechargeReference(e.target.value)} data-testid="input-recharge-reference" />
+              <label className="text-sm font-medium">Payment Type <span className="text-red-500">*</span></label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { value: "cash_in_hand", label: "Cash in Hand", icon: Banknote, color: "green", accountType: "cash" },
+                  { value: "bank_transfer", label: "Bank Transfer", icon: Landmark, color: "blue", accountType: "bank" },
+                  { value: "mobile_wallet", label: "Mobile Wallet", icon: Wallet, color: "purple", accountType: "wallet" },
+                ].map(({ value, label, icon: Icon, color, accountType }) => {
+                  const active = rechargePaymentMethod === value;
+                  const accounts = (companyBankAccounts || []).filter(a => a.accountType === accountType && a.status === "active");
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => { setRechargePaymentMethod(value); setRechargeBankAccountId(""); }}
+                      data-testid={`button-payment-type-${value}`}
+                      className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all text-center ${
+                        active
+                          ? color === "green" ? "border-green-500 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400"
+                          : color === "blue" ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400"
+                          : "border-purple-500 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400"
+                          : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                      }`}
+                    >
+                      <Icon className="h-5 w-5" />
+                      <span className="text-xs font-medium leading-tight">{label}</span>
+                      {accounts.length > 0 && <span className="text-[10px] text-muted-foreground">{accounts.length} acct{accounts.length !== 1 ? "s" : ""}</span>}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
+
+            {/* Account Selection (filtered by payment type) */}
+            {(() => {
+              const accountTypeMap: Record<string, string> = { cash_in_hand: "cash", bank_transfer: "bank", mobile_wallet: "wallet" };
+              const filtered = (companyBankAccounts || []).filter(a => a.accountType === accountTypeMap[rechargePaymentMethod] && a.status === "active");
+              const selectedAcc = filtered.find(a => String(a.id) === rechargeBankAccountId);
+              return (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Payment Send From
+                    {filtered.length === 0 && <span className="text-xs text-muted-foreground ml-2">(No accounts set up for this type — <a href="/company-bank-accounts" className="underline text-blue-600">add one</a>)</span>}
+                  </label>
+                  <Select value={rechargeBankAccountId} onValueChange={setRechargeBankAccountId}>
+                    <SelectTrigger data-testid="select-recharge-bank-account">
+                      <SelectValue placeholder={filtered.length === 0 ? "No accounts available" : "Select account"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— None —</SelectItem>
+                      {filtered.map(a => (
+                        <SelectItem key={a.id} value={String(a.id)}>
+                          {a.name}{a.bankName ? ` — ${a.bankName}` : ""}{a.accountNumber ? ` (${a.accountNumber})` : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {selectedAcc && (
+                    <div className="bg-slate-50 dark:bg-slate-900 rounded-md p-2 text-xs text-muted-foreground flex items-center justify-between">
+                      <span>{selectedAcc.name}{selectedAcc.bankName ? ` · ${selectedAcc.bankName}` : ""}</span>
+                      <span className="font-semibold text-slate-700 dark:text-slate-300">{formatPKR(selectedAcc.currentBalance)}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* TID / Reference ID */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Remarks</label>
-              <Input placeholder="Optional notes about this recharge" value={rechargeRemarks} onChange={(e) => setRechargeRemarks(e.target.value)} data-testid="input-recharge-remarks" />
+              <label className="text-sm font-medium">TID / Reference ID</label>
+              <Input placeholder="Transaction ID or reference number" value={rechargeReference} onChange={(e) => setRechargeReference(e.target.value)} data-testid="input-recharge-reference" />
             </div>
+
+            {/* Note */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Note</label>
+              <Input placeholder="Optional note about this recharge" value={rechargeRemarks} onChange={(e) => setRechargeRemarks(e.target.value)} data-testid="input-recharge-remarks" />
+            </div>
+
             {rechargePaymentStatus === "unpaid" && (
               <div className="flex items-start gap-2 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-lg p-3">
                 <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
@@ -2838,7 +2918,7 @@ export default function ResellersPage() {
               </div>
             )}
           </div>
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 pt-2">
             <Button variant="secondary" onClick={() => setRechargeDialogOpen(false)} data-testid="button-cancel-recharge">Cancel</Button>
             <Button onClick={handleRecharge} disabled={!rechargeAmount || rechargeMutation.isPending}
               className="bg-gradient-to-r from-green-600 to-green-500 text-white" data-testid="button-submit-recharge">

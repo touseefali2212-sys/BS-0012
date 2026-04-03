@@ -870,6 +870,7 @@ export const resellerWalletTransactions = pgTable("reseller_wallet_transactions"
   paymentStatus: text("payment_status").default("paid"),
   vendorId: integer("vendor_id"),
   customerId: integer("customer_id"),
+  bankAccountId: integer("bank_account_id"),
   createdBy: text("created_by"),
   createdAt: text("created_at").notNull(),
 });

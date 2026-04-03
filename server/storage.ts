@@ -297,7 +297,7 @@ export interface IStorage {
   getResellerWalletTransactions(resellerId: number): Promise<ResellerWalletTransaction[]>;
   getAllResellerWalletTransactions(): Promise<ResellerWalletTransaction[]>;
   createResellerWalletTransaction(t: InsertResellerWalletTransaction): Promise<ResellerWalletTransaction>;
-  rechargeResellerWallet(resellerId: number, amount: number, reference?: string, paymentMethod?: string, remarks?: string, createdBy?: string, paymentStatus?: string): Promise<Reseller>;
+  rechargeResellerWallet(resellerId: number, amount: number, reference?: string, paymentMethod?: string, remarks?: string, createdBy?: string, paymentStatus?: string, vendorId?: number, bankAccountId?: number): Promise<Reseller>;
   deductResellerWallet(resellerId: number, amount: number, vendorId?: number, customerId?: number, reference?: string, category?: string, createdBy?: string): Promise<Reseller>;
 
   getResellerMonthlySummaries(resellerId: number, month?: string): Promise<ResellerMonthlySummary[]>;
@@ -1506,25 +1506,33 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async rechargeResellerWallet(resellerId: number, amount: number, reference?: string, paymentMethod?: string, remarks?: string, createdBy?: string, paymentStatus?: string): Promise<Reseller> {
+  async rechargeResellerWallet(resellerId: number, amount: number, reference?: string, paymentMethod?: string, remarks?: string, createdBy?: string, paymentStatus?: string, vendorId?: number, bankAccountId?: number): Promise<Reseller> {
     const reseller = await this.getReseller(resellerId);
     if (!reseller) throw new Error("Reseller not found");
     const currentBalance = parseFloat(reseller.walletBalance || "0");
     const newBalance = currentBalance + amount;
     const now = new Date().toISOString();
+    const txnRef = reference || `Recharge-${Date.now()}`;
     await this.createResellerWalletTransaction({
       resellerId,
       type: "credit",
       category: "recharge",
       amount: amount.toString(),
       balanceAfter: newBalance.toString(),
-      reference: reference || `Recharge-${Date.now()}`,
+      reference: txnRef,
       description: remarks || `Wallet recharge of ${amount}`,
       paymentMethod: paymentMethod || "cash",
       paymentStatus: paymentStatus || "paid",
+      vendorId: vendorId || undefined,
+      bankAccountId: bankAccountId || undefined,
       createdBy: createdBy || "admin",
       createdAt: now,
     });
+    if (bankAccountId) {
+      try {
+        await this.debitCompanyAccount(bankAccountId, amount, "reseller_recharge", String(resellerId), `Recharge for reseller #${resellerId}`, remarks, createdBy || "admin");
+      } catch (_) {}
+    }
     const [updated] = await db.update(resellers).set({ walletBalance: newBalance.toString() }).where(eq(resellers.id, resellerId)).returning();
     return updated;
   }

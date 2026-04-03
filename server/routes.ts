@@ -1555,10 +1555,10 @@ export async function registerRoutes(
 
   app.post("/api/reseller-wallet/recharge", requireAuth, async (req, res) => {
     try {
-      const schema = z.object({ resellerId: z.number().int().positive(), amount: z.union([z.number(), z.string()]).transform(v => parseFloat(String(v))).refine(v => v > 0, "Amount must be positive"), reference: z.string().optional(), paymentMethod: z.string().optional(), remarks: z.string().optional(), paymentStatus: z.string().optional() });
+      const schema = z.object({ resellerId: z.number().int().positive(), amount: z.union([z.number(), z.string()]).transform(v => parseFloat(String(v))).refine(v => v > 0, "Amount must be positive"), reference: z.string().optional(), paymentMethod: z.string().optional(), remarks: z.string().optional(), paymentStatus: z.string().optional(), vendorId: z.number().int().optional(), bankAccountId: z.number().int().optional() });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
-      const reseller = await storage.rechargeResellerWallet(parsed.data.resellerId, parsed.data.amount, parsed.data.reference, parsed.data.paymentMethod, parsed.data.remarks, "admin", parsed.data.paymentStatus);
+      const reseller = await storage.rechargeResellerWallet(parsed.data.resellerId, parsed.data.amount, parsed.data.reference, parsed.data.paymentMethod, parsed.data.remarks, "admin", parsed.data.paymentStatus, parsed.data.vendorId, parsed.data.bankAccountId);
       res.json(reseller);
     } catch (error: any) { res.status(400).json({ message: error.message }); }
   });
