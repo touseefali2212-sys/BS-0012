@@ -1201,182 +1201,137 @@ export default function PackagesPage() {
                   <p className="text-sm mt-1">Try adjusting your search or filter, or create a new package</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table className="vendor-table-enterprise">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[40px]"></TableHead>
-                        <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("name")}>
-                          Package Name <SortIcon field="name" />
-                        </TableHead>
-                        <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("serviceType")}>
-                          Type <SortIcon field="serviceType" />
-                        </TableHead>
-                        <TableHead>Vendor</TableHead>
-                        <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("price")}>
-                          Price <SortIcon field="price" />
-                        </TableHead>
-                        <TableHead>Active Customers</TableHead>
-                        <TableHead>Monthly Income</TableHead>
-                        <TableHead className="hidden md:table-cell">Speed / Channels</TableHead>
-                        <TableHead className="hidden lg:table-cell">Data / Features</TableHead>
-                        <TableHead className="hidden sm:table-cell">Billing</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right w-[80px]">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filtered.map((pkg) => {
-                        const vendor = allVendors.find(v => v.id === pkg.vendorId);
-                        const activeCusts = allCustomers.filter(c => c.packageId === pkg.id && c.status === "active");
-                        const totalIncome = activeCusts.reduce((s, c) => s + Number(c.monthlyBill || pkg.price || 0), 0);
-                        return (
-                          <TableRow key={pkg.id} data-testid={`row-package-${pkg.id}`} className="group">
-                            <TableCell>
-                              <div className="flex items-center justify-center w-8 h-8 rounded-md bg-primary/10">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4">
+                  {filtered.map((pkg) => {
+                    const vendor = allVendors.find(v => v.id === pkg.vendorId);
+                    const activeCusts = allCustomers.filter(c => c.packageId === pkg.id && c.status === "active");
+                    const totalIncome = activeCusts.reduce((s, c) => s + Number(c.monthlyBill || pkg.price || 0), 0);
+                    const base = Number(pkg.price);
+                    const whAmt = pkg.whTax ? (base * Number(pkg.whTax)) / 100 : 0;
+                    const aitAmt = pkg.aitTax ? (base * Number(pkg.aitTax)) / 100 : 0;
+                    const total = base + whAmt + aitAmt;
+                    const hasTax = whAmt > 0 || aitAmt > 0;
+                    return (
+                      <div key={pkg.id} data-testid={`card-package-${pkg.id}`} className="bg-card border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col">
+                        <div className="p-4 pb-3">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="shrink-0 h-7 w-7 flex items-center justify-center">
                                 {getServiceIcon(pkg.serviceType || "internet")}
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <div>
-                                <div className="flex items-center gap-1.5">
-                                  <p className="font-semibold text-sm" data-testid={`text-pkg-name-${pkg.id}`}>{pkg.name}</p>
-                                  {isVendorPkg(pkg) && <Badge variant="outline" className="text-[9px] border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 px-1.5 py-0">Vendor</Badge>}
-                                </div>
-                                {pkg.description && (
-                                  <p className="text-xs text-muted-foreground line-clamp-1 max-w-[200px]">{pkg.description}</p>
+                              <p className="font-bold text-sm leading-tight truncate" data-testid={`text-pkg-name-${pkg.id}`}>{pkg.name}</p>
+                            </div>
+                            {isVendorPkg(pkg) ? (
+                              <Badge variant="outline" className="text-[9px] text-muted-foreground shrink-0">Vendor</Badge>
+                            ) : (
+                              <Switch
+                                checked={!!pkg.isActive}
+                                onCheckedChange={v => canEdit("packages") && toggleStatusMutation.mutate({ id: pkg.id, isActive: v })}
+                                data-testid={`switch-pkg-${pkg.id}`}
+                                className="shrink-0"
+                              />
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap gap-1 mb-3">
+                            <Badge variant="secondary" className={`text-[10px] ${serviceTypeColors[pkg.serviceType || "internet"]}`} data-testid={`badge-service-type-${pkg.id}`}>
+                              {serviceTypeLabels[pkg.serviceType || "internet"]}
+                            </Badge>
+                            {pkg.speed && (
+                              <Badge variant="outline" className="text-[10px]" data-testid={`badge-speed-${pkg.id}`}>{pkg.speed}</Badge>
+                            )}
+                            {pkg.billingCycle && (
+                              <Badge variant="secondary" className="text-[10px] capitalize">{pkg.billingCycle}</Badge>
+                            )}
+                            {vendor && (
+                              <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30">
+                                {vendor.name}
+                              </Badge>
+                            )}
+                          </div>
+
+                          <div className="rounded-xl bg-primary/5 border border-primary/20 p-3 text-center mb-3">
+                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-0.5">Package Price</p>
+                            <p className="text-xl font-bold text-primary" data-testid={`text-pkg-price-${pkg.id}`}>
+                              PKR {base.toLocaleString()}
+                            </p>
+                            {pkg.billingCycle && (
+                              <p className="text-[10px] text-muted-foreground mt-0.5">per {pkg.billingCycle}</p>
+                            )}
+                            {hasTax && (
+                              <div className="mt-1.5 pt-1.5 border-t border-primary/10 space-y-0.5">
+                                {whAmt > 0 && (
+                                  <p className="text-[10px] text-amber-700 dark:text-amber-400">WH {pkg.whTax}% = +Rs. {whAmt.toLocaleString()}</p>
                                 )}
+                                {aitAmt > 0 && (
+                                  <p className="text-[10px] text-rose-700 dark:text-rose-400">AIT {pkg.aitTax}% = +Rs. {aitAmt.toLocaleString()}</p>
+                                )}
+                                <p className="text-[10px] font-bold text-green-700 dark:text-green-400">Total: Rs. {total.toLocaleString()}</p>
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="secondary" className={`no-default-active-elevate text-[10px] ${serviceTypeColors[pkg.serviceType || "internet"]}`} data-testid={`badge-service-type-${pkg.id}`}>
-                                {serviceTypeLabels[pkg.serviceType || "internet"]}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {vendor ? (
-                                <div className="flex items-center gap-1.5">
-                                  <Building2 className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                                  <span className="text-sm" data-testid={`text-pkg-vendor-${pkg.id}`}>{vendor.name}</span>
-                                </div>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </div>
+
+                          <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1 mb-2">
+                            <span className="flex items-center gap-1">
+                              <Users2 className="h-3 w-3 text-blue-500" />
+                              <span className="font-semibold text-foreground" data-testid={`text-pkg-customers-${pkg.id}`}>{activeCusts.length}</span> active
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <TrendingUp className="h-3 w-3 text-green-500" />
+                              <span className="font-semibold text-green-700 dark:text-green-400" data-testid={`text-pkg-income-${pkg.id}`}>Rs. {totalIncome.toLocaleString()}</span>
+                            </span>
+                          </div>
+
+                          {(pkg.channels || pkg.dataLimit || pkg.features) && (
+                            <p className="text-[10px] text-muted-foreground truncate">
+                              {pkg.channels || pkg.dataLimit || pkg.features}
+                            </p>
+                          )}
+                          {pkg.description && (
+                            <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{pkg.description}</p>
+                          )}
+                        </div>
+
+                        <div className="mt-auto border-t">
+                          {isVendorPkg(pkg) ? (
+                            <div className="p-3 text-center">
+                              <span className="text-[10px] text-muted-foreground">Managed in Vendors</span>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-3 divide-x">
+                              {canEdit("packages") && (
+                                <button
+                                  onClick={() => openEdit(pkg)}
+                                  className="flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                                  data-testid={`button-edit-pkg-${pkg.id}`}
+                                >
+                                  <Edit className="h-3.5 w-3.5" /> Edit
+                                </button>
                               )}
-                            </TableCell>
-                            <TableCell>
-                              {(() => {
-                                const base = Number(pkg.price);
-                                const whAmt = pkg.whTax ? (base * Number(pkg.whTax)) / 100 : 0;
-                                const aitAmt = pkg.aitTax ? (base * Number(pkg.aitTax)) / 100 : 0;
-                                const total = base + whAmt + aitAmt;
-                                const hasTax = whAmt > 0 || aitAmt > 0;
-                                return (
-                                  <div className="flex flex-col gap-0.5 min-w-[140px]">
-                                    <div className="flex items-center gap-1">
-                                      <span className="font-bold text-sm">Rs. {base.toLocaleString()}</span>
-                                      <span className="text-[10px] text-muted-foreground">/{pkg.billingCycle}</span>
-                                    </div>
-                                    {hasTax && (
-                                      <>
-                                        {whAmt > 0 && (
-                                          <span className="text-[10px] text-amber-700 dark:text-amber-400 flex items-center gap-0.5">
-                                            <Percent className="h-2.5 w-2.5" />WH {pkg.whTax}% + Rs. {whAmt.toLocaleString()}
-                                          </span>
-                                        )}
-                                        {aitAmt > 0 && (
-                                          <span className="text-[10px] text-rose-700 dark:text-rose-400 flex items-center gap-0.5">
-                                            <Percent className="h-2.5 w-2.5" />AIT {pkg.aitTax}% + Rs. {aitAmt.toLocaleString()}
-                                          </span>
-                                        )}
-                                        <div className="border-t border-dashed border-muted-foreground/30 mt-0.5 pt-0.5 flex items-center gap-1">
-                                          <span className="text-[10px] text-muted-foreground">Actual:</span>
-                                          <span className="font-bold text-xs text-green-700 dark:text-green-400">Rs. {total.toLocaleString()}</span>
-                                        </div>
-                                      </>
-                                    )}
-                                  </div>
-                                );
-                              })()}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1.5">
-                                <Users2 className="h-3.5 w-3.5 text-blue-500" />
-                                <span className="font-semibold text-sm" data-testid={`text-pkg-customers-${pkg.id}`}>{activeCusts.length}</span>
-                                <span className="text-xs text-muted-foreground">active</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-1.5">
-                                <TrendingUp className="h-3.5 w-3.5 text-green-500" />
-                                <span className="font-semibold text-sm text-green-700 dark:text-green-400" data-testid={`text-pkg-income-${pkg.id}`}>
-                                  Rs. {totalIncome.toLocaleString()}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="hidden md:table-cell text-sm text-muted-foreground">
-                              {pkg.speed && <span className="flex items-center gap-1"><Zap className="h-3 w-3" />{pkg.speed}</span>}
-                              {pkg.channels && <span>{pkg.channels}</span>}
-                              {!pkg.speed && !pkg.channels && "—"}
-                            </TableCell>
-                            <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
-                              {pkg.dataLimit || pkg.features || "—"}
-                            </TableCell>
-                            <TableCell className="hidden sm:table-cell">
-                              <Badge variant="outline" className="no-default-active-elevate text-[10px] capitalize">
-                                {pkg.billingCycle}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {pkg.isActive ? (
-                                <span className="flex items-center gap-1 text-green-700 dark:text-green-400 text-xs font-medium">
-                                  <CheckCircle2 className="h-3.5 w-3.5" /> Active
-                                </span>
-                              ) : (
-                                <span className="flex items-center gap-1 text-red-600 dark:text-red-400 text-xs font-medium">
-                                  <XCircle className="h-3.5 w-3.5" /> Inactive
-                                </span>
+                              {canCreate("packages") && (
+                                <button
+                                  onClick={() => duplicatePackage(pkg)}
+                                  className="flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                                  data-testid={`button-duplicate-pkg-${pkg.id}`}
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </button>
                               )}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {isVendorPkg(pkg) ? (
-                                <Badge variant="outline" className="text-[9px] text-muted-foreground">Managed in Vendors</Badge>
-                              ) : (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" data-testid={`button-pkg-actions-${pkg.id}`}>
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    {canEdit("packages") && (
-                                      <DropdownMenuItem onClick={() => openEdit(pkg)}>
-                                        <Edit className="h-4 w-4 mr-2" /> Edit
-                                      </DropdownMenuItem>
-                                    )}
-                                    {canCreate("packages") && (
-                                      <DropdownMenuItem onClick={() => duplicatePackage(pkg)}>
-                                        <Copy className="h-4 w-4 mr-2" /> Duplicate
-                                      </DropdownMenuItem>
-                                    )}
-                                    {canEdit("packages") && (
-                                      <DropdownMenuItem onClick={() => toggleStatusMutation.mutate({ id: pkg.id, isActive: !pkg.isActive })}>
-                                        <Power className="h-4 w-4 mr-2" /> {pkg.isActive ? "Deactivate" : "Activate"}
-                                      </DropdownMenuItem>
-                                    )}
-                                    {canDelete("packages") && (
-                                      <DropdownMenuItem className="text-destructive" onClick={() => deleteMutation.mutate(pkg.id)}>
-                                        <Trash2 className="h-4 w-4 mr-2" /> Delete
-                                      </DropdownMenuItem>
-                                    )}
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
+                              {canDelete("packages") && (
+                                <button
+                                  onClick={() => deleteMutation.mutate(pkg.id)}
+                                  className="flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
+                                  data-testid={`button-delete-pkg-${pkg.id}`}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
                               )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
