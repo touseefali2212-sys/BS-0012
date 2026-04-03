@@ -325,7 +325,9 @@ export default function EditResellerPage() {
       bankAccountTitle: r.bankAccountTitle || "",
       bankAccountNumber: r.bankAccountNumber || "",
       bankBranchCode: r.bankBranchCode || "",
+      commissionType: (r as any).commissionType || "fixed_rate",
       commissionRate: r.commissionRate || "10",
+      commissionProfitRate: (r as any).commissionProfitRate || "0",
       commissionPaymentMethod: r.commissionPaymentMethod || "wallet",
       commissionPaymentFrequency: r.commissionPaymentFrequency || "monthly",
       agreementType: r.agreementType || "standard",
@@ -445,7 +447,9 @@ export default function EditResellerPage() {
         billingCycle: form.billingCycle, paymentMethod: form.paymentMethod,
         bankName: form.bankName || null, bankAccountTitle: form.bankAccountTitle || null,
         bankAccountNumber: form.bankAccountNumber || null, bankBranchCode: form.bankBranchCode || null,
+        commissionType: (form as any).commissionType || "fixed_rate",
         commissionRate: form.commissionRate,
+        commissionProfitRate: (form as any).commissionProfitRate || "0",
         commissionPaymentMethod: form.commissionPaymentMethod,
         commissionPaymentFrequency: form.commissionPaymentFrequency,
         agreementType: form.agreementType,
@@ -1100,9 +1104,16 @@ export default function EditResellerPage() {
               <Card>
                 <SectionHeader icon={DollarSign} title="Commission Settings" description="Commission rates and payment configuration" />
                 <CardContent className="space-y-4">
-                  <FieldGroup cols={3}>
-                    <Field label="Commission Rate (%)">
-                      <Input type="number" value={form.commissionRate} onChange={e => update("commissionRate", e.target.value)} placeholder="10" data-testid="input-commission-rate" />
+                  <FieldGroup cols={2}>
+                    <Field label="Commission Type">
+                      <Select value={(form as any).commissionType || "fixed_rate"} onValueChange={v => update("commissionType", v)}>
+                        <SelectTrigger data-testid="select-commission-type"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fixed_rate">Fixed Rate %</SelectItem>
+                          <SelectItem value="profit_percentage">% of Package Profit</SelectItem>
+                          <SelectItem value="both">Both (Fixed + Profit %)</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </Field>
                     <Field label="Payment Method">
                       <Select value={form.commissionPaymentMethod} onValueChange={v => update("commissionPaymentMethod", v)}>
@@ -1114,6 +1125,18 @@ export default function EditResellerPage() {
                         </SelectContent>
                       </Select>
                     </Field>
+                  </FieldGroup>
+                  <FieldGroup cols={(form as any).commissionType === "both" ? 3 : (form as any).commissionType === "profit_percentage" ? 2 : 2}>
+                    {((form as any).commissionType === "fixed_rate" || (form as any).commissionType === "both" || !(form as any).commissionType) && (
+                      <Field label="Fixed Rate (% of Selling Price)">
+                        <Input type="number" value={form.commissionRate} onChange={e => update("commissionRate", e.target.value)} placeholder="10" data-testid="input-commission-rate" />
+                      </Field>
+                    )}
+                    {((form as any).commissionType === "profit_percentage" || (form as any).commissionType === "both") && (
+                      <Field label="Profit Rate (% of Package Profit)">
+                        <Input type="number" value={(form as any).commissionProfitRate || ""} onChange={e => update("commissionProfitRate", e.target.value)} placeholder="e.g. 20" data-testid="input-commission-profit-rate" />
+                      </Field>
+                    )}
                     <Field label="Payment Frequency">
                       <Select value={form.commissionPaymentFrequency} onValueChange={v => update("commissionPaymentFrequency", v)}>
                         <SelectTrigger data-testid="select-commission-frequency"><SelectValue /></SelectTrigger>

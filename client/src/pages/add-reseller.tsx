@@ -250,8 +250,8 @@ export default function AddResellerPage() {
     openingBalance: "0", billingCycle: "monthly", paymentMethod: "cash",
     bankName: "", bankAccountTitle: "", bankAccountNumber: "", bankBranchCode: "",
     // Commission
-    commissionRate: "10", commissionPaymentMethod: "wallet",
-    commissionPaymentFrequency: "monthly",
+    commissionType: "fixed_rate", commissionRate: "10", commissionProfitRate: "0",
+    commissionPaymentMethod: "wallet", commissionPaymentFrequency: "monthly",
     // Agreement
     agreementType: "standard", agreementStartDate: "", agreementEndDate: "", autoRenewal: false,
     // Documents
@@ -383,7 +383,9 @@ export default function AddResellerPage() {
         billingCycle: form.billingCycle, paymentMethod: form.paymentMethod,
         bankName: form.bankName || null, bankAccountTitle: form.bankAccountTitle || null,
         bankAccountNumber: form.bankAccountNumber || null, bankBranchCode: form.bankBranchCode || null,
+        commissionType: form.commissionType,
         commissionRate: form.commissionRate,
+        commissionProfitRate: form.commissionProfitRate || "0",
         commissionPaymentMethod: form.commissionPaymentMethod,
         commissionPaymentFrequency: form.commissionPaymentFrequency,
         agreementType: form.agreementType,
@@ -1228,6 +1230,56 @@ export default function AddResellerPage() {
                             <SelectItem value="cheque">Cheque</SelectItem>
                             <SelectItem value="online">Online Payment</SelectItem>
                             <SelectItem value="wallet">Wallet</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </FieldGroup>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <SectionHeader icon={DollarSign} title="Commission Settings" description="Commission model and payment configuration" />
+                  <CardContent className="space-y-4">
+                    <FieldGroup cols={2}>
+                      <Field label="Commission Type">
+                        <Select value={form.commissionType} onValueChange={v => update("commissionType", v)}>
+                          <SelectTrigger data-testid="select-commission-type"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="fixed_rate">Fixed Rate %</SelectItem>
+                            <SelectItem value="profit_percentage">% of Package Profit</SelectItem>
+                            <SelectItem value="both">Both (Fixed + Profit %)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                      <Field label="Payment Method">
+                        <Select value={form.commissionPaymentMethod} onValueChange={v => update("commissionPaymentMethod", v)}>
+                          <SelectTrigger data-testid="select-commission-payment-method"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="wallet">Wallet</SelectItem>
+                            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                            <SelectItem value="cash">Cash</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </Field>
+                    </FieldGroup>
+                    <FieldGroup cols={form.commissionType === "both" ? 3 : 2}>
+                      {(form.commissionType === "fixed_rate" || form.commissionType === "both") && (
+                        <Field label="Fixed Rate (% of Selling Price)">
+                          <Input type="number" value={form.commissionRate} onChange={e => update("commissionRate", e.target.value)} placeholder="10" data-testid="input-commission-rate" />
+                        </Field>
+                      )}
+                      {(form.commissionType === "profit_percentage" || form.commissionType === "both") && (
+                        <Field label="Profit Rate (% of Package Profit)">
+                          <Input type="number" value={form.commissionProfitRate} onChange={e => update("commissionProfitRate", e.target.value)} placeholder="e.g. 20" data-testid="input-commission-profit-rate" />
+                        </Field>
+                      )}
+                      <Field label="Payment Frequency">
+                        <Select value={form.commissionPaymentFrequency} onValueChange={v => update("commissionPaymentFrequency", v)}>
+                          <SelectTrigger data-testid="select-commission-frequency"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="quarterly">Quarterly</SelectItem>
+                            <SelectItem value="weekly">Weekly</SelectItem>
                           </SelectContent>
                         </Select>
                       </Field>

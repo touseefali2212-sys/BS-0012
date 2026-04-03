@@ -825,8 +825,39 @@ export default function ResellerProfilePage() {
                 <SectionHeader title="Commission Settings" />
                 <div className="bg-card border rounded-lg overflow-hidden">
                   <div className="grid grid-cols-2 divide-x divide-y">
-                    <InfoRow label="Commission Rate" value={<span className="font-bold text-teal-700 dark:text-teal-400">{reseller.commissionRate || "10"}%</span>} />
+                    <InfoRow
+                      label="Commission Type"
+                      value={
+                        (reseller as any).commissionType === "profit_percentage"
+                          ? "% of Package Profit"
+                          : (reseller as any).commissionType === "both"
+                            ? "Fixed Rate + Profit %"
+                            : "Fixed Rate %"
+                      }
+                    />
                     <InfoRow label="Payment Method" value={(reseller.commissionPaymentMethod || "wallet").replace(/_/g, " ")} capitalize />
+                    {((reseller as any).commissionType === "fixed_rate" || (reseller as any).commissionType === "both" || !(reseller as any).commissionType) && (
+                      <InfoRow
+                        label="Fixed Rate (% of Selling Price)"
+                        value={
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xl text-teal-700 dark:text-teal-400">{reseller.commissionRate || "10"}%</span>
+                            <span className="text-xs text-muted-foreground">of selling price</span>
+                          </div>
+                        }
+                      />
+                    )}
+                    {((reseller as any).commissionType === "profit_percentage" || (reseller as any).commissionType === "both") && (
+                      <InfoRow
+                        label="Profit Rate (% of Package Profit)"
+                        value={
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xl text-purple-700 dark:text-purple-400">{(reseller as any).commissionProfitRate || "0"}%</span>
+                            <span className="text-xs text-muted-foreground">of package profit</span>
+                          </div>
+                        }
+                      />
+                    )}
                     <InfoRow label="Payment Frequency" value={reseller.commissionPaymentFrequency} capitalize />
                   </div>
                 </div>

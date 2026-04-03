@@ -505,7 +505,10 @@ export default function ResellersPage() {
       registrationFormPicture: r.registrationFormPicture || "",
       vendorId: r.vendorId ?? undefined, packageId: r.packageId ?? undefined,
       assignedPackages: r.assignedPackages || "",
-      commissionRate: r.commissionRate || "10", commissionPaymentMethod: r.commissionPaymentMethod || "wallet",
+      commissionType: (r as any).commissionType || "fixed_rate",
+      commissionRate: r.commissionRate || "10",
+      commissionProfitRate: (r as any).commissionProfitRate || "0",
+      commissionPaymentMethod: r.commissionPaymentMethod || "wallet",
       commissionPaymentFrequency: r.commissionPaymentFrequency || "monthly",
       walletBalance: r.walletBalance || "0", creditLimit: r.creditLimit || "0",
       securityDeposit: r.securityDeposit || "0", totalCustomers: r.totalCustomers || 0,
@@ -1653,7 +1656,27 @@ export default function ResellersPage() {
                               <span className="text-sm tabular-nums text-slate-600">{formatPKR(reseller.creditLimit)}</span>
                             </td>
                             <td className="px-3 py-2.5 hidden lg:table-cell">
-                              <span className="text-sm text-teal-700 font-medium">{reseller.commissionRate || "10"}%</span>
+                              {(() => {
+                                const ct = (reseller as any).commissionType || "fixed_rate";
+                                const rate = reseller.commissionRate || "10";
+                                const profitRate = (reseller as any).commissionProfitRate || "0";
+                                return (
+                                  <div className="space-y-0.5">
+                                    {(ct === "fixed_rate" || ct === "both") && (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Fixed</span>
+                                        <span className="text-sm font-bold text-teal-700 dark:text-teal-400">{rate}%</span>
+                                      </div>
+                                    )}
+                                    {(ct === "profit_percentage" || ct === "both") && (
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Profit</span>
+                                        <span className="text-sm font-bold text-purple-700 dark:text-purple-400">{profitRate}%</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </td>
                             <td className="px-3 py-2.5 hidden md:table-cell text-center">
                               <span className="text-sm font-medium">{reseller.totalCustomers || 0}</span>
@@ -1858,16 +1881,45 @@ export default function ResellersPage() {
                       </Card>
                     ))}
                   </div>
+                  <div className="rounded-lg border border-teal-100 dark:border-teal-900 bg-teal-50/50 dark:bg-teal-950/20 p-3 space-y-2">
+                    <div className="text-[11px] font-semibold text-teal-700 dark:text-teal-300 uppercase tracking-wide">Commission Details</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-white dark:bg-slate-900 rounded-md p-2">
+                        <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Type</div>
+                        <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 mt-0.5 capitalize">
+                          {(detailReseller as any).commissionType === "profit_percentage" ? "% of Profit" : (detailReseller as any).commissionType === "both" ? "Fixed + Profit %" : "Fixed Rate %"}
+                        </div>
+                      </div>
+                      <div className="bg-white dark:bg-slate-900 rounded-md p-2">
+                        <div className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Payment</div>
+                        <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 mt-0.5 capitalize">{(detailReseller.commissionPaymentMethod || "wallet").replace(/_/g, " ")} · {detailReseller.commissionPaymentFrequency || "monthly"}</div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {((detailReseller as any).commissionType === "fixed_rate" || (detailReseller as any).commissionType === "both" || !(detailReseller as any).commissionType) && (
+                        <div className="bg-teal-100/60 dark:bg-teal-900/30 rounded-md p-2">
+                          <div className="text-[10px] text-teal-700 dark:text-teal-300 font-medium uppercase tracking-wide">Fixed Rate</div>
+                          <div className="text-lg font-bold text-teal-700 dark:text-teal-400">{detailReseller.commissionRate || "10"}%</div>
+                          <div className="text-[10px] text-muted-foreground">of selling price</div>
+                        </div>
+                      )}
+                      {((detailReseller as any).commissionType === "profit_percentage" || (detailReseller as any).commissionType === "both") && (
+                        <div className="bg-purple-100/60 dark:bg-purple-900/30 rounded-md p-2">
+                          <div className="text-[10px] text-purple-700 dark:text-purple-300 font-medium uppercase tracking-wide">Profit Rate</div>
+                          <div className="text-lg font-bold text-purple-700 dark:text-purple-400">{(detailReseller as any).commissionProfitRate || "0"}%</div>
+                          <div className="text-[10px] text-muted-foreground">of package profit</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { label: "Commission Rate", value: (detailReseller.commissionRate || "10") + "%" },
-                      { label: "Commission Method", value: (detailReseller.commissionPaymentMethod || "wallet").replace(/_/g, " ") },
-                      { label: "Payment Frequency", value: (detailReseller.commissionPaymentFrequency || "monthly") },
                       { label: "Billing Cycle", value: (detailReseller.billingCycle || "monthly") },
+                      { label: "Payment Method", value: (detailReseller.commissionPaymentMethod || "wallet").replace(/_/g, " ") },
                     ].map((item, i) => (
-                      <div key={i} className="bg-slate-50 rounded-lg p-3">
+                      <div key={i} className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
                         <div className="text-[11px] text-muted-foreground font-medium">{item.label}</div>
-                        <div className="text-sm font-medium text-slate-800 mt-0.5 capitalize">{item.value}</div>
+                        <div className="text-sm font-medium text-slate-800 dark:text-slate-100 mt-0.5 capitalize">{item.value}</div>
                       </div>
                     ))}
                   </div>
@@ -2051,7 +2103,11 @@ export default function ResellersPage() {
                   { label: "Recharge (Month)", value: formatPKR(totalRechargeMonth), icon: ArrowUpCircle, color: "from-teal-600 to-teal-500" },
                   { label: "Deduction (Month)", value: formatPKR(totalDeductionMonth), icon: ArrowDownCircle, color: "from-orange-600 to-orange-500" },
                   ...(!isAllResellers && selReseller ? [
-                    { label: "Commission Rate", value: (selReseller.commissionRate || "10") + "%", icon: Percent, color: "from-purple-600 to-purple-500" },
+                    {
+                      label: (selReseller as any).commissionType === "profit_percentage" ? "Profit Commission" : (selReseller as any).commissionType === "both" ? "Fixed Commission" : "Commission Rate",
+                      value: (selReseller.commissionRate || "10") + "%",
+                      icon: Percent, color: "from-purple-600 to-purple-500"
+                    },
                     { label: "Security Deposit", value: formatPKR(selReseller.securityDeposit), icon: Landmark, color: "from-slate-600 to-slate-500" },
                   ] : [
                     { label: "Total Resellers", value: String(allResellers.length), icon: Users, color: "from-purple-600 to-purple-500" },
