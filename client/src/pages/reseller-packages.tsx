@@ -721,7 +721,7 @@ export default function ResellerPackagesPage() {
                         </CardTitle>
                         <div className="flex gap-1 mt-1 flex-wrap">
                           <SourceBadge type="company" />
-                          <Badge variant="outline" className="text-xs">{p.speedMbps} Mbps</Badge>
+                          <Badge variant="outline" className="text-xs">{parseFloat(String(p.speedMbps))} Mbps</Badge>
                           {p.validity && <Badge variant="secondary" className="text-xs">{p.validity}</Badge>}
                         </div>
                       </div>
@@ -737,8 +737,8 @@ export default function ResellerPackagesPage() {
                       {p.validity && <p className="text-[10px] text-muted-foreground mt-0.5">per {p.validity}</p>}
                     </div>
                     <div className="text-xs text-muted-foreground flex flex-wrap gap-x-3 gap-y-1">
-                      {p.uploadMbps && <span>↑ {p.uploadMbps} Mbps</span>}
-                      {p.downloadMbps && <span>↓ {p.downloadMbps} Mbps</span>}
+                      {p.uploadMbps && <span>↑ {parseFloat(String(p.uploadMbps))} Mbps</span>}
+                      {p.downloadMbps && <span>↓ {parseFloat(String(p.downloadMbps))} Mbps</span>}
                       {p.contentionRatio && <span>Ratio: {p.contentionRatio}</span>}
                     </div>
                     {assignedResellersData.length > 0 && (
