@@ -2812,7 +2812,7 @@ export default function ResellersPage() {
             {/* Vendor Breakdown (multi-row) */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Vendor Breakdown <span className="text-red-500">*</span></label>
+                <label className="text-sm font-medium">Vendor Breakdown</label>
                 <Button size="sm" variant="outline" type="button"
                   onClick={() => setRechargeVendorRows(prev => [...prev, { id: Date.now().toString(), vendorId: "", amount: "" }])}
                   data-testid="button-add-vendor-row">
@@ -2867,36 +2867,60 @@ export default function ResellersPage() {
               </div>
             </div>
 
-            {/* Paid Amount */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Paid Amount</label>
-              <Input type="number" step="0.01" min="0" placeholder="Amount actually paid by reseller"
-                value={rechargePaidAmount} onChange={(e) => setRechargePaidAmount(e.target.value)}
-                data-testid="input-recharge-paid-amount" />
-              {(() => {
-                const total = rechargeVendorRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
-                const paid = parseFloat(rechargePaidAmount) || 0;
-                if (rechargePaidAmount && total > 0 && paid < total) {
-                  return <p className="text-xs text-amber-600 dark:text-amber-400">Remaining unpaid: {formatPKR(total - paid)}</p>;
-                }
-                if (rechargePaidAmount && total > 0 && paid >= total) {
-                  return <p className="text-xs text-green-600 dark:text-green-400">Fully paid</p>;
-                }
-                return null;
-              })()}
-            </div>
-
-            {/* Payment Status */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Payment Status <span className="text-red-500">*</span></label>
-              <Select value={rechargePaymentStatus} onValueChange={setRechargePaymentStatus}>
-                <SelectTrigger data-testid="select-recharge-payment-status"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="unpaid">Unpaid</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Paid Amount + Payment Status (linked) */}
+            {(() => {
+              const total = rechargeVendorRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+              const paid = parseFloat(rechargePaidAmount) || 0;
+              const remaining = total > 0 && rechargePaidAmount ? Math.max(0, total - paid) : 0;
+              const isFullyPaid = rechargePaidAmount && total > 0 && paid >= total;
+              const isPartiallyPaid = rechargePaidAmount && total > 0 && paid > 0 && paid < total;
+              return (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Paid Amount</label>
+                      <Input type="number" step="0.01" min="0" placeholder="Amount paid by reseller"
+                        value={rechargePaidAmount}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setRechargePaidAmount(val);
+                          const t = rechargeVendorRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+                          const p = parseFloat(val) || 0;
+                          if (val && t > 0) {
+                            setRechargePaymentStatus(p >= t ? "paid" : "unpaid");
+                          }
+                        }}
+                        data-testid="input-recharge-paid-amount" />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Payment Status <span className="text-red-500">*</span></label>
+                      <Select value={rechargePaymentStatus} onValueChange={setRechargePaymentStatus}>
+                        <SelectTrigger data-testid="select-recharge-payment-status"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="paid">Paid</SelectItem>
+                          <SelectItem value="unpaid">Unpaid</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  {isFullyPaid && (
+                    <div className="flex items-center gap-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2">
+                      <div className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
+                      <p className="text-xs text-green-700 dark:text-green-400 font-medium">Fully paid — {formatPKR(paid)} received</p>
+                    </div>
+                  )}
+                  {isPartiallyPaid && (
+                    <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+                        <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">Partial payment — unpaid balance:</p>
+                      </div>
+                      <p className="text-sm font-bold text-amber-700 dark:text-amber-400">{formatPKR(remaining)}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Payment Type */}
             <div className="space-y-2">
