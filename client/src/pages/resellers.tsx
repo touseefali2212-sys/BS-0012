@@ -2958,47 +2958,39 @@ export default function ResellersPage() {
               );
             })()}
 
-            {/* Select Vendor */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium flex items-center gap-1.5">
-                <Handshake className="h-4 w-4 text-muted-foreground" />
-                Select Vendor
-              </label>
-              <Select value={rechargeVendorId || "none"} onValueChange={(val) => {
-                const v = val === "none" ? "" : val;
-                setRechargeVendorId(v);
-                setRechargeVendorRows(prev => prev.map(r => ({ ...r, vendorId: v })));
-              }}>
-                <SelectTrigger data-testid="select-recharge-vendor">
-                  <SelectValue placeholder="Select a vendor (optional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— No Vendor —</SelectItem>
-                  {(vendors || []).map(v => (
-                    <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Amount Breakdown (multi-row) */}
+            {/* Vendor Breakdown (multi-row) */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Recharge Amount</label>
+                <label className="text-sm font-medium">Vendor Breakdown</label>
                 <Button size="sm" variant="outline" type="button"
-                  onClick={() => setRechargeVendorRows(prev => [...prev, { id: Date.now().toString(), vendorId: rechargeVendorId, amount: "" }])}
+                  onClick={() => setRechargeVendorRows(prev => [...prev, { id: Date.now().toString(), vendorId: "", amount: "" }])}
                   data-testid="button-add-vendor-row">
-                  <Plus className="h-3.5 w-3.5 mr-1" /> Add Row
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Add Vendor
                 </Button>
               </div>
               <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-                <div className="grid grid-cols-[1fr_36px] gap-0 bg-slate-50 dark:bg-slate-900 px-3 py-1.5 text-xs font-medium text-muted-foreground border-b border-slate-200 dark:border-slate-700">
-                  <span>Amount (PKR)</span><span />
+                <div className="grid grid-cols-[1fr_120px_36px] gap-0 bg-slate-50 dark:bg-slate-900 px-3 py-1.5 text-xs font-medium text-muted-foreground border-b border-slate-200 dark:border-slate-700">
+                  <span>Vendor</span><span className="text-center">Amount</span><span />
                 </div>
                 {rechargeVendorRows.map((row, idx) => (
-                  <div key={row.id} className={`grid grid-cols-[1fr_36px] gap-0 items-center px-2 py-1.5 ${idx > 0 ? "border-t border-slate-100 dark:border-slate-800" : ""}`}>
+                  <div key={row.id} className={`grid grid-cols-[1fr_120px_36px] gap-0 items-center px-2 py-1.5 ${idx > 0 ? "border-t border-slate-100 dark:border-slate-800" : ""}`}>
+                    <Select value={row.vendorId || "none"}
+                      onValueChange={(val) => {
+                        const v = val === "none" ? "" : val;
+                        setRechargeVendorRows(prev => prev.map(r => r.id === row.id ? { ...r, vendorId: v } : r));
+                      }}>
+                      <SelectTrigger className="h-8 text-sm border-0 shadow-none focus:ring-0" data-testid={`select-vendor-row-${idx}`}>
+                        <SelectValue placeholder="Select vendor (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">— No Vendor —</SelectItem>
+                        {(vendors || []).map(v => (
+                          <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Input type="number" step="0.01" min="0.01" placeholder="0.00"
-                      className="h-8 text-sm pr-2 border-0 shadow-none focus-visible:ring-0"
+                      className="h-8 text-sm text-right pr-2"
                       value={row.amount}
                       onChange={(e) => setRechargeVendorRows(prev => prev.map(r => r.id === row.id ? { ...r, amount: e.target.value } : r))}
                       data-testid={`input-vendor-amount-${idx}`} />
@@ -3017,8 +3009,9 @@ export default function ResellersPage() {
                 {rechargeVendorRows.length > 1 && (() => {
                   const total = rechargeVendorRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
                   return (
-                    <div className="grid grid-cols-[1fr_36px] items-center px-3 py-2 bg-green-50 dark:bg-green-950/20 border-t border-green-200 dark:border-green-800">
-                      <span className="text-sm font-semibold text-green-700 dark:text-green-400">Total: {formatPKR(total)}</span>
+                    <div className="grid grid-cols-[1fr_120px_36px] items-center px-3 py-2 bg-green-50 dark:bg-green-950/20 border-t border-green-200 dark:border-green-800">
+                      <span className="text-sm font-semibold text-green-700 dark:text-green-400">Total Recharge</span>
+                      <span className="text-sm font-bold text-green-700 dark:text-green-400 text-right pr-2">{formatPKR(total)}</span>
                       <span />
                     </div>
                   );
