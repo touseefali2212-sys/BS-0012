@@ -185,8 +185,18 @@ export default function TransactionsPage() {
   const [resDateTo, setResDateTo] = useState("");
   const [resPage, setResPage] = useState(1);
   const [resFormOpen, setResFormOpen] = useState(false);
-  const [resDetailTxn, setResDetailTxn] = useState<Transaction | null>(null);
+  const [resDetailTxn, setResDetailTxn] = useState<any | null>(null);
   const [resDetailReseller, setResDetailReseller] = useState<Reseller | null>(null);
+  const [resRechargeResellerId, setResRechargeResellerId] = useState<number | null>(null);
+  const [resRechargeAmount, setResRechargeAmount] = useState("");
+  const [resRechargePayStatus, setResRechargePayStatus] = useState("paid");
+  const [resRechargePaidAmount, setResRechargePaidAmount] = useState("");
+  const [resRechargeMethod, setResRechargeMethod] = useState("cash_in_hand");
+  const [resRechargeBankAccId, setResRechargeBankAccId] = useState("");
+  const [resRechargeSenderName, setResRechargeSenderName] = useState("");
+  const [resRechargeRef, setResRechargeRef] = useState("");
+  const [resRechargeNotes, setResRechargeNotes] = useState("");
+  const [resRechargeSubmitting, setResRechargeSubmitting] = useState(false);
 
   const [refSearch, setRefSearch] = useState("");
   const [refTypeFilter, setRefTypeFilter] = useState("all");
@@ -248,6 +258,8 @@ export default function TransactionsPage() {
   const { data: cirCustomers = [], isLoading: cirLoading } = useQuery<CirCustomer[]>({ queryKey: ["/api/cir-customers"] });
   const { data: corpCustomers = [], isLoading: corpLoading } = useQuery<CorporateCustomer[]>({ queryKey: ["/api/corporate-customers"] });
   const { data: resellers = [], isLoading: resLoading } = useQuery<Reseller[]>({ queryKey: ["/api/resellers"] });
+  const { data: walletTxnsRaw = [], isLoading: walletTxnsLoading } = useQuery<any[]>({ queryKey: ["/api/reseller-wallet-transactions/all"] });
+  const { data: companyBankAccounts = [] } = useQuery<any[]>({ queryKey: ["/api/company-bank-accounts"] });
 
   const form = useForm<InsertTransaction>({
     resolver: zodResolver(transactionFormSchema),
@@ -311,6 +323,16 @@ export default function TransactionsPage() {
   const reverseMutation = useMutation({
     mutationFn: async (id: number) => { const res = await apiRequest("PATCH", `/api/transactions/${id}`, { status: "reversed" }); return res.json(); },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/transactions"] }); toast({ title: "Transaction reversed" }); setDrawerTxn(null); },
+    onError: (e: Error) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
+  });
+
+  const walletRechargeMutation = useMutation({
+    mutationFn: async (body: any) => { const res = await apiRequest("POST", "/api/reseller-wallet/recharge", body); return res.json(); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/resellers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reseller-wallet-transactions/all"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/company-bank-accounts"] });
+    },
     onError: (e: Error) => { toast({ title: "Error", description: e.message, variant: "destructive" }); },
   });
 
@@ -946,40 +968,63 @@ export default function TransactionsPage() {
   const corpStatusColorMap: Record<string, { color: string; label: string }> = { active: { color: "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300", label: "Active" }, suspended: { color: "bg-red-50 text-red-600 dark:bg-red-950 dark:text-red-400", label: "Suspended" }, inactive: { color: "bg-gray-100 text-gray-500 dark:bg-gray-900 dark:text-gray-400", label: "Inactive" } };
   const paymentTermLabels: Record<string, string> = { net_15: "Net 15", net_30: "Net 30", net_45: "Net 45", net_60: "Net 60", immediate: "Immediate", prepaid: "Prepaid" };
 
-  const resForm = useForm<InsertTransaction>({
-    resolver: zodResolver(transactionFormSchema),
-    defaultValues: { txnId: "", type: "payment", amount: "0", accountId: null, customerId: null, invoiceId: null, paymentMethod: "bank_transfer", reference: "", description: "", date: today, status: "completed", debitAccountId: null, creditAccountId: null, vendorId: null, category: "reseller_payment", tax: "0", discount: "0", branch: "", costCenter: "", chequeNumber: "", transactionRef: "", autoAdjustReceivable: true, allowPartialPayment: false, sendNotification: true, lockAfterSave: false, isRecurring: false, requireApproval: false },
-  });
-
   const resellerMap = useMemo(() => {
     const m = new Map<number, Reseller>();
     resellers.forEach(r => m.set(r.id, r));
     return m;
   }, [resellers]);
 
+  // Wallet transactions: only credit-type entries are "collections"
   const resCollectionTxns = useMemo(() => {
-    return transactions.filter(t => (t.type === "payment" || t.type === "income" || t.type === "credit") && t.category === "reseller_payment");
-  }, [transactions]);
+    return walletTxnsRaw.filter((t: any) => t.type === "credit");
+  }, [walletTxnsRaw]);
+
+  const walletCategoryLabel: Record<string, string> = {
+    recharge: "Wallet Recharge",
+    advance_payment: "Advance Payment",
+    recharge_reversal: "Reversal",
+    general: "General",
+  };
+
+  const walletPayStatusColor: Record<string, string> = {
+    paid: "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800",
+    unpaid: "text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950 border-rose-200 dark:border-rose-800",
+    partial: "text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950 border-orange-200 dark:border-orange-800",
+    reconciled: "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800",
+  };
+
+  const bankAccountMap = useMemo(() => {
+    const m = new Map<number, any>();
+    companyBankAccounts.forEach((a: any) => m.set(a.id, a));
+    return m;
+  }, [companyBankAccounts]);
 
   const resKpis = useMemo(() => {
     const activeResellers = resellers.filter(r => r.status === "active").length;
     const totalWalletBalance = resellers.reduce((s, r) => s + Number(r.walletBalance || 0), 0);
-    const totalCredit = resellers.reduce((s, r) => s + Number(r.creditLimit || 0), 0);
     const resOnCredit = resellers.filter(r => Number(r.creditLimit || 0) > 0 && Number(r.walletBalance || 0) < 0).length;
-    const collectedToday = resCollectionTxns.filter(t => t.date === today && t.status !== "reversed").reduce((s, t) => s + Number(t.netAmount || t.amount || 0), 0);
-    const collectedMonth = resCollectionTxns.filter(t => t.date >= thisMonthStart && t.status !== "reversed").reduce((s, t) => s + Number(t.netAmount || t.amount || 0), 0);
-    const totalOutstanding = resellers.filter(r => Number(r.walletBalance || 0) < 0).reduce((s, r) => s + Math.abs(Number(r.walletBalance || 0)), 0);
+    // Use actual paidAmount from wallet transactions for "collected" stats
+    const paidTxnsToday = resCollectionTxns.filter((t: any) => t.paymentStatus === "paid" && (t.createdAt || "").startsWith(today));
+    const paidTxnsMonth = resCollectionTxns.filter((t: any) => t.paymentStatus === "paid" && (t.createdAt || "").startsWith(thisMonthStart.slice(0, 7)));
+    const collectedToday = paidTxnsToday.reduce((s: number, t: any) => s + Number(t.paidAmount || t.amount || 0), 0);
+    const collectedMonth = paidTxnsMonth.reduce((s: number, t: any) => s + Number(t.paidAmount || t.amount || 0), 0);
+    // Unpaid balance = sum of remaining amounts on unpaid/partial transactions
+    const totalUnpaid = resCollectionTxns.filter((t: any) => t.paymentStatus === "unpaid" || t.paymentStatus === "partial")
+      .reduce((s: number, t: any) => s + (Number(t.amount) - Number(t.paidAmount || 0)), 0);
+    const totalOutstanding = Math.max(totalUnpaid, resellers.filter(r => Number(r.walletBalance || 0) < 0).reduce((s, r) => s + Math.abs(Number(r.walletBalance || 0)), 0));
     const overdueResellers = resellers.filter(r => Number(r.walletBalance || 0) < 0).length;
-    const totalExpectedMonthly = resellers.filter(r => r.status === "active").length * 50000;
+    const totalExpectedMonthly = activeResellers * 50000;
     const efficiency = totalExpectedMonthly > 0 ? Math.round((collectedMonth / totalExpectedMonthly) * 100) : 0;
-    return { activeResellers, totalWalletBalance, totalCredit, resOnCredit, collectedToday, collectedMonth, totalOutstanding, overdueResellers, efficiency };
+    return { activeResellers, totalWalletBalance, resOnCredit, collectedToday, collectedMonth, totalOutstanding, overdueResellers, efficiency };
   }, [resellers, resCollectionTxns, today, thisMonthStart]);
 
   const resMonthlyTrend = useMemo(() => {
     return Array.from({ length: 6 }, (_, i) => {
       const d = new Date(); d.setMonth(d.getMonth() - (5 - i));
       const m = d.toISOString().slice(0, 7);
-      const collected = resCollectionTxns.filter(t => t.date?.startsWith(m) && t.status !== "reversed").reduce((s, t) => s + Number(t.netAmount || t.amount || 0), 0);
+      const collected = resCollectionTxns
+        .filter((t: any) => t.paymentStatus === "paid" && (t.createdAt || "").startsWith(m))
+        .reduce((s: number, t: any) => s + Number(t.paidAmount || t.amount || 0), 0);
       const target = resellers.filter(r => r.status === "active").length * 50000;
       return { month: d.toLocaleDateString("en", { month: "short" }), collected, target };
     });
@@ -991,44 +1036,70 @@ export default function TransactionsPage() {
 
   const filteredResCollections = useMemo(() => {
     let items = [...resCollectionTxns];
-    if (resSearch) { const q = resSearch.toLowerCase(); items = items.filter(t => t.txnId.toLowerCase().includes(q) || (t.description || "").toLowerCase().includes(q) || (t as any).customerName?.toLowerCase().includes(q)); }
-    if (resStatusFilter !== "all") items = items.filter(t => t.status === resStatusFilter);
-    if (resMethodFilter !== "all") items = items.filter(t => t.paymentMethod === resMethodFilter);
-    if (resResellerFilter !== "all") items = items.filter(t => String(t.vendorId) === resResellerFilter);
-    if (resTypeFilter !== "all") items = items.filter(t => (t.costCenter || "") === resTypeFilter);
-    if (resOfficerFilter !== "all") items = items.filter(t => t.createdBy === resOfficerFilter);
-    if (resDateFrom) items = items.filter(t => t.date >= resDateFrom);
-    if (resDateTo) items = items.filter(t => t.date <= resDateTo);
-    return items;
-  }, [resCollectionTxns, resSearch, resStatusFilter, resMethodFilter, resResellerFilter, resTypeFilter, resOfficerFilter, resDateFrom, resDateTo]);
+    if (resSearch) {
+      const q = resSearch.toLowerCase();
+      items = items.filter((t: any) => (t.reference || "").toLowerCase().includes(q) || (t.description || "").toLowerCase().includes(q) || (resellerMap.get(t.resellerId)?.name || "").toLowerCase().includes(q));
+    }
+    if (resStatusFilter !== "all") items = items.filter((t: any) => (t.paymentStatus || "paid") === resStatusFilter);
+    if (resMethodFilter !== "all") items = items.filter((t: any) => t.paymentMethod === resMethodFilter);
+    if (resResellerFilter !== "all") items = items.filter((t: any) => String(t.resellerId) === resResellerFilter);
+    if (resTypeFilter !== "all") items = items.filter((t: any) => t.category === resTypeFilter);
+    if (resDateFrom) items = items.filter((t: any) => (t.createdAt || "").slice(0, 10) >= resDateFrom);
+    if (resDateTo) items = items.filter((t: any) => (t.createdAt || "").slice(0, 10) <= resDateTo);
+    return items.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [resCollectionTxns, resSearch, resStatusFilter, resMethodFilter, resResellerFilter, resTypeFilter, resOfficerFilter, resDateFrom, resDateTo, resellerMap]);
 
   const resTotalPages = Math.max(1, Math.ceil(filteredResCollections.length / PAGE_SIZE));
   const resPaged = filteredResCollections.slice((resPage - 1) * PAGE_SIZE, resPage * PAGE_SIZE);
-  const hasResFilters = resSearch || resStatusFilter !== "all" || resMethodFilter !== "all" || resResellerFilter !== "all" || resTypeFilter !== "all" || resOfficerFilter !== "all" || resDateFrom || resDateTo;
+  const hasResFilters = resSearch || resStatusFilter !== "all" || resMethodFilter !== "all" || resResellerFilter !== "all" || resTypeFilter !== "all" || resDateFrom || resDateTo;
 
-  const resSelectedResellerId = resForm.watch("vendorId");
-  const resSelectedReseller = useMemo(() => resSelectedResellerId ? resellerMap.get(resSelectedResellerId) : null, [resSelectedResellerId, resellerMap]);
+  const resSelectedReseller = useMemo(() => resRechargeResellerId ? resellerMap.get(resRechargeResellerId) : null, [resRechargeResellerId, resellerMap]);
 
   const openResForm = () => {
-    const ref = `RES-${Date.now().toString(36).toUpperCase()}`;
-    resForm.reset({ txnId: ref, type: "payment", amount: "0", accountId: null, customerId: null, invoiceId: null, paymentMethod: "bank_transfer", reference: "", description: "", date: today, status: "completed", debitAccountId: null, creditAccountId: null, vendorId: null, category: "reseller_payment", tax: "0", discount: "0", branch: "", costCenter: "wallet_topup", chequeNumber: "", transactionRef: "", autoAdjustReceivable: true, allowPartialPayment: false, sendNotification: true, lockAfterSave: false, isRecurring: false, requireApproval: false });
+    setResRechargeResellerId(null);
+    setResRechargeAmount("");
+    setResRechargePayStatus("paid");
+    setResRechargePaidAmount("");
+    setResRechargeMethod("cash_in_hand");
+    setResRechargeBankAccId("");
+    setResRechargeSenderName("");
+    setResRechargeRef("");
+    setResRechargeNotes("");
     setResFormOpen(true);
   };
 
-  const onResSubmit = (data: InsertTransaction) => {
-    const netAmount = Number(data.amount || 0) + Number(data.tax || 0) - Number(data.discount || 0);
-    createMutation.mutate({ ...data, type: "payment", category: "reseller_payment", netAmount: String(netAmount) } as any);
-    setResFormOpen(false);
-    resForm.reset();
+  const handleResRecharge = async () => {
+    if (!resRechargeResellerId || !resRechargeAmount || parseFloat(resRechargeAmount) <= 0) return;
+    if (resRechargePayStatus === "paid" && (!resRechargePaidAmount || parseFloat(resRechargePaidAmount) <= 0)) return;
+    setResRechargeSubmitting(true);
+    try {
+      await walletRechargeMutation.mutateAsync({
+        resellerId: resRechargeResellerId,
+        amount: parseFloat(resRechargeAmount),
+        paymentStatus: resRechargePayStatus,
+        paidAmount: resRechargePayStatus === "paid" ? parseFloat(resRechargePaidAmount) : undefined,
+        paymentMethod: resRechargePayStatus === "paid" ? resRechargeMethod : undefined,
+        bankAccountId: resRechargeBankAccId && resRechargeBankAccId !== "none" ? parseInt(resRechargeBankAccId) : undefined,
+        senderName: resRechargeSenderName || undefined,
+        reference: resRechargeRef || undefined,
+        remarks: resRechargeNotes || undefined,
+      });
+      toast({ title: "Wallet recharge recorded successfully" });
+      setResFormOpen(false);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setResRechargeSubmitting(false);
+    }
   };
 
   const exportResCsv = () => {
-    const headers = ["Collection ID", "Date", "Reseller", "Collection Type", "Payment Method", "Amount", "Status", "Reference"];
-    const rows = filteredResCollections.map(t => {
-      const res = t.vendorId ? resellerMap.get(t.vendorId) : null;
-      return [t.txnId, t.date, res?.name || "", t.costCenter || "wallet_topup", t.paymentMethod || "", t.netAmount || t.amount, t.status, t.reference || ""];
+    const headers = ["Reference", "Date", "Reseller", "Category", "Payment Method", "Recharge Amount", "Paid Amount", "Payment Status"];
+    const rows = filteredResCollections.map((t: any) => {
+      const res = resellerMap.get(t.resellerId);
+      return [t.reference || t.id, (t.createdAt || "").slice(0, 10), res?.name || "", walletCategoryLabel[t.category] || t.category, t.paymentMethod || "", t.amount, t.paidAmount || "", t.paymentStatus || "paid"];
     });
-    const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const csv = [headers.join(","), ...rows.map((r: any) => r.join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a"); a.href = url; a.download = `reseller_collections_${today}.csv`; a.click(); URL.revokeObjectURL(url);
@@ -2495,15 +2566,33 @@ export default function TransactionsPage() {
                 </Select>
                 <Select value={resStatusFilter} onValueChange={(v) => { setResStatusFilter(v); setResPage(1); }}>
                   <SelectTrigger className="w-[130px]" data-testid="select-res-status"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="all">All Status</SelectItem><SelectItem value="completed">Posted</SelectItem><SelectItem value="pending">Pending</SelectItem><SelectItem value="reversed">Reversed</SelectItem></SelectContent>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="unpaid">Unpaid</SelectItem>
+                    <SelectItem value="partial">Partial</SelectItem>
+                    <SelectItem value="reconciled">Reconciled</SelectItem>
+                  </SelectContent>
                 </Select>
                 <Select value={resMethodFilter} onValueChange={(v) => { setResMethodFilter(v); setResPage(1); }}>
-                  <SelectTrigger className="w-[140px]" data-testid="select-res-method"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="all">All Methods</SelectItem><SelectItem value="bank_transfer">Bank Transfer</SelectItem><SelectItem value="cheque">Cheque</SelectItem><SelectItem value="online">Online Gateway</SelectItem><SelectItem value="cash">Cash</SelectItem></SelectContent>
+                  <SelectTrigger className="w-[150px]" data-testid="select-res-method"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Methods</SelectItem>
+                    <SelectItem value="cash_in_hand">Cash in Hand</SelectItem>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="mobile_wallet">Mobile Wallet</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                  </SelectContent>
                 </Select>
                 <Select value={resTypeFilter} onValueChange={(v) => { setResTypeFilter(v); setResPage(1); }}>
                   <SelectTrigger className="w-[160px]" data-testid="select-res-type-filter"><SelectValue /></SelectTrigger>
-                  <SelectContent><SelectItem value="all">All Types</SelectItem><SelectItem value="wallet_topup">Wallet Top-up</SelectItem><SelectItem value="credit_settlement">Credit Settlement</SelectItem><SelectItem value="commission_adjustment">Commission Adjust</SelectItem><SelectItem value="security_deposit">Security Deposit</SelectItem><SelectItem value="penalty_recovery">Penalty Recovery</SelectItem></SelectContent>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="recharge">Wallet Recharge</SelectItem>
+                    <SelectItem value="advance_payment">Advance Payment</SelectItem>
+                    <SelectItem value="recharge_reversal">Reversal</SelectItem>
+                    <SelectItem value="general">General</SelectItem>
+                  </SelectContent>
                 </Select>
                 <div className="space-y-0 flex items-center gap-1.5 border-l pl-2 ml-1">
                   <Input type="date" value={resDateFrom} onChange={(e) => { setResDateFrom(e.target.value); setResPage(1); }} className="w-[130px] text-xs" data-testid="input-res-date-from" />
@@ -2517,7 +2606,7 @@ export default function TransactionsPage() {
 
           <Card className="border-0 shadow-md overflow-hidden">
             <CardContent className="p-0">
-              {isLoading || resLoading ? (
+              {isLoading || resLoading || walletTxnsLoading ? (
                 <div className="p-5 space-y-3">{[1,2,3,4,5].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>
               ) : filteredResCollections.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -2530,64 +2619,64 @@ export default function TransactionsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-gradient-to-r from-[#3B0764] to-[#1D4ED8] border-0">
-                        <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3">Collection ID</TableHead>
+                        <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3">Reference</TableHead>
                         <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3">Date</TableHead>
                         <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3">Reseller</TableHead>
-                        <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3">Collection Type</TableHead>
-                        <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3">Payment Method</TableHead>
-                        <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3 text-right">Amount</TableHead>
-                        <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3 hidden lg:table-cell text-right">Wallet Balance</TableHead>
-                        <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3 hidden xl:table-cell text-right">Credit Limit</TableHead>
-                        <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3">Status</TableHead>
-                        <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3 hidden xl:table-cell">Officer</TableHead>
+                        <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3">Type</TableHead>
+                        <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3">Method</TableHead>
+                        <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3 text-right">Recharge Amt</TableHead>
+                        <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3 text-right hidden md:table-cell">Paid Amt</TableHead>
+                        <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3 hidden lg:table-cell">Account</TableHead>
+                        <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3 hidden lg:table-cell text-right">Wallet Bal</TableHead>
+                        <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3">Pay Status</TableHead>
                         <TableHead className="text-white font-semibold text-xs uppercase tracking-wider py-3 w-10"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {resPaged.map((txn, idx) => {
-                        const sc = statusColors[txn.status] || statusColors.completed;
-                        const StatusIcon = sc.icon;
-                        const res = txn.vendorId ? resellerMap.get(txn.vendorId) : null;
-                        const resName = res?.name || (txn as any).vendorName || "—";
-                        const colType = collectionTypeLabels[txn.costCenter || ""] || txn.costCenter || "Wallet Top-up";
+                      {resPaged.map((txn: any, idx: number) => {
+                        const payStatus = txn.paymentStatus || "paid";
+                        const statusCls = walletPayStatusColor[payStatus] || walletPayStatusColor.paid;
+                        const res = resellerMap.get(txn.resellerId);
+                        const bankAcc = txn.bankAccountId ? bankAccountMap.get(txn.bankAccountId) : null;
+                        const colType = walletCategoryLabel[txn.category] || txn.category || "Wallet Recharge";
+                        const paidAmt = Number(txn.paidAmount || 0);
+                        const rechargeAmt = Number(txn.amount || 0);
                         return (
                           <TableRow key={txn.id} className={idx % 2 === 0 ? "bg-white dark:bg-slate-950" : "bg-slate-50/60 dark:bg-slate-900/40"} data-testid={`row-res-collection-${txn.id}`}>
                             <TableCell>
-                              <button className="font-mono text-xs font-medium text-blue-600 dark:text-blue-400 underline-offset-2 underline decoration-dotted" onClick={() => setResDetailTxn(txn)} data-testid={`text-res-id-${txn.id}`}>{txn.txnId}</button>
+                              <button className="font-mono text-xs font-medium text-blue-600 dark:text-blue-400 underline-offset-2 underline decoration-dotted" onClick={() => setResDetailTxn(txn)} data-testid={`text-res-id-${txn.id}`}>{(txn.reference || `TXN-${txn.id}`).slice(0, 20)}</button>
                             </TableCell>
-                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{txn.date}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{(txn.createdAt || "").slice(0, 10)}</TableCell>
                             <TableCell>
                               <div>
-                                <span className="text-sm font-medium" data-testid={`text-res-name-${txn.id}`}>{resName}</span>
-                                {res && <p className="text-[10px] text-muted-foreground">{res.area || res.city || "—"} — {res.totalCustomers || 0} customers</p>}
+                                <span className="text-sm font-medium" data-testid={`text-res-name-${txn.id}`}>{res?.name || "—"}</span>
+                                {res && <p className="text-[10px] text-muted-foreground">{res.area || res.city || "—"} — {res.totalCustomers || 0} cust.</p>}
                               </div>
                             </TableCell>
                             <TableCell><Badge variant="outline" className="no-default-active-elevate text-[10px] capitalize font-medium bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800">{colType}</Badge></TableCell>
                             <TableCell><Badge variant="outline" className="no-default-active-elevate text-[10px] capitalize font-medium">{paymentMethodLabels[txn.paymentMethod || ""] || txn.paymentMethod || "—"}</Badge></TableCell>
                             <TableCell className="text-right" data-testid={`text-res-amount-${txn.id}`}>
-                              <span className="font-semibold text-green-700 dark:text-green-300">+Rs. {Number(txn.netAmount || txn.amount).toLocaleString()}</span>
+                              <span className="font-semibold text-slate-700 dark:text-slate-300">Rs. {rechargeAmt.toLocaleString()}</span>
+                            </TableCell>
+                            <TableCell className="text-right hidden md:table-cell">
+                              <span className={`font-semibold ${paidAmt > 0 ? "text-green-700 dark:text-green-300" : "text-muted-foreground"}`}>{paidAmt > 0 ? `Rs. ${paidAmt.toLocaleString()}` : "—"}</span>
+                            </TableCell>
+                            <TableCell className="hidden lg:table-cell">
+                              <span className="text-xs text-muted-foreground">{bankAcc ? bankAcc.name : "—"}</span>
                             </TableCell>
                             <TableCell className="text-right hidden lg:table-cell">
                               <span className={`text-sm font-medium ${res && Number(res.walletBalance || 0) < 0 ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>Rs. {res ? Number(res.walletBalance || 0).toLocaleString() : "—"}</span>
                             </TableCell>
-                            <TableCell className="text-right hidden xl:table-cell">
-                              <span className="text-xs text-muted-foreground">Rs. {res ? Number(res.creditLimit || 0).toLocaleString() : "—"}</span>
-                            </TableCell>
                             <TableCell>
-                              <Badge variant="outline" className={`no-default-active-elevate text-[10px] font-medium ${sc.color}`} data-testid={`badge-res-status-${txn.id}`}>
-                                <StatusIcon className="h-3 w-3 mr-1" />{sc.label}
+                              <Badge variant="outline" className={`no-default-active-elevate text-[10px] font-medium capitalize ${statusCls}`} data-testid={`badge-res-status-${txn.id}`}>
+                                {payStatus}
                               </Badge>
                             </TableCell>
-                            <TableCell className="hidden xl:table-cell"><span className="text-xs text-muted-foreground">{txn.createdBy || "—"}</span></TableCell>
                             <TableCell>
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" data-testid={`button-res-actions-${txn.id}`}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuItem onClick={() => setResDetailTxn(txn)} data-testid={`button-view-res-${txn.id}`}><Eye className="h-4 w-4 mr-2" />View Detail</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => printVoucher(txn)} data-testid={`button-print-res-${txn.id}`}><Printer className="h-4 w-4 mr-2" />Print Receipt</DropdownMenuItem>
-                                  {txn.status === "completed" && (
-                                    <><DropdownMenuSeparator /><DropdownMenuItem className="text-amber-600" onClick={() => reverseMutation.mutate(txn.id)}><RotateCcw className="h-4 w-4 mr-2" />Reverse Entry</DropdownMenuItem></>
-                                  )}
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </TableCell>
@@ -4458,13 +4547,14 @@ export default function TransactionsPage() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {resDetailTxn && (() => {
             const txn = resDetailTxn;
-            const sc = statusColors[txn.status] || statusColors.completed;
-            const StatusIcon = sc.icon;
-            const res = txn.vendorId ? resellerMap.get(txn.vendorId) : null;
-            const debitAcc = accountsList.find(a => a.id === txn.debitAccountId);
-            const creditAcc = accountsList.find(a => a.id === txn.creditAccountId);
-            const netAmt = Number(txn.netAmount || txn.amount || 0);
-            const colType = collectionTypeLabels[txn.costCenter || ""] || "Wallet Top-up";
+            const res = resellerMap.get(txn.resellerId);
+            const bankAcc = txn.bankAccountId ? bankAccountMap.get(txn.bankAccountId) : null;
+            const payStatus = txn.paymentStatus || "paid";
+            const statusCls = walletPayStatusColor[payStatus] || walletPayStatusColor.paid;
+            const rechargeAmt = Number(txn.amount || 0);
+            const paidAmt = Number(txn.paidAmount || 0);
+            const remaining = rechargeAmt - paidAmt;
+            const colType = walletCategoryLabel[txn.category] || txn.category || "Wallet Recharge";
             return (
               <>
                 <DialogHeader>
@@ -4473,24 +4563,38 @@ export default function TransactionsPage() {
                       <Handshake className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <span className="font-mono text-base">{txn.txnId}</span>
-                      <p className="text-xs text-muted-foreground">Reseller Collection — {res?.name || "Unknown"}</p>
+                      <span className="font-mono text-base">{txn.reference || `TXN-${txn.id}`}</span>
+                      <p className="text-xs text-muted-foreground">Wallet Recharge — {res?.name || "Unknown"}</p>
                     </div>
                   </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-5">
+                  {/* Summary bar */}
                   <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-md p-4">
                     <div className="grid grid-cols-3 gap-3 text-center">
-                      <div><p className="text-[10px] text-muted-foreground uppercase">Amount Received</p><p className="text-xl font-bold text-green-700 dark:text-green-300">Rs. {netAmt.toLocaleString()}</p></div>
-                      <div><p className="text-[10px] text-muted-foreground uppercase">Wallet Balance</p><p className={`text-xl font-bold ${res && Number(res.walletBalance || 0) < 0 ? "text-red-600 dark:text-red-400" : "text-indigo-700 dark:text-indigo-300"}`}>Rs. {res ? Number(res.walletBalance || 0).toLocaleString() : "—"}</p></div>
-                      <div><p className="text-[10px] text-muted-foreground uppercase">Collection Type</p><p className="text-xl font-bold">{colType}</p></div>
+                      <div><p className="text-[10px] text-muted-foreground uppercase">Recharge Amount</p><p className="text-xl font-bold text-slate-700 dark:text-slate-200">Rs. {rechargeAmt.toLocaleString()}</p></div>
+                      <div><p className="text-[10px] text-muted-foreground uppercase">Paid Amount</p><p className={`text-xl font-bold ${paidAmt > 0 ? "text-green-700 dark:text-green-300" : "text-muted-foreground"}`}>{paidAmt > 0 ? `Rs. ${paidAmt.toLocaleString()}` : "—"}</p></div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase">Payment Status</p>
+                        <Badge variant="outline" className={`no-default-active-elevate capitalize font-medium mt-1 ${statusCls}`}>{payStatus}</Badge>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Wallet balance after */}
+                  {txn.balanceAfter !== null && txn.balanceAfter !== undefined && (
+                    <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 rounded-md px-4 py-2.5 flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Wallet balance after recharge</span>
+                      <span className={`font-bold text-lg ${Number(txn.balanceAfter) < 0 ? "text-red-600 dark:text-red-400" : "text-indigo-700 dark:text-indigo-300"}`}>Rs. {Number(txn.balanceAfter).toLocaleString()}</span>
+                    </div>
+                  )}
+
+                  {/* Reseller details */}
                   {res && (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2.5">
                         <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b pb-1.5">Reseller Details</h4>
-                        <DRow label="Reseller" value={res.name} />
+                        <DRow label="Name" value={res.name} />
                         <DRow label="Type" value={(res.resellerType || "").replace(/_/g, " ")} />
                         <DRow label="Contact" value={res.contactName || "—"} />
                         <DRow label="Territory" value={res.territory || res.area || "—"} />
@@ -4498,55 +4602,41 @@ export default function TransactionsPage() {
                         <DRow label="Commission" value={`${res.commissionRate || "0"}%`} />
                       </div>
                       <div className="space-y-2.5">
-                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b pb-1.5">Contact Info</h4>
-                        <DRow label="Phone" value={res.phone || "—"} />
-                        <DRow label="Email" value={res.email || "—"} />
-                        <DRow label="City" value={res.city || "—"} />
-                        <DRow label="Address" value={res.address || "—"} />
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b pb-1.5">Financial Info</h4>
+                        <DRow label="Wallet Balance" value={`Rs. ${Number(res.walletBalance || 0).toLocaleString()}`} />
                         <DRow label="Credit Limit" value={`Rs. ${Number(res.creditLimit || 0).toLocaleString()}`} />
                         <DRow label="Security Deposit" value={`Rs. ${Number(res.securityDeposit || 0).toLocaleString()}`} />
+                        <DRow label="Phone" value={res.phone || "—"} />
+                        <DRow label="City" value={res.city || "—"} />
                       </div>
                     </div>
                   )}
-                  <div>
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5"><BookOpen className="h-3.5 w-3.5" />Journal Entry</h4>
-                    <div className="border rounded-md overflow-hidden">
-                      <Table>
-                        <TableHeader><TableRow className="bg-slate-100 dark:bg-slate-800"><TableHead className="text-xs font-semibold">Account</TableHead><TableHead className="text-xs font-semibold text-right">Debit (Rs.)</TableHead><TableHead className="text-xs font-semibold text-right">Credit (Rs.)</TableHead></TableRow></TableHeader>
-                        <TableBody>
-                          <TableRow><TableCell className="text-sm">{debitAcc ? `${debitAcc.code} — ${debitAcc.name}` : "Cash / Bank Account"}</TableCell><TableCell className="text-right font-semibold text-blue-700 dark:text-blue-300">Rs. {netAmt.toLocaleString()}</TableCell><TableCell className="text-right text-muted-foreground">—</TableCell></TableRow>
-                          <TableRow><TableCell className="text-sm">{creditAcc ? `${creditAcc.code} — ${creditAcc.name}` : "Reseller Wallet Liability"}</TableCell><TableCell className="text-right text-muted-foreground">—</TableCell><TableCell className="text-right font-semibold text-amber-700 dark:text-amber-300">Rs. {netAmt.toLocaleString()}</TableCell></TableRow>
-                          <TableRow className="bg-slate-50 dark:bg-slate-900 font-semibold"><TableCell className="text-xs uppercase">Total</TableCell><TableCell className="text-right text-sm">Rs. {netAmt.toLocaleString()}</TableCell><TableCell className="text-right text-sm">Rs. {netAmt.toLocaleString()}</TableCell></TableRow>
-                        </TableBody>
-                      </Table>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1.5 text-xs"><CheckCircle className="h-3.5 w-3.5 text-green-600" /><span className="text-green-700 dark:text-green-300 font-medium">Debit & Credit balanced</span></div>
-                  </div>
+
+                  {/* Transaction details */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2.5">
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b pb-1.5">Payment Details</h4>
-                      <DRow label="Date" value={txn.date} />
-                      <DRow label="Status" value={<Badge variant="outline" className={`no-default-active-elevate text-[10px] ${sc.color}`}><StatusIcon className="h-3 w-3 mr-1" />{sc.label}</Badge>} />
-                      <DRow label="Payment Method" value={paymentMethodLabels[txn.paymentMethod || ""] || txn.paymentMethod || "—"} />
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b pb-1.5">Transaction Details</h4>
+                      <DRow label="Type" value={colType} />
                       <DRow label="Reference" value={txn.reference || "—"} />
-                      <DRow label="Cheque #" value={txn.chequeNumber || "—"} />
+                      <DRow label="Payment Method" value={paymentMethodLabels[txn.paymentMethod || ""] || txn.paymentMethod || "—"} />
+                      <DRow label="Sender" value={txn.senderName || "—"} />
+                      <DRow label="Bank Account" value={bankAcc ? `${bankAcc.name} (${bankAcc.bankName || bankAcc.accountNumber || ""})` : "—"} />
                     </div>
                     <div className="space-y-2.5">
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b pb-1.5">Financial Info</h4>
-                      <DRow label="Amount" value={`Rs. ${Number(txn.amount).toLocaleString()}`} />
-                      <DRow label="Commission Adj." value={`Rs. ${Number(txn.tax || 0).toLocaleString()}`} />
-                      <DRow label="Discount" value={`Rs. ${Number(txn.discount || 0).toLocaleString()}`} />
-                      <DRow label="Net Amount" value={`Rs. ${netAmt.toLocaleString()}`} />
-                      <DRow label="Branch" value={txn.branch || "—"} />
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b pb-1.5">Payment Breakdown</h4>
+                      <DRow label="Recharge Amount" value={`Rs. ${rechargeAmt.toLocaleString()}`} />
+                      <DRow label="Paid Amount" value={paidAmt > 0 ? `Rs. ${paidAmt.toLocaleString()}` : "—"} />
+                      {payStatus !== "paid" && <DRow label="Remaining" value={`Rs. ${remaining.toLocaleString()}`} />}
+                      <DRow label="Balance After" value={txn.balanceAfter !== undefined && txn.balanceAfter !== null ? `Rs. ${Number(txn.balanceAfter).toLocaleString()}` : "—"} />
+                      <DRow label="Recorded By" value={txn.createdBy || "—"} />
                     </div>
                   </div>
-                  {txn.description && <div><h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Notes</h4><p className="text-sm bg-slate-50 dark:bg-slate-900 p-3 rounded-md">{txn.description}</p></div>}
+
+                  {txn.description && <div><h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Description</h4><p className="text-sm bg-slate-50 dark:bg-slate-900 p-3 rounded-md">{txn.description}</p></div>}
                   {txn.createdAt && <div className="text-[10px] text-muted-foreground border-t pt-2">Recorded: {new Date(txn.createdAt).toLocaleString()}{txn.createdBy ? ` by ${txn.createdBy}` : ""}</div>}
                 </div>
                 <DialogFooter className="flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={() => setResDetailTxn(null)}>Close</Button>
-                  <Button variant="outline" size="sm" onClick={() => printVoucher(txn)}><Printer className="h-3.5 w-3.5 mr-1" />Print Receipt</Button>
-                  {txn.status === "completed" && <Button variant="outline" size="sm" className="text-amber-600 border-amber-300" onClick={() => { reverseMutation.mutate(txn.id); setResDetailTxn(null); }}><RotateCcw className="h-3.5 w-3.5 mr-1" />Reverse</Button>}
                 </DialogFooter>
               </>
             );
@@ -4561,9 +4651,9 @@ export default function TransactionsPage() {
             const res = resDetailReseller;
             const ws = getResellerStatus(res);
             const wsc = resStatusColorMap[ws] || resStatusColorMap.active;
-            const resPayments = resCollectionTxns.filter(t => t.vendorId === res.id && t.status !== "reversed");
-            const totalPaid = resPayments.reduce((s, t) => s + Number(t.netAmount || t.amount || 0), 0);
-            const lastPayment = resPayments.length > 0 ? resPayments.sort((a, b) => (b.date || "").localeCompare(a.date || ""))[0] : null;
+            const resPayments = resCollectionTxns.filter((t: any) => t.resellerId === res.id);
+            const totalPaid = resPayments.reduce((s: number, t: any) => s + Number(t.paidAmount || t.amount || 0), 0);
+            const lastPayment = resPayments.length > 0 ? resPayments.sort((a: any, b: any) => (b.createdAt || "").localeCompare(a.createdAt || ""))[0] : null;
             const walletBal = Number(res.walletBalance || 0);
             const creditUsed = walletBal < 0 ? Math.abs(walletBal) : 0;
             const creditAvail = Math.max(0, Number(res.creditLimit || 0) - creditUsed);
@@ -4632,10 +4722,10 @@ export default function TransactionsPage() {
                   </div>
                   {lastPayment && (
                     <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-md p-3">
-                      <p className="text-[10px] text-muted-foreground uppercase mb-1">Last Payment</p>
+                      <p className="text-[10px] text-muted-foreground uppercase mb-1">Last Recharge</p>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">{lastPayment.txnId} — {lastPayment.date}</span>
-                        <span className="text-sm font-bold text-green-700 dark:text-green-300">Rs. {Number(lastPayment.netAmount || lastPayment.amount).toLocaleString()}</span>
+                        <span className="text-sm font-medium">{lastPayment.reference || `TXN-${lastPayment.id}`} — {(lastPayment.createdAt || "").slice(0, 10)}</span>
+                        <span className="text-sm font-bold text-green-700 dark:text-green-300">Rs. {Number(lastPayment.paidAmount || lastPayment.amount).toLocaleString()}</span>
                       </div>
                     </div>
                   )}
@@ -4652,105 +4742,138 @@ export default function TransactionsPage() {
 
       {/* ===== RECORD RESELLER COLLECTION FORM ===== */}
       <Dialog open={resFormOpen} onOpenChange={setResFormOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-md bg-gradient-to-r from-[#3B0764] to-[#1D4ED8] flex items-center justify-center"><Handshake className="h-4 w-4 text-white" /></div>
-              Record Reseller Collection
+              Add Wallet Recharge
             </DialogTitle>
           </DialogHeader>
-          <Form {...resForm}>
-            <form onSubmit={resForm.handleSubmit(onResSubmit)} className="space-y-5">
-              <div className="space-y-1">
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Handshake className="h-3.5 w-3.5" />Section A — Reseller Details</h4>
-                <div className="border-t pt-3 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField control={resForm.control} name="vendorId" render={({ field }) => <FormItem><FormLabel>Reseller</FormLabel><Select onValueChange={(v) => { field.onChange(v === "none" ? null : parseInt(v)); }} value={field.value?.toString() || "none"}><FormControl><SelectTrigger data-testid="select-res-form-reseller"><SelectValue placeholder="Select reseller" /></SelectTrigger></FormControl><SelectContent>{resellers.filter(r => r.status === "active").map(r => <SelectItem key={r.id} value={r.id.toString()}>{r.name} ({r.area || r.city || "—"})</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem>} />
-                    <FormField control={resForm.control} name="branch" render={({ field }) => <FormItem><FormLabel>Branch</FormLabel><FormControl><Input placeholder="Head Office" data-testid="input-res-branch" {...field} value={field.value || ""} /></FormControl></FormItem>} />
+          <div className="space-y-4">
+            {/* Reseller */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Reseller <span className="text-red-500">*</span></label>
+              <Select value={resRechargeResellerId?.toString() || "none"} onValueChange={(v) => setResRechargeResellerId(v === "none" ? null : parseInt(v))}>
+                <SelectTrigger data-testid="select-res-form-reseller"><SelectValue placeholder="Select reseller" /></SelectTrigger>
+                <SelectContent>{resellers.filter(r => r.status === "active").map(r => <SelectItem key={r.id} value={r.id.toString()}>{r.name} ({r.area || r.city || "—"})</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+
+            {/* Reseller info banner */}
+            {resSelectedReseller && (
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-md p-2.5 text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase">Wallet Balance</p>
+                  <p className={`text-base font-bold ${Number(resSelectedReseller.walletBalance || 0) < 0 ? "text-red-600 dark:text-red-400" : "text-purple-600 dark:text-purple-400"}`} data-testid="text-res-wallet">Rs. {Number(resSelectedReseller.walletBalance || 0).toLocaleString()}</p>
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-2.5 text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase">Credit Limit</p>
+                  <p className="text-base font-bold text-blue-600 dark:text-blue-400">Rs. {Number(resSelectedReseller.creditLimit || 0).toLocaleString()}</p>
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-900 border rounded-md p-2.5 text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase">Customers</p>
+                  <p className="text-base font-bold">{resSelectedReseller.totalCustomers || 0}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Amount + Payment Status */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Recharge Amount (Rs.) <span className="text-red-500">*</span></label>
+                <Input type="number" step="0.01" min="0" placeholder="0.00" value={resRechargeAmount} onChange={e => setResRechargeAmount(e.target.value)} data-testid="input-res-amount" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Payment Status <span className="text-red-500">*</span></label>
+                <Select value={resRechargePayStatus} onValueChange={setResRechargePayStatus}>
+                  <SelectTrigger data-testid="select-res-pay-status"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="unpaid">Unpaid</SelectItem>
+                    <SelectItem value="partial">Partial</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Payment details (shown when paid/partial) */}
+            {(resRechargePayStatus === "paid" || resRechargePayStatus === "partial") && (
+              <div className="border rounded-md p-3 space-y-3 bg-slate-50 dark:bg-slate-900">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Payment Details</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Paid Amount (Rs.) <span className="text-red-500">*</span></label>
+                    <Input type="number" step="0.01" min="0" placeholder="0.00" value={resRechargePaidAmount} onChange={e => setResRechargePaidAmount(e.target.value)} data-testid="input-res-paid-amount" />
                   </div>
-                  {resSelectedReseller && (
-                    <div className="grid grid-cols-4 gap-3">
-                      <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800 rounded-md p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase">Wallet Balance</p>
-                        <p className={`text-lg font-bold ${Number(resSelectedReseller.walletBalance || 0) < 0 ? "text-red-600 dark:text-red-400" : "text-purple-600 dark:text-purple-400"}`} data-testid="text-res-wallet">Rs. {Number(resSelectedReseller.walletBalance || 0).toLocaleString()}</p>
-                      </div>
-                      <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase">Credit Limit</p>
-                        <p className="text-lg font-bold text-blue-600 dark:text-blue-400">Rs. {Number(resSelectedReseller.creditLimit || 0).toLocaleString()}</p>
-                      </div>
-                      <div className="bg-slate-50 dark:bg-slate-900 border rounded-md p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase">Customers</p>
-                        <p className="text-lg font-bold">{resSelectedReseller.totalCustomers || 0}</p>
-                        <p className="text-[10px] text-muted-foreground">{resSelectedReseller.commissionRate || "0"}% comm.</p>
-                      </div>
-                      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase">Security Deposit</p>
-                        <p className="text-lg font-bold text-amber-600 dark:text-amber-400">Rs. {Number(resSelectedReseller.securityDeposit || 0).toLocaleString()}</p>
-                      </div>
-                    </div>
-                  )}
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField control={resForm.control} name="createdBy" render={({ field }) => <FormItem><FormLabel>Account Manager</FormLabel><Select onValueChange={field.onChange} value={field.value || ""}><FormControl><SelectTrigger data-testid="select-res-acct-mgr"><SelectValue placeholder="Select officer" /></SelectTrigger></FormControl><SelectContent>{employees.filter(e => e.status === "active").map(e => <SelectItem key={e.id} value={e.fullName}>{e.fullName} — {e.designation}</SelectItem>)}<SelectItem value="admin">Admin</SelectItem></SelectContent></Select></FormItem>} />
-                    <FormField control={resForm.control} name="costCenter" render={({ field }) => <FormItem><FormLabel>Collection Type</FormLabel><Select onValueChange={field.onChange} value={field.value || "wallet_topup"}><FormControl><SelectTrigger data-testid="select-res-col-type"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="wallet_topup">Wallet Top-up</SelectItem><SelectItem value="credit_settlement">Credit Settlement</SelectItem><SelectItem value="commission_adjustment">Commission Adjustment</SelectItem><SelectItem value="security_deposit">Security Deposit Payment</SelectItem><SelectItem value="penalty_recovery">Penalty Recovery</SelectItem></SelectContent></Select></FormItem>} />
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Payment Method</label>
+                    <Select value={resRechargeMethod} onValueChange={setResRechargeMethod}>
+                      <SelectTrigger data-testid="select-res-pay-method"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash_in_hand">Cash in Hand</SelectItem>
+                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                        <SelectItem value="mobile_wallet">Mobile Wallet</SelectItem>
+                        <SelectItem value="cheque">Cheque</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Payment Send To (Bank Account)</label>
+                    <Select value={resRechargeBankAccId} onValueChange={setResRechargeBankAccId}>
+                      <SelectTrigger data-testid="select-res-bank-acc"><SelectValue placeholder="Select account" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {companyBankAccounts.map((a: any) => <SelectItem key={a.id} value={a.id.toString()}>{a.name} — {a.bankName || a.accountNumber}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Sender Name</label>
+                    <Input placeholder="Depositor name" value={resRechargeSenderName} onChange={e => setResRechargeSenderName(e.target.value)} data-testid="input-res-sender" />
                   </div>
                 </div>
               </div>
+            )}
 
-              <div className="space-y-1">
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5" />Section B — Payment Details</h4>
-                <div className="border-t pt-3 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField control={resForm.control} name="date" render={({ field }) => <FormItem><FormLabel>Collection Date</FormLabel><FormControl><Input type="date" data-testid="input-res-date" {...field} /></FormControl><FormMessage /></FormItem>} />
-                    <FormField control={resForm.control} name="paymentMethod" render={({ field }) => <FormItem><FormLabel>Payment Method</FormLabel><Select onValueChange={field.onChange} value={field.value || "bank_transfer"}><FormControl><SelectTrigger data-testid="select-res-pay-method"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="bank_transfer">Bank Transfer</SelectItem><SelectItem value="cheque">Cheque</SelectItem><SelectItem value="online">Online Gateway</SelectItem><SelectItem value="cash">Cash</SelectItem></SelectContent></Select><FormMessage /></FormItem>} />
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <FormField control={resForm.control} name="amount" render={({ field }) => <FormItem><FormLabel>Amount Received (Rs.)</FormLabel><FormControl><Input type="number" step="0.01" data-testid="input-res-amount" {...field} /></FormControl><FormMessage /></FormItem>} />
-                    <FormField control={resForm.control} name="reference" render={({ field }) => <FormItem><FormLabel>Transaction Reference</FormLabel><FormControl><Input placeholder="Bank ref / Receipt #" data-testid="input-res-reference" {...field} value={field.value || ""} /></FormControl></FormItem>} />
-                    <FormField control={resForm.control} name="chequeNumber" render={({ field }) => <FormItem><FormLabel>Cheque / Bank Name</FormLabel><FormControl><Input placeholder="If cheque / bank" data-testid="input-res-cheque" {...field} value={field.value || ""} /></FormControl></FormItem>} />
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <FormField control={resForm.control} name="tax" render={({ field }) => <FormItem><FormLabel>Commission Adj. (Rs.)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="0" data-testid="input-res-commission" {...field} value={field.value || ""} /></FormControl></FormItem>} />
-                    <FormField control={resForm.control} name="discount" render={({ field }) => <FormItem><FormLabel>Discount (Rs.)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="0" data-testid="input-res-discount" {...field} value={field.value || ""} /></FormControl></FormItem>} />
-                    <div className="bg-green-50 dark:bg-green-950/30 p-3 rounded-md border border-green-200 dark:border-green-800 flex flex-col justify-center">
-                      <p className="text-[10px] text-muted-foreground uppercase">Net Collection</p>
-                      <p className="text-lg font-bold text-green-700 dark:text-green-300" data-testid="text-res-net">Rs. {(Number(resForm.watch("amount") || 0) + Number(resForm.watch("tax") || 0) - Number(resForm.watch("discount") || 0)).toLocaleString()}</p>
-                    </div>
-                  </div>
-                  <FormField control={resForm.control} name="description" render={({ field }) => <FormItem><FormLabel>Notes</FormLabel><FormControl><Textarea rows={2} placeholder="Reseller collection notes..." data-testid="input-res-notes" {...field} value={field.value || ""} /></FormControl></FormItem>} />
-                </div>
+            {/* Reference + Notes */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Reference / Receipt #</label>
+                <Input placeholder="TXN ref / slip #" value={resRechargeRef} onChange={e => setResRechargeRef(e.target.value)} data-testid="input-res-reference" />
               </div>
-
-              <div className="space-y-1">
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><BookOpen className="h-3.5 w-3.5" />Section C — Accounting Posting</h4>
-                <div className="border-t pt-3 space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <FormField control={resForm.control} name="debitAccountId" render={({ field }) => <FormItem><FormLabel>Debit: Cash / Bank</FormLabel><Select onValueChange={(v) => field.onChange(v === "none" ? null : parseInt(v))} value={field.value?.toString() || "none"}><FormControl><SelectTrigger data-testid="select-res-debit"><SelectValue placeholder="Select debit account" /></SelectTrigger></FormControl><SelectContent><SelectItem value="none">Auto-select</SelectItem>{accountsList.filter(a => a.type === "asset").map(a => <SelectItem key={a.id} value={a.id.toString()}>{a.code} — {a.name}</SelectItem>)}</SelectContent></Select></FormItem>} />
-                    <FormField control={resForm.control} name="creditAccountId" render={({ field }) => <FormItem><FormLabel>Credit: Reseller Wallet / AR</FormLabel><Select onValueChange={(v) => field.onChange(v === "none" ? null : parseInt(v))} value={field.value?.toString() || "none"}><FormControl><SelectTrigger data-testid="select-res-credit"><SelectValue placeholder="Select credit account" /></SelectTrigger></FormControl><SelectContent><SelectItem value="none">Auto-select</SelectItem>{accountsList.filter(a => a.type === "asset" || a.type === "liability").map(a => <SelectItem key={a.id} value={a.id.toString()}>{a.code} — {a.name}</SelectItem>)}</SelectContent></Select></FormItem>} />
-                  </div>
-                </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Notes</label>
+                <Input placeholder="Optional notes" value={resRechargeNotes} onChange={e => setResRechargeNotes(e.target.value)} data-testid="input-res-notes" />
               </div>
+            </div>
 
-              <div className="space-y-1">
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5"><Settings className="h-3.5 w-3.5" />Section D — Collection Controls</h4>
-                <div className="border-t pt-3">
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <FormField control={resForm.control} name="autoAdjustReceivable" render={({ field }) => <FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value ?? true} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0 text-sm">Add to wallet balance</FormLabel></FormItem>} />
-                    <FormField control={resForm.control} name="allowPartialPayment" render={({ field }) => <FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0 text-sm">Adjust against credit</FormLabel></FormItem>} />
-                    <FormField control={resForm.control} name="sendNotification" render={({ field }) => <FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value ?? true} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0 text-sm">Send receipt notification</FormLabel></FormItem>} />
-                    <FormField control={resForm.control} name="lockAfterSave" render={({ field }) => <FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0 text-sm">Lock after save</FormLabel></FormItem>} />
-                    <FormField control={resForm.control} name="requireApproval" render={({ field }) => <FormItem className="flex items-center gap-2"><FormControl><Checkbox checked={field.value ?? false} onCheckedChange={field.onChange} /></FormControl><FormLabel className="!mt-0 text-sm">Require approval</FormLabel></FormItem>} />
-                  </div>
-                </div>
+            {/* Summary */}
+            {resRechargeAmount && parseFloat(resRechargeAmount) > 0 && (
+              <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-md p-3 flex justify-between items-center">
+                <span className="text-sm font-medium text-green-800 dark:text-green-200">Wallet will be credited by</span>
+                <span className="text-lg font-bold text-green-700 dark:text-green-300">+Rs. {parseFloat(resRechargeAmount || "0").toLocaleString()}</span>
               </div>
+            )}
+          </div>
 
-              <DialogFooter>
-                <Button type="button" variant="secondary" onClick={() => setResFormOpen(false)}>Cancel</Button>
-                <Button type="submit" disabled={createMutation.isPending} data-testid="button-save-res-collection">
-                  {createMutation.isPending ? "Recording..." : "Record Reseller Collection"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+          <DialogFooter className="mt-4">
+            <Button variant="secondary" onClick={() => setResFormOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleResRecharge}
+              disabled={
+                resRechargeSubmitting ||
+                !resRechargeResellerId ||
+                !resRechargeAmount ||
+                parseFloat(resRechargeAmount) <= 0 ||
+                ((resRechargePayStatus === "paid" || resRechargePayStatus === "partial") && (!resRechargePaidAmount || parseFloat(resRechargePaidAmount) <= 0))
+              }
+              data-testid="button-save-res-collection"
+            >
+              {resRechargeSubmitting ? "Recording..." : "Record Recharge"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
