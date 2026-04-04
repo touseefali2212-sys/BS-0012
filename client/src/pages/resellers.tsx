@@ -192,6 +192,7 @@ export default function ResellersPage() {
   const [rechargePaymentStatus, setRechargePaymentStatus] = useState("paid");
   const [rechargeRemarks, setRechargeRemarks] = useState("");
   const [rechargeBankAccountId, setRechargeBankAccountId] = useState("");
+  const [rechargeSenderName, setRechargeSenderName] = useState("");
   const [rechargeSubmitting, setRechargeSubmitting] = useState(false);
   const [deductDialogOpen, setDeductDialogOpen] = useState(false);
   const [deductReseller, setDeductReseller] = useState<Reseller | null>(null);
@@ -606,6 +607,7 @@ export default function ResellersPage() {
       setRechargePaymentStatus("paid");
       setRechargeRemarks("");
       setRechargeBankAccountId("");
+      setRechargeSenderName("");
       toast({ title: `Wallet recharged successfully${validRows.length > 1 ? ` (${validRows.length} entries)` : ""}` });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -1725,7 +1727,7 @@ export default function ResellersPage() {
                                   <DropdownMenuItem onClick={() => setLocation(`/resellers/${reseller.id}/edit`)} data-testid={`button-edit-${reseller.id}`}>
                                     <Edit className="h-4 w-4 mr-2" /> Edit Reseller
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => { setRechargeReseller(reseller); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeDialogOpen(true); }} data-testid={`action-credit-${reseller.id}`}>
+                                  <DropdownMenuItem onClick={() => { setRechargeReseller(reseller); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeSenderName(""); setRechargeDialogOpen(true); }} data-testid={`action-credit-${reseller.id}`}>
                                     <Wallet className="h-4 w-4 mr-2" /> Adjust Credit
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => { setSelectedWalletResellerId(String(reseller.id)); changeTab("wallet"); }} data-testid={`action-transactions-${reseller.id}`}>
@@ -2029,7 +2031,7 @@ export default function ResellersPage() {
                 <Button size="sm" className="flex-1 bg-gradient-to-r from-[#002B5B] to-[#007BFF] text-white" onClick={() => { setLocation(`/resellers/${detailReseller.id}/edit`); setDetailReseller(null); }} data-testid="detail-btn-edit">
                   <Edit className="h-4 w-4 mr-1" /> Edit
                 </Button>
-                <Button size="sm" variant="outline" className="flex-1" onClick={() => { setRechargeReseller(detailReseller); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeDialogOpen(true); setDetailReseller(null); }} data-testid="detail-btn-credit">
+                <Button size="sm" variant="outline" className="flex-1" onClick={() => { setRechargeReseller(detailReseller); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeSenderName(""); setRechargeDialogOpen(true); setDetailReseller(null); }} data-testid="detail-btn-credit">
                   <Wallet className="h-4 w-4 mr-1" /> Adjust Credit
                 </Button>
               </div>
@@ -2199,7 +2201,7 @@ export default function ResellersPage() {
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" className="bg-gradient-to-r from-teal-600 to-teal-500 text-white gap-1"
                   data-testid="btn-add-recharge"
-                  onClick={() => { setRechargeReseller(selReseller); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeDialogOpen(true); }}>
+                  onClick={() => { setRechargeReseller(selReseller); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeSenderName(""); setRechargeDialogOpen(true); }}>
                   <ArrowUpCircle className="h-4 w-4" /> Add Recharge
                 </Button>
                 <Button size="sm" className="bg-gradient-to-r from-red-600 to-red-500 text-white gap-1"
@@ -2954,10 +2956,21 @@ export default function ResellersPage() {
                     </div>
                   </div>
 
-                  {/* Payment Send From */}
+                  {/* Payment Send From — sender's name */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Payment Send From</label>
+                    <Input
+                      placeholder="Enter the name of person who sent the payment"
+                      value={rechargeSenderName}
+                      onChange={(e) => setRechargeSenderName(e.target.value)}
+                      data-testid="input-recharge-sender-name"
+                    />
+                  </div>
+
+                  {/* Payment Send To — company account */}
                   <div className="space-y-2">
                     <label className="text-sm font-medium">
-                      Payment Send From
+                      Payment Send To
                       {filtered.length === 0 && <span className="text-xs text-muted-foreground ml-2">(No accounts set up for this type — <a href="/company-bank-accounts" className="underline text-blue-600">add one</a>)</span>}
                     </label>
                     <Select value={rechargeBankAccountId} onValueChange={setRechargeBankAccountId}>
