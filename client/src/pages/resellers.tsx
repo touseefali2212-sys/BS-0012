@@ -633,6 +633,15 @@ export default function ResellersPage() {
           bankAccountId: rechargeBankAccountId && rechargeBankAccountId !== "none" ? parseInt(rechargeBankAccountId) : undefined,
         });
       }
+      // For credit_balance: deduct the total credit used from the wallet balance
+      if (rechargePaymentStatus === "credit_balance" && totalPaidAmt > 0) {
+        await apiRequest("POST", "/api/reseller-wallet/deduct", {
+          resellerId: rechargeReseller.id,
+          amount: totalPaidAmt,
+          reference: rechargeReference || undefined,
+          category: "credit_balance_payment",
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/resellers"] });
       queryClient.invalidateQueries({ queryKey: ["/api/reseller-wallet-transactions", selectedWalletResellerId] });
       queryClient.invalidateQueries({ queryKey: ["/api/company-bank-accounts"] });
@@ -2094,7 +2103,7 @@ export default function ResellersPage() {
         const thisYear = new Date().getFullYear();
         const monthTxns = txns.filter(t => { const d = new Date(t.createdAt); return d.getMonth() === thisMonth && d.getFullYear() === thisYear; });
         const totalRechargeMonth = monthTxns.filter(t => t.type === "credit" && t.category === "recharge").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
-        const totalDeductionMonth = monthTxns.filter(t => t.type === "debit").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
+        const totalDeductionMonth = monthTxns.filter(t => t.type === "debit" && t.category !== "credit_balance_payment").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
         const totalPaidMonth = monthTxns.filter(t => t.type === "credit" && (t as any).paymentStatus === "paid" && t.category === "recharge").reduce((s, t) => s + parseFloat(String((t as any).paidAmount || t.amount || "0")), 0);
         const totalUnpaidAll = txns.filter(t => t.type === "credit" && ((t as any).paymentStatus === "unpaid" || (t as any).paymentStatus === "partial")).reduce((s, t) => {
           const amt = parseFloat(String(t.amount || "0"));

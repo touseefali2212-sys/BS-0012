@@ -1551,11 +1551,12 @@ export class DatabaseStorage implements IStorage {
     const reseller = await this.getReseller(resellerId);
     if (!reseller) throw new Error("Reseller not found");
     const currentBalance = parseFloat(reseller.walletBalance || "0");
-    const newBalance = currentBalance + amount;
     const now = new Date().toISOString();
     const txnRef = reference || `Recharge-${Date.now()}`;
     const effectiveStatus = paymentStatus || "paid";
     const effectivePaidAmount = paidAmount !== undefined ? paidAmount : (effectiveStatus === "paid" ? amount : 0);
+
+    const newBalance = currentBalance + amount;
 
     await this.createResellerWalletTransaction({
       resellerId,
@@ -1657,7 +1658,9 @@ export class DatabaseStorage implements IStorage {
       amount: amount.toString(),
       balanceAfter: newBalance.toString(),
       reference: reference || `Deduction-${Date.now()}`,
-      description: `Wallet deduction of ${amount}`,
+      description: category === "credit_balance_payment"
+        ? `Credit balance consumed for recharge payment (Rs.${amount.toFixed(2)})`
+        : `Wallet deduction of ${amount}`,
       vendorId,
       customerId,
       createdBy: createdBy || "admin",
