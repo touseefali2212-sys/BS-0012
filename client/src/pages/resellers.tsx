@@ -2934,26 +2934,14 @@ export default function ResellersPage() {
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Unpaid Balance</p>
                       <p className={`text-lg font-bold ${currentUnpaid > 0 ? "text-rose-600" : "text-slate-700 dark:text-slate-300"}`} data-testid="text-recharge-unpaid">{formatPKR(currentUnpaid)}</p>
                     </div>
-                    <div className={`rounded-lg p-3 border ${creditAvailable < 0 ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800" : "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800"}`}>
+                    <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Credit Available</p>
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          data-testid="input-recharge-credit-available"
-                          value={rechargeCreditEntry}
-                          onChange={(e) => setRechargeCreditEntry(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && rechargeCreditEntry) setRechargePaidAmount(rechargeCreditEntry);
-                          }}
-                          placeholder="0.00"
-                          className={`w-full text-sm font-semibold rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400 tabular-nums ${creditAvailable < 0 ? "text-red-600 border-red-300 bg-red-50 dark:bg-red-950/30" : "text-blue-600 border-blue-200 bg-white dark:bg-blue-950/20"}`}
-                        />
+                      <div className="flex items-center justify-between gap-2 mt-1">
+                        <p className="text-lg font-bold text-blue-600 tabular-nums" data-testid="text-recharge-credit-available">{formatPKR(currentBal)}</p>
                         <button
                           type="button"
                           data-testid="button-use-credit-available"
-                          onClick={() => { if (rechargeCreditEntry) setRechargePaidAmount(rechargeCreditEntry); }}
+                          onClick={() => setRechargePaidAmount(currentBal.toString())}
                           className="shrink-0 text-[10px] font-semibold px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 leading-none"
                         >Use</button>
                       </div>
