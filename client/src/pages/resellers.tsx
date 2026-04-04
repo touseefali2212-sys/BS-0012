@@ -2111,6 +2111,12 @@ export default function ResellersPage() {
           return s + (amt - paid);
         }, 0);
         const secDeposit = isAllResellers ? allResellers.reduce((s, r) => s + parseFloat(String(r.securityDeposit || "0")), 0) : (selReseller ? parseFloat(String(selReseller.securityDeposit || "0")) : 0);
+        const totalAdvancePayments = txns.filter(t => t.type === "credit" && t.category === "advance_payment").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
+        const totalUnpaidMonth = monthTxns.filter(t => t.type === "credit" && ((t as any).paymentStatus === "unpaid" || (t as any).paymentStatus === "partial" || (t as any).paymentStatus === "credit_partial") && t.category === "recharge").reduce((s, t) => {
+          const amt = parseFloat(String(t.amount || "0"));
+          const paid = parseFloat(String((t as any).paidAmount || "0"));
+          return s + (amt - paid);
+        }, 0);
         const filteredTxns = txns.filter(t => {
           const matchType = txnTypeFilter === "all" || t.type === txnTypeFilter;
           const matchSearch = !txnSearch || (t.reference || "").toLowerCase().includes(txnSearch.toLowerCase()) || (t.description || "").toLowerCase().includes(txnSearch.toLowerCase());
@@ -2178,37 +2184,45 @@ export default function ResellersPage() {
                 {[
                   {
                     label: isAllResellers ? "Total Wallet Balance" : "Wallet Balance",
-                    sublabel: "Current Month",
+                    sublabel: "Current Balance",
                     value: formatPKR(walletBal),
-                    sub: `${monthTxns.filter(t => t.type === "credit" && t.category === "recharge").length} recharges this month`,
+                    detail1: `Month Recharge`,
+                    detail1val: formatPKR(totalRechargeMonth),
+                    detail2: `${monthTxns.filter(t => t.type === "credit" && t.category === "recharge").length} transactions`,
                     icon: Wallet,
                     color: walletBal < 0 ? "from-red-600 to-red-500" : "from-emerald-600 to-emerald-500",
-                    badge: walletBal < 0 ? "Overdrawn" : null,
-                    badgeColor: "bg-white/20",
+                    badge: walletBal < 0 ? "Overdrawn" : (walletBal > 0 && walletBal < 500 ? "Low" : null),
+                    badgeColor: walletBal < 0 ? "bg-white/20" : "bg-amber-500/80",
                   },
                   {
                     label: "Recharge",
-                    sublabel: "Current Month",
+                    sublabel: "Current Month Total",
                     value: formatPKR(totalRechargeMonth),
-                    sub: `${monthTxns.filter(t => t.type === "credit" && t.category === "recharge").length} transactions`,
+                    detail1: "Entries",
+                    detail1val: `${monthTxns.filter(t => t.type === "credit" && t.category === "recharge").length}`,
+                    detail2: `Unpaid: ${formatPKR(totalUnpaidMonth)}`,
                     icon: ArrowUpCircle,
                     color: "from-teal-600 to-teal-500",
                     badge: null, badgeColor: "",
                   },
                   {
                     label: "Paid Payment",
-                    sublabel: "Current Month",
+                    sublabel: "Current Month Paid",
                     value: formatPKR(totalPaidMonth),
-                    sub: `${monthTxns.filter(t => t.type === "credit" && ["paid", "credit_balance", "credit_partial"].includes((t as any).paymentStatus) && t.category === "recharge").length} paid transactions`,
+                    detail1: "Settled",
+                    detail1val: `${monthTxns.filter(t => t.type === "credit" && ["paid", "credit_balance", "credit_partial"].includes((t as any).paymentStatus) && t.category === "recharge").length} recharges`,
+                    detail2: totalUnpaidMonth > 0 ? `Pending: ${formatPKR(totalUnpaidMonth)}` : "All settled ✓",
                     icon: CheckCircle2,
                     color: "from-green-600 to-green-500",
                     badge: null, badgeColor: "",
                   },
                   {
                     label: "Unpaid Balance",
-                    sublabel: "All-time Unpaid",
-                    value: formatPKR(totalUnpaidAll),
-                    sub: `${txns.filter(t => t.type === "credit" && ((t as any).paymentStatus === "unpaid" || (t as any).paymentStatus === "partial" || (t as any).paymentStatus === "credit_partial")).length} unpaid entries`,
+                    sublabel: "Total Outstanding (−)",
+                    value: totalUnpaidAll > 0 ? `− ${formatPKR(totalUnpaidAll)}` : formatPKR(0),
+                    detail1: "Pending Entries",
+                    detail1val: `${txns.filter(t => t.type === "credit" && ((t as any).paymentStatus === "unpaid" || (t as any).paymentStatus === "partial" || (t as any).paymentStatus === "credit_partial")).length}`,
+                    detail2: totalUnpaidAll > 0 ? "Payment due" : "No pending dues",
                     icon: AlertTriangle,
                     color: totalUnpaidAll > 0 ? "from-rose-600 to-rose-500" : "from-slate-500 to-slate-400",
                     badge: totalUnpaidAll > 0 ? "Pending" : null,
@@ -2216,9 +2230,11 @@ export default function ResellersPage() {
                   },
                   {
                     label: isAllResellers ? "Total Credit Limit" : "Credit Limit",
-                    sublabel: "Configured Limit",
+                    sublabel: "Limit + Advance",
                     value: formatPKR(creditLim),
-                    sub: `Available: ${formatPKR(availableCredit)}`,
+                    detail1: "Advance",
+                    detail1val: formatPKR(totalAdvancePayments),
+                    detail2: `Available: ${formatPKR(availableCredit)}`,
                     subHighlight: true,
                     icon: Shield,
                     color: "from-blue-600 to-blue-500",
@@ -2226,9 +2242,11 @@ export default function ResellersPage() {
                   },
                   {
                     label: isAllResellers ? "Total Security Deposit" : "Security Deposit",
-                    sublabel: "On File",
+                    sublabel: "Reseller Deposit",
                     value: formatPKR(secDeposit),
-                    sub: isAllResellers ? `${allResellers.length} resellers` : (selReseller?.area || "—"),
+                    detail1: isAllResellers ? "Resellers" : "Status",
+                    detail1val: isAllResellers ? `${allResellers.filter(r => parseFloat(String(r.securityDeposit || "0")) > 0).length}` : (secDeposit > 0 ? "On File" : "Not set"),
+                    detail2: isAllResellers ? `${allResellers.length} total` : (selReseller?.area || "—"),
                     icon: Landmark,
                     color: "from-violet-600 to-violet-500",
                     badge: null, badgeColor: "",
@@ -2243,12 +2261,18 @@ export default function ResellersPage() {
                         </div>
                         <kpi.icon className="h-4 w-4 text-white/50 shrink-0 ml-1" />
                       </div>
-                      <p className="text-xl font-bold text-white tabular-nums" data-testid={`wallet-kpi-value-${idx}`}>{kpi.value}</p>
-                      {(kpi as any).subHighlight ? (
-                        <p className="text-[11px] font-semibold text-white mt-1 leading-tight truncate bg-white/20 rounded px-1.5 py-0.5 inline-block">{kpi.sub}</p>
-                      ) : (
-                        <p className="text-[10px] text-white/60 mt-1 leading-tight truncate">{kpi.sub}</p>
-                      )}
+                      <p className="text-xl font-bold text-white tabular-nums leading-tight" data-testid={`wallet-kpi-value-${idx}`}>{kpi.value}</p>
+                      <div className="mt-1.5 space-y-0.5">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[9px] text-white/55 truncate">{(kpi as any).detail1}</span>
+                          <span className="text-[10px] font-semibold text-white/90 tabular-nums shrink-0">{(kpi as any).detail1val}</span>
+                        </div>
+                        {(kpi as any).subHighlight ? (
+                          <p className="text-[10px] font-semibold text-white leading-tight bg-white/20 rounded px-1.5 py-0.5 inline-block">{(kpi as any).detail2}</p>
+                        ) : (
+                          <p className="text-[9px] text-white/55 leading-tight truncate">{(kpi as any).detail2}</p>
+                        )}
+                      </div>
                       {kpi.badge && <span className={`inline-block mt-1 text-[9px] font-bold text-white px-1.5 py-0.5 rounded-full ${kpi.badgeColor}`}>{kpi.badge}</span>}
                     </CardContent>
                   </Card>
@@ -2326,38 +2350,43 @@ export default function ResellersPage() {
                       <tr className="bg-gradient-to-r from-slate-800 to-slate-700 dark:from-slate-900 dark:to-slate-800 text-white">
                         <th className="px-3 py-2.5 text-left font-medium text-xs">Date</th>
                         {isAllResellers && <th className="px-3 py-2.5 text-left font-medium text-xs">Reseller</th>}
-                        <th className="px-3 py-2.5 text-left font-medium text-xs">Txn ID</th>
-                        <th className="px-3 py-2.5 text-left font-medium text-xs">Type</th>
-                        <th className="px-3 py-2.5 text-left font-medium text-xs">Status</th>
+                        <th className="px-3 py-2.5 text-left font-medium text-xs">TXN ID</th>
+                        <th className="px-3 py-2.5 text-left font-medium text-xs">P Type</th>
                         <th className="px-3 py-2.5 text-left font-medium text-xs hidden md:table-cell">Category</th>
-                        <th className="px-3 py-2.5 text-right font-medium text-xs hidden md:table-cell">Paid Amt</th>
-                        <th className="px-3 py-2.5 text-left font-medium text-xs hidden lg:table-cell">Sender</th>
-                        <th className="px-3 py-2.5 text-left font-medium text-xs hidden md:table-cell">Reference</th>
-                        <th className="px-3 py-2.5 text-left font-medium text-xs hidden lg:table-cell">Description</th>
-                        <th className="px-3 py-2.5 text-right font-medium text-xs">Debit</th>
-                        <th className="px-3 py-2.5 text-right font-medium text-xs">Credit</th>
+                        <th className="px-3 py-2.5 text-left font-medium text-xs hidden lg:table-cell">Vendors</th>
+                        <th className="px-3 py-2.5 text-right font-medium text-xs">Recharge</th>
+                        <th className="px-3 py-2.5 text-right font-medium text-xs hidden md:table-cell">Payment Paid</th>
                         <th className="px-3 py-2.5 text-right font-medium text-xs">Balance</th>
+                        <th className="px-3 py-2.5 text-left font-medium text-xs hidden lg:table-cell">Note</th>
+                        <th className="px-3 py-2.5 text-left font-medium text-xs">Status</th>
                         <th className="px-3 py-2.5 text-left font-medium text-xs hidden lg:table-cell">By</th>
-                        <th className="px-3 py-2.5 text-center font-medium text-xs">Actions</th>
+                        <th className="px-3 py-2.5 text-center font-medium text-xs">Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredTxns.map((txn, idx) => {
                         const isCredit = txn.type === "credit";
+                        const vendorName = txn.vendorId ? ((vendors || []) as any[]).find((v: any) => v.id === txn.vendorId)?.name || `#${txn.vendorId}` : null;
+                        const noteText = [txn.description, txn.reference ? `Ref: ${txn.reference}` : null].filter(Boolean).join(" · ") || "—";
+                        const payStatus = (txn as any).paymentStatus;
                         return (
                           <tr key={txn.id} data-testid={`row-transaction-${txn.id}`}
                             className={`border-b border-slate-100 dark:border-slate-800 ${idx % 2 === 0 ? "bg-white dark:bg-slate-950" : "bg-slate-50/60 dark:bg-slate-900/60"}`}>
+                            {/* Date */}
                             <td className="px-3 py-2.5 text-xs text-muted-foreground whitespace-nowrap">
                               {txn.createdAt ? new Date(txn.createdAt).toLocaleDateString("en-PK", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
                             </td>
+                            {/* Reseller (all view) */}
                             {isAllResellers && (
                               <td className="px-3 py-2.5">
                                 <span className="text-xs font-medium">{allResellers.find(r => r.id === txn.resellerId)?.name || `ID: ${txn.resellerId}`}</span>
                               </td>
                             )}
+                            {/* TXN ID */}
                             <td className="px-3 py-2.5">
                               <span className="text-xs font-mono text-muted-foreground" data-testid={`txn-id-${txn.id}`}>#{String(txn.id).padStart(6, "0")}</span>
                             </td>
+                            {/* P Type */}
                             <td className="px-3 py-2.5">
                               <Badge variant="secondary"
                                 className={`no-default-active-elevate text-[10px] capitalize gap-0.5 ${isCredit
@@ -2365,60 +2394,66 @@ export default function ResellersPage() {
                                   : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950"}`}
                                 data-testid={`txn-type-${txn.id}`}>
                                 {isCredit ? <ArrowUpCircle className="h-3 w-3" /> : <ArrowDownCircle className="h-3 w-3" />}
-                                {txn.type}
+                                {isCredit ? "Credit" : "Debit"}
                               </Badge>
                             </td>
-                            <td className="px-3 py-2.5">
-                              {isCredit ? (
-                                <Badge variant="secondary"
-                                  className={`no-default-active-elevate text-[10px] capitalize ${
-                                    (txn as any).paymentStatus === "unpaid"
-                                      ? "text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950"
-                                      : (txn as any).paymentStatus === "partial"
-                                      ? "text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950"
-                                      : (txn as any).paymentStatus === "reconciled"
-                                      ? "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950"
-                                      : (txn as any).paymentStatus === "credit_balance"
-                                      ? "text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950"
-                                      : (txn as any).paymentStatus === "credit_partial"
-                                      ? "text-fuchsia-700 dark:text-fuchsia-300 bg-fuchsia-50 dark:bg-fuchsia-950"
-                                      : "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950"
-                                  }`}
-                                  data-testid={`txn-status-${txn.id}`}>
-                                  {(txn as any).paymentStatus === "unpaid" ? "Unpaid" : (txn as any).paymentStatus === "partial" ? "Partial" : (txn as any).paymentStatus === "reconciled" ? "Reconciled" : (txn as any).paymentStatus === "credit_balance" ? "Credit" : (txn as any).paymentStatus === "credit_partial" ? "Cr.Partial" : "Paid"}
-                                </Badge>
-                              ) : (
-                                <span className="text-[10px] text-muted-foreground">—</span>
-                              )}
-                            </td>
+                            {/* Category */}
                             <td className="px-3 py-2.5 hidden md:table-cell">
-                              <span className="text-xs capitalize">{(txn.category || "general").replace(/_/g, " ")}</span>
+                              <span className="text-xs capitalize text-muted-foreground">{(txn.category || "general").replace(/_/g, " ")}</span>
                             </td>
-                            <td className="px-3 py-2.5 text-right hidden md:table-cell">
-                              {isCredit && (txn as any).paidAmount && parseFloat((txn as any).paidAmount) > 0
-                                ? <span className="text-xs font-medium text-green-700 dark:text-green-400">{formatPKR((txn as any).paidAmount)}</span>
+                            {/* Vendors */}
+                            <td className="px-3 py-2.5 hidden lg:table-cell">
+                              {vendorName
+                                ? <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{vendorName}</span>
                                 : <span className="text-xs text-muted-foreground">—</span>}
                             </td>
-                            <td className="px-3 py-2.5 hidden lg:table-cell">
-                              <span className="text-xs text-muted-foreground">{(txn as any).senderName || "—"}</span>
-                            </td>
-                            <td className="px-3 py-2.5 hidden md:table-cell">
-                              <span className="text-xs text-muted-foreground">{txn.reference || "—"}</span>
-                            </td>
-                            <td className="px-3 py-2.5 hidden lg:table-cell">
-                              <span className="text-xs text-muted-foreground truncate max-w-[150px] block">{txn.description || "—"}</span>
-                            </td>
+                            {/* Recharge (credit = green, debit = red) */}
                             <td className="px-3 py-2.5 text-right tabular-nums">
-                              {!isCredit ? <span className="text-sm font-semibold text-red-600 dark:text-red-400">{formatPKR(txn.amount)}</span> : <span className="text-sm text-muted-foreground">—</span>}
+                              {isCredit
+                                ? <span className="text-sm font-semibold text-green-700 dark:text-green-300">{formatPKR(txn.amount)}</span>
+                                : <span className="text-sm font-semibold text-red-600 dark:text-red-400">− {formatPKR(txn.amount)}</span>}
                             </td>
-                            <td className="px-3 py-2.5 text-right tabular-nums">
-                              {isCredit ? <span className="text-sm font-semibold text-green-700 dark:text-green-300">{formatPKR(txn.amount)}</span> : <span className="text-sm text-muted-foreground">—</span>}
+                            {/* Payment Paid */}
+                            <td className="px-3 py-2.5 text-right hidden md:table-cell tabular-nums">
+                              {isCredit && (txn as any).paidAmount && parseFloat((txn as any).paidAmount) > 0
+                                ? <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">{formatPKR((txn as any).paidAmount)}</span>
+                                : <span className="text-xs text-muted-foreground">—</span>}
                             </td>
+                            {/* Balance */}
                             <td className="px-3 py-2.5 text-right tabular-nums">
                               <span className={`text-sm font-semibold ${parseFloat(String(txn.balanceAfter || "0")) < 0 ? "text-red-600 dark:text-red-400" : "text-slate-800 dark:text-slate-100"}`}>
                                 {formatPKR(txn.balanceAfter)}
                               </span>
                             </td>
+                            {/* Note */}
+                            <td className="px-3 py-2.5 hidden lg:table-cell max-w-[180px]">
+                              <span className="text-xs text-muted-foreground truncate block" title={noteText}>{noteText}</span>
+                            </td>
+                            {/* Status */}
+                            <td className="px-3 py-2.5">
+                              {isCredit ? (
+                                <Badge variant="secondary"
+                                  className={`no-default-active-elevate text-[10px] capitalize ${
+                                    payStatus === "unpaid"
+                                      ? "text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950"
+                                      : payStatus === "partial"
+                                      ? "text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950"
+                                      : payStatus === "reconciled"
+                                      ? "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950"
+                                      : payStatus === "credit_balance"
+                                      ? "text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950"
+                                      : payStatus === "credit_partial"
+                                      ? "text-fuchsia-700 dark:text-fuchsia-300 bg-fuchsia-50 dark:bg-fuchsia-950"
+                                      : "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950"
+                                  }`}
+                                  data-testid={`txn-status-${txn.id}`}>
+                                  {payStatus === "unpaid" ? "Unpaid" : payStatus === "partial" ? "Partial" : payStatus === "reconciled" ? "Reconciled" : payStatus === "credit_balance" ? "Credit" : payStatus === "credit_partial" ? "Cr.Partial" : "Paid"}
+                                </Badge>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground">—</span>
+                              )}
+                            </td>
+                            {/* By */}
                             <td className="px-3 py-2.5 hidden lg:table-cell">
                               <span className="text-xs text-muted-foreground">{txn.createdBy || "System"}</span>
                             </td>
