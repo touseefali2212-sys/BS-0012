@@ -2200,6 +2200,7 @@ export default function ResellersPage() {
                     sublabel: "Configured Limit",
                     value: formatPKR(creditLim),
                     sub: `Available: ${formatPKR(availableCredit)}`,
+                    subHighlight: true,
                     icon: Shield,
                     color: "from-blue-600 to-blue-500",
                     badge: null, badgeColor: "",
@@ -2224,7 +2225,11 @@ export default function ResellersPage() {
                         <kpi.icon className="h-4 w-4 text-white/50 shrink-0 ml-1" />
                       </div>
                       <p className="text-xl font-bold text-white tabular-nums" data-testid={`wallet-kpi-value-${idx}`}>{kpi.value}</p>
-                      <p className="text-[10px] text-white/60 mt-1 leading-tight truncate">{kpi.sub}</p>
+                      {(kpi as any).subHighlight ? (
+                        <p className="text-[11px] font-semibold text-white mt-1 leading-tight truncate bg-white/20 rounded px-1.5 py-0.5 inline-block">{kpi.sub}</p>
+                      ) : (
+                        <p className="text-[10px] text-white/60 mt-1 leading-tight truncate">{kpi.sub}</p>
+                      )}
                       {kpi.badge && <span className={`inline-block mt-1 text-[9px] font-bold text-white px-1.5 py-0.5 rounded-full ${kpi.badgeColor}`}>{kpi.badge}</span>}
                     </CardContent>
                   </Card>
