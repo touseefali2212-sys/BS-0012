@@ -1,0 +1,180 @@
+Overview
+
+The Wallet & Transaction module is designed to manage reseller financial operations with real-time balance tracking, monthly analytics, credit control, and payment reconciliation.
+
+The system must clearly differentiate between:
+
+Recharged Balance (System Credit)
+Actual Payments Received
+Unpaid Liabilities
+Credit Limit Utilization
+Security Deposits
+Dashboard – Stats Cards Requirements
+1. Current Wallet Balance
+
+Displays the real-time usable wallet balance of the reseller.
+
+Logic:
+
+Reflects the current available balance after all recharges and deductions
+If unpaid liabilities exist, system may optionally show:
+“Adjusted Balance” or “Net Position”
+2. Current Month Recharge
+
+Shows the total amount of balance credited (recharged) to the reseller within the current month, regardless of payment status.
+
+Includes:
+
+Paid recharges
+Credit-based recharges
+3. Current Month Paid Payment
+
+Displays the total actual payments received from the reseller during the current month.
+
+Important:
+
+Only includes confirmed incoming payments
+Not linked to recharge amount directly
+4. All Unpaid Balance
+
+Represents the outstanding amount where:
+
+Reseller has received balance (recharge)
+BUT has not yet made the payment
+
+System must provide:
+
+Total unpaid amount
+Monthly breakdown
+Transaction-level details
+5. Credit Limit
+
+Displays the approved credit limit assigned to the reseller.
+
+Logic:
+
+Defines how much unpaid balance is allowed
+Any recharge beyond paid amount increases unpaid liability
+Must enforce:
+Cannot exceed defined credit limit (optional rule)
+6. Security Deposit
+
+Shows the initial deposit collected from reseller at onboarding.
+
+Purpose:
+
+Acts as financial security
+Can optionally be adjusted against unpaid balances
+Recharge Flow – Functional Logic
+Step 1: Recharge Initiation
+
+Admin enters:
+
+Recharge Amount
+Payment Received (optional)
+Reseller चयन
+Step 2: System Behavior
+Case A: Recharge Without Payment (Credit Mode)
+Recharge added to wallet
+Same amount added to Unpaid Balance
+Case B: Recharge With Exact Payment
+
+Example:
+
+Recharge = 5,000
+Payment Received = 5,000
+
+Result:
+
+Wallet Balance ↑
+Paid Amount ↑
+No unpaid balance
+Case C: Overpayment Scenario (Important Case)
+
+Example:
+
+Recharge = 2,000
+Payment Received = 10,000
+
+System Logic:
+
+2,000 → applied to recharge
+Remaining 8,000 → automatically adjusted against Unpaid Balance
+
+If unpaid exists:
+
+Deduct from unpaid
+Move that amount to Paid Payments
+
+If no unpaid exists:
+
+Store as:
+Advance Payment OR
+Wallet top-up (based on system rule)
+Step 3: Payment Reconciliation
+
+When payment is received:
+
+System should automatically:
+Reduce unpaid balance
+Increase paid amount
+Maintain transaction logs
+Important Balance Logic (Core Concept)
+
+System must maintain three parallel financial states:
+
+1. Wallet Balance
+Usable system credit
+2. Unpaid Balance
+Liability (what reseller owes)
+3. Paid Amount
+Actual cash flow received
+Recharge Preview (UI Requirement)
+
+When admin clicks “Add Recharge”, system should display:
+
+Current Wallet Balance
+Current Unpaid Balance
+Credit Limit Remaining
+After Recharge Balance
+Payment Adjustment Preview
+Example Scenario
+Initial:
+Unpaid = 8,000
+Wallet = 1,000
+Action:
+Recharge = 2,000
+Payment = 10,000
+Result:
+Wallet = 3,000
+Unpaid = 0
+Paid = +10,000
+Transaction Logging (Mandatory)
+
+Each transaction must store:
+
+Type:
+Recharge
+Payment
+Adjustment
+Fields:
+reseller_id
+recharge_amount
+paid_amount
+unpaid_adjusted
+date
+reference
+Key Design Principles
+Separation of Recharge vs Payment
+Automatic Payment Adjustment
+Transparent Financial Tracking
+Credit Control Enforcement
+Audit-Friendly Ledger System
+Conclusion
+
+This module ensures that:
+
+Financial data is accurate and transparent
+Admin can track real profitability and liabilities
+Resellers operate within controlled credit boundaries
+Payment reconciliation is automated and error-free

@@ -868,6 +868,8 @@ export const resellerWalletTransactions = pgTable("reseller_wallet_transactions"
   description: text("description"),
   paymentMethod: text("payment_method"),
   paymentStatus: text("payment_status").default("paid"),
+  paidAmount: decimal("paid_amount", { precision: 12, scale: 2 }),
+  senderName: text("sender_name"),
   vendorId: integer("vendor_id"),
   customerId: integer("customer_id"),
   bankAccountId: integer("bank_account_id"),

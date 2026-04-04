@@ -1,4 +1,4 @@
-import { eq, desc, sql, and, count, aliasedTable, isNull } from "drizzle-orm";
+import { eq, desc, sql, and, count, aliasedTable, isNull, asc } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, customers, packages, invoices, tickets, activityLogs,
@@ -297,7 +297,7 @@ export interface IStorage {
   getResellerWalletTransactions(resellerId: number): Promise<ResellerWalletTransaction[]>;
   getAllResellerWalletTransactions(): Promise<ResellerWalletTransaction[]>;
   createResellerWalletTransaction(t: InsertResellerWalletTransaction): Promise<ResellerWalletTransaction>;
-  rechargeResellerWallet(resellerId: number, amount: number, reference?: string, paymentMethod?: string, remarks?: string, createdBy?: string, paymentStatus?: string, vendorId?: number, bankAccountId?: number): Promise<Reseller>;
+  rechargeResellerWallet(resellerId: number, amount: number, reference?: string, paymentMethod?: string, remarks?: string, createdBy?: string, paymentStatus?: string, vendorId?: number, bankAccountId?: number, paidAmount?: number, senderName?: string): Promise<Reseller>;
   deductResellerWallet(resellerId: number, amount: number, vendorId?: number, customerId?: number, reference?: string, category?: string, createdBy?: string): Promise<Reseller>;
 
   getResellerMonthlySummaries(resellerId: number, month?: string): Promise<ResellerMonthlySummary[]>;
@@ -1506,13 +1506,16 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async rechargeResellerWallet(resellerId: number, amount: number, reference?: string, paymentMethod?: string, remarks?: string, createdBy?: string, paymentStatus?: string, vendorId?: number, bankAccountId?: number): Promise<Reseller> {
+  async rechargeResellerWallet(resellerId: number, amount: number, reference?: string, paymentMethod?: string, remarks?: string, createdBy?: string, paymentStatus?: string, vendorId?: number, bankAccountId?: number, paidAmount?: number, senderName?: string): Promise<Reseller> {
     const reseller = await this.getReseller(resellerId);
     if (!reseller) throw new Error("Reseller not found");
     const currentBalance = parseFloat(reseller.walletBalance || "0");
     const newBalance = currentBalance + amount;
     const now = new Date().toISOString();
     const txnRef = reference || `Recharge-${Date.now()}`;
+    const effectiveStatus = paymentStatus || "paid";
+    const effectivePaidAmount = paidAmount !== undefined ? paidAmount : (effectiveStatus === "paid" ? amount : 0);
+
     await this.createResellerWalletTransaction({
       resellerId,
       type: "credit",
@@ -1522,18 +1525,63 @@ export class DatabaseStorage implements IStorage {
       reference: txnRef,
       description: remarks || `Wallet recharge of ${amount}`,
       paymentMethod: paymentMethod || "cash",
-      paymentStatus: paymentStatus || "paid",
+      paymentStatus: effectiveStatus,
+      paidAmount: effectivePaidAmount.toString(),
+      senderName: senderName || undefined,
       vendorId: vendorId || undefined,
       bankAccountId: bankAccountId || undefined,
       createdBy: createdBy || "admin",
       createdAt: now,
     });
+
+    // Handle overpayment: if paid amount exceeds recharge amount, auto-reconcile oldest unpaid transactions
+    const excess = effectiveStatus === "paid" ? (effectivePaidAmount - amount) : 0;
+    let finalBalance = newBalance;
+    if (excess > 0) {
+      const unpaidTxns = await db.select().from(resellerWalletTransactions)
+        .where(and(
+          eq(resellerWalletTransactions.resellerId, resellerId),
+          eq(resellerWalletTransactions.type, "credit"),
+          eq(resellerWalletTransactions.paymentStatus, "unpaid")
+        ))
+        .orderBy(asc(resellerWalletTransactions.id));
+
+      let remainingExcess = excess;
+      for (const txn of unpaidTxns) {
+        if (remainingExcess <= 0) break;
+        await db.update(resellerWalletTransactions)
+          .set({ paymentStatus: "reconciled" })
+          .where(eq(resellerWalletTransactions.id, txn.id));
+        remainingExcess -= parseFloat(txn.amount);
+      }
+
+      // If excess remains after clearing all unpaid, add to wallet as advance
+      if (remainingExcess > 0) {
+        finalBalance = newBalance + remainingExcess;
+        await this.createResellerWalletTransaction({
+          resellerId,
+          type: "credit",
+          category: "advance_payment",
+          amount: remainingExcess.toString(),
+          balanceAfter: finalBalance.toString(),
+          reference: txnRef,
+          description: `Advance payment — excess from recharge (Rs.${remainingExcess.toFixed(2)})`,
+          paymentMethod: paymentMethod || "cash",
+          paymentStatus: "paid",
+          paidAmount: "0",
+          senderName: senderName || undefined,
+          createdBy: createdBy || "admin",
+          createdAt: now,
+        });
+      }
+    }
+
     if (bankAccountId) {
       try {
-        await this.debitCompanyAccount(bankAccountId, amount, "reseller_recharge", String(resellerId), `Recharge for reseller #${resellerId}`, remarks, createdBy || "admin");
+        await this.debitCompanyAccount(bankAccountId, effectivePaidAmount > 0 ? effectivePaidAmount : amount, "reseller_recharge", String(resellerId), `Recharge for reseller #${resellerId}`, remarks, createdBy || "admin");
       } catch (_) {}
     }
-    const [updated] = await db.update(resellers).set({ walletBalance: newBalance.toString() }).where(eq(resellers.id, resellerId)).returning();
+    const [updated] = await db.update(resellers).set({ walletBalance: finalBalance.toString() }).where(eq(resellers.id, resellerId)).returning();
     return updated;
   }
 

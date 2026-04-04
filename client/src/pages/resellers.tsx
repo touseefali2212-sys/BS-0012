@@ -582,15 +582,21 @@ export default function ResellersPage() {
     if (validRows.length === 0) return;
     setRechargeSubmitting(true);
     try {
-      const remarksStr = [rechargeRemarks, rechargePaidAmount ? `Paid Amount: Rs.${rechargePaidAmount}` : ""].filter(Boolean).join(" | ");
+      const totalRechargeAmt = validRows.reduce((s, r) => s + parseFloat(r.amount), 0);
+      const paidAmt = rechargePaymentStatus === "paid" && rechargePaidAmount ? parseFloat(rechargePaidAmount) : 0;
       for (const row of validRows) {
+        // Distribute paid amount proportionally across rows if multiple
+        const rowRatio = parseFloat(row.amount) / totalRechargeAmt;
+        const rowPaidAmt = rechargePaymentStatus === "paid" ? paidAmt * rowRatio : 0;
         await rechargeApiCall.mutateAsync({
           resellerId: rechargeReseller.id,
           amount: parseFloat(row.amount),
           reference: rechargeReference,
           paymentMethod: rechargePaymentMethod,
           paymentStatus: rechargePaymentStatus,
-          remarks: remarksStr || undefined,
+          remarks: rechargeRemarks || undefined,
+          paidAmount: rechargePaymentStatus === "paid" ? rowPaidAmt : 0,
+          senderName: rechargeSenderName || undefined,
           vendorId: row.vendorId && row.vendorId !== "none" ? parseInt(row.vendorId) : undefined,
           bankAccountId: rechargeBankAccountId && rechargeBankAccountId !== "none" ? parseInt(rechargeBankAccountId) : undefined,
         });
@@ -2053,9 +2059,9 @@ export default function ResellersPage() {
         const thisMonth = new Date().getMonth();
         const thisYear = new Date().getFullYear();
         const monthTxns = txns.filter(t => { const d = new Date(t.createdAt); return d.getMonth() === thisMonth && d.getFullYear() === thisYear; });
-        const totalRechargeMonth = monthTxns.filter(t => t.type === "credit").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
+        const totalRechargeMonth = monthTxns.filter(t => t.type === "credit" && t.category === "recharge").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
         const totalDeductionMonth = monthTxns.filter(t => t.type === "debit").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
-        const totalPaidMonth = monthTxns.filter(t => t.type === "credit" && (t as any).paymentStatus === "paid").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
+        const totalPaidMonth = monthTxns.filter(t => t.type === "credit" && (t as any).paymentStatus === "paid" && t.category === "recharge").reduce((s, t) => s + parseFloat(String((t as any).paidAmount || t.amount || "0")), 0);
         const totalUnpaidAll = txns.filter(t => t.type === "credit" && (t as any).paymentStatus === "unpaid").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
         const secDeposit = isAllResellers ? allResellers.reduce((s, r) => s + parseFloat(String(r.securityDeposit || "0")), 0) : (selReseller ? parseFloat(String(selReseller.securityDeposit || "0")) : 0);
         const filteredTxns = txns.filter(t => {
@@ -2275,6 +2281,8 @@ export default function ResellersPage() {
                         <th className="px-3 py-2.5 text-left font-medium text-xs">Type</th>
                         <th className="px-3 py-2.5 text-left font-medium text-xs">Status</th>
                         <th className="px-3 py-2.5 text-left font-medium text-xs hidden md:table-cell">Category</th>
+                        <th className="px-3 py-2.5 text-right font-medium text-xs hidden md:table-cell">Paid Amt</th>
+                        <th className="px-3 py-2.5 text-left font-medium text-xs hidden lg:table-cell">Sender</th>
                         <th className="px-3 py-2.5 text-left font-medium text-xs hidden md:table-cell">Reference</th>
                         <th className="px-3 py-2.5 text-left font-medium text-xs hidden lg:table-cell">Description</th>
                         <th className="px-3 py-2.5 text-right font-medium text-xs">Debit</th>
@@ -2313,11 +2321,15 @@ export default function ResellersPage() {
                             <td className="px-3 py-2.5">
                               {isCredit ? (
                                 <Badge variant="secondary"
-                                  className={`no-default-active-elevate text-[10px] capitalize ${(txn as any).paymentStatus === "unpaid"
-                                    ? "text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950"
-                                    : "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950"}`}
+                                  className={`no-default-active-elevate text-[10px] capitalize ${
+                                    (txn as any).paymentStatus === "unpaid"
+                                      ? "text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950"
+                                      : (txn as any).paymentStatus === "reconciled"
+                                      ? "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950"
+                                      : "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950"
+                                  }`}
                                   data-testid={`txn-status-${txn.id}`}>
-                                  {(txn as any).paymentStatus === "unpaid" ? "Unpaid" : "Paid"}
+                                  {(txn as any).paymentStatus === "unpaid" ? "Unpaid" : (txn as any).paymentStatus === "reconciled" ? "Reconciled" : "Paid"}
                                 </Badge>
                               ) : (
                                 <span className="text-[10px] text-muted-foreground">—</span>
@@ -2325,6 +2337,14 @@ export default function ResellersPage() {
                             </td>
                             <td className="px-3 py-2.5 hidden md:table-cell">
                               <span className="text-xs capitalize">{(txn.category || "general").replace(/_/g, " ")}</span>
+                            </td>
+                            <td className="px-3 py-2.5 text-right hidden md:table-cell">
+                              {isCredit && (txn as any).paidAmount && parseFloat((txn as any).paidAmount) > 0
+                                ? <span className="text-xs font-medium text-green-700 dark:text-green-400">{formatPKR((txn as any).paidAmount)}</span>
+                                : <span className="text-xs text-muted-foreground">—</span>}
+                            </td>
+                            <td className="px-3 py-2.5 hidden lg:table-cell">
+                              <span className="text-xs text-muted-foreground">{(txn as any).senderName || "—"}</span>
                             </td>
                             <td className="px-3 py-2.5 hidden md:table-cell">
                               <span className="text-xs text-muted-foreground">{txn.reference || "—"}</span>
@@ -2795,18 +2815,72 @@ export default function ResellersPage() {
             {/* Balance Preview */}
             {rechargeReseller && (() => {
               const total = rechargeVendorRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+              const currentBal = parseFloat(String(rechargeReseller.walletBalance || "0"));
+              const currentCreditLim = parseFloat(String(rechargeReseller.creditLimit || "0"));
+              const currentUnpaid = (walletTransactions || []).filter(t => t.type === "credit" && (t as any).paymentStatus === "unpaid").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
+              const creditAvailable = currentCreditLim - currentUnpaid;
+              const paidAmt = rechargePaymentStatus === "paid" ? (parseFloat(rechargePaidAmount) || 0) : 0;
+              const excess = paidAmt - total;
+              const unpaidAfterRecharge = rechargePaymentStatus === "unpaid" ? currentUnpaid + total : Math.max(0, currentUnpaid - Math.max(0, excess));
               return (
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
-                    <p className="text-xs text-muted-foreground mb-1">Current Balance</p>
-                    <p className="text-xl font-bold" data-testid="text-recharge-current-balance">{formatPKR(rechargeReseller.walletBalance)}</p>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 border border-slate-200 dark:border-slate-700">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Current Balance</p>
+                      <p className="text-lg font-bold" data-testid="text-recharge-current-balance">{formatPKR(currentBal)}</p>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">After Recharge</p>
+                      <p className="text-lg font-bold text-green-600" data-testid="text-recharge-after-balance">{formatPKR(currentBal + total)}</p>
+                    </div>
+                    <div className={`rounded-lg p-3 border ${currentUnpaid > 0 ? "bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800" : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700"}`}>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Unpaid Balance</p>
+                      <p className={`text-lg font-bold ${currentUnpaid > 0 ? "text-rose-600" : "text-slate-700 dark:text-slate-300"}`} data-testid="text-recharge-unpaid">{formatPKR(currentUnpaid)}</p>
+                    </div>
+                    <div className={`rounded-lg p-3 border ${creditAvailable < 0 ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800" : "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800"}`}>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Credit Available</p>
+                      <p className={`text-lg font-bold ${creditAvailable < 0 ? "text-red-600" : "text-blue-600"}`} data-testid="text-recharge-credit-available">{formatPKR(creditAvailable)}</p>
+                    </div>
                   </div>
-                  <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-3 border border-green-200 dark:border-green-800">
-                    <p className="text-xs text-muted-foreground mb-1">After Recharge</p>
-                    <p className="text-xl font-bold text-green-600" data-testid="text-recharge-after-balance">
-                      {formatPKR(parseFloat(String(rechargeReseller.walletBalance || "0")) + total)}
-                    </p>
-                  </div>
+
+                  {/* Payment adjustment preview — overpayment scenario */}
+                  {rechargePaymentStatus === "paid" && total > 0 && paidAmt > 0 && (
+                    <div className={`rounded-lg border p-3 space-y-1.5 text-xs ${excess > 0 ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800" : "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800"}`}>
+                      <p className="font-semibold text-slate-700 dark:text-slate-200 text-[11px] uppercase tracking-wide">Payment Adjustment Preview</p>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Recharge Amount</span>
+                        <span className="font-medium">{formatPKR(total)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Payment Received</span>
+                        <span className="font-medium text-green-700 dark:text-green-400">{formatPKR(paidAmt)}</span>
+                      </div>
+                      {excess > 0 && (
+                        <>
+                          <div className="border-t border-amber-200 dark:border-amber-800 pt-1 flex justify-between">
+                            <span className="text-amber-700 dark:text-amber-400 font-medium">Excess Payment</span>
+                            <span className="font-bold text-amber-700 dark:text-amber-400">{formatPKR(excess)}</span>
+                          </div>
+                          <p className="text-amber-700 dark:text-amber-400">
+                            {currentUnpaid > 0
+                              ? `Excess will auto-clear ${formatPKR(Math.min(excess, currentUnpaid))} of unpaid balance`
+                              : "No unpaid balance — excess will be added as advance to wallet"}
+                          </p>
+                          <div className="flex justify-between border-t border-amber-200 dark:border-amber-800 pt-1">
+                            <span className="text-muted-foreground">Unpaid After</span>
+                            <span className={`font-bold ${unpaidAfterRecharge > 0 ? "text-rose-600" : "text-green-600"}`}>{formatPKR(unpaidAfterRecharge)}</span>
+                          </div>
+                        </>
+                      )}
+                      {excess === 0 && <div className="flex justify-between border-t border-green-200 dark:border-green-800 pt-1"><span className="text-green-700 dark:text-green-400 font-medium">Exact payment — fully settled</span></div>}
+                      {excess < 0 && (
+                        <div className="border-t border-slate-200 dark:border-slate-700 pt-1 flex justify-between">
+                          <span className="text-muted-foreground">Remaining Unpaid</span>
+                          <span className="font-bold text-rose-600">{formatPKR(Math.abs(excess))}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })()}
