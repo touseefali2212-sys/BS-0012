@@ -211,6 +211,7 @@ export default function ResellersPage() {
   const [txnSearch, setTxnSearch] = useState("");
   const [selectedWalletResellerId, setSelectedWalletResellerId] = useState<string>("");
   const [viewWalletTxn, setViewWalletTxn] = useState<ResellerWalletTransaction | null>(null);
+  const [kpiDetailOpen, setKpiDetailOpen] = useState<number | null>(null);
   const [editWalletTxn, setEditWalletTxn] = useState<ResellerWalletTransaction | null>(null);
   const [editWalletRef, setEditWalletRef] = useState("");
   const [editWalletPayStatus, setEditWalletPayStatus] = useState("paid");
@@ -2258,7 +2259,10 @@ export default function ResellersPage() {
                     badge: null, badgeColor: "",
                   },
                 ].map((kpi, idx) => (
-                  <Card key={idx} className={`bg-gradient-to-br ${kpi.color} border-0 shadow-md`} data-testid={`wallet-kpi-${idx}`}>
+                  <Card key={idx}
+                    className={`bg-gradient-to-br ${kpi.color} border-0 shadow-md cursor-pointer transition-all duration-150 hover:shadow-xl hover:scale-[1.02] active:scale-[0.99] select-none`}
+                    data-testid={`wallet-kpi-${idx}`}
+                    onClick={() => setKpiDetailOpen(idx)}>
                     <CardContent className="p-3">
                       <div className="flex items-start justify-between mb-1">
                         <div className="flex-1 min-w-0">
@@ -2280,6 +2284,7 @@ export default function ResellersPage() {
                         )}
                       </div>
                       {kpi.badge && <span className={`inline-block mt-1 text-[9px] font-bold text-white px-1.5 py-0.5 rounded-full ${kpi.badgeColor}`}>{kpi.badge}</span>}
+                      <p className="text-[8px] text-white/40 mt-1.5 text-right">Click for details →</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -2533,6 +2538,172 @@ export default function ResellersPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* KPI Card Detail Dialog */}
+          {kpiDetailOpen !== null && (() => {
+            const kpiTitles = [
+              { icon: Wallet, title: "Wallet Balance", subtitle: "All Transactions" },
+              { icon: ArrowUpCircle, title: "Monthly Recharge", subtitle: "This Month's Recharge Entries" },
+              { icon: CheckCircle2, title: "Paid Payments", subtitle: "This Month's Settled Payments" },
+              { icon: AlertTriangle, title: "Unpaid Balance", subtitle: "All Outstanding Dues" },
+              { icon: Shield, title: "Credit & Advance", subtitle: "Advance Payments & Credit Usage" },
+              { icon: Landmark, title: "Security Deposit", subtitle: "Reseller Deposit Information" },
+            ];
+            const kpiMeta = kpiTitles[kpiDetailOpen];
+            const KpiIcon = kpiMeta.icon;
+
+            const kpiRows: typeof txns = kpiDetailOpen === 0
+              ? [...txns].sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
+              : kpiDetailOpen === 1
+              ? monthTxns.filter(t => t.type === "credit" && t.category === "recharge")
+              : kpiDetailOpen === 2
+              ? monthTxns.filter(t => t.type === "credit" && t.category === "recharge" && ["paid", "credit_balance", "credit_partial", "reconciled"].includes((t as any).paymentStatus))
+              : kpiDetailOpen === 3
+              ? txns.filter(t => t.type === "credit" && ["unpaid", "partial", "credit_partial"].includes((t as any).paymentStatus))
+              : kpiDetailOpen === 4
+              ? txns.filter(t => (t.type === "credit" && t.category === "advance_payment") || (t.type === "debit" && t.category === "credit_balance_payment"))
+              : [];
+
+            const payStatusBadge = (ps: string | undefined) => {
+              const label = ps === "unpaid" ? "Unpaid" : ps === "partial" ? "Partial" : ps === "reconciled" ? "Reconciled" : ps === "credit_balance" ? "Credit Bal." : ps === "credit_partial" ? "Cr.Partial" : ps === "paid" ? "Paid" : (ps || "—");
+              const cls = ps === "unpaid" ? "text-rose-700 bg-rose-50" : ps === "partial" ? "text-orange-700 bg-orange-50" : ps === "reconciled" ? "text-blue-700 bg-blue-50" : ps === "credit_balance" || ps === "credit_partial" ? "text-violet-700 bg-violet-50" : "text-green-700 bg-green-50";
+              return <Badge variant="secondary" className={`no-default-active-elevate text-[10px] ${cls}`}>{label}</Badge>;
+            };
+
+            return (
+              <Dialog open={kpiDetailOpen !== null} onOpenChange={(o) => { if (!o) setKpiDetailOpen(null); }}>
+                <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
+                  <DialogHeader className="shrink-0">
+                    <DialogTitle className="flex items-center gap-2 text-base">
+                      <KpiIcon className="h-5 w-5 text-primary" />
+                      {kpiMeta.title}
+                    </DialogTitle>
+                    <p className="text-xs text-muted-foreground">{kpiMeta.subtitle}</p>
+                  </DialogHeader>
+
+                  {/* Security Deposit: special layout */}
+                  {kpiDetailOpen === 5 ? (
+                    <div className="overflow-y-auto flex-1 space-y-2 py-2">
+                      {allResellers.filter(r => parseFloat(String(r.securityDeposit || "0")) >= 0).map(r => (
+                        <div key={r.id} className="flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm">
+                          <div>
+                            <p className="font-medium">{r.name}</p>
+                            <p className="text-xs text-muted-foreground">{r.area || r.address || "—"}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className={`font-semibold tabular-nums ${parseFloat(String(r.securityDeposit || "0")) > 0 ? "text-violet-700" : "text-muted-foreground"}`}>{formatPKR(r.securityDeposit || "0")}</p>
+                            <Badge variant="secondary" className={`no-default-active-elevate text-[10px] capitalize ${statusColors[r.status] || ""}`}>{r.status}</Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : kpiRows.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                      <FileText className="h-10 w-10 mb-2 opacity-30" />
+                      <p className="text-sm">No transactions to show</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-auto flex-1 -mx-1">
+                      <table className="w-full text-sm min-w-[560px]">
+                        <thead className="sticky top-0 z-10">
+                          <tr className="bg-slate-800 text-white">
+                            <th className="px-3 py-2 text-left text-xs font-medium whitespace-nowrap">Date</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium whitespace-nowrap">TXN ID</th>
+                            {kpiDetailOpen === 4 && <th className="px-3 py-2 text-left text-xs font-medium whitespace-nowrap">Category</th>}
+                            {kpiDetailOpen !== 4 && <th className="px-3 py-2 text-left text-xs font-medium whitespace-nowrap">Vendor</th>}
+                            <th className="px-3 py-2 text-right text-xs font-medium whitespace-nowrap">Amount</th>
+                            {(kpiDetailOpen === 0 || kpiDetailOpen === 3) && <th className="px-3 py-2 text-right text-xs font-medium whitespace-nowrap">Paid</th>}
+                            {kpiDetailOpen === 3 && <th className="px-3 py-2 text-right text-xs font-medium whitespace-nowrap">Due</th>}
+                            <th className="px-3 py-2 text-right text-xs font-medium whitespace-nowrap">Balance</th>
+                            {kpiDetailOpen !== 4 && <th className="px-3 py-2 text-left text-xs font-medium whitespace-nowrap">P Status</th>}
+                            {kpiDetailOpen === 1 && <th className="px-3 py-2 text-left text-xs font-medium whitespace-nowrap">Method</th>}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {kpiRows.map((t, i) => {
+                            const isCredit = t.type === "credit";
+                            const vName = t.vendorId ? ((vendors || []) as any[]).find((v: any) => v.id === t.vendorId)?.name || `#${t.vendorId}` : "—";
+                            const ps = (t as any).paymentStatus;
+                            const paid = parseFloat(String((t as any).paidAmount || "0"));
+                            const amt = parseFloat(String(t.amount || "0"));
+                            const due = Math.max(0, amt - paid);
+                            const catLabel = t.category === "recharge" ? "Recharge" : t.category === "advance_payment" ? "Advance Payment" : t.category === "credit_balance_payment" ? "Credit Used" : (t.category || "—").replace(/_/g, " ");
+                            const payMethod = ((t as any).paymentMethod || "—").replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+                            return (
+                              <tr key={t.id} className={`border-b border-slate-100 dark:border-slate-800 ${i % 2 === 0 ? "bg-white dark:bg-slate-950" : "bg-slate-50/60 dark:bg-slate-900/60"}`}>
+                                <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
+                                  {t.createdAt ? new Date(t.createdAt).toLocaleDateString("en-PK", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                                </td>
+                                <td className="px-3 py-2 text-xs font-mono text-muted-foreground whitespace-nowrap">#{String(t.id).padStart(6, "0")}</td>
+                                {kpiDetailOpen === 4 ? (
+                                  <td className="px-3 py-2 text-xs whitespace-nowrap">
+                                    <Badge variant="secondary" className={`no-default-active-elevate text-[10px] ${isCredit ? "text-teal-700 bg-teal-50" : "text-slate-600 bg-slate-100"}`}>{catLabel}</Badge>
+                                  </td>
+                                ) : (
+                                  <td className="px-3 py-2 text-xs text-slate-700 dark:text-slate-300 font-medium">{vName}</td>
+                                )}
+                                <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums whitespace-nowrap">
+                                  <span className={isCredit ? "text-green-700 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
+                                    {isCredit ? "+ " : "− "}{formatPKR(t.amount)}
+                                  </span>
+                                </td>
+                                {(kpiDetailOpen === 0 || kpiDetailOpen === 3) && (
+                                  <td className="px-3 py-2 text-right text-xs tabular-nums whitespace-nowrap">
+                                    {paid > 0 ? <span className="text-emerald-700 dark:text-emerald-400 font-medium">{formatPKR(paid)}</span> : <span className="text-muted-foreground">—</span>}
+                                  </td>
+                                )}
+                                {kpiDetailOpen === 3 && (
+                                  <td className="px-3 py-2 text-right text-xs tabular-nums whitespace-nowrap">
+                                    <span className="text-rose-700 dark:text-rose-400 font-semibold">− {formatPKR(due)}</span>
+                                  </td>
+                                )}
+                                <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums whitespace-nowrap">
+                                  <span className={parseFloat(String(t.balanceAfter || "0")) < 0 ? "text-red-600" : "text-slate-700 dark:text-slate-200"}>
+                                    {formatPKR(t.balanceAfter)}
+                                  </span>
+                                </td>
+                                {kpiDetailOpen !== 4 && (
+                                  <td className="px-3 py-2 whitespace-nowrap">{isCredit ? payStatusBadge(ps) : <span className="text-xs text-muted-foreground">—</span>}</td>
+                                )}
+                                {kpiDetailOpen === 1 && (
+                                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">{payMethod}</td>
+                                )}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {kpiRows.length > 0 && kpiDetailOpen !== 5 && (
+                    <div className="shrink-0 pt-2 border-t text-xs text-muted-foreground flex items-center justify-between">
+                      <span>{kpiRows.length} transaction{kpiRows.length !== 1 ? "s" : ""}</span>
+                      {kpiDetailOpen === 3 && (
+                        <span className="font-semibold text-rose-700">
+                          Total Due: − {formatPKR(kpiRows.reduce((s, t) => {
+                            const amt = parseFloat(String(t.amount || "0"));
+                            const paid = parseFloat(String((t as any).paidAmount || "0"));
+                            return s + Math.max(0, amt - paid);
+                          }, 0))}
+                        </span>
+                      )}
+                      {kpiDetailOpen === 0 && (
+                        <span className="font-semibold text-emerald-700">Current Balance: {formatPKR(walletBal)}</span>
+                      )}
+                      {kpiDetailOpen === 4 && (
+                        <span className="font-semibold text-blue-700">Net Advance: {formatPKR(netAdvanceBalance)}</span>
+                      )}
+                    </div>
+                  )}
+
+                  <DialogFooter className="shrink-0 pt-2">
+                    <Button variant="outline" size="sm" onClick={() => setKpiDetailOpen(null)}>Close</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            );
+          })()}
         </div>
         );
       })()}
