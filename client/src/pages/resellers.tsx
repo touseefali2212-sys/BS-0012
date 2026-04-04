@@ -2352,27 +2352,43 @@ export default function ResellersPage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-gradient-to-r from-slate-800 to-slate-700 dark:from-slate-900 dark:to-slate-800 text-white">
-                        <th className="px-3 py-2.5 text-left font-medium text-xs">Date</th>
+                        <th className="px-3 py-2.5 text-left font-medium text-xs whitespace-nowrap">Date</th>
                         {isAllResellers && <th className="px-3 py-2.5 text-left font-medium text-xs">Reseller</th>}
-                        <th className="px-3 py-2.5 text-left font-medium text-xs">TXN ID</th>
-                        <th className="px-3 py-2.5 text-left font-medium text-xs">P Type</th>
-                        <th className="px-3 py-2.5 text-left font-medium text-xs hidden md:table-cell">Category</th>
-                        <th className="px-3 py-2.5 text-left font-medium text-xs hidden lg:table-cell">Vendors</th>
-                        <th className="px-3 py-2.5 text-right font-medium text-xs">Recharge</th>
-                        <th className="px-3 py-2.5 text-right font-medium text-xs hidden md:table-cell">Payment Paid</th>
-                        <th className="px-3 py-2.5 text-right font-medium text-xs">Balance</th>
-                        <th className="px-3 py-2.5 text-left font-medium text-xs hidden lg:table-cell">Note</th>
-                        <th className="px-3 py-2.5 text-left font-medium text-xs">Status</th>
-                        <th className="px-3 py-2.5 text-left font-medium text-xs hidden lg:table-cell">By</th>
-                        <th className="px-3 py-2.5 text-center font-medium text-xs">Action</th>
+                        <th className="px-3 py-2.5 text-left font-medium text-xs whitespace-nowrap">TXN ID</th>
+                        <th className="px-3 py-2.5 text-left font-medium text-xs whitespace-nowrap">P Status</th>
+                        <th className="px-3 py-2.5 text-left font-medium text-xs hidden md:table-cell whitespace-nowrap">Category</th>
+                        <th className="px-3 py-2.5 text-left font-medium text-xs hidden lg:table-cell whitespace-nowrap">Vendor</th>
+                        <th className="px-3 py-2.5 text-right font-medium text-xs whitespace-nowrap">Recharge</th>
+                        <th className="px-3 py-2.5 text-left font-medium text-xs hidden md:table-cell whitespace-nowrap">Payment Type</th>
+                        <th className="px-3 py-2.5 text-left font-medium text-xs hidden xl:table-cell whitespace-nowrap">Payment Send To</th>
+                        <th className="px-3 py-2.5 text-right font-medium text-xs hidden md:table-cell whitespace-nowrap">Payment Paid</th>
+                        <th className="px-3 py-2.5 text-right font-medium text-xs whitespace-nowrap">Balance</th>
+                        <th className="px-3 py-2.5 text-left font-medium text-xs hidden xl:table-cell whitespace-nowrap">Note</th>
+                        <th className="px-3 py-2.5 text-left font-medium text-xs hidden md:table-cell whitespace-nowrap">Status</th>
+                        <th className="px-3 py-2.5 text-left font-medium text-xs hidden lg:table-cell whitespace-nowrap">Recharge By</th>
+                        <th className="px-3 py-2.5 text-center font-medium text-xs whitespace-nowrap">Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredTxns.map((txn, idx) => {
                         const isCredit = txn.type === "credit";
                         const vendorName = txn.vendorId ? ((vendors || []) as any[]).find((v: any) => v.id === txn.vendorId)?.name || `#${txn.vendorId}` : null;
+                        const bankAccName = (txn as any).bankAccountId ? ((companyBankAccounts || []) as any[]).find((b: any) => b.id === (txn as any).bankAccountId)?.name || `Acc #${(txn as any).bankAccountId}` : null;
                         const noteText = [txn.description, txn.reference ? `Ref: ${txn.reference}` : null].filter(Boolean).join(" · ") || "—";
                         const payStatus = (txn as any).paymentStatus;
+                        const payMethod = ((txn as any).paymentMethod || "").replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()) || "—";
+                        const categoryLabel = txn.category === "recharge" ? "Recharge"
+                          : txn.category === "advance_payment" ? "Advance Payment"
+                          : txn.category === "credit_balance_payment" ? "Credit Balance"
+                          : txn.category === "commission" ? "Commission"
+                          : (txn.category || "General").replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+                        const payStatusLabel = payStatus === "unpaid" ? "Unpaid" : payStatus === "partial" ? "Partial" : payStatus === "reconciled" ? "Reconciled" : payStatus === "credit_balance" ? "Credit Balance" : payStatus === "credit_partial" ? "Cr. Partial" : payStatus === "paid" ? "Paid" : (payStatus || "—");
+                        const payStatusColor = payStatus === "unpaid" ? "text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950"
+                          : payStatus === "partial" ? "text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950"
+                          : payStatus === "reconciled" ? "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950"
+                          : payStatus === "credit_balance" ? "text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950"
+                          : payStatus === "credit_partial" ? "text-fuchsia-700 dark:text-fuchsia-300 bg-fuchsia-50 dark:bg-fuchsia-950"
+                          : "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950";
                         return (
                           <tr key={txn.id} data-testid={`row-transaction-${txn.id}`}
                             className={`border-b border-slate-100 dark:border-slate-800 ${idx % 2 === 0 ? "bg-white dark:bg-slate-950" : "bg-slate-50/60 dark:bg-slate-900/60"}`}>
@@ -2387,77 +2403,73 @@ export default function ResellersPage() {
                               </td>
                             )}
                             {/* TXN ID */}
-                            <td className="px-3 py-2.5">
+                            <td className="px-3 py-2.5 whitespace-nowrap">
                               <span className="text-xs font-mono text-muted-foreground" data-testid={`txn-id-${txn.id}`}>#{String(txn.id).padStart(6, "0")}</span>
                             </td>
-                            {/* P Type */}
-                            <td className="px-3 py-2.5">
-                              <Badge variant="secondary"
-                                className={`no-default-active-elevate text-[10px] capitalize gap-0.5 ${isCredit
-                                  ? "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950"
-                                  : "text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950"}`}
-                                data-testid={`txn-type-${txn.id}`}>
-                                {isCredit ? <ArrowUpCircle className="h-3 w-3" /> : <ArrowDownCircle className="h-3 w-3" />}
-                                {isCredit ? "Credit" : "Debit"}
-                              </Badge>
-                            </td>
-                            {/* Category */}
-                            <td className="px-3 py-2.5 hidden md:table-cell">
-                              <span className="text-xs capitalize text-muted-foreground">{(txn.category || "general").replace(/_/g, " ")}</span>
-                            </td>
-                            {/* Vendors */}
-                            <td className="px-3 py-2.5 hidden lg:table-cell">
-                              {vendorName
-                                ? <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{vendorName}</span>
-                                : <span className="text-xs text-muted-foreground">—</span>}
-                            </td>
-                            {/* Recharge (credit = green, debit = red) */}
-                            <td className="px-3 py-2.5 text-right tabular-nums">
-                              {isCredit
-                                ? <span className="text-sm font-semibold text-green-700 dark:text-green-300">{formatPKR(txn.amount)}</span>
-                                : <span className="text-sm font-semibold text-red-600 dark:text-red-400">− {formatPKR(txn.amount)}</span>}
-                            </td>
-                            {/* Payment Paid */}
-                            <td className="px-3 py-2.5 text-right hidden md:table-cell tabular-nums">
-                              {isCredit && (txn as any).paidAmount && parseFloat((txn as any).paidAmount) > 0
-                                ? <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">{formatPKR((txn as any).paidAmount)}</span>
-                                : <span className="text-xs text-muted-foreground">—</span>}
-                            </td>
-                            {/* Balance */}
-                            <td className="px-3 py-2.5 text-right tabular-nums">
-                              <span className={`text-sm font-semibold ${parseFloat(String(txn.balanceAfter || "0")) < 0 ? "text-red-600 dark:text-red-400" : "text-slate-800 dark:text-slate-100"}`}>
-                                {formatPKR(txn.balanceAfter)}
-                              </span>
-                            </td>
-                            {/* Note */}
-                            <td className="px-3 py-2.5 hidden lg:table-cell max-w-[180px]">
-                              <span className="text-xs text-muted-foreground truncate block" title={noteText}>{noteText}</span>
-                            </td>
-                            {/* Status */}
+                            {/* P Status — paymentStatus badge */}
                             <td className="px-3 py-2.5">
                               {isCredit ? (
-                                <Badge variant="secondary"
-                                  className={`no-default-active-elevate text-[10px] capitalize ${
-                                    payStatus === "unpaid"
-                                      ? "text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950"
-                                      : payStatus === "partial"
-                                      ? "text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950"
-                                      : payStatus === "reconciled"
-                                      ? "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950"
-                                      : payStatus === "credit_balance"
-                                      ? "text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950"
-                                      : payStatus === "credit_partial"
-                                      ? "text-fuchsia-700 dark:text-fuchsia-300 bg-fuchsia-50 dark:bg-fuchsia-950"
-                                      : "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950"
-                                  }`}
-                                  data-testid={`txn-status-${txn.id}`}>
-                                  {payStatus === "unpaid" ? "Unpaid" : payStatus === "partial" ? "Partial" : payStatus === "reconciled" ? "Reconciled" : payStatus === "credit_balance" ? "Credit" : payStatus === "credit_partial" ? "Cr.Partial" : "Paid"}
+                                <Badge variant="secondary" className={`no-default-active-elevate text-[10px] whitespace-nowrap ${payStatusColor}`} data-testid={`txn-pstatus-${txn.id}`}>
+                                  {payStatusLabel}
                                 </Badge>
                               ) : (
                                 <span className="text-[10px] text-muted-foreground">—</span>
                               )}
                             </td>
-                            {/* By */}
+                            {/* Category */}
+                            <td className="px-3 py-2.5 hidden md:table-cell">
+                              <span className="text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">{categoryLabel}</span>
+                            </td>
+                            {/* Vendor */}
+                            <td className="px-3 py-2.5 hidden lg:table-cell">
+                              {vendorName
+                                ? <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{vendorName}</span>
+                                : <span className="text-xs text-muted-foreground">—</span>}
+                            </td>
+                            {/* Recharge Amount */}
+                            <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">
+                              {isCredit
+                                ? <span className="text-sm font-semibold text-green-700 dark:text-green-300">+ {formatPKR(txn.amount)}</span>
+                                : <span className="text-sm font-semibold text-red-600 dark:text-red-400">− {formatPKR(txn.amount)}</span>}
+                            </td>
+                            {/* Payment Type — paymentMethod */}
+                            <td className="px-3 py-2.5 hidden md:table-cell">
+                              <span className="text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">{payMethod}</span>
+                            </td>
+                            {/* Payment Send To — bank account */}
+                            <td className="px-3 py-2.5 hidden xl:table-cell">
+                              {bankAccName
+                                ? <span className="text-xs font-medium text-slate-700 dark:text-slate-300">{bankAccName}</span>
+                                : <span className="text-xs text-muted-foreground">—</span>}
+                            </td>
+                            {/* Payment Paid */}
+                            <td className="px-3 py-2.5 text-right hidden md:table-cell tabular-nums whitespace-nowrap">
+                              {(txn as any).paidAmount && parseFloat((txn as any).paidAmount) > 0
+                                ? <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">{formatPKR((txn as any).paidAmount)}</span>
+                                : <span className="text-xs text-muted-foreground">—</span>}
+                            </td>
+                            {/* Balance After */}
+                            <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">
+                              <span className={`text-sm font-semibold ${parseFloat(String(txn.balanceAfter || "0")) < 0 ? "text-red-600 dark:text-red-400" : "text-slate-800 dark:text-slate-100"}`}>
+                                {parseFloat(String(txn.balanceAfter || "0")) < 0 ? "− " : ""}{formatPKR(Math.abs(parseFloat(String(txn.balanceAfter || "0"))))}
+                              </span>
+                            </td>
+                            {/* Note */}
+                            <td className="px-3 py-2.5 hidden xl:table-cell max-w-[160px]">
+                              <span className="text-xs text-muted-foreground truncate block" title={noteText}>{noteText}</span>
+                            </td>
+                            {/* Status — transaction type (Credit/Debit) */}
+                            <td className="px-3 py-2.5 hidden md:table-cell">
+                              <Badge variant="secondary"
+                                className={`no-default-active-elevate text-[10px] capitalize gap-0.5 whitespace-nowrap ${isCredit
+                                  ? "text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950"
+                                  : "text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800"}`}
+                                data-testid={`txn-type-${txn.id}`}>
+                                {isCredit ? <ArrowUpCircle className="h-3 w-3" /> : <ArrowDownCircle className="h-3 w-3" />}
+                                {isCredit ? "Credit" : "Debit"}
+                              </Badge>
+                            </td>
+                            {/* Recharge By */}
                             <td className="px-3 py-2.5 hidden lg:table-cell">
                               <span className="text-xs text-muted-foreground">{txn.createdBy || "System"}</span>
                             </td>
@@ -3666,37 +3678,51 @@ export default function ResellersPage() {
               Transaction Details — #{viewWalletTxn ? String(viewWalletTxn.id).padStart(6, "0") : ""}
             </DialogTitle>
           </DialogHeader>
-          {viewWalletTxn && (
-            <div className="space-y-3 py-2">
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                {[
-                  { label: "Date", value: viewWalletTxn.createdAt ? new Date(viewWalletTxn.createdAt).toLocaleString("en-PK") : "—" },
-                  { label: "Type", value: <Badge variant="secondary" className={`capitalize text-xs ${viewWalletTxn.type === "credit" ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>{viewWalletTxn.type}</Badge> },
-                  { label: "Category", value: (viewWalletTxn.category || "general").replace(/_/g, " ") },
-                  { label: "Amount", value: formatPKR(viewWalletTxn.amount) },
-                  { label: "Balance After", value: formatPKR(viewWalletTxn.balanceAfter) },
-                  { label: "Payment Status", value: (viewWalletTxn as any).paymentStatus || "—" },
-                  { label: "Paid Amount", value: (viewWalletTxn as any).paidAmount ? formatPKR((viewWalletTxn as any).paidAmount) : "—" },
-                  { label: "Payment Method", value: ((viewWalletTxn as any).paymentMethod || "—").replace(/_/g, " ") },
-                  { label: "Sender Name", value: (viewWalletTxn as any).senderName || "—" },
-                  { label: "Reference", value: viewWalletTxn.reference || "—" },
-                  { label: "Created By", value: viewWalletTxn.createdBy || "System" },
-                  { label: "Bank Account", value: (viewWalletTxn as any).bankAccountId ? `ID: ${(viewWalletTxn as any).bankAccountId}` : "—" },
-                ].map(({ label, value }) => (
-                  <div key={label} className="bg-slate-50 dark:bg-slate-900 rounded-lg p-2.5">
-                    <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
-                    <p className="text-sm font-medium">{value as any}</p>
-                  </div>
-                ))}
-              </div>
-              {viewWalletTxn.description && (
-                <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-2.5">
-                  <p className="text-xs text-muted-foreground mb-0.5">Description / Notes</p>
-                  <p className="text-sm">{viewWalletTxn.description}</p>
+          {viewWalletTxn && (() => {
+            const vTxn = viewWalletTxn as any;
+            const vVendor = vTxn.vendorId ? ((vendors || []) as any[]).find((v: any) => v.id === vTxn.vendorId)?.name || `#${vTxn.vendorId}` : "—";
+            const vBankAcc = vTxn.bankAccountId ? ((companyBankAccounts || []) as any[]).find((b: any) => b.id === vTxn.bankAccountId)?.name || `Acc #${vTxn.bankAccountId}` : "—";
+            const vPayMethod = (vTxn.paymentMethod || "—").replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+            const vCatLabel = viewWalletTxn.category === "recharge" ? "Recharge"
+              : viewWalletTxn.category === "advance_payment" ? "Advance Payment"
+              : viewWalletTxn.category === "credit_balance_payment" ? "Credit Balance"
+              : viewWalletTxn.category === "commission" ? "Commission"
+              : (viewWalletTxn.category || "General").replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+            const vPayStatusLabel = vTxn.paymentStatus === "unpaid" ? "Unpaid" : vTxn.paymentStatus === "partial" ? "Partial" : vTxn.paymentStatus === "reconciled" ? "Reconciled" : vTxn.paymentStatus === "credit_balance" ? "Credit Balance" : vTxn.paymentStatus === "credit_partial" ? "Cr. Partial" : vTxn.paymentStatus === "paid" ? "Paid" : (vTxn.paymentStatus || "—");
+            const vIsCredit = viewWalletTxn.type === "credit";
+            return (
+              <div className="space-y-3 py-2">
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {[
+                    { label: "Date", value: viewWalletTxn.createdAt ? new Date(viewWalletTxn.createdAt).toLocaleString("en-PK") : "—" },
+                    { label: "TXN ID", value: `#${String(viewWalletTxn.id).padStart(6, "0")}` },
+                    { label: "P Status", value: vIsCredit ? <Badge variant="secondary" className={`capitalize text-xs ${vTxn.paymentStatus === "unpaid" ? "text-rose-700 bg-rose-50" : vTxn.paymentStatus === "partial" ? "text-orange-700 bg-orange-50" : vTxn.paymentStatus === "credit_balance" ? "text-violet-700 bg-violet-50" : "text-green-700 bg-green-50"}`}>{vPayStatusLabel}</Badge> : "—" },
+                    { label: "Category", value: vCatLabel },
+                    { label: "Vendor", value: vVendor },
+                    { label: "Recharge", value: <span className={vIsCredit ? "text-green-700 font-semibold" : "text-red-600 font-semibold"}>{vIsCredit ? "+ " : "− "}{formatPKR(viewWalletTxn.amount)}</span> },
+                    { label: "Payment Type", value: vPayMethod },
+                    { label: "Payment Send To", value: vBankAcc },
+                    { label: "Payment Paid", value: vTxn.paidAmount && parseFloat(vTxn.paidAmount) > 0 ? formatPKR(vTxn.paidAmount) : "—" },
+                    { label: "Balance", value: <span className={parseFloat(String(viewWalletTxn.balanceAfter || "0")) < 0 ? "text-red-600 font-semibold" : "font-semibold"}>{parseFloat(String(viewWalletTxn.balanceAfter || "0")) < 0 ? "− " : ""}{formatPKR(Math.abs(parseFloat(String(viewWalletTxn.balanceAfter || "0"))))}</span> },
+                    { label: "Status", value: <Badge variant="secondary" className={`capitalize text-xs ${vIsCredit ? "text-teal-700 bg-teal-50" : "text-slate-600 bg-slate-100"}`}>{vIsCredit ? "Credit" : "Debit"}</Badge> },
+                    { label: "Recharge By", value: viewWalletTxn.createdBy || "System" },
+                    { label: "Sender Name", value: vTxn.senderName || "—" },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="bg-slate-50 dark:bg-slate-900 rounded-lg p-2.5">
+                      <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
+                      <div className="text-sm font-medium">{value as any}</div>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
-          )}
+                {(viewWalletTxn.description || viewWalletTxn.reference) && (
+                  <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-2.5">
+                    <p className="text-xs text-muted-foreground mb-0.5">Note</p>
+                    <p className="text-sm">{[viewWalletTxn.description, viewWalletTxn.reference ? `Ref: ${viewWalletTxn.reference}` : null].filter(Boolean).join(" · ")}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setViewWalletTxn(null)}>Close</Button>
           </DialogFooter>
