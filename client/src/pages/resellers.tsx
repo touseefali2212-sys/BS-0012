@@ -553,7 +553,10 @@ export default function ResellersPage() {
     setRechargeSubmitting(true);
     try {
       const totalRechargeAmt = validRows.reduce((s, r) => s + parseFloat(r.amount), 0);
-      const paidAmt = rechargePaymentStatus === "paid" && rechargePaidAmount ? parseFloat(rechargePaidAmount) : 0;
+      // If paid but no explicit paid amount entered, default to full recharge amount (no excess)
+      const paidAmt = rechargePaymentStatus === "paid"
+        ? (rechargePaidAmount ? parseFloat(rechargePaidAmount) : totalRechargeAmt)
+        : 0;
       for (const row of validRows) {
         // Distribute paid amount proportionally across rows if multiple
         const rowRatio = parseFloat(row.amount) / totalRechargeAmt;
@@ -565,7 +568,7 @@ export default function ResellersPage() {
           paymentMethod: rechargePaymentMethod,
           paymentStatus: rechargePaymentStatus,
           remarks: rechargeRemarks || undefined,
-          paidAmount: rechargePaymentStatus === "paid" ? rowPaidAmt : 0,
+          paidAmount: rechargePaymentStatus === "paid" ? rowPaidAmt : undefined,
           senderName: rechargeSenderName || undefined,
           vendorId: row.vendorId && row.vendorId !== "none" ? parseInt(row.vendorId) : undefined,
           bankAccountId: rechargeBankAccountId && rechargeBankAccountId !== "none" ? parseInt(rechargeBankAccountId) : undefined,
@@ -2796,7 +2799,9 @@ export default function ResellersPage() {
                 return s + (amt - paid);
               }, 0);
               const creditAvailable = currentCreditLim - currentUnpaid;
-              const paidAmt = rechargePaymentStatus === "paid" ? (parseFloat(rechargePaidAmount) || 0) : 0;
+              const paidAmt = rechargePaymentStatus === "paid"
+                ? (rechargePaidAmount ? (parseFloat(rechargePaidAmount) || 0) : total)
+                : 0;
               const excess = paidAmt - total;
               const unpaidAfterRecharge = rechargePaymentStatus === "unpaid" ? currentUnpaid + total : Math.max(0, currentUnpaid - Math.max(0, excess));
               return (
