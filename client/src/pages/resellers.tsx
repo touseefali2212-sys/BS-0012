@@ -2970,7 +2970,7 @@ export default function ResellersPage() {
               </div>
               <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <div className="grid grid-cols-[1fr_120px_36px] gap-0 bg-slate-50 dark:bg-slate-900 px-3 py-1.5 text-xs font-medium text-muted-foreground border-b border-slate-200 dark:border-slate-700">
-                  <span>Vendor</span><span className="text-center">Amount</span><span />
+                  <span>Vendor <span className="text-red-500">*</span></span><span className="text-center">Amount</span><span />
                 </div>
                 {rechargeVendorRows.map((row, idx) => (
                   <div key={row.id} className={`grid grid-cols-[1fr_120px_36px] gap-0 items-center px-2 py-1.5 ${idx > 0 ? "border-t border-slate-100 dark:border-slate-800" : ""}`}>
@@ -2979,7 +2979,7 @@ export default function ResellersPage() {
                         setRechargeVendorRows(prev => prev.map(r => r.id === row.id ? { ...r, vendorId: val } : r));
                       }}>
                       <SelectTrigger className="h-8 text-sm border-0 shadow-none focus:ring-0" data-testid={`select-vendor-row-${idx}`}>
-                        <SelectValue placeholder="Select vendor (optional)" />
+                        <SelectValue placeholder="Select vendor" />
                       </SelectTrigger>
                       <SelectContent>
                         {(vendors || []).map(v => (
@@ -3169,8 +3169,9 @@ export default function ResellersPage() {
             <Button variant="secondary" onClick={() => setRechargeDialogOpen(false)} disabled={rechargeSubmitting} data-testid="button-cancel-recharge">Cancel</Button>
             <Button onClick={handleRecharge}
               disabled={rechargeSubmitting || (() => {
-                const hasAmount = rechargeVendorRows.some(r => r.amount && parseFloat(r.amount) > 0);
-                if (!hasAmount) return true;
+                const amountRows = rechargeVendorRows.filter(r => r.amount && parseFloat(r.amount) > 0);
+                if (amountRows.length === 0) return true;
+                if (!amountRows.every(r => r.vendorId)) return true;
                 if (rechargePaymentStatus === "paid") {
                   if (!rechargePaidAmount || parseFloat(rechargePaidAmount) <= 0) return true;
                   const accountTypeMap: Record<string, string> = { cash_in_hand: "cash", bank_transfer: "bank", mobile_wallet: "wallet" };
