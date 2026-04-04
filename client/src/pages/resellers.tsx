@@ -2104,7 +2104,7 @@ export default function ResellersPage() {
         const monthTxns = txns.filter(t => { const d = new Date(t.createdAt); return d.getMonth() === thisMonth && d.getFullYear() === thisYear; });
         const totalRechargeMonth = monthTxns.filter(t => t.type === "credit" && t.category === "recharge").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
         const totalDeductionMonth = monthTxns.filter(t => t.type === "debit" && t.category !== "credit_balance_payment").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
-        const totalPaidMonth = monthTxns.filter(t => t.type === "credit" && (t as any).paymentStatus === "paid" && t.category === "recharge").reduce((s, t) => s + parseFloat(String((t as any).paidAmount || t.amount || "0")), 0);
+        const totalPaidMonth = monthTxns.filter(t => t.type === "credit" && ["paid", "credit_balance", "credit_partial"].includes((t as any).paymentStatus) && t.category === "recharge").reduce((s, t) => s + parseFloat(String((t as any).paidAmount || t.amount || "0")), 0);
         const totalUnpaidAll = txns.filter(t => t.type === "credit" && ((t as any).paymentStatus === "unpaid" || (t as any).paymentStatus === "partial" || (t as any).paymentStatus === "credit_partial")).reduce((s, t) => {
           const amt = parseFloat(String(t.amount || "0"));
           const paid = parseFloat(String((t as any).paidAmount || "0"));
@@ -2180,7 +2180,7 @@ export default function ResellersPage() {
                     label: isAllResellers ? "Total Wallet Balance" : "Wallet Balance",
                     sublabel: "Current Month",
                     value: formatPKR(walletBal),
-                    sub: `${monthTxns.filter(t => t.type === "credit").length} recharges this month`,
+                    sub: `${monthTxns.filter(t => t.type === "credit" && t.category === "recharge").length} recharges this month`,
                     icon: Wallet,
                     color: walletBal < 0 ? "from-red-600 to-red-500" : "from-emerald-600 to-emerald-500",
                     badge: walletBal < 0 ? "Overdrawn" : null,
@@ -2190,7 +2190,7 @@ export default function ResellersPage() {
                     label: "Recharge",
                     sublabel: "Current Month",
                     value: formatPKR(totalRechargeMonth),
-                    sub: `${monthTxns.filter(t => t.type === "credit").length} transactions`,
+                    sub: `${monthTxns.filter(t => t.type === "credit" && t.category === "recharge").length} transactions`,
                     icon: ArrowUpCircle,
                     color: "from-teal-600 to-teal-500",
                     badge: null, badgeColor: "",
@@ -2199,7 +2199,7 @@ export default function ResellersPage() {
                     label: "Paid Payment",
                     sublabel: "Current Month",
                     value: formatPKR(totalPaidMonth),
-                    sub: `${monthTxns.filter(t => t.type === "credit" && (t as any).paymentStatus === "paid").length} paid transactions`,
+                    sub: `${monthTxns.filter(t => t.type === "credit" && ["paid", "credit_balance", "credit_partial"].includes((t as any).paymentStatus) && t.category === "recharge").length} paid transactions`,
                     icon: CheckCircle2,
                     color: "from-green-600 to-green-500",
                     badge: null, badgeColor: "",
@@ -2928,11 +2928,23 @@ export default function ResellersPage() {
                 return s + (amt - paid);
               }, 0);
               const creditAvailable = currentCreditLim - currentUnpaid;
+              const isCreditStatus = rechargePaymentStatus === "credit_balance" || rechargePaymentStatus === "credit_partial";
               const paidAmt = rechargePaymentStatus === "paid"
                 ? (rechargePaidAmount ? (parseFloat(rechargePaidAmount) || 0) : total)
+                : isCreditStatus
+                ? (rechargePaidAmount ? Math.min(parseFloat(rechargePaidAmount) || 0, total) : 0)
                 : 0;
-              const excess = paidAmt - total;
-              const unpaidAfterRecharge = rechargePaymentStatus === "unpaid" ? currentUnpaid + total : Math.max(0, currentUnpaid - Math.max(0, excess));
+              const excess = rechargePaymentStatus === "paid" ? Math.max(0, paidAmt - total) : 0;
+              const creditWalletIncrease = isCreditStatus ? Math.max(0, total - paidAmt) : 0;
+              const afterRechargeBalance = isCreditStatus
+                ? currentBal + creditWalletIncrease - paidAmt
+                : currentBal + total;
+              const newUnpaidFromRecharge = rechargePaymentStatus === "unpaid" ? total : isCreditStatus ? Math.max(0, total - paidAmt) : 0;
+              const unpaidAfterRecharge = rechargePaymentStatus === "unpaid"
+                ? currentUnpaid + total
+                : isCreditStatus
+                ? currentUnpaid + newUnpaidFromRecharge
+                : Math.max(0, currentUnpaid - excess);
               return (
                 <div className="space-y-3">
                   <div className="grid grid-cols-2 gap-2">
@@ -2940,9 +2952,9 @@ export default function ResellersPage() {
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Current Balance</p>
                       <p className="text-lg font-bold" data-testid="text-recharge-current-balance">{formatPKR(currentBal)}</p>
                     </div>
-                    <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                    <div className={`rounded-lg p-3 border ${isCreditStatus && afterRechargeBalance < currentBal ? "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800" : "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800"}`}>
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">After Recharge</p>
-                      <p className="text-lg font-bold text-green-600" data-testid="text-recharge-after-balance">{formatPKR(currentBal + total)}</p>
+                      <p className={`text-lg font-bold ${isCreditStatus && afterRechargeBalance < currentBal ? "text-amber-600" : "text-green-600"}`} data-testid="text-recharge-after-balance">{formatPKR(afterRechargeBalance)}</p>
                     </div>
                     <div className={`rounded-lg p-3 border ${currentUnpaid > 0 ? "bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800" : "bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700"}`}>
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Unpaid Balance</p>
@@ -2955,7 +2967,7 @@ export default function ResellersPage() {
                         <button
                           type="button"
                           data-testid="button-use-credit-available"
-                          onClick={() => setRechargePaidAmount(currentBal.toString())}
+                          onClick={() => setRechargePaidAmount(Math.min(currentBal, total).toString())}
                           className="shrink-0 text-[10px] font-semibold px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 leading-none"
                         >Use</button>
                       </div>
@@ -3214,14 +3226,18 @@ export default function ResellersPage() {
             {/* Credit Balance section */}
             {rechargePaymentStatus === "credit_balance" && rechargeReseller && (() => {
               const availBal = parseFloat(String(rechargeReseller.walletBalance || "0"));
-              const paidAmt = parseFloat(rechargePaidAmount) || 0;
-              const pendingCredit = Math.max(0, availBal - paidAmt);
-              const isExceeded = paidAmt > availBal;
+              const totalRechAmt = rechargeVendorRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
+              const paidAmt = Math.min(parseFloat(rechargePaidAmount) || 0, totalRechAmt);
+              const rechargeUnpaid = Math.max(0, totalRechAmt - paidAmt);
+              const creditRemaining = availBal - paidAmt;
+              const isExceededBal = (parseFloat(rechargePaidAmount) || 0) > availBal;
+              const isExceededTotal = (parseFloat(rechargePaidAmount) || 0) > totalRechAmt;
+              const isExceeded = isExceededBal;
               return (
                 <div className="space-y-3">
                   {/* Paid Amount input */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Paid Amount <span className="text-red-500">*</span></label>
+                    <label className="text-sm font-medium">Paid Amount (from Credit Balance) <span className="text-red-500">*</span></label>
                     <Input
                       type="number" step="0.01" min="0"
                       placeholder="Amount deducted from credit balance"
@@ -3235,22 +3251,36 @@ export default function ResellersPage() {
                   <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-3 space-y-2">
                     <p className="text-[11px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Credit Balance Breakdown</p>
                     <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Recharge Amount</span>
+                      <span className="font-bold text-slate-700 dark:text-slate-200">{formatPKR(totalRechAmt)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
                       <span className="text-muted-foreground">Current Credit Available</span>
                       <span className="font-bold text-blue-600">{formatPKR(availBal)}</span>
                     </div>
                     <div className="flex justify-between items-center text-sm">
-                      <span className="text-muted-foreground">Paid Amount</span>
+                      <span className="text-muted-foreground">Paid from Credit</span>
                       <span className={`font-bold ${paidAmt > 0 ? "text-slate-700 dark:text-slate-200" : "text-muted-foreground"}`}>
                         {paidAmt > 0 ? `− ${formatPKR(paidAmt)}` : "—"}
                       </span>
                     </div>
-                    <div className="border-t border-blue-200 dark:border-blue-700 pt-2 flex justify-between items-center">
-                      <span className={`text-sm font-semibold ${isExceeded ? "text-red-600" : "text-blue-700 dark:text-blue-300"}`}>
-                        {isExceeded ? "Exceeds Available Credit" : "Credit Pending"}
-                      </span>
-                      <span className={`text-base font-bold ${isExceeded ? "text-red-600" : "text-blue-600"}`}>
-                        {isExceeded ? `− ${formatPKR(paidAmt - availBal)}` : formatPKR(pendingCredit)}
-                      </span>
+                    <div className="border-t border-blue-200 dark:border-blue-700 pt-2 space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm font-semibold ${rechargeUnpaid > 0 ? "text-orange-600 dark:text-orange-400" : "text-green-600 dark:text-green-400"}`}>
+                          Recharge Unpaid
+                        </span>
+                        <span className={`text-sm font-bold ${rechargeUnpaid > 0 ? "text-orange-600 dark:text-orange-400" : "text-green-600"}`}>
+                          {rechargeUnpaid > 0 ? formatPKR(rechargeUnpaid) : "Fully Covered ✓"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className={`text-sm font-semibold ${isExceeded ? "text-red-600" : "text-blue-700 dark:text-blue-300"}`}>
+                          Credit Remaining
+                        </span>
+                        <span className={`text-base font-bold ${isExceeded ? "text-red-600" : "text-blue-600"}`}>
+                          {isExceeded ? `⚠ − ${formatPKR((parseFloat(rechargePaidAmount) || 0) - availBal)}` : formatPKR(creditRemaining)}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -3258,6 +3288,12 @@ export default function ResellersPage() {
                     <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
                       <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
                       <p className="text-xs text-red-700 dark:text-red-400">Paid amount exceeds available credit balance of <strong>{formatPKR(availBal)}</strong>.</p>
+                    </div>
+                  )}
+                  {isExceededTotal && !isExceeded && (
+                    <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                      <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-700 dark:text-amber-400">Paid amount exceeds the recharge total of <strong>{formatPKR(totalRechAmt)}</strong>. It will be capped at the recharge amount.</p>
                     </div>
                   )}
                 </div>
@@ -3280,7 +3316,9 @@ export default function ResellersPage() {
                 if (rechargePaymentStatus === "credit_balance") {
                   if (!rechargePaidAmount || parseFloat(rechargePaidAmount) <= 0) return true;
                   const availBal = parseFloat(String(rechargeReseller?.walletBalance || "0"));
+                  const totalAmt = rechargeVendorRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
                   if (parseFloat(rechargePaidAmount) > availBal) return true;
+                  if (parseFloat(rechargePaidAmount) > totalAmt) return true;
                 }
                 return false;
               })()}
