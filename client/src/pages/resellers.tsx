@@ -1781,7 +1781,7 @@ export default function ResellersPage() {
                                   <DropdownMenuItem onClick={() => setLocation(`/resellers/${reseller.id}/edit`)} data-testid={`button-edit-${reseller.id}`}>
                                     <Edit className="h-4 w-4 mr-2" /> Edit Reseller
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => { setRechargeReseller(reseller); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargeVendorId(""); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeSenderName(""); setRechargeDialogOpen(true); }} data-testid={`action-credit-${reseller.id}`}>
+                                  <DropdownMenuItem onClick={() => { setRechargeReseller(reseller); setSelectedWalletResellerId(reseller.id.toString()); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargeVendorId(""); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeSenderName(""); setRechargeDialogOpen(true); }} data-testid={`action-credit-${reseller.id}`}>
                                     <Wallet className="h-4 w-4 mr-2" /> Adjust Credit
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => { setSelectedWalletResellerId(String(reseller.id)); changeTab("wallet"); }} data-testid={`action-transactions-${reseller.id}`}>
@@ -2085,7 +2085,7 @@ export default function ResellersPage() {
                 <Button size="sm" className="flex-1 bg-gradient-to-r from-[#002B5B] to-[#007BFF] text-white" onClick={() => { setLocation(`/resellers/${detailReseller.id}/edit`); setDetailReseller(null); }} data-testid="detail-btn-edit">
                   <Edit className="h-4 w-4 mr-1" /> Edit
                 </Button>
-                <Button size="sm" variant="outline" className="flex-1" onClick={() => { setRechargeReseller(detailReseller); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargeVendorId(""); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeSenderName(""); setRechargeDialogOpen(true); setDetailReseller(null); }} data-testid="detail-btn-credit">
+                <Button size="sm" variant="outline" className="flex-1" onClick={() => { setRechargeReseller(detailReseller); setSelectedWalletResellerId(detailReseller.id.toString()); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargeVendorId(""); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeSenderName(""); setRechargeDialogOpen(true); setDetailReseller(null); }} data-testid="detail-btn-credit">
                   <Wallet className="h-4 w-4 mr-1" /> Adjust Credit
                 </Button>
               </div>
@@ -3151,7 +3151,10 @@ export default function ResellersPage() {
                 const paid = parseFloat(String((t as any).paidAmount || "0"));
                 return s + (amt - paid);
               }, 0);
-              const creditAvailable = currentCreditLim - currentUnpaid;
+              const totalAdvancePayments = (walletTransactions || []).filter(t => t.type === "credit" && (t as any).category === "advance_payment").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
+              const totalCreditConsumed = (walletTransactions || []).filter(t => t.type === "debit" && (t as any).category === "credit_balance_payment").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
+              const netAdvanceBalance = Math.max(0, totalAdvancePayments - totalCreditConsumed);
+              const creditAvailable = currentCreditLim + netAdvanceBalance;
               const isCreditStatus = rechargePaymentStatus === "credit_balance" || rechargePaymentStatus === "credit_partial";
               const paidAmt = rechargePaymentStatus === "paid"
                 ? (rechargePaidAmount ? (parseFloat(rechargePaidAmount) || 0) : total)
@@ -3187,12 +3190,21 @@ export default function ResellersPage() {
                     <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Credit Available</p>
                       <div className="flex items-center justify-between gap-2 mt-1">
-                        <p className="text-lg font-bold text-blue-600 tabular-nums" data-testid="text-recharge-credit-available">{formatPKR(currentBal)}</p>
+                        <div>
+                          <p className="text-lg font-bold text-blue-600 tabular-nums" data-testid="text-recharge-credit-available">{formatPKR(creditAvailable)}</p>
+                          <p className="text-[9px] text-muted-foreground leading-tight mt-0.5">
+                            Limit {formatPKR(currentCreditLim)} + Advance {formatPKR(netAdvanceBalance)}
+                          </p>
+                        </div>
                         <button
                           type="button"
                           data-testid="button-use-credit-available"
-                          onClick={() => setRechargePaidAmount(Math.min(currentBal, total).toString())}
-                          className="shrink-0 text-[10px] font-semibold px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 leading-none"
+                          onClick={() => {
+                            setRechargePaymentStatus("credit_balance");
+                            setRechargePaidAmount("0");
+                          }}
+                          className="shrink-0 text-[10px] font-semibold px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 leading-none disabled:opacity-40 disabled:cursor-not-allowed"
+                          disabled={creditAvailable <= 0}
                         >Use</button>
                       </div>
                     </div>
