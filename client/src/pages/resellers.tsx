@@ -601,21 +601,22 @@ export default function ResellersPage() {
     setRechargeSubmitting(true);
     try {
       const totalRechargeAmt = validRows.reduce((s, r) => s + parseFloat(r.amount), 0);
-      // Total paid — default to full amount when status is paid and no explicit override
-      const totalPaidAmt = rechargePaymentStatus === "paid"
-        ? (rechargePaidAmount ? parseFloat(rechargePaidAmount) : totalRechargeAmt)
+      const isPaidType = rechargePaymentStatus === "paid" || rechargePaymentStatus === "credit_balance";
+      // Total paid — default to full amount when paid; for credit_balance use entered amount
+      const totalPaidAmt = isPaidType
+        ? (rechargePaidAmount ? parseFloat(rechargePaidAmount) : (rechargePaymentStatus === "paid" ? totalRechargeAmt : 0))
         : 0;
       // Fill rows sequentially: pay each row in full before moving to the next
       let paidRemaining = totalPaidAmt;
       for (const row of validRows) {
         const rowAmt = parseFloat(row.amount);
-        const rowPaidAmt = rechargePaymentStatus === "paid" ? Math.min(rowAmt, paidRemaining) : 0;
+        const rowPaidAmt = isPaidType ? Math.min(rowAmt, paidRemaining) : 0;
         paidRemaining = Math.max(0, paidRemaining - rowAmt);
-        // Per-row payment status: paid if fully covered, partial if partially covered, unpaid if nothing left
-        const rowPayStatus = rechargePaymentStatus !== "paid"
+        // Per-row payment status
+        const rowPayStatus = !isPaidType
           ? rechargePaymentStatus
           : rowPaidAmt >= rowAmt
-            ? "paid"
+            ? (rechargePaymentStatus === "credit_balance" ? "credit_balance" : "paid")
             : rowPaidAmt > 0
               ? "partial"
               : "unpaid";
@@ -626,7 +627,7 @@ export default function ResellersPage() {
           paymentMethod: rechargePaymentMethod,
           paymentStatus: rowPayStatus,
           remarks: rechargeRemarks || undefined,
-          paidAmount: rechargePaymentStatus === "paid" ? rowPaidAmt : undefined,
+          paidAmount: isPaidType ? rowPaidAmt : undefined,
           senderName: rechargeSenderName || undefined,
           vendorId: row.vendorId && row.vendorId !== "none" ? parseInt(row.vendorId) : undefined,
           bankAccountId: rechargeBankAccountId && rechargeBankAccountId !== "none" ? parseInt(rechargeBankAccountId) : undefined,
@@ -2368,10 +2369,12 @@ export default function ResellersPage() {
                                       ? "text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950"
                                       : (txn as any).paymentStatus === "reconciled"
                                       ? "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950"
+                                      : (txn as any).paymentStatus === "credit_balance"
+                                      ? "text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950"
                                       : "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950"
                                   }`}
                                   data-testid={`txn-status-${txn.id}`}>
-                                  {(txn as any).paymentStatus === "unpaid" ? "Unpaid" : (txn as any).paymentStatus === "partial" ? "Partial" : (txn as any).paymentStatus === "reconciled" ? "Reconciled" : "Paid"}
+                                  {(txn as any).paymentStatus === "unpaid" ? "Unpaid" : (txn as any).paymentStatus === "partial" ? "Partial" : (txn as any).paymentStatus === "reconciled" ? "Reconciled" : (txn as any).paymentStatus === "credit_balance" ? "Credit" : "Paid"}
                                 </Badge>
                               ) : (
                                 <span className="text-[10px] text-muted-foreground">—</span>
@@ -3054,14 +3057,14 @@ export default function ResellersPage() {
               <label className="text-sm font-medium">Payment Status <span className="text-red-500">*</span></label>
               <Select value={rechargePaymentStatus} onValueChange={(val) => {
                 setRechargePaymentStatus(val);
-                if (val === "unpaid") {
-                  setRechargePaidAmount("");
-                }
+                if (val === "unpaid") setRechargePaidAmount("");
+                if (val === "credit_balance") setRechargePaidAmount("");
               }}>
                 <SelectTrigger data-testid="select-recharge-payment-status"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="paid">Paid</SelectItem>
                   <SelectItem value="unpaid">Unpaid</SelectItem>
+                  <SelectItem value="credit_balance">Credit Balance</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -3196,6 +3199,59 @@ export default function ResellersPage() {
                 <p className="text-xs text-rose-700 dark:text-rose-400">This recharge will be recorded as <strong>unpaid</strong>. It will appear in the Unpaid Balance stat until marked as paid.</p>
               </div>
             )}
+
+            {/* Credit Balance section */}
+            {rechargePaymentStatus === "credit_balance" && rechargeReseller && (() => {
+              const availBal = parseFloat(String(rechargeReseller.walletBalance || "0"));
+              const paidAmt = parseFloat(rechargePaidAmount) || 0;
+              const pendingCredit = Math.max(0, availBal - paidAmt);
+              const isExceeded = paidAmt > availBal;
+              return (
+                <div className="space-y-3">
+                  {/* Paid Amount input */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Paid Amount <span className="text-red-500">*</span></label>
+                    <Input
+                      type="number" step="0.01" min="0"
+                      placeholder="Amount deducted from credit balance"
+                      value={rechargePaidAmount}
+                      onChange={(e) => setRechargePaidAmount(e.target.value)}
+                      data-testid="input-credit-balance-paid-amount"
+                    />
+                  </div>
+
+                  {/* Credit calculation breakdown */}
+                  <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-3 space-y-2">
+                    <p className="text-[11px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Credit Balance Breakdown</p>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Current Credit Available</span>
+                      <span className="font-bold text-blue-600">{formatPKR(availBal)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-muted-foreground">Paid Amount</span>
+                      <span className={`font-bold ${paidAmt > 0 ? "text-slate-700 dark:text-slate-200" : "text-muted-foreground"}`}>
+                        {paidAmt > 0 ? `− ${formatPKR(paidAmt)}` : "—"}
+                      </span>
+                    </div>
+                    <div className="border-t border-blue-200 dark:border-blue-700 pt-2 flex justify-between items-center">
+                      <span className={`text-sm font-semibold ${isExceeded ? "text-red-600" : "text-blue-700 dark:text-blue-300"}`}>
+                        {isExceeded ? "Exceeds Available Credit" : "Credit Pending"}
+                      </span>
+                      <span className={`text-base font-bold ${isExceeded ? "text-red-600" : "text-blue-600"}`}>
+                        {isExceeded ? `− ${formatPKR(paidAmt - availBal)}` : formatPKR(pendingCredit)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {isExceeded && (
+                    <div className="flex items-start gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                      <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+                      <p className="text-xs text-red-700 dark:text-red-400">Paid amount exceeds available credit balance of <strong>{formatPKR(availBal)}</strong>.</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
           </div>
           <DialogFooter className="gap-2 pt-2">
             <Button variant="secondary" onClick={() => setRechargeDialogOpen(false)} disabled={rechargeSubmitting} data-testid="button-cancel-recharge">Cancel</Button>
@@ -3209,6 +3265,11 @@ export default function ResellersPage() {
                   const accountTypeMap: Record<string, string> = { cash_in_hand: "cash", bank_transfer: "bank", mobile_wallet: "wallet" };
                   const filtered = (companyBankAccounts || []).filter((a: any) => a.accountType === accountTypeMap[rechargePaymentMethod] && a.status === "active");
                   if (filtered.length > 0 && (!rechargeBankAccountId || rechargeBankAccountId === "none")) return true;
+                }
+                if (rechargePaymentStatus === "credit_balance") {
+                  if (!rechargePaidAmount || parseFloat(rechargePaidAmount) <= 0) return true;
+                  const availBal = parseFloat(String(rechargeReseller?.walletBalance || "0"));
+                  if (parseFloat(rechargePaidAmount) > availBal) return true;
                 }
                 return false;
               })()}
