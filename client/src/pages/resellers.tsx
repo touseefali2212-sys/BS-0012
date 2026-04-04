@@ -56,6 +56,7 @@ import {
   Clock,
   Banknote,
   Target,
+  RotateCcw,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -200,6 +201,8 @@ export default function ResellersPage() {
   const [deductCategory, setDeductCategory] = useState("package_activation");
   const [deductDescription, setDeductDescription] = useState("");
   const [deductReference, setDeductReference] = useState("");
+  const [deductMode, setDeductMode] = useState<"normal" | "reversal">("normal");
+  const [deductReversalTxnId, setDeductReversalTxnId] = useState<number | null>(null);
   const [commCreditDialogOpen, setCommCreditDialogOpen] = useState(false);
   const [commCreditReseller, setCommCreditReseller] = useState<Reseller | null>(null);
   const [commCreditAmount, setCommCreditAmount] = useState("");
@@ -385,6 +388,8 @@ export default function ResellersPage() {
       setDeductCategory("package_activation");
       setDeductDescription("");
       setDeductReference("");
+      setDeductMode("normal");
+      setDeductReversalTxnId(null);
       toast({ title: "Amount deducted successfully" });
     },
     onError: (error: Error) => {
@@ -2212,7 +2217,7 @@ export default function ResellersPage() {
                 </Button>
                 <Button size="sm" className="bg-gradient-to-r from-red-600 to-red-500 text-white gap-1"
                   data-testid="btn-manual-deduction"
-                  onClick={() => { setDeductReseller(selReseller); setDeductAmount(""); setDeductCategory("package_activation"); setDeductDescription(""); setDeductReference(""); setDeductDialogOpen(true); }}>
+                  onClick={() => { setDeductReseller(selReseller); setDeductAmount(""); setDeductCategory("package_activation"); setDeductDescription(""); setDeductReference(""); setDeductMode("normal"); setDeductReversalTxnId(null); setDeductDialogOpen(true); }}>
                   <ArrowDownCircle className="h-4 w-4" /> Manual Deduction
                 </Button>
                 <Button size="sm" className="bg-gradient-to-r from-purple-600 to-purple-500 text-white gap-1" data-testid="btn-commission-credit"
@@ -3102,14 +3107,30 @@ export default function ResellersPage() {
       </Dialog>
 
       <Dialog open={deductDialogOpen} onOpenChange={setDeductDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ArrowDownCircle className="h-5 w-5 text-red-600" />
               Manual Deduction {deductReseller ? `— ${deductReseller.name}` : ""}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+
+            {/* Mode Toggle */}
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" data-testid="btn-deduct-mode-normal"
+                onClick={() => { setDeductMode("normal"); setDeductReversalTxnId(null); setDeductAmount(""); setDeductCategory("package_activation"); setDeductDescription(""); }}
+                className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 text-sm font-medium transition-all ${deductMode === "normal" ? "border-red-500 bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400" : "border-slate-200 dark:border-slate-700 hover:border-slate-300"}`}>
+                <ArrowDownCircle className="h-4 w-4" /> Normal Deduction
+              </button>
+              <button type="button" data-testid="btn-deduct-mode-reversal"
+                onClick={() => { setDeductMode("reversal"); setDeductReversalTxnId(null); setDeductAmount(""); setDeductCategory("recharge_reversal"); setDeductDescription(""); }}
+                className={`flex items-center justify-center gap-2 p-3 rounded-lg border-2 text-sm font-medium transition-all ${deductMode === "reversal" ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400" : "border-slate-200 dark:border-slate-700 hover:border-slate-300"}`}>
+                <RotateCcw className="h-4 w-4" /> Reverse Recharge
+              </button>
+            </div>
+
+            {/* Balance Preview */}
             {deductReseller && (
               <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 flex items-center justify-between">
                 <div>
@@ -3126,36 +3147,104 @@ export default function ResellersPage() {
                 )}
               </div>
             )}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Amount <span className="text-red-500">*</span></label>
-                <Input type="number" step="0.01" min="1" placeholder="Enter deduction amount"
-                  value={deductAmount} onChange={(e) => setDeductAmount(e.target.value)} data-testid="input-deduct-amount" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Category <span className="text-red-500">*</span></label>
-                <Select value={deductCategory} onValueChange={setDeductCategory}>
-                  <SelectTrigger data-testid="select-deduct-category"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="package_activation">Package Activation</SelectItem>
-                    <SelectItem value="service_charge">Service Charge</SelectItem>
-                    <SelectItem value="penalty">Penalty / Fine</SelectItem>
-                    <SelectItem value="hardware">Hardware / Equipment</SelectItem>
-                    <SelectItem value="adjustment">Balance Adjustment</SelectItem>
-                    <SelectItem value="refund">Customer Refund</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Description</label>
-              <Input placeholder="Reason for deduction" value={deductDescription} onChange={(e) => setDeductDescription(e.target.value)} data-testid="input-deduct-description" />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Reference</label>
-              <Input placeholder="Invoice or ticket reference" value={deductReference} onChange={(e) => setDeductReference(e.target.value)} data-testid="input-deduct-reference" />
-            </div>
+
+            {/* REVERSAL MODE — pick a recharge to reverse */}
+            {deductMode === "reversal" && (() => {
+              const rechargeTxns = (walletTransactions || [])
+                .filter(t => t.type === "credit" && t.category === "recharge" && (t as any).paymentStatus !== "reconciled")
+                .sort((a, b) => b.id - a.id);
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                    <p className="text-xs text-amber-700 dark:text-amber-400">Select the recharge that was added by mistake. The exact amount will be deducted and the transaction will be marked as reversed.</p>
+                  </div>
+                  <label className="text-sm font-medium">Select Recharge to Reverse <span className="text-red-500">*</span></label>
+                  {rechargeTxns.length === 0 ? (
+                    <div className="text-center py-6 text-muted-foreground text-sm border border-dashed rounded-lg">
+                      <ArrowUpCircle className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                      No recharge transactions found for this reseller
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5 max-h-[220px] overflow-y-auto border rounded-lg p-1">
+                      {rechargeTxns.map(txn => {
+                        const selected = deductReversalTxnId === txn.id;
+                        return (
+                          <button key={txn.id} type="button"
+                            data-testid={`btn-reversal-txn-${txn.id}`}
+                            onClick={() => {
+                              setDeductReversalTxnId(txn.id);
+                              setDeductAmount(txn.amount);
+                              setDeductDescription(`Reversal of recharge #${String(txn.id).padStart(6, "0")} — added by mistake`);
+                              setDeductReference(txn.reference || `REV-${txn.id}`);
+                            }}
+                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border text-left transition-all ${selected ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30" : "border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900"}`}>
+                            <div className="flex items-center gap-3">
+                              <div className={`h-2 w-2 rounded-full shrink-0 ${selected ? "bg-amber-500" : "bg-slate-300"}`} />
+                              <div>
+                                <p className="text-xs font-mono text-muted-foreground">#{String(txn.id).padStart(6, "0")}</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {txn.createdAt ? new Date(txn.createdAt).toLocaleDateString("en-PK", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
+                                  {txn.reference ? ` · ${txn.reference}` : ""}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className={`text-sm font-bold ${selected ? "text-amber-700 dark:text-amber-400" : "text-slate-700 dark:text-slate-300"}`}>{formatPKR(txn.amount)}</p>
+                              <p className="text-[10px] text-muted-foreground capitalize">{((txn as any).paymentStatus || "paid")}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {deductReversalTxnId && (
+                    <div className="flex items-center gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+                      <div className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
+                      <p className="text-xs text-red-700 dark:text-red-400 font-medium">
+                        Will deduct <strong>{formatPKR(deductAmount)}</strong> — reversing recharge #{String(deductReversalTxnId).padStart(6, "0")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* NORMAL MODE — manual fields */}
+            {deductMode === "normal" && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Amount <span className="text-red-500">*</span></label>
+                    <Input type="number" step="0.01" min="1" placeholder="Enter deduction amount"
+                      value={deductAmount} onChange={(e) => setDeductAmount(e.target.value)} data-testid="input-deduct-amount" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Category <span className="text-red-500">*</span></label>
+                    <Select value={deductCategory} onValueChange={setDeductCategory}>
+                      <SelectTrigger data-testid="select-deduct-category"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="package_activation">Package Activation</SelectItem>
+                        <SelectItem value="service_charge">Service Charge</SelectItem>
+                        <SelectItem value="penalty">Penalty / Fine</SelectItem>
+                        <SelectItem value="hardware">Hardware / Equipment</SelectItem>
+                        <SelectItem value="adjustment">Balance Adjustment</SelectItem>
+                        <SelectItem value="refund">Customer Refund</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Description</label>
+                  <Input placeholder="Reason for deduction" value={deductDescription} onChange={(e) => setDeductDescription(e.target.value)} data-testid="input-deduct-description" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Reference</label>
+                  <Input placeholder="Invoice or ticket reference" value={deductReference} onChange={(e) => setDeductReference(e.target.value)} data-testid="input-deduct-reference" />
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter className="gap-2">
             <Button variant="secondary" onClick={() => setDeductDialogOpen(false)} data-testid="button-cancel-deduct">Cancel</Button>
@@ -3165,11 +3254,13 @@ export default function ResellersPage() {
                 resellerId: deductReseller.id,
                 amount: parseFloat(deductAmount),
                 reference: deductReference || deductDescription || deductCategory,
-                category: deductCategory,
+                category: deductMode === "reversal" ? "recharge_reversal" : deductCategory,
               });
-            }} disabled={!deductAmount || deductMutation.isPending}
-              className="bg-gradient-to-r from-red-600 to-red-500 text-white" data-testid="button-submit-deduct">
-              {deductMutation.isPending ? "Processing..." : "Confirm Deduction"}
+            }}
+              disabled={!deductAmount || deductMutation.isPending || (deductMode === "reversal" && !deductReversalTxnId)}
+              className={`text-white ${deductMode === "reversal" ? "bg-gradient-to-r from-amber-600 to-amber-500" : "bg-gradient-to-r from-red-600 to-red-500"}`}
+              data-testid="button-submit-deduct">
+              {deductMutation.isPending ? "Processing..." : deductMode === "reversal" ? "Confirm Reversal" : "Confirm Deduction"}
             </Button>
           </DialogFooter>
         </DialogContent>
