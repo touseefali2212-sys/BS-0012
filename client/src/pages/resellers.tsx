@@ -608,9 +608,13 @@ export default function ResellersPage() {
         : 0;
       // Fill rows sequentially: pay each row in full before moving to the next
       let paidRemaining = totalPaidAmt;
-      for (const row of validRows) {
+      for (let rowIdx = 0; rowIdx < validRows.length; rowIdx++) {
+        const row = validRows[rowIdx];
+        const isLastRow = rowIdx === validRows.length - 1;
         const rowAmt = parseFloat(row.amount);
-        const rowPaidAmt = isPaidType ? Math.min(rowAmt, paidRemaining) : 0;
+        // Last row gets the full remaining paid amount (including any excess over the recharge total)
+        // so the backend can create an advance_payment transaction for the overpayment.
+        const rowPaidAmt = isPaidType ? (isLastRow ? paidRemaining : Math.min(rowAmt, paidRemaining)) : 0;
         paidRemaining = Math.max(0, paidRemaining - rowAmt);
         // Per-row payment status
         const rowPayStatus = !isPaidType
