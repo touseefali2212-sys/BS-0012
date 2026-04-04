@@ -297,6 +297,8 @@ export interface IStorage {
   getResellerWalletTransactions(resellerId: number): Promise<ResellerWalletTransaction[]>;
   getAllResellerWalletTransactions(): Promise<ResellerWalletTransaction[]>;
   createResellerWalletTransaction(t: InsertResellerWalletTransaction): Promise<ResellerWalletTransaction>;
+  updateResellerWalletTransaction(id: number, data: Partial<InsertResellerWalletTransaction>): Promise<ResellerWalletTransaction | undefined>;
+  deleteResellerWalletTransaction(id: number): Promise<void>;
   rechargeResellerWallet(resellerId: number, amount: number, reference?: string, paymentMethod?: string, remarks?: string, createdBy?: string, paymentStatus?: string, vendorId?: number, bankAccountId?: number, paidAmount?: number, senderName?: string): Promise<Reseller>;
   deductResellerWallet(resellerId: number, amount: number, vendorId?: number, customerId?: number, reference?: string, category?: string, createdBy?: string): Promise<Reseller>;
 
@@ -1504,6 +1506,15 @@ export class DatabaseStorage implements IStorage {
   async createResellerWalletTransaction(t: InsertResellerWalletTransaction): Promise<ResellerWalletTransaction> {
     const [created] = await db.insert(resellerWalletTransactions).values(t).returning();
     return created;
+  }
+
+  async updateResellerWalletTransaction(id: number, data: Partial<InsertResellerWalletTransaction>): Promise<ResellerWalletTransaction | undefined> {
+    const [updated] = await db.update(resellerWalletTransactions).set(data).where(eq(resellerWalletTransactions.id, id)).returning();
+    return updated;
+  }
+
+  async deleteResellerWalletTransaction(id: number): Promise<void> {
+    await db.delete(resellerWalletTransactions).where(eq(resellerWalletTransactions.id, id));
   }
 
   async rechargeResellerWallet(resellerId: number, amount: number, reference?: string, paymentMethod?: string, remarks?: string, createdBy?: string, paymentStatus?: string, vendorId?: number, bankAccountId?: number, paidAmount?: number, senderName?: string): Promise<Reseller> {

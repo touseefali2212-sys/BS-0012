@@ -75,6 +75,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -207,6 +208,16 @@ export default function ResellersPage() {
   const [txnTypeFilter, setTxnTypeFilter] = useState("all");
   const [txnSearch, setTxnSearch] = useState("");
   const [selectedWalletResellerId, setSelectedWalletResellerId] = useState<string>("");
+  const [viewWalletTxn, setViewWalletTxn] = useState<ResellerWalletTransaction | null>(null);
+  const [editWalletTxn, setEditWalletTxn] = useState<ResellerWalletTransaction | null>(null);
+  const [editWalletRef, setEditWalletRef] = useState("");
+  const [editWalletPayStatus, setEditWalletPayStatus] = useState("paid");
+  const [editWalletPaidAmount, setEditWalletPaidAmount] = useState("");
+  const [editWalletMethod, setEditWalletMethod] = useState("cash_in_hand");
+  const [editWalletBankAccId, setEditWalletBankAccId] = useState("");
+  const [editWalletSenderName, setEditWalletSenderName] = useState("");
+  const [editWalletNotes, setEditWalletNotes] = useState("");
+  const [deleteWalletTxnId, setDeleteWalletTxnId] = useState<number | null>(null);
   const [typeDialogOpen, setTypeDialogOpen] = useState(false);
   const [editingType, setEditingType] = useState<ResellerType | null>(null);
   const [wizardStep, setWizardStep] = useState(1);
@@ -362,6 +373,34 @@ export default function ResellersPage() {
       const res = await apiRequest("POST", "/api/reseller-wallet/recharge", data);
       return res.json();
     },
+  });
+
+  const updateWalletTxnMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Record<string, any> }) => {
+      const res = await apiRequest("PATCH", `/api/reseller-wallet-transactions/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/reseller-wallet-transactions", selectedWalletResellerId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reseller-wallet-transactions/all"] });
+      setEditWalletTxn(null);
+      toast({ title: "Transaction updated successfully" });
+    },
+    onError: (error: Error) => { toast({ title: "Error", description: error.message, variant: "destructive" }); },
+  });
+
+  const deleteWalletTxnMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/reseller-wallet-transactions/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/reseller-wallet-transactions", selectedWalletResellerId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reseller-wallet-transactions/all"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/resellers"] });
+      setDeleteWalletTxnId(null);
+      toast({ title: "Transaction deleted" });
+    },
+    onError: (error: Error) => { toast({ title: "Error", description: error.message, variant: "destructive" }); },
   });
 
   const deductMutation = useMutation({
@@ -2263,6 +2302,7 @@ export default function ResellersPage() {
                         <th className="px-3 py-2.5 text-right font-medium text-xs">Credit</th>
                         <th className="px-3 py-2.5 text-right font-medium text-xs">Balance</th>
                         <th className="px-3 py-2.5 text-left font-medium text-xs hidden lg:table-cell">By</th>
+                        <th className="px-3 py-2.5 text-center font-medium text-xs">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -2341,6 +2381,54 @@ export default function ResellersPage() {
                             </td>
                             <td className="px-3 py-2.5 hidden lg:table-cell">
                               <span className="text-xs text-muted-foreground">{txn.createdBy || "System"}</span>
+                            </td>
+                            <td className="px-3 py-2.5 text-center">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`btn-actions-${txn.id}`}>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-44">
+                                  <DropdownMenuItem data-testid={`btn-view-txn-${txn.id}`} onClick={() => setViewWalletTxn(txn)}>
+                                    <Eye className="h-4 w-4 mr-2 text-blue-500" />View Details
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem data-testid={`btn-edit-txn-${txn.id}`} onClick={() => {
+                                    setEditWalletTxn(txn);
+                                    setEditWalletRef(txn.reference || "");
+                                    setEditWalletPayStatus((txn as any).paymentStatus || "paid");
+                                    setEditWalletPaidAmount((txn as any).paidAmount || "");
+                                    setEditWalletMethod((txn as any).paymentMethod || "cash_in_hand");
+                                    setEditWalletBankAccId((txn as any).bankAccountId ? String((txn as any).bankAccountId) : "");
+                                    setEditWalletSenderName((txn as any).senderName || "");
+                                    setEditWalletNotes(txn.description || "");
+                                  }}>
+                                    <Edit className="h-4 w-4 mr-2 text-amber-500" />Edit Transaction
+                                  </DropdownMenuItem>
+                                  {txn.type === "credit" && txn.category === "recharge" && (
+                                    <>
+                                      <DropdownMenuSeparator />
+                                      <DropdownMenuItem data-testid={`btn-recharge-txn-${txn.id}`} onClick={() => {
+                                        const resellerForTxn = allResellers.find(r => r.id === txn.resellerId);
+                                        if (resellerForTxn) {
+                                          setRechargeReseller(resellerForTxn);
+                                          setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]);
+                                          setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand");
+                                          setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeSenderName("");
+                                          setRechargeDialogOpen(true);
+                                        }
+                                      }}>
+                                        <Wallet className="h-4 w-4 mr-2 text-green-500" />Recharge Wallet
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem data-testid={`btn-delete-txn-${txn.id}`} className="text-red-600 focus:text-red-700 dark:text-red-400"
+                                    onClick={() => setDeleteWalletTxnId(txn.id)}>
+                                    <Trash2 className="h-4 w-4 mr-2" />Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </td>
                           </tr>
                         );
@@ -3380,6 +3468,188 @@ export default function ResellersPage() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Wallet Transaction Dialog */}
+      <Dialog open={!!viewWalletTxn} onOpenChange={(o) => { if (!o) setViewWalletTxn(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-blue-500" />
+              Transaction Details — #{viewWalletTxn ? String(viewWalletTxn.id).padStart(6, "0") : ""}
+            </DialogTitle>
+          </DialogHeader>
+          {viewWalletTxn && (
+            <div className="space-y-3 py-2">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                {[
+                  { label: "Date", value: viewWalletTxn.createdAt ? new Date(viewWalletTxn.createdAt).toLocaleString("en-PK") : "—" },
+                  { label: "Type", value: <Badge variant="secondary" className={`capitalize text-xs ${viewWalletTxn.type === "credit" ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>{viewWalletTxn.type}</Badge> },
+                  { label: "Category", value: (viewWalletTxn.category || "general").replace(/_/g, " ") },
+                  { label: "Amount", value: formatPKR(viewWalletTxn.amount) },
+                  { label: "Balance After", value: formatPKR(viewWalletTxn.balanceAfter) },
+                  { label: "Payment Status", value: (viewWalletTxn as any).paymentStatus || "—" },
+                  { label: "Paid Amount", value: (viewWalletTxn as any).paidAmount ? formatPKR((viewWalletTxn as any).paidAmount) : "—" },
+                  { label: "Payment Method", value: ((viewWalletTxn as any).paymentMethod || "—").replace(/_/g, " ") },
+                  { label: "Sender Name", value: (viewWalletTxn as any).senderName || "—" },
+                  { label: "Reference", value: viewWalletTxn.reference || "—" },
+                  { label: "Created By", value: viewWalletTxn.createdBy || "System" },
+                  { label: "Bank Account", value: (viewWalletTxn as any).bankAccountId ? `ID: ${(viewWalletTxn as any).bankAccountId}` : "—" },
+                ].map(({ label, value }) => (
+                  <div key={label} className="bg-slate-50 dark:bg-slate-900 rounded-lg p-2.5">
+                    <p className="text-xs text-muted-foreground mb-0.5">{label}</p>
+                    <p className="text-sm font-medium">{value as any}</p>
+                  </div>
+                ))}
+              </div>
+              {viewWalletTxn.description && (
+                <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-2.5">
+                  <p className="text-xs text-muted-foreground mb-0.5">Description / Notes</p>
+                  <p className="text-sm">{viewWalletTxn.description}</p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewWalletTxn(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Wallet Transaction Dialog */}
+      <Dialog open={!!editWalletTxn} onOpenChange={(o) => { if (!o) setEditWalletTxn(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-amber-500" />
+              Edit Transaction — #{editWalletTxn ? String(editWalletTxn.id).padStart(6, "0") : ""}
+            </DialogTitle>
+          </DialogHeader>
+          {editWalletTxn && (
+            <div className="space-y-3 py-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Payment Status</label>
+                  <Select value={editWalletPayStatus} onValueChange={setEditWalletPayStatus}>
+                    <SelectTrigger data-testid="edit-txn-pay-status"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="unpaid">Unpaid</SelectItem>
+                      <SelectItem value="partial">Partial</SelectItem>
+                      <SelectItem value="reconciled">Reconciled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Paid Amount</label>
+                  <Input type="number" min="0" placeholder="0.00" data-testid="edit-txn-paid-amount"
+                    value={editWalletPaidAmount} onChange={e => setEditWalletPaidAmount(e.target.value)} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Payment Method</label>
+                  <Select value={editWalletMethod} onValueChange={setEditWalletMethod}>
+                    <SelectTrigger data-testid="edit-txn-method"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash_in_hand">Cash in Hand</SelectItem>
+                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                      <SelectItem value="easypaisa">Easypaisa</SelectItem>
+                      <SelectItem value="jazzcash">JazzCash</SelectItem>
+                      <SelectItem value="cheque">Cheque</SelectItem>
+                      <SelectItem value="online">Online</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Bank Account</label>
+                  <Select value={editWalletBankAccId || "none"} onValueChange={v => setEditWalletBankAccId(v === "none" ? "" : v)}>
+                    <SelectTrigger data-testid="edit-txn-bank-acc"><SelectValue placeholder="None" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None</SelectItem>
+                      {(companyBankAccounts || []).map(acc => (
+                        <SelectItem key={acc.id} value={String(acc.id)}>{acc.bankAccountTitle || acc.bankName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Sender Name</label>
+                <Input placeholder="Enter sender name" data-testid="edit-txn-sender"
+                  value={editWalletSenderName} onChange={e => setEditWalletSenderName(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Reference</label>
+                <Input placeholder="e.g. TXN-001" data-testid="edit-txn-reference"
+                  value={editWalletRef} onChange={e => setEditWalletRef(e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Notes / Description</label>
+                <Textarea rows={2} placeholder="Optional notes" data-testid="edit-txn-notes"
+                  value={editWalletNotes} onChange={e => setEditWalletNotes(e.target.value)} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditWalletTxn(null)}>Cancel</Button>
+            <Button disabled={updateWalletTxnMutation.isPending}
+              data-testid="btn-save-edit-txn"
+              onClick={() => {
+                if (!editWalletTxn) return;
+                updateWalletTxnMutation.mutate({
+                  id: editWalletTxn.id,
+                  data: {
+                    reference: editWalletRef || null,
+                    paymentStatus: editWalletPayStatus,
+                    paidAmount: editWalletPaidAmount ? editWalletPaidAmount : null,
+                    paymentMethod: editWalletMethod,
+                    bankAccountId: editWalletBankAccId ? parseInt(editWalletBankAccId) : null,
+                    senderName: editWalletSenderName || null,
+                    description: editWalletNotes || null,
+                  },
+                });
+              }}
+              className="bg-gradient-to-r from-[#002B5B] to-[#005EFF]">
+              {updateWalletTxnMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Wallet Transaction Confirm Dialog */}
+      <Dialog open={deleteWalletTxnId !== null} onOpenChange={(o) => { if (!o) setDeleteWalletTxnId(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+              <Trash2 className="h-5 w-5" />Delete Transaction
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <div className="flex items-start gap-3 p-3 bg-red-50 dark:bg-red-950/40 rounded-lg border border-red-200 dark:border-red-900">
+              <AlertTriangle className="h-5 w-5 text-red-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-red-800 dark:text-red-300">This action is permanent</p>
+                <p className="text-xs text-red-700 dark:text-red-400 mt-0.5">
+                  Deleting this transaction will remove it from history. The wallet balance will not be automatically adjusted.
+                </p>
+              </div>
+            </div>
+            {deleteWalletTxnId && (
+              <p className="text-sm text-muted-foreground mt-3">
+                Transaction <span className="font-mono font-semibold">#{String(deleteWalletTxnId).padStart(6, "0")}</span> will be permanently deleted.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteWalletTxnId(null)}>Cancel</Button>
+            <Button variant="destructive" disabled={deleteWalletTxnMutation.isPending}
+              data-testid="btn-confirm-delete-txn"
+              onClick={() => { if (deleteWalletTxnId !== null) deleteWalletTxnMutation.mutate(deleteWalletTxnId); }}>
+              {deleteWalletTxnMutation.isPending ? "Deleting..." : "Delete Transaction"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

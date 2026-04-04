@@ -1553,6 +1553,30 @@ export async function registerRoutes(
     } catch (error: any) { res.status(500).json({ message: error.message }); }
   });
 
+  app.patch("/api/reseller-wallet-transactions/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid transaction ID" });
+      const allowed = ["reference", "paymentStatus", "paidAmount", "paymentMethod", "senderName", "description", "bankAccountId"];
+      const data: Record<string, any> = {};
+      for (const key of allowed) {
+        if (req.body[key] !== undefined) data[key] = req.body[key] === "" ? null : req.body[key];
+      }
+      const updated = await storage.updateResellerWalletTransaction(id, data);
+      if (!updated) return res.status(404).json({ message: "Transaction not found" });
+      res.json(updated);
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  app.delete("/api/reseller-wallet-transactions/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid transaction ID" });
+      await storage.deleteResellerWalletTransaction(id);
+      res.json({ message: "Transaction deleted successfully" });
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
   app.post("/api/reseller-wallet/recharge", requireAuth, async (req, res) => {
     try {
       const schema = z.object({ resellerId: z.number().int().positive(), amount: z.union([z.number(), z.string()]).transform(v => parseFloat(String(v))).refine(v => v > 0, "Amount must be positive"), reference: z.string().optional(), paymentMethod: z.string().optional(), remarks: z.string().optional(), paymentStatus: z.string().optional(), vendorId: z.number().int().optional(), bankAccountId: z.number().int().optional(), paidAmount: z.union([z.number(), z.string()]).transform(v => parseFloat(String(v))).optional(), senderName: z.string().optional() });
