@@ -197,12 +197,7 @@ export default function ResellersPage() {
   const [rechargeSubmitting, setRechargeSubmitting] = useState(false);
   const [deductDialogOpen, setDeductDialogOpen] = useState(false);
   const [deductReseller, setDeductReseller] = useState<Reseller | null>(null);
-  const [deductAmount, setDeductAmount] = useState("");
-  const [deductCategory, setDeductCategory] = useState("package_activation");
-  const [deductDescription, setDeductDescription] = useState("");
-  const [deductReference, setDeductReference] = useState("");
-  const [deductMode, setDeductMode] = useState<"normal" | "reversal">("normal");
-  const [deductReversalTxnId, setDeductReversalTxnId] = useState<number | null>(null);
+  const [deductReversalTxn, setDeductReversalTxn] = useState<ResellerWalletTransaction | null>(null);
   const [commCreditDialogOpen, setCommCreditDialogOpen] = useState(false);
   const [commCreditReseller, setCommCreditReseller] = useState<Reseller | null>(null);
   const [commCreditAmount, setCommCreditAmount] = useState("");
@@ -384,10 +379,7 @@ export default function ResellersPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/reseller-wallet-transactions", selectedWalletResellerId] });
       setDeductDialogOpen(false);
       setDeductReseller(null);
-      setDeductAmount("");
-      setDeductDescription("");
-      setDeductReference("");
-      setDeductReversalTxnId(null);
+      setDeductReversalTxn(null);
       toast({ title: "Recharge reversed successfully" });
     },
     onError: (error: Error) => {
@@ -2215,7 +2207,7 @@ export default function ResellersPage() {
                 </Button>
                 <Button size="sm" className="bg-gradient-to-r from-red-600 to-red-500 text-white gap-1"
                   data-testid="btn-manual-deduction"
-                  onClick={() => { setDeductReseller(selReseller); setDeductAmount(""); setDeductDescription(""); setDeductReference(""); setDeductReversalTxnId(null); setDeductDialogOpen(true); }}>
+                  onClick={() => { setDeductReseller(selReseller); setDeductReversalTxn(null); setDeductDialogOpen(true); }}>
                   <ArrowDownCircle className="h-4 w-4" /> Manual Deduction
                 </Button>
                 <Button size="sm" className="bg-gradient-to-r from-purple-600 to-purple-500 text-white gap-1" data-testid="btn-commission-credit"
@@ -3121,11 +3113,11 @@ export default function ResellersPage() {
                   <p className="text-xs text-muted-foreground">Current Balance</p>
                   <p className="text-lg font-bold" data-testid="text-deduct-current-balance">{formatPKR(deductReseller.walletBalance)}</p>
                 </div>
-                {deductAmount && parseFloat(deductAmount) > 0 && (
+                {deductReversalTxn && (
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">After Reversal</p>
-                    <p className={`text-lg font-bold ${(parseFloat(String(deductReseller.walletBalance || "0")) - parseFloat(deductAmount)) < 0 ? "text-red-600" : "text-slate-800 dark:text-slate-100"}`} data-testid="text-deduct-after-balance">
-                      {formatPKR(parseFloat(String(deductReseller.walletBalance || "0")) - parseFloat(deductAmount))}
+                    <p className={`text-lg font-bold ${(parseFloat(String(deductReseller.walletBalance || "0")) - parseFloat(deductReversalTxn.amount)) < 0 ? "text-red-600" : "text-slate-800 dark:text-slate-100"}`} data-testid="text-deduct-after-balance">
+                      {formatPKR(parseFloat(String(deductReseller.walletBalance || "0")) - parseFloat(deductReversalTxn.amount))}
                     </p>
                   </div>
                 )}
@@ -3152,16 +3144,11 @@ export default function ResellersPage() {
                   ) : (
                     <div className="space-y-1.5 max-h-[240px] overflow-y-auto border rounded-lg p-1">
                       {rechargeTxns.map(txn => {
-                        const selected = deductReversalTxnId === txn.id;
+                        const selected = deductReversalTxn?.id === txn.id;
                         return (
                           <button key={txn.id} type="button"
                             data-testid={`btn-reversal-txn-${txn.id}`}
-                            onClick={() => {
-                              setDeductReversalTxnId(txn.id);
-                              setDeductAmount(txn.amount);
-                              setDeductDescription(`Reversal of recharge #${String(txn.id).padStart(6, "0")} — added by mistake`);
-                              setDeductReference(txn.reference || `REV-${txn.id}`);
-                            }}
+                            onClick={() => setDeductReversalTxn(selected ? null : txn)}
                             className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg border text-left transition-all ${selected ? "border-amber-500 bg-amber-50 dark:bg-amber-950/30" : "border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900"}`}>
                             <div className="flex items-center gap-3">
                               <div className={`h-2 w-2 rounded-full shrink-0 ${selected ? "bg-amber-500" : "bg-slate-300"}`} />
@@ -3182,11 +3169,11 @@ export default function ResellersPage() {
                       })}
                     </div>
                   )}
-                  {deductReversalTxnId && (
+                  {deductReversalTxn && (
                     <div className="flex items-center gap-2 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
                       <div className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
                       <p className="text-xs text-red-700 dark:text-red-400 font-medium">
-                        Will deduct <strong>{formatPKR(deductAmount)}</strong> — reversing recharge #{String(deductReversalTxnId).padStart(6, "0")}
+                        Will deduct <strong>{formatPKR(deductReversalTxn.amount)}</strong> — reversing recharge #{String(deductReversalTxn.id).padStart(6, "0")}
                       </p>
                     </div>
                   )}
@@ -3197,15 +3184,15 @@ export default function ResellersPage() {
           <DialogFooter className="gap-2">
             <Button variant="secondary" onClick={() => setDeductDialogOpen(false)} data-testid="button-cancel-deduct">Cancel</Button>
             <Button onClick={() => {
-              if (!deductReseller || !deductAmount || !deductReversalTxnId) return;
+              if (!deductReseller || !deductReversalTxn) return;
               deductMutation.mutate({
                 resellerId: deductReseller.id,
-                amount: parseFloat(deductAmount),
-                reference: deductReference || deductDescription || "recharge_reversal",
+                amount: parseFloat(deductReversalTxn.amount),
+                reference: deductReversalTxn.reference || `REV-${deductReversalTxn.id}`,
                 category: "recharge_reversal",
               });
             }}
-              disabled={!deductReversalTxnId || !deductAmount || deductMutation.isPending}
+              disabled={!deductReversalTxn || deductMutation.isPending}
               className="bg-gradient-to-r from-amber-600 to-amber-500 text-white"
               data-testid="button-submit-deduct">
               {deductMutation.isPending ? "Processing..." : "Confirm Reversal"}
