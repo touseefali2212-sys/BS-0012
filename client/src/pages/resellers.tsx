@@ -2974,16 +2974,14 @@ export default function ResellersPage() {
                 </div>
                 {rechargeVendorRows.map((row, idx) => (
                   <div key={row.id} className={`grid grid-cols-[1fr_120px_36px] gap-0 items-center px-2 py-1.5 ${idx > 0 ? "border-t border-slate-100 dark:border-slate-800" : ""}`}>
-                    <Select value={row.vendorId || "none"}
+                    <Select value={row.vendorId || ""}
                       onValueChange={(val) => {
-                        const v = val === "none" ? "" : val;
-                        setRechargeVendorRows(prev => prev.map(r => r.id === row.id ? { ...r, vendorId: v } : r));
+                        setRechargeVendorRows(prev => prev.map(r => r.id === row.id ? { ...r, vendorId: val } : r));
                       }}>
                       <SelectTrigger className="h-8 text-sm border-0 shadow-none focus:ring-0" data-testid={`select-vendor-row-${idx}`}>
                         <SelectValue placeholder="Select vendor (optional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">— No Vendor —</SelectItem>
                         {(vendors || []).map(v => (
                           <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>
                         ))}
