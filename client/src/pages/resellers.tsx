@@ -593,20 +593,30 @@ export default function ResellersPage() {
     setRechargeSubmitting(true);
     try {
       const totalRechargeAmt = validRows.reduce((s, r) => s + parseFloat(r.amount), 0);
-      // If paid but no explicit paid amount entered, default to full recharge amount (no excess)
-      const paidAmt = rechargePaymentStatus === "paid"
+      // Total paid — default to full amount when status is paid and no explicit override
+      const totalPaidAmt = rechargePaymentStatus === "paid"
         ? (rechargePaidAmount ? parseFloat(rechargePaidAmount) : totalRechargeAmt)
         : 0;
+      // Fill rows sequentially: pay each row in full before moving to the next
+      let paidRemaining = totalPaidAmt;
       for (const row of validRows) {
-        // Distribute paid amount proportionally across rows if multiple
-        const rowRatio = parseFloat(row.amount) / totalRechargeAmt;
-        const rowPaidAmt = rechargePaymentStatus === "paid" ? paidAmt * rowRatio : 0;
+        const rowAmt = parseFloat(row.amount);
+        const rowPaidAmt = rechargePaymentStatus === "paid" ? Math.min(rowAmt, paidRemaining) : 0;
+        paidRemaining = Math.max(0, paidRemaining - rowAmt);
+        // Per-row payment status: paid if fully covered, partial if partially covered, unpaid if nothing left
+        const rowPayStatus = rechargePaymentStatus !== "paid"
+          ? rechargePaymentStatus
+          : rowPaidAmt >= rowAmt
+            ? "paid"
+            : rowPaidAmt > 0
+              ? "partial"
+              : "unpaid";
         await rechargeApiCall.mutateAsync({
           resellerId: rechargeReseller.id,
-          amount: parseFloat(row.amount),
+          amount: rowAmt,
           reference: rechargeReference,
           paymentMethod: rechargePaymentMethod,
-          paymentStatus: rechargePaymentStatus,
+          paymentStatus: rowPayStatus,
           remarks: rechargeRemarks || undefined,
           paidAmount: rechargePaymentStatus === "paid" ? rowPaidAmt : undefined,
           senderName: rechargeSenderName || undefined,
