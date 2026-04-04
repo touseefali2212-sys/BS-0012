@@ -2032,7 +2032,11 @@ export default function ResellersPage() {
         const totalRechargeMonth = monthTxns.filter(t => t.type === "credit" && t.category === "recharge").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
         const totalDeductionMonth = monthTxns.filter(t => t.type === "debit").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
         const totalPaidMonth = monthTxns.filter(t => t.type === "credit" && (t as any).paymentStatus === "paid" && t.category === "recharge").reduce((s, t) => s + parseFloat(String((t as any).paidAmount || t.amount || "0")), 0);
-        const totalUnpaidAll = txns.filter(t => t.type === "credit" && (t as any).paymentStatus === "unpaid").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
+        const totalUnpaidAll = txns.filter(t => t.type === "credit" && ((t as any).paymentStatus === "unpaid" || (t as any).paymentStatus === "partial")).reduce((s, t) => {
+          const amt = parseFloat(String(t.amount || "0"));
+          const paid = parseFloat(String((t as any).paidAmount || "0"));
+          return s + (amt - paid);
+        }, 0);
         const secDeposit = isAllResellers ? allResellers.reduce((s, r) => s + parseFloat(String(r.securityDeposit || "0")), 0) : (selReseller ? parseFloat(String(selReseller.securityDeposit || "0")) : 0);
         const filteredTxns = txns.filter(t => {
           const matchType = txnTypeFilter === "all" || t.type === txnTypeFilter;
@@ -2131,7 +2135,7 @@ export default function ResellersPage() {
                     label: "Unpaid Balance",
                     sublabel: "All-time Unpaid",
                     value: formatPKR(totalUnpaidAll),
-                    sub: `${txns.filter(t => t.type === "credit" && (t as any).paymentStatus === "unpaid").length} unpaid entries`,
+                    sub: `${txns.filter(t => t.type === "credit" && ((t as any).paymentStatus === "unpaid" || (t as any).paymentStatus === "partial")).length} unpaid entries`,
                     icon: AlertTriangle,
                     color: totalUnpaidAll > 0 ? "from-rose-600 to-rose-500" : "from-slate-500 to-slate-400",
                     badge: totalUnpaidAll > 0 ? "Pending" : null,
@@ -2291,12 +2295,14 @@ export default function ResellersPage() {
                                   className={`no-default-active-elevate text-[10px] capitalize ${
                                     (txn as any).paymentStatus === "unpaid"
                                       ? "text-rose-700 dark:text-rose-300 bg-rose-50 dark:bg-rose-950"
+                                      : (txn as any).paymentStatus === "partial"
+                                      ? "text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950"
                                       : (txn as any).paymentStatus === "reconciled"
                                       ? "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950"
                                       : "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950"
                                   }`}
                                   data-testid={`txn-status-${txn.id}`}>
-                                  {(txn as any).paymentStatus === "unpaid" ? "Unpaid" : (txn as any).paymentStatus === "reconciled" ? "Reconciled" : "Paid"}
+                                  {(txn as any).paymentStatus === "unpaid" ? "Unpaid" : (txn as any).paymentStatus === "partial" ? "Partial" : (txn as any).paymentStatus === "reconciled" ? "Reconciled" : "Paid"}
                                 </Badge>
                               ) : (
                                 <span className="text-[10px] text-muted-foreground">—</span>
@@ -2784,7 +2790,11 @@ export default function ResellersPage() {
               const total = rechargeVendorRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
               const currentBal = parseFloat(String(rechargeReseller.walletBalance || "0"));
               const currentCreditLim = parseFloat(String(rechargeReseller.creditLimit || "0"));
-              const currentUnpaid = (walletTransactions || []).filter(t => t.type === "credit" && (t as any).paymentStatus === "unpaid").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
+              const currentUnpaid = (walletTransactions || []).filter(t => t.type === "credit" && ((t as any).paymentStatus === "unpaid" || (t as any).paymentStatus === "partial")).reduce((s, t) => {
+                const amt = parseFloat(String(t.amount || "0"));
+                const paid = parseFloat(String((t as any).paidAmount || "0"));
+                return s + (amt - paid);
+              }, 0);
               const creditAvailable = currentCreditLim - currentUnpaid;
               const paidAmt = rechargePaymentStatus === "paid" ? (parseFloat(rechargePaidAmount) || 0) : 0;
               const excess = paidAmt - total;

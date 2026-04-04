@@ -1,4 +1,4 @@
-import { eq, desc, sql, and, count, aliasedTable, isNull, asc } from "drizzle-orm";
+import { eq, desc, sql, and, or, count, aliasedTable, isNull, asc } from "drizzle-orm";
 import { db } from "./db";
 import {
   users, customers, packages, invoices, tickets, activityLogs,
@@ -1542,17 +1542,33 @@ export class DatabaseStorage implements IStorage {
         .where(and(
           eq(resellerWalletTransactions.resellerId, resellerId),
           eq(resellerWalletTransactions.type, "credit"),
-          eq(resellerWalletTransactions.paymentStatus, "unpaid")
+          or(
+            eq(resellerWalletTransactions.paymentStatus, "unpaid"),
+            eq(resellerWalletTransactions.paymentStatus, "partial")
+          )
         ))
         .orderBy(asc(resellerWalletTransactions.id));
 
       let remainingExcess = excess;
       for (const txn of unpaidTxns) {
         if (remainingExcess <= 0) break;
-        await db.update(resellerWalletTransactions)
-          .set({ paymentStatus: "reconciled" })
-          .where(eq(resellerWalletTransactions.id, txn.id));
-        remainingExcess -= parseFloat(txn.amount);
+        const txnTotal = parseFloat(txn.amount);
+        const alreadyPaid = parseFloat(txn.paidAmount || "0");
+        const stillOwed = txnTotal - alreadyPaid;
+        if (remainingExcess >= stillOwed) {
+          // Excess fully covers the remaining balance — mark fully reconciled
+          await db.update(resellerWalletTransactions)
+            .set({ paymentStatus: "reconciled", paidAmount: txnTotal.toString() })
+            .where(eq(resellerWalletTransactions.id, txn.id));
+          remainingExcess -= stillOwed;
+        } else {
+          // Excess only partially covers this transaction — mark as partial
+          const newPaidAmount = alreadyPaid + remainingExcess;
+          await db.update(resellerWalletTransactions)
+            .set({ paymentStatus: "partial", paidAmount: newPaidAmount.toString() })
+            .where(eq(resellerWalletTransactions.id, txn.id));
+          remainingExcess = 0;
+        }
       }
 
       // If excess remains after clearing all unpaid, add to wallet as advance
