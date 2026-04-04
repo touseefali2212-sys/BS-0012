@@ -196,6 +196,7 @@ export default function ResellersPage() {
   const [rechargeRemarks, setRechargeRemarks] = useState("");
   const [rechargeBankAccountId, setRechargeBankAccountId] = useState("");
   const [rechargeSenderName, setRechargeSenderName] = useState("");
+  const [rechargeCreditEntry, setRechargeCreditEntry] = useState("");
   const [rechargeSubmitting, setRechargeSubmitting] = useState(false);
   const [deductDialogOpen, setDeductDialogOpen] = useState(false);
   const [deductReseller, setDeductReseller] = useState<Reseller | null>(null);
@@ -336,6 +337,13 @@ export default function ResellersPage() {
       ...(q.panelUsersCapacity ? { maxCustomerLimit: q.panelUsersCapacity } : {}),
     });
   }, [fromQueryData]);
+
+  useEffect(() => {
+    if (rechargeReseller) {
+      const lim = parseFloat(String(rechargeReseller.creditLimit || "0"));
+      setRechargeCreditEntry(lim > 0 ? lim.toFixed(2) : "0.00");
+    }
+  }, [rechargeReseller]);
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<InsertReseller> }) => {
@@ -638,6 +646,7 @@ export default function ResellersPage() {
       setRechargeRemarks("");
       setRechargeBankAccountId("");
       setRechargeSenderName("");
+      setRechargeCreditEntry("");
       toast({ title: `Wallet recharged successfully${validRows.length > 1 ? ` (${validRows.length} entries)` : ""}` });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -2928,31 +2937,24 @@ export default function ResellersPage() {
                     <div className={`rounded-lg p-3 border ${creditAvailable < 0 ? "bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800" : "bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800"}`}>
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Credit Available</p>
                       <div className="flex items-center gap-1.5 mt-1">
-                        <span className="text-[10px] text-muted-foreground">Rs</span>
                         <input
                           type="number"
                           step="0.01"
                           min="0"
                           data-testid="input-recharge-credit-available"
-                          defaultValue={creditAvailable > 0 ? creditAvailable.toFixed(2) : "0.00"}
-                          key={`credit-avail-${creditAvailable}`}
-                          className={`w-full text-sm font-bold bg-transparent border-b focus:outline-none focus:border-blue-500 tabular-nums ${creditAvailable < 0 ? "text-red-600 border-red-300" : "text-blue-600 border-blue-300"}`}
+                          value={rechargeCreditEntry}
+                          onChange={(e) => setRechargeCreditEntry(e.target.value)}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              const val = (e.target as HTMLInputElement).value;
-                              if (val) setRechargePaidAmount(val);
-                            }
+                            if (e.key === "Enter" && rechargeCreditEntry) setRechargePaidAmount(rechargeCreditEntry);
                           }}
+                          placeholder="0.00"
+                          className={`w-full text-sm font-semibold rounded border px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400 tabular-nums ${creditAvailable < 0 ? "text-red-600 border-red-300 bg-red-50 dark:bg-red-950/30" : "text-blue-600 border-blue-200 bg-white dark:bg-blue-950/20"}`}
                         />
                         <button
                           type="button"
                           data-testid="button-use-credit-available"
-                          onClick={(e) => {
-                            const inp = (e.currentTarget.previousSibling as HTMLInputElement);
-                            const val = inp?.value ?? String(creditAvailable);
-                            setRechargePaidAmount(val);
-                          }}
-                          className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-600 text-white hover:bg-blue-700 leading-none"
+                          onClick={() => { if (rechargeCreditEntry) setRechargePaidAmount(rechargeCreditEntry); }}
+                          className="shrink-0 text-[10px] font-semibold px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 leading-none"
                         >Use</button>
                       </div>
                     </div>
