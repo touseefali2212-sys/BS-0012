@@ -198,11 +198,6 @@ export default function ResellersPage() {
   const [deductDialogOpen, setDeductDialogOpen] = useState(false);
   const [deductReseller, setDeductReseller] = useState<Reseller | null>(null);
   const [deductReversalTxn, setDeductReversalTxn] = useState<ResellerWalletTransaction | null>(null);
-  const [commCreditDialogOpen, setCommCreditDialogOpen] = useState(false);
-  const [commCreditReseller, setCommCreditReseller] = useState<Reseller | null>(null);
-  const [commCreditAmount, setCommCreditAmount] = useState("");
-  const [commCreditMonth, setCommCreditMonth] = useState(new Date().toISOString().slice(0, 7));
-  const [commCreditRemarks, setCommCreditRemarks] = useState("");
   const [adjustDialogOpen, setAdjustDialogOpen] = useState(false);
   const [adjustReseller, setAdjustReseller] = useState<Reseller | null>(null);
   const [adjustAmount, setAdjustAmount] = useState("");
@@ -381,26 +376,6 @@ export default function ResellersPage() {
       setDeductReseller(null);
       setDeductReversalTxn(null);
       toast({ title: "Recharge reversed successfully" });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    },
-  });
-
-  const commCreditMutation = useMutation({
-    mutationFn: async (data: { resellerId: number; amount: number; reference?: string; paymentMethod?: string; remarks?: string }) => {
-      const res = await apiRequest("POST", "/api/reseller-wallet/recharge", data);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/resellers"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/reseller-wallet-transactions", selectedWalletResellerId] });
-      setCommCreditDialogOpen(false);
-      setCommCreditReseller(null);
-      setCommCreditAmount("");
-      setCommCreditMonth(new Date().toISOString().slice(0, 7));
-      setCommCreditRemarks("");
-      toast({ title: "Commission credited successfully" });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -2210,10 +2185,7 @@ export default function ResellersPage() {
                   onClick={() => { setDeductReseller(selReseller); setDeductReversalTxn(null); setDeductDialogOpen(true); }}>
                   <ArrowDownCircle className="h-4 w-4" /> Manual Deduction
                 </Button>
-                <Button size="sm" className="bg-gradient-to-r from-purple-600 to-purple-500 text-white gap-1" data-testid="btn-commission-credit"
-                  onClick={() => { setCommCreditReseller(selReseller); setCommCreditAmount(""); setCommCreditMonth(new Date().toISOString().slice(0, 7)); setCommCreditRemarks(""); setCommCreditDialogOpen(true); }}>
-                  <DollarSign className="h-4 w-4" /> Commission Credit
-                </Button>
+
                 <Button size="sm" variant="outline" className="gap-1" data-testid="btn-adjustment"
                   onClick={() => { setAdjustReseller(selReseller); setAdjustAmount(""); setAdjustType("credit"); setAdjustReason(""); setAdjustReference(""); setAdjustDialogOpen(true); }}>
                   <RefreshCw className="h-4 w-4" /> Adjustment Entry
@@ -3196,70 +3168,6 @@ export default function ResellersPage() {
               className="bg-gradient-to-r from-amber-600 to-amber-500 text-white"
               data-testid="button-submit-deduct">
               {deductMutation.isPending ? "Processing..." : "Confirm Reversal"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={commCreditDialogOpen} onOpenChange={setCommCreditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-purple-600" />
-              Commission Credit {commCreditReseller ? `— ${commCreditReseller.name}` : ""}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {commCreditReseller && (
-              <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-3 flex items-center justify-between">
-                <div>
-                  <p className="text-xs text-muted-foreground">Current Balance</p>
-                  <p className="text-lg font-bold" data-testid="text-comm-current-balance">{formatPKR(commCreditReseller.walletBalance)}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Commission Rate</p>
-                  <p className="text-lg font-bold text-purple-600">{commCreditReseller.commissionRate || "10"}%</p>
-                </div>
-              </div>
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Commission Amount <span className="text-red-500">*</span></label>
-                <Input type="number" step="0.01" min="1" placeholder="Enter commission amount"
-                  value={commCreditAmount} onChange={(e) => setCommCreditAmount(e.target.value)} data-testid="input-comm-credit-amount" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">For Month</label>
-                <Input type="month" value={commCreditMonth} onChange={(e) => setCommCreditMonth(e.target.value)} data-testid="input-comm-credit-month" />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Remarks</label>
-              <Input placeholder="e.g., Monthly commission for March 2026" value={commCreditRemarks} onChange={(e) => setCommCreditRemarks(e.target.value)} data-testid="input-comm-credit-remarks" />
-            </div>
-            {commCreditReseller && commCreditAmount && parseFloat(commCreditAmount) > 0 && (
-              <div className="bg-purple-50 dark:bg-purple-950/30 rounded-lg p-3">
-                <p className="text-xs text-muted-foreground">Balance After Commission Credit</p>
-                <p className="text-lg font-bold text-purple-700 dark:text-purple-300" data-testid="text-comm-after-balance">
-                  {formatPKR(parseFloat(String(commCreditReseller.walletBalance || "0")) + parseFloat(commCreditAmount))}
-                </p>
-              </div>
-            )}
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="secondary" onClick={() => setCommCreditDialogOpen(false)} data-testid="button-cancel-comm-credit">Cancel</Button>
-            <Button onClick={() => {
-              if (!commCreditReseller || !commCreditAmount) return;
-              commCreditMutation.mutate({
-                resellerId: commCreditReseller.id,
-                amount: parseFloat(commCreditAmount),
-                reference: `Commission - ${commCreditMonth}`,
-                paymentMethod: "commission",
-                remarks: commCreditRemarks || `Commission credit for ${commCreditMonth}`,
-              });
-            }} disabled={!commCreditAmount || commCreditMutation.isPending}
-              className="bg-gradient-to-r from-purple-600 to-purple-500 text-white" data-testid="button-submit-comm-credit">
-              {commCreditMutation.isPending ? "Processing..." : "Credit Commission"}
             </Button>
           </DialogFooter>
         </DialogContent>
