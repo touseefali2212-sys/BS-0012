@@ -2867,134 +2867,128 @@ export default function ResellersPage() {
               </div>
             </div>
 
-            {/* Paid Amount + Payment Status (linked) */}
-            {(() => {
+            {/* Payment Status — shown first */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Payment Status <span className="text-red-500">*</span></label>
+              <Select value={rechargePaymentStatus} onValueChange={(val) => {
+                setRechargePaymentStatus(val);
+                if (val === "unpaid") {
+                  setRechargePaidAmount("");
+                }
+              }}>
+                <SelectTrigger data-testid="select-recharge-payment-status"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="unpaid">Unpaid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Fields shown only when Paid */}
+            {rechargePaymentStatus === "paid" && (() => {
               const total = rechargeVendorRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
               const paid = parseFloat(rechargePaidAmount) || 0;
               const remaining = total > 0 && rechargePaidAmount ? Math.max(0, total - paid) : 0;
               const isFullyPaid = rechargePaidAmount && total > 0 && paid >= total;
               const isPartiallyPaid = rechargePaidAmount && total > 0 && paid > 0 && paid < total;
-              return (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Paid Amount</label>
-                      <Input type="number" step="0.01" min="0" placeholder="Amount paid by reseller"
-                        value={rechargePaidAmount}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setRechargePaidAmount(val);
-                          const t = rechargeVendorRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
-                          const p = parseFloat(val) || 0;
-                          if (val && t > 0) {
-                            setRechargePaymentStatus(p >= t ? "paid" : "unpaid");
-                          }
-                        }}
-                        data-testid="input-recharge-paid-amount" />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Payment Status <span className="text-red-500">*</span></label>
-                      <Select value={rechargePaymentStatus} onValueChange={setRechargePaymentStatus}>
-                        <SelectTrigger data-testid="select-recharge-payment-status"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="paid">Paid</SelectItem>
-                          <SelectItem value="unpaid">Unpaid</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  {isFullyPaid && (
-                    <div className="flex items-center gap-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2">
-                      <div className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
-                      <p className="text-xs text-green-700 dark:text-green-400 font-medium">Fully paid — {formatPKR(paid)} received</p>
-                    </div>
-                  )}
-                  {isPartiallyPaid && (
-                    <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
-                        <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">Partial payment — unpaid balance:</p>
-                      </div>
-                      <p className="text-sm font-bold text-amber-700 dark:text-amber-400">{formatPKR(remaining)}</p>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
-            {/* Payment Type */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Payment Type <span className="text-red-500">*</span></label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: "cash_in_hand", label: "Cash in Hand", icon: Banknote, color: "green", accountType: "cash" },
-                  { value: "bank_transfer", label: "Bank Transfer", icon: Landmark, color: "blue", accountType: "bank" },
-                  { value: "mobile_wallet", label: "Mobile Wallet", icon: Wallet, color: "purple", accountType: "wallet" },
-                ].map(({ value, label, icon: Icon, color, accountType }) => {
-                  const active = rechargePaymentMethod === value;
-                  const accounts = (companyBankAccounts || []).filter(a => a.accountType === accountType && a.status === "active");
-                  return (
-                    <button
-                      key={value}
-                      type="button"
-                      onClick={() => { setRechargePaymentMethod(value); setRechargeBankAccountId(""); }}
-                      data-testid={`button-payment-type-${value}`}
-                      className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all text-center ${
-                        active
-                          ? color === "green" ? "border-green-500 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400"
-                          : color === "blue" ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400"
-                          : "border-purple-500 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400"
-                          : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
-                      }`}
-                    >
-                      <Icon className="h-5 w-5" />
-                      <span className="text-xs font-medium leading-tight">{label}</span>
-                      {accounts.length > 0 && <span className="text-[10px] text-muted-foreground">{accounts.length} acct{accounts.length !== 1 ? "s" : ""}</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Account Selection (filtered by payment type) */}
-            {(() => {
               const accountTypeMap: Record<string, string> = { cash_in_hand: "cash", bank_transfer: "bank", mobile_wallet: "wallet" };
               const filtered = (companyBankAccounts || []).filter(a => a.accountType === accountTypeMap[rechargePaymentMethod] && a.status === "active");
               const selectedAcc = filtered.find(a => String(a.id) === rechargeBankAccountId);
               return (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">
-                    Payment Send From
-                    {filtered.length === 0 && <span className="text-xs text-muted-foreground ml-2">(No accounts set up for this type — <a href="/company-bank-accounts" className="underline text-blue-600">add one</a>)</span>}
-                  </label>
-                  <Select value={rechargeBankAccountId} onValueChange={setRechargeBankAccountId}>
-                    <SelectTrigger data-testid="select-recharge-bank-account">
-                      <SelectValue placeholder={filtered.length === 0 ? "No accounts available" : "Select account"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">— None —</SelectItem>
-                      {filtered.map(a => (
-                        <SelectItem key={a.id} value={String(a.id)}>
-                          {a.name}{a.bankName ? ` — ${a.bankName}` : ""}{a.accountNumber ? ` (${a.accountNumber})` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {selectedAcc && (
-                    <div className="bg-slate-50 dark:bg-slate-900 rounded-md p-2 text-xs text-muted-foreground flex items-center justify-between">
-                      <span>{selectedAcc.name}{selectedAcc.bankName ? ` · ${selectedAcc.bankName}` : ""}</span>
-                      <span className="font-semibold text-slate-700 dark:text-slate-300">{formatPKR(selectedAcc.currentBalance)}</span>
+                <>
+                  {/* Paid Amount */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Paid Amount</label>
+                    <Input type="number" step="0.01" min="0" placeholder="Amount paid by reseller"
+                      value={rechargePaidAmount}
+                      onChange={(e) => setRechargePaidAmount(e.target.value)}
+                      data-testid="input-recharge-paid-amount" />
+                    {isFullyPaid && (
+                      <div className="flex items-center gap-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2">
+                        <div className="h-2 w-2 rounded-full bg-green-500 shrink-0" />
+                        <p className="text-xs text-green-700 dark:text-green-400 font-medium">Fully paid — {formatPKR(paid)} received</p>
+                      </div>
+                    )}
+                    {isPartiallyPaid && (
+                      <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+                          <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">Partial payment — unpaid balance:</p>
+                        </div>
+                        <p className="text-sm font-bold text-amber-700 dark:text-amber-400">{formatPKR(remaining)}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Payment Type */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Payment Type <span className="text-red-500">*</span></label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { value: "cash_in_hand", label: "Cash in Hand", icon: Banknote, color: "green", accountType: "cash" },
+                        { value: "bank_transfer", label: "Bank Transfer", icon: Landmark, color: "blue", accountType: "bank" },
+                        { value: "mobile_wallet", label: "Mobile Wallet", icon: Wallet, color: "purple", accountType: "wallet" },
+                      ].map(({ value, label, icon: Icon, color, accountType }) => {
+                        const active = rechargePaymentMethod === value;
+                        const accounts = (companyBankAccounts || []).filter(a => a.accountType === accountType && a.status === "active");
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() => { setRechargePaymentMethod(value); setRechargeBankAccountId(""); }}
+                            data-testid={`button-payment-type-${value}`}
+                            className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all text-center ${
+                              active
+                                ? color === "green" ? "border-green-500 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400"
+                                : color === "blue" ? "border-blue-500 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400"
+                                : "border-purple-500 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-400"
+                                : "border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                            }`}
+                          >
+                            <Icon className="h-5 w-5" />
+                            <span className="text-xs font-medium leading-tight">{label}</span>
+                            {accounts.length > 0 && <span className="text-[10px] text-muted-foreground">{accounts.length} acct{accounts.length !== 1 ? "s" : ""}</span>}
+                          </button>
+                        );
+                      })}
                     </div>
-                  )}
-                </div>
+                  </div>
+
+                  {/* Payment Send From */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Payment Send From
+                      {filtered.length === 0 && <span className="text-xs text-muted-foreground ml-2">(No accounts set up for this type — <a href="/company-bank-accounts" className="underline text-blue-600">add one</a>)</span>}
+                    </label>
+                    <Select value={rechargeBankAccountId} onValueChange={setRechargeBankAccountId}>
+                      <SelectTrigger data-testid="select-recharge-bank-account">
+                        <SelectValue placeholder={filtered.length === 0 ? "No accounts available" : "Select account"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">— None —</SelectItem>
+                        {filtered.map(a => (
+                          <SelectItem key={a.id} value={String(a.id)}>
+                            {a.name}{a.bankName ? ` — ${a.bankName}` : ""}{a.accountNumber ? ` (${a.accountNumber})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedAcc && (
+                      <div className="bg-slate-50 dark:bg-slate-900 rounded-md p-2 text-xs text-muted-foreground flex items-center justify-between">
+                        <span>{selectedAcc.name}{selectedAcc.bankName ? ` · ${selectedAcc.bankName}` : ""}</span>
+                        <span className="font-semibold text-slate-700 dark:text-slate-300">{formatPKR(selectedAcc.currentBalance)}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* TID / Reference ID */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">TID / Reference ID</label>
+                    <Input placeholder="Transaction ID or reference number" value={rechargeReference} onChange={(e) => setRechargeReference(e.target.value)} data-testid="input-recharge-reference" />
+                  </div>
+                </>
               );
             })()}
-
-            {/* TID / Reference ID */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">TID / Reference ID</label>
-              <Input placeholder="Transaction ID or reference number" value={rechargeReference} onChange={(e) => setRechargeReference(e.target.value)} data-testid="input-recharge-reference" />
-            </div>
 
             {/* Note */}
             <div className="space-y-2">
