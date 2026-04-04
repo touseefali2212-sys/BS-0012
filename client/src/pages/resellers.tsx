@@ -2956,7 +2956,7 @@ export default function ResellersPage() {
                 <>
                   {/* Paid Amount */}
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Paid Amount</label>
+                    <label className="text-sm font-medium">Paid Amount <span className="text-red-500">*</span></label>
                     <Input type="number" step="0.01" min="0" placeholder="Amount paid by reseller"
                       value={rechargePaidAmount}
                       onChange={(e) => setRechargePaidAmount(e.target.value)}
@@ -3080,6 +3080,7 @@ export default function ResellersPage() {
                 const hasAmount = rechargeVendorRows.some(r => r.amount && parseFloat(r.amount) > 0);
                 if (!hasAmount) return true;
                 if (rechargePaymentStatus === "paid") {
+                  if (!rechargePaidAmount || parseFloat(rechargePaidAmount) <= 0) return true;
                   const accountTypeMap: Record<string, string> = { cash_in_hand: "cash", bank_transfer: "bank", mobile_wallet: "wallet" };
                   const filtered = (companyBankAccounts || []).filter((a: any) => a.accountType === accountTypeMap[rechargePaymentMethod] && a.status === "active");
                   if (filtered.length > 0 && (!rechargeBankAccountId || rechargeBankAccountId === "none")) return true;
