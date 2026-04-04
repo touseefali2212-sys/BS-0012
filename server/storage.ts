@@ -1590,8 +1590,11 @@ export class DatabaseStorage implements IStorage {
     // finalBalance tracks the net wallet balance after all operations
     let finalBalance = newBalance;
 
-    // Auto-settle unpaid recharges from available advance credit balance
-    if (effectiveStatus === "unpaid") {
+    // Auto-settle any unpaid/partial recharge from available advance credit balance
+    const hasUnpaidPortion = (effectiveStatus === "unpaid" || effectiveStatus === "partial") && amount > effectivePaidAmount;
+    if (hasUnpaidPortion) {
+      const unpaidPortion = amount - effectivePaidAmount;
+
       const advanceTxns = await db.select().from(resellerWalletTransactions)
         .where(and(
           eq(resellerWalletTransactions.resellerId, resellerId),
@@ -1610,12 +1613,22 @@ export class DatabaseStorage implements IStorage {
       const availableAdvance = Math.max(0, totalAdvance - totalConsumed);
 
       if (availableAdvance > 0) {
-        const coverAmount = Math.min(amount, availableAdvance);
-        const newStatus = coverAmount >= amount ? "credit_balance" : "credit_partial";
+        const coverAmount = Math.min(unpaidPortion, availableAdvance);
+        const newTotalPaid = effectivePaidAmount + coverAmount;
+
+        // Determine new payment status
+        let newStatus: string;
+        if (newTotalPaid >= amount) {
+          // Fully settled — if originally unpaid use credit_balance, if partial (cash+credit) use paid
+          newStatus = effectiveStatus === "unpaid" ? "credit_balance" : "paid";
+        } else {
+          // Still partially unpaid after applying advance
+          newStatus = effectiveStatus === "unpaid" ? "credit_partial" : "partial";
+        }
 
         await this.updateResellerWalletTransaction(newRechargeTxn.id, {
           paymentStatus: newStatus,
-          paidAmount: coverAmount.toString(),
+          paidAmount: newTotalPaid.toString(),
         });
 
         const debitBalance = newBalance - coverAmount;
@@ -1628,7 +1641,7 @@ export class DatabaseStorage implements IStorage {
           amount: coverAmount.toString(),
           balanceAfter: debitBalance.toString(),
           reference: txnRef,
-          description: `Advance credit auto-applied to settle unpaid recharge (Rs.${coverAmount.toFixed(2)})`,
+          description: `Advance credit auto-applied: Rs.${coverAmount.toFixed(2)} of Rs.${unpaidPortion.toFixed(2)} unpaid portion settled`,
           createdBy: createdBy || "admin",
           createdAt: now,
         });
