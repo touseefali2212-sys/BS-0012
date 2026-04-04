@@ -378,7 +378,7 @@ export default function ResellersPage() {
   });
 
   const rechargeApiCall = useMutation({
-    mutationFn: async (data: { resellerId: number; amount: number; reference: string; paymentMethod?: string; remarks?: string; paymentStatus?: string; vendorId?: number; bankAccountId?: number }) => {
+    mutationFn: async (data: { resellerId: number; amount: number; reference: string; paymentMethod?: string; remarks?: string; paymentStatus?: string; paidAmount?: number; senderName?: string; vendorId?: number; bankAccountId?: number }) => {
       const res = await apiRequest("POST", "/api/reseller-wallet/recharge", data);
       return res.json();
     },
