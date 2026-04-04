@@ -3027,6 +3027,7 @@ export default function ResellersPage() {
                   <div className="space-y-2">
                     <label className="text-sm font-medium">
                       Payment Send To
+                      {filtered.length > 0 && <span className="text-red-500 ml-0.5">*</span>}
                       {filtered.length === 0 && <span className="text-xs text-muted-foreground ml-2">(No accounts set up for this type — <a href="/company-bank-accounts" className="underline text-blue-600">add one</a>)</span>}
                     </label>
                     <Select value={rechargeBankAccountId} onValueChange={setRechargeBankAccountId}>
@@ -3075,7 +3076,16 @@ export default function ResellersPage() {
           <DialogFooter className="gap-2 pt-2">
             <Button variant="secondary" onClick={() => setRechargeDialogOpen(false)} disabled={rechargeSubmitting} data-testid="button-cancel-recharge">Cancel</Button>
             <Button onClick={handleRecharge}
-              disabled={rechargeSubmitting || rechargeVendorRows.every(r => !r.amount || parseFloat(r.amount) <= 0)}
+              disabled={rechargeSubmitting || (() => {
+                const hasAmount = rechargeVendorRows.some(r => r.amount && parseFloat(r.amount) > 0);
+                if (!hasAmount) return true;
+                if (rechargePaymentStatus === "paid") {
+                  const accountTypeMap: Record<string, string> = { cash_in_hand: "cash", bank_transfer: "bank", mobile_wallet: "wallet" };
+                  const filtered = (companyBankAccounts || []).filter((a: any) => a.accountType === accountTypeMap[rechargePaymentMethod] && a.status === "active");
+                  if (filtered.length > 0 && (!rechargeBankAccountId || rechargeBankAccountId === "none")) return true;
+                }
+                return false;
+              })()}
               className="bg-gradient-to-r from-green-600 to-green-500 text-white" data-testid="button-submit-recharge">
               {rechargeSubmitting ? "Processing..." : `Confirm Recharge${rechargeVendorRows.filter(r => r.amount && parseFloat(r.amount) > 0).length > 1 ? ` (${rechargeVendorRows.filter(r => r.amount && parseFloat(r.amount) > 0).length} entries)` : ""}`}
             </Button>
