@@ -2095,7 +2095,8 @@ export default function ResellersPage() {
         const allResellers = resellers || [];
         const walletBal = isAllResellers ? allResellers.reduce((s, r) => s + parseFloat(String(r.walletBalance || "0")), 0) : (selReseller ? parseFloat(String(selReseller.walletBalance || "0")) : 0);
         const creditLim = isAllResellers ? allResellers.reduce((s, r) => s + parseFloat(String(r.creditLimit || "0")), 0) : (selReseller ? parseFloat(String(selReseller.creditLimit || "0")) : 0);
-        const availableCredit = creditLim + walletBal;
+        const totalAdvancePayments = (walletTransactions || []).filter(t => t.type === "credit" && t.category === "advance_payment").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
+        const availableCredit = creditLim + totalAdvancePayments;
         const isLowBalance = !isAllResellers && walletBal < 500 && walletBal >= 0;
         const isCreditExceeded = !isAllResellers && walletBal < 0 && Math.abs(walletBal) > creditLim;
         const txns = walletTransactions || [];
@@ -2111,7 +2112,6 @@ export default function ResellersPage() {
           return s + (amt - paid);
         }, 0);
         const secDeposit = isAllResellers ? allResellers.reduce((s, r) => s + parseFloat(String(r.securityDeposit || "0")), 0) : (selReseller ? parseFloat(String(selReseller.securityDeposit || "0")) : 0);
-        const totalAdvancePayments = txns.filter(t => t.type === "credit" && t.category === "advance_payment").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
         const totalUnpaidMonth = monthTxns.filter(t => t.type === "credit" && ((t as any).paymentStatus === "unpaid" || (t as any).paymentStatus === "partial" || (t as any).paymentStatus === "credit_partial") && t.category === "recharge").reduce((s, t) => {
           const amt = parseFloat(String(t.amount || "0"));
           const paid = parseFloat(String((t as any).paidAmount || "0"));
