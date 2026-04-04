@@ -2100,7 +2100,9 @@ export default function ResellersPage() {
         const walletBal = isAllResellers ? allResellers.reduce((s, r) => s + parseFloat(String(r.walletBalance || "0")), 0) : (selReseller ? parseFloat(String(selReseller.walletBalance || "0")) : 0);
         const creditLim = isAllResellers ? allResellers.reduce((s, r) => s + parseFloat(String(r.creditLimit || "0")), 0) : (selReseller ? parseFloat(String(selReseller.creditLimit || "0")) : 0);
         const totalAdvancePayments = (walletTransactions || []).filter(t => t.type === "credit" && t.category === "advance_payment").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
-        const availableCredit = creditLim + totalAdvancePayments;
+        const totalCreditConsumed = (walletTransactions || []).filter(t => t.type === "debit" && t.category === "credit_balance_payment").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
+        const netAdvanceBalance = Math.max(0, totalAdvancePayments - totalCreditConsumed);
+        const availableCredit = creditLim + netAdvanceBalance;
         const isLowBalance = !isAllResellers && walletBal < 500 && walletBal >= 0;
         const isCreditExceeded = !isAllResellers && walletBal < 0 && Math.abs(walletBal) > creditLim;
         const txns = walletTransactions || [];
@@ -2236,8 +2238,8 @@ export default function ResellersPage() {
                     label: isAllResellers ? "Total Credit Limit" : "Credit Limit",
                     sublabel: "Limit + Advance",
                     value: formatPKR(creditLim),
-                    detail1: "Advance",
-                    detail1val: formatPKR(totalAdvancePayments),
+                    detail1: "Advance Bal.",
+                    detail1val: formatPKR(netAdvanceBalance),
                     detail2: `Available: ${formatPKR(availableCredit)}`,
                     subHighlight: true,
                     icon: Shield,

@@ -1569,7 +1569,7 @@ export class DatabaseStorage implements IStorage {
     const walletIncrease = isCreditPayment ? Math.max(0, amount - effectivePaidAmount) : amount;
     const newBalance = currentBalance + walletIncrease;
 
-    await this.createResellerWalletTransaction({
+    const newRechargeTxn = await this.createResellerWalletTransaction({
       resellerId,
       type: "credit",
       category: "recharge",
@@ -1587,9 +1587,56 @@ export class DatabaseStorage implements IStorage {
       createdAt: now,
     });
 
+    // finalBalance tracks the net wallet balance after all operations
+    let finalBalance = newBalance;
+
+    // Auto-settle unpaid recharges from available advance credit balance
+    if (effectiveStatus === "unpaid") {
+      const advanceTxns = await db.select().from(resellerWalletTransactions)
+        .where(and(
+          eq(resellerWalletTransactions.resellerId, resellerId),
+          eq(resellerWalletTransactions.type, "credit"),
+          eq(resellerWalletTransactions.category, "advance_payment")
+        ));
+      const totalAdvance = advanceTxns.reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+      const consumedTxns = await db.select().from(resellerWalletTransactions)
+        .where(and(
+          eq(resellerWalletTransactions.resellerId, resellerId),
+          eq(resellerWalletTransactions.type, "debit"),
+          eq(resellerWalletTransactions.category, "credit_balance_payment")
+        ));
+      const totalConsumed = consumedTxns.reduce((sum, t) => sum + parseFloat(t.amount), 0);
+      const availableAdvance = Math.max(0, totalAdvance - totalConsumed);
+
+      if (availableAdvance > 0) {
+        const coverAmount = Math.min(amount, availableAdvance);
+        const newStatus = coverAmount >= amount ? "credit_balance" : "credit_partial";
+
+        await this.updateResellerWalletTransaction(newRechargeTxn.id, {
+          paymentStatus: newStatus,
+          paidAmount: coverAmount.toString(),
+        });
+
+        const debitBalance = newBalance - coverAmount;
+        finalBalance = debitBalance;
+
+        await this.createResellerWalletTransaction({
+          resellerId,
+          type: "debit",
+          category: "credit_balance_payment",
+          amount: coverAmount.toString(),
+          balanceAfter: debitBalance.toString(),
+          reference: txnRef,
+          description: `Advance credit auto-applied to settle unpaid recharge (Rs.${coverAmount.toFixed(2)})`,
+          createdBy: createdBy || "admin",
+          createdAt: now,
+        });
+      }
+    }
+
     // Handle overpayment: if paid amount exceeds recharge amount, auto-reconcile oldest unpaid transactions
     const excess = effectiveStatus === "paid" ? (effectivePaidAmount - amount) : 0;
-    let finalBalance = newBalance;
     if (excess > 0) {
       const unpaidTxns = await db.select().from(resellerWalletTransactions)
         .where(and(
