@@ -1514,7 +1514,37 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteResellerWalletTransaction(id: number): Promise<void> {
+    // Fetch the transaction before deleting so we can reverse its balance effect
+    const [txn] = await db.select().from(resellerWalletTransactions).where(eq(resellerWalletTransactions.id, id));
+    if (!txn) return;
+
+    const resellerId = txn.resellerId;
+
+    // Delete the transaction
     await db.delete(resellerWalletTransactions).where(eq(resellerWalletTransactions.id, id));
+
+    // Recalculate wallet balance from all remaining transactions in order
+    const remaining = await db
+      .select()
+      .from(resellerWalletTransactions)
+      .where(eq(resellerWalletTransactions.resellerId, resellerId))
+      .orderBy(resellerWalletTransactions.createdAt);
+
+    let runningBalance = 0;
+    for (const row of remaining) {
+      const amt = parseFloat(row.amount || "0");
+      runningBalance = row.type === "credit" ? runningBalance + amt : runningBalance - amt;
+      await db
+        .update(resellerWalletTransactions)
+        .set({ balanceAfter: runningBalance.toString() })
+        .where(eq(resellerWalletTransactions.id, row.id));
+    }
+
+    // Update the reseller's wallet balance to the final running balance
+    await db
+      .update(resellers)
+      .set({ walletBalance: runningBalance.toString() })
+      .where(eq(resellers.id, resellerId));
   }
 
   async rechargeResellerWallet(resellerId: number, amount: number, reference?: string, paymentMethod?: string, remarks?: string, createdBy?: string, paymentStatus?: string, vendorId?: number, bankAccountId?: number, paidAmount?: number, senderName?: string): Promise<Reseller> {
