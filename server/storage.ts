@@ -1533,7 +1533,14 @@ export class DatabaseStorage implements IStorage {
     let runningBalance = 0;
     for (const row of remaining) {
       const amt = parseFloat(row.amount || "0");
-      runningBalance = row.type === "credit" ? runningBalance + amt : runningBalance - amt;
+      if (row.type === "credit") {
+        // For credit_balance/credit_partial: only the unpaid portion increases the wallet
+        const isCreditPayment = row.paymentStatus === "credit_balance" || row.paymentStatus === "credit_partial";
+        const paidAmt = parseFloat(row.paidAmount || "0");
+        runningBalance += isCreditPayment ? Math.max(0, amt - paidAmt) : amt;
+      } else {
+        runningBalance -= amt;
+      }
       await db
         .update(resellerWalletTransactions)
         .set({ balanceAfter: runningBalance.toString() })
@@ -1556,7 +1563,11 @@ export class DatabaseStorage implements IStorage {
     const effectiveStatus = paymentStatus || "paid";
     const effectivePaidAmount = paidAmount !== undefined ? paidAmount : (effectiveStatus === "paid" ? amount : 0);
 
-    const newBalance = currentBalance + amount;
+    // For credit_balance/credit_partial payments: only the unpaid portion adds to wallet
+    // (the paid portion is consumed from existing credit via a separate debit call)
+    const isCreditPayment = effectiveStatus === "credit_balance" || effectiveStatus === "credit_partial";
+    const walletIncrease = isCreditPayment ? Math.max(0, amount - effectivePaidAmount) : amount;
+    const newBalance = currentBalance + walletIncrease;
 
     await this.createResellerWalletTransaction({
       resellerId,

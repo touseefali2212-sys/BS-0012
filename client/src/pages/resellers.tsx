@@ -618,7 +618,7 @@ export default function ResellersPage() {
           : rowPaidAmt >= rowAmt
             ? (rechargePaymentStatus === "credit_balance" ? "credit_balance" : "paid")
             : rowPaidAmt > 0
-              ? "partial"
+              ? (rechargePaymentStatus === "credit_balance" ? "credit_partial" : "partial")
               : "unpaid";
         await rechargeApiCall.mutateAsync({
           resellerId: rechargeReseller.id,
@@ -2105,7 +2105,7 @@ export default function ResellersPage() {
         const totalRechargeMonth = monthTxns.filter(t => t.type === "credit" && t.category === "recharge").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
         const totalDeductionMonth = monthTxns.filter(t => t.type === "debit" && t.category !== "credit_balance_payment").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
         const totalPaidMonth = monthTxns.filter(t => t.type === "credit" && (t as any).paymentStatus === "paid" && t.category === "recharge").reduce((s, t) => s + parseFloat(String((t as any).paidAmount || t.amount || "0")), 0);
-        const totalUnpaidAll = txns.filter(t => t.type === "credit" && ((t as any).paymentStatus === "unpaid" || (t as any).paymentStatus === "partial")).reduce((s, t) => {
+        const totalUnpaidAll = txns.filter(t => t.type === "credit" && ((t as any).paymentStatus === "unpaid" || (t as any).paymentStatus === "partial" || (t as any).paymentStatus === "credit_partial")).reduce((s, t) => {
           const amt = parseFloat(String(t.amount || "0"));
           const paid = parseFloat(String((t as any).paidAmount || "0"));
           return s + (amt - paid);
@@ -2208,7 +2208,7 @@ export default function ResellersPage() {
                     label: "Unpaid Balance",
                     sublabel: "All-time Unpaid",
                     value: formatPKR(totalUnpaidAll),
-                    sub: `${txns.filter(t => t.type === "credit" && ((t as any).paymentStatus === "unpaid" || (t as any).paymentStatus === "partial")).length} unpaid entries`,
+                    sub: `${txns.filter(t => t.type === "credit" && ((t as any).paymentStatus === "unpaid" || (t as any).paymentStatus === "partial" || (t as any).paymentStatus === "credit_partial")).length} unpaid entries`,
                     icon: AlertTriangle,
                     color: totalUnpaidAll > 0 ? "from-rose-600 to-rose-500" : "from-slate-500 to-slate-400",
                     badge: totalUnpaidAll > 0 ? "Pending" : null,
@@ -2380,10 +2380,12 @@ export default function ResellersPage() {
                                       ? "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950"
                                       : (txn as any).paymentStatus === "credit_balance"
                                       ? "text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-950"
+                                      : (txn as any).paymentStatus === "credit_partial"
+                                      ? "text-fuchsia-700 dark:text-fuchsia-300 bg-fuchsia-50 dark:bg-fuchsia-950"
                                       : "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950"
                                   }`}
                                   data-testid={`txn-status-${txn.id}`}>
-                                  {(txn as any).paymentStatus === "unpaid" ? "Unpaid" : (txn as any).paymentStatus === "partial" ? "Partial" : (txn as any).paymentStatus === "reconciled" ? "Reconciled" : (txn as any).paymentStatus === "credit_balance" ? "Credit" : "Paid"}
+                                  {(txn as any).paymentStatus === "unpaid" ? "Unpaid" : (txn as any).paymentStatus === "partial" ? "Partial" : (txn as any).paymentStatus === "reconciled" ? "Reconciled" : (txn as any).paymentStatus === "credit_balance" ? "Credit" : (txn as any).paymentStatus === "credit_partial" ? "Cr.Partial" : "Paid"}
                                 </Badge>
                               ) : (
                                 <span className="text-[10px] text-muted-foreground">—</span>
@@ -2920,7 +2922,7 @@ export default function ResellersPage() {
               const total = rechargeVendorRows.reduce((s, r) => s + (parseFloat(r.amount) || 0), 0);
               const currentBal = parseFloat(String(rechargeReseller.walletBalance || "0"));
               const currentCreditLim = parseFloat(String(rechargeReseller.creditLimit || "0"));
-              const currentUnpaid = (walletTransactions || []).filter(t => t.type === "credit" && ((t as any).paymentStatus === "unpaid" || (t as any).paymentStatus === "partial")).reduce((s, t) => {
+              const currentUnpaid = (walletTransactions || []).filter(t => t.type === "credit" && ((t as any).paymentStatus === "unpaid" || (t as any).paymentStatus === "partial" || (t as any).paymentStatus === "credit_partial")).reduce((s, t) => {
                 const amt = parseFloat(String(t.amount || "0"));
                 const paid = parseFloat(String((t as any).paidAmount || "0"));
                 return s + (amt - paid);
