@@ -188,6 +188,7 @@ export default function ResellersPage() {
   const [rechargeDialogOpen, setRechargeDialogOpen] = useState(false);
   const [rechargeReseller, setRechargeReseller] = useState<Reseller | null>(null);
   const [rechargeVendorRows, setRechargeVendorRows] = useState<Array<{ id: string; vendorId: string; amount: string }>>([{ id: "1", vendorId: "", amount: "" }]);
+  const [rechargeVendorId, setRechargeVendorId] = useState("");
   const [rechargePaidAmount, setRechargePaidAmount] = useState("");
   const [rechargeReference, setRechargeReference] = useState("");
   const [rechargePaymentMethod, setRechargePaymentMethod] = useState("cash_in_hand");
@@ -619,6 +620,7 @@ export default function ResellersPage() {
       setRechargeDialogOpen(false);
       setRechargeReseller(null);
       setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]);
+      setRechargeVendorId("");
       setRechargePaidAmount("");
       setRechargeReference("");
       setRechargePaymentMethod("cash_in_hand");
@@ -1745,7 +1747,7 @@ export default function ResellersPage() {
                                   <DropdownMenuItem onClick={() => setLocation(`/resellers/${reseller.id}/edit`)} data-testid={`button-edit-${reseller.id}`}>
                                     <Edit className="h-4 w-4 mr-2" /> Edit Reseller
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => { setRechargeReseller(reseller); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeSenderName(""); setRechargeDialogOpen(true); }} data-testid={`action-credit-${reseller.id}`}>
+                                  <DropdownMenuItem onClick={() => { setRechargeReseller(reseller); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargeVendorId(""); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeSenderName(""); setRechargeDialogOpen(true); }} data-testid={`action-credit-${reseller.id}`}>
                                     <Wallet className="h-4 w-4 mr-2" /> Adjust Credit
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => { setSelectedWalletResellerId(String(reseller.id)); changeTab("wallet"); }} data-testid={`action-transactions-${reseller.id}`}>
@@ -2049,7 +2051,7 @@ export default function ResellersPage() {
                 <Button size="sm" className="flex-1 bg-gradient-to-r from-[#002B5B] to-[#007BFF] text-white" onClick={() => { setLocation(`/resellers/${detailReseller.id}/edit`); setDetailReseller(null); }} data-testid="detail-btn-edit">
                   <Edit className="h-4 w-4 mr-1" /> Edit
                 </Button>
-                <Button size="sm" variant="outline" className="flex-1" onClick={() => { setRechargeReseller(detailReseller); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeSenderName(""); setRechargeDialogOpen(true); setDetailReseller(null); }} data-testid="detail-btn-credit">
+                <Button size="sm" variant="outline" className="flex-1" onClick={() => { setRechargeReseller(detailReseller); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargeVendorId(""); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeSenderName(""); setRechargeDialogOpen(true); setDetailReseller(null); }} data-testid="detail-btn-credit">
                   <Wallet className="h-4 w-4 mr-1" /> Adjust Credit
                 </Button>
               </div>
@@ -2223,7 +2225,7 @@ export default function ResellersPage() {
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" className="bg-gradient-to-r from-teal-600 to-teal-500 text-white gap-1"
                   data-testid="btn-add-recharge"
-                  onClick={() => { setRechargeReseller(selReseller); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeSenderName(""); setRechargeDialogOpen(true); }}>
+                  onClick={() => { setRechargeReseller(selReseller); setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]); setRechargeVendorId(""); setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand"); setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeSenderName(""); setRechargeDialogOpen(true); }}>
                   <ArrowUpCircle className="h-4 w-4" /> Add Recharge
                 </Button>
                 <Button size="sm" className="bg-gradient-to-r from-red-600 to-red-500 text-white gap-1"
@@ -2413,6 +2415,7 @@ export default function ResellersPage() {
                                         if (resellerForTxn) {
                                           setRechargeReseller(resellerForTxn);
                                           setRechargeVendorRows([{ id: "1", vendorId: "", amount: "" }]);
+                                          setRechargeVendorId("");
                                           setRechargePaidAmount(""); setRechargeReference(""); setRechargePaymentMethod("cash_in_hand");
                                           setRechargePaymentStatus("paid"); setRechargeRemarks(""); setRechargeBankAccountId(""); setRechargeSenderName("");
                                           setRechargeDialogOpen(true);
@@ -2955,12 +2958,35 @@ export default function ResellersPage() {
               );
             })()}
 
+            {/* Select Vendor */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-1.5">
+                <Handshake className="h-4 w-4 text-muted-foreground" />
+                Select Vendor
+              </label>
+              <Select value={rechargeVendorId || "none"} onValueChange={(val) => {
+                const v = val === "none" ? "" : val;
+                setRechargeVendorId(v);
+                setRechargeVendorRows(prev => prev.map((r, i) => i === 0 ? { ...r, vendorId: v } : r));
+              }}>
+                <SelectTrigger data-testid="select-recharge-vendor">
+                  <SelectValue placeholder="Select a vendor (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— No Vendor —</SelectItem>
+                  {(vendors || []).map(v => (
+                    <SelectItem key={v.id} value={String(v.id)}>{v.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Vendor Breakdown (multi-row) */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">Vendor Breakdown</label>
                 <Button size="sm" variant="outline" type="button"
-                  onClick={() => setRechargeVendorRows(prev => [...prev, { id: Date.now().toString(), vendorId: "", amount: "" }])}
+                  onClick={() => setRechargeVendorRows(prev => [...prev, { id: Date.now().toString(), vendorId: rechargeVendorId, amount: "" }])}
                   data-testid="button-add-vendor-row">
                   <Plus className="h-3.5 w-3.5 mr-1" /> Add Vendor
                 </Button>
@@ -2971,8 +2997,12 @@ export default function ResellersPage() {
                 </div>
                 {rechargeVendorRows.map((row, idx) => (
                   <div key={row.id} className={`grid grid-cols-[1fr_120px_36px] gap-0 items-center px-2 py-1.5 ${idx > 0 ? "border-t border-slate-100 dark:border-slate-800" : ""}`}>
-                    <Select value={row.vendorId}
-                      onValueChange={(val) => setRechargeVendorRows(prev => prev.map(r => r.id === row.id ? { ...r, vendorId: val } : r))}>
+                    <Select value={row.vendorId || "none"}
+                      onValueChange={(val) => {
+                        const v = val === "none" ? "" : val;
+                        setRechargeVendorRows(prev => prev.map(r => r.id === row.id ? { ...r, vendorId: v } : r));
+                        if (idx === 0) setRechargeVendorId(v);
+                      }}>
                       <SelectTrigger className="h-8 text-sm border-0 shadow-none focus:ring-0" data-testid={`select-vendor-row-${idx}`}>
                         <SelectValue placeholder="Select vendor (optional)" />
                       </SelectTrigger>
