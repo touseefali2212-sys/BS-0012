@@ -3934,6 +3934,14 @@ function PanelVendorsTab() {
 
   const { data: vendors, isLoading } = useQuery<Vendor[]>({ queryKey: ["/api/vendors"] });
   const { data: vendorPackages } = useQuery<VendorPackage[]>({ queryKey: ["/api/vendor-packages"] });
+  const { data: allVendorTxns } = useQuery<VendorWalletTransaction[]>({
+    queryKey: ["/api/vendor-wallet-transactions/all"],
+    queryFn: async () => {
+      const res = await fetch("/api/vendor-wallet-transactions/all", { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
+  });
   const { data: walletTransactions } = useQuery<VendorWalletTransaction[]>({
     queryKey: ["/api/vendor-wallet-transactions", walletVendor?.id],
     enabled: !!walletVendor,
@@ -3975,10 +3983,27 @@ function PanelVendorsTab() {
   };
 
   const panelVendors = (vendors || []).filter(v => v.vendorType === "panel");
-  const totalWallet = panelVendors.reduce((s, v) => s + Number(v.walletBalance || 0), 0);
-  const activeCount = panelVendors.filter(v => v.status === "active").length;
+  const activeVendors = panelVendors.filter(v => v.status === "active");
+  const closedVendors = panelVendors.filter(v => v.status !== "active");
+  const activeCount = activeVendors.length;
+  const closedCount = closedVendors.length;
   const totalPackages = panelVendors.reduce((s, v) => s + getVendorPackages(v.id).length, 0);
   const totalPayable = panelVendors.reduce((s, v) => s + getVendorTotalPayable(v.id), 0);
+  const expiringCount = panelVendors.filter(v => { if (!v.contractEndDate) return false; const diff = (new Date(v.contractEndDate).getTime() - Date.now()) / 86400000; return diff >= 0 && diff <= 30; }).length;
+
+  const panelVendorIds = new Set(panelVendors.map(v => v.id));
+  const panelTxns = (allVendorTxns || []).filter(t => panelVendorIds.has(t.vendorId));
+  const isPaid = (t: VendorWalletTransaction) => t.type === "credit" || t.type === "recharge";
+  const totalAddRecharge = panelTxns.filter(isPaid).reduce((s, t) => s + Number(t.amount || 0), 0);
+  const totalPaid = totalAddRecharge;
+  const lastMonthKey = (() => { const d = new Date(); d.setMonth(d.getMonth() - 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; })();
+  const monthlyRechargeCost = panelTxns.filter(t => isPaid(t) && (t.createdAt || "").startsWith(lastMonthKey)).reduce((s, t) => s + Number(t.amount || 0), 0);
+  const totalOutstanding = panelVendors.reduce((s, v) => s + Math.max(0, -Number(v.walletBalance || 0)), 0);
+  const totalCreditAdv = panelVendors.reduce((s, v) => s + Math.max(0, Number(v.walletBalance || 0)), 0);
+
+  const getVendorPaid = (vendorId: number) => panelTxns.filter(t => t.vendorId === vendorId && isPaid(t)).reduce((s, t) => s + Number(t.amount || 0), 0);
+  const getVendorOutstanding = (v: Vendor) => Math.max(0, -Number(v.walletBalance || 0));
+  const getVendorCreditAdv = (v: Vendor) => Math.max(0, Number(v.walletBalance || 0));
 
   const filtered = panelVendors.filter(v => {
     const matchSearch = v.name.toLowerCase().includes(search.toLowerCase()) || v.phone.includes(search) || (v.contactPerson || "").toLowerCase().includes(search.toLowerCase()) || (v.email || "").toLowerCase().includes(search.toLowerCase()) || (v.panelUrl || "").toLowerCase().includes(search.toLowerCase());
@@ -3994,8 +4019,8 @@ function PanelVendorsTab() {
   });
 
   const exportCSV = () => {
-    const headers = ["Name", "Contact Person", "Phone", "Email", "City", "Service Type", "Wallet Balance", "Panel URL", "Panel Username", "Packages", "Payable Amount", "Status"];
-    const rows = filtered.map(v => [v.name, v.contactPerson || "", v.phone, v.email || "", v.city || "", v.serviceType, v.walletBalance || "0", v.panelUrl || "", v.panelUsername || "", getVendorPackages(v.id).length, getVendorTotalPayable(v.id), v.status]);
+    const headers = ["Vendor ID", "Company Name", "Contact Person", "Phone", "Email", "City", "Service Type", "Panel URL", "Panel Username", "Panel Recharge (PKR)", "Paid Payment (PKR)", "Outstanding Balance (PKR)", "Credit Advance (PKR)", "SLA", "Contract Start", "Contract End", "Status"];
+    const rows = filtered.map(v => [v.id, v.name, v.contactPerson || "", v.phone, v.email || "", v.city || "", v.serviceType, v.panelUrl || "", v.panelUsername || "", getVendorPaid(v.id).toFixed(2), getVendorPaid(v.id).toFixed(2), getVendorOutstanding(v).toFixed(2), getVendorCreditAdv(v).toFixed(2), v.slaLevel || "", v.contractStartDate || "", v.contractEndDate || "", v.status]);
     const csv = "\uFEFF" + [headers.join(","), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -4005,35 +4030,56 @@ function PanelVendorsTab() {
   const generatePDF = () => {
     if (filtered.length === 0) return;
     const rows = filtered.map(v => {
-      const pkgs = getVendorPackages(v.id);
+      const paid = getVendorPaid(v.id);
+      const outstanding = getVendorOutstanding(v);
+      const creditAdv = getVendorCreditAdv(v);
+      const diff = v.contractEndDate ? Math.ceil((new Date(v.contractEndDate).getTime() - Date.now()) / 86400000) : null;
       return `<tr>
-        <td>${escHtml(v.name)}${v.contactPerson ? `<br><small>${escHtml(v.contactPerson)}</small>` : ""}</td>
-        <td>${escHtml(v.phone)}</td>
+        <td class="id-col">#${v.id}</td>
+        <td>${escHtml(v.name)}${v.contactPerson ? `<br><small>${escHtml(v.contactPerson)}</small>` : ""}${v.city ? `<br><small style="color:#64748b">${escHtml(v.city)}</small>` : ""}</td>
         <td class="capitalize">${escHtml(v.serviceType)}</td>
-        <td>${escHtml(v.walletBalance || "0")}</td>
-        <td>${v.panelUrl ? `<a href="${escHtml(v.panelUrl)}">${escHtml(v.panelUrl)}</a>` : "—"}</td>
-        <td>${escHtml(v.panelUsername || "—")}</td>
-        <td>${pkgs.length}</td>
-        <td>${escHtml(String(getVendorTotalPayable(v.id)))}</td>
+        <td class="num">${paid.toLocaleString("en-PK", { maximumFractionDigits: 0 })}</td>
+        <td class="num paid">${paid.toLocaleString("en-PK", { maximumFractionDigits: 0 })}</td>
+        <td class="num outstanding">${outstanding > 0 ? outstanding.toLocaleString("en-PK", { maximumFractionDigits: 0 }) : "—"}</td>
+        <td class="num credit">${creditAdv > 0 ? creditAdv.toLocaleString("en-PK", { maximumFractionDigits: 0 }) : "—"}</td>
+        <td class="capitalize">${escHtml(v.slaLevel || "Standard")}</td>
+        <td>${v.contractEndDate ? `${escHtml(v.contractEndDate)}${diff !== null && diff <= 30 ? ` <span class="exp">(${diff}d)</span>` : ""}` : "—"}</td>
         <td><span class="badge ${v.status === "active" ? "badge-green" : "badge-red"}">${escHtml(v.status)}</span></td>
       </tr>`;
     }).join("");
     const html = `<!DOCTYPE html><html><head><title>Panel Vendors Report</title>
-    <style>* { margin:0; padding:0; box-sizing:border-box; } body { font-family:Arial,sans-serif; font-size:11px; color:#111; padding:20px; }
-    h1 { font-size:16px; margin-bottom:2px; } .meta { font-size:11px; color:#555; margin-bottom:16px; }
-    table { width:100%; border-collapse:collapse; } th { background:#4c1d95; color:#fff; padding:7px 8px; text-align:left; font-size:10px; text-transform:uppercase; }
-    td { padding:6px 8px; border-bottom:1px solid #e2e8f0; vertical-align:top; } tr:nth-child(even) td { background:#faf5ff; }
-    .capitalize { text-transform:capitalize; } a { color:#7c3aed; }
-    .badge { padding:2px 6px; border-radius:4px; font-size:9px; font-weight:600; text-transform:uppercase; }
+    <style>* { margin:0; padding:0; box-sizing:border-box; } body { font-family:Arial,sans-serif; font-size:10px; color:#111; padding:16px; }
+    h1 { font-size:15px; margin-bottom:2px; } .meta { font-size:10px; color:#555; margin-bottom:12px; }
+    .summary { display:flex; gap:14px; margin-bottom:14px; flex-wrap:wrap; }
+    .summary-item { background:#faf5ff; border:1px solid #e9d5ff; border-radius:6px; padding:6px 12px; min-width:100px; }
+    .summary-item .label { font-size:9px; color:#64748b; text-transform:uppercase; letter-spacing:.4px; }
+    .summary-item .val { font-size:13px; font-weight:700; color:#4c1d95; margin-top:1px; }
+    table { width:100%; border-collapse:collapse; } th { background:#4c1d95; color:#fff; padding:6px 7px; text-align:left; font-size:9px; text-transform:uppercase; white-space:nowrap; }
+    td { padding:5px 7px; border-bottom:1px solid #e2e8f0; vertical-align:top; font-size:10px; } tr:nth-child(even) td { background:#faf5ff; }
+    .capitalize { text-transform:capitalize; } .exp { color:#d97706; font-weight:600; } .id-col { color:#64748b; font-size:9px; }
+    .num { text-align:right; font-family:monospace; }
+    .paid { color:#15803d; } .outstanding { color:#dc2626; } .credit { color:#6366f1; }
+    .badge { padding:2px 5px; border-radius:3px; font-size:8px; font-weight:700; text-transform:uppercase; }
     .badge-green { background:#dcfce7; color:#15803d; } .badge-red { background:#fef2f2; color:#dc2626; }
-    .footer { margin-top:16px; font-size:10px; color:#888; text-align:center; border-top:1px solid #e2e8f0; padding-top:8px; }
+    .footer { margin-top:14px; font-size:9px; color:#888; text-align:center; border-top:1px solid #e2e8f0; padding-top:8px; }
+    small { color:#64748b; font-size:8.5px; }
     </style></head><body>
     <h1>Panel Vendors Report</h1>
-    <p class="meta"><strong>Total:</strong> ${filtered.length} &nbsp; <strong>Active:</strong> ${activeCount} &nbsp; <strong>Total Wallet:</strong> PKR ${totalWallet.toLocaleString()} &nbsp; <strong>Total Packages:</strong> ${totalPackages} &nbsp; <strong>Generated:</strong> ${new Date().toLocaleString()}</p>
-    <table><thead><tr><th>Name</th><th>Phone</th><th>Service</th><th>Wallet Balance (PKR)</th><th>Panel URL</th><th>Panel Username</th><th>Packages</th><th>Payable (PKR)</th><th>Status</th></tr></thead>
+    <p class="meta">Generated: ${new Date().toLocaleString()}</p>
+    <div class="summary">
+      <div class="summary-item"><div class="label">Total Panel Vendors</div><div class="val">${panelVendors.length}</div></div>
+      <div class="summary-item"><div class="label">Active</div><div class="val">${activeCount}</div></div>
+      <div class="summary-item"><div class="label">Closed</div><div class="val">${closedCount}</div></div>
+      <div class="summary-item"><div class="label">Monthly Recharge (PKR)</div><div class="val">${monthlyRechargeCost.toLocaleString("en-PK", { maximumFractionDigits: 0 })}</div></div>
+      <div class="summary-item"><div class="label">Total Recharge (PKR)</div><div class="val">${totalAddRecharge.toLocaleString("en-PK", { maximumFractionDigits: 0 })}</div></div>
+      <div class="summary-item"><div class="label">Total Paid (PKR)</div><div class="val" style="color:#15803d">${totalPaid.toLocaleString("en-PK", { maximumFractionDigits: 0 })}</div></div>
+      <div class="summary-item"><div class="label">Outstanding (PKR)</div><div class="val" style="color:#dc2626">${totalOutstanding.toLocaleString("en-PK", { maximumFractionDigits: 0 })}</div></div>
+      <div class="summary-item"><div class="label">Credit Adv (PKR)</div><div class="val" style="color:#6366f1">${totalCreditAdv.toLocaleString("en-PK", { maximumFractionDigits: 0 })}</div></div>
+    </div>
+    <table><thead><tr><th>ID</th><th>Company Name</th><th>Service</th><th>Panel Recharge</th><th>Paid</th><th>Outstanding</th><th>Cr. Adv</th><th>SLA</th><th>Contract End</th><th>Status</th></tr></thead>
     <tbody>${rows}</tbody></table>
     <p class="footer">NetSphere Enterprise — Panel Vendors Report</p></body></html>`;
-    const win = window.open("", "_blank", "width=1100,height=800");
+    const win = window.open("", "_blank", "width=1200,height=800");
     if (!win) return;
     win.document.write(html); win.document.close(); win.focus();
     setTimeout(() => { win.print(); }, 400);
@@ -4041,50 +4087,112 @@ function PanelVendorsTab() {
 
   return (
     <div className="space-y-4 page-fade-in" data-testid="tab-content-panel-vendors">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="vendor-stat-card stat-purple p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase font-semibold">Panel Vendors</p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="vendor-stat-card stat-purple p-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Total Panel Vendors</p>
               <p className="text-2xl font-bold mt-1">{panelVendors.length}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">all panel vendors</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-950 flex items-center justify-center">
-              <Globe className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            <div className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-950 flex items-center justify-center shrink-0">
+              <Globe className="h-4 w-4 text-purple-600 dark:text-purple-400" />
             </div>
           </div>
         </div>
-        <div className="vendor-stat-card stat-green p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase font-semibold">Active</p>
+        <div className="vendor-stat-card stat-green p-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Active Vendors</p>
               <p className="text-2xl font-bold mt-1">{activeCount}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{totalPackages} total packages</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-green-50 dark:bg-green-950 flex items-center justify-center">
-              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-            </div>
-          </div>
-        </div>
-        <div className="vendor-stat-card stat-blue p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase font-semibold">Total Wallet</p>
-              <p className="text-lg font-bold mt-1">{formatPKR(totalWallet)}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">combined balance</p>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950 flex items-center justify-center">
-              <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <div className="w-8 h-8 rounded-full bg-green-50 dark:bg-green-950 flex items-center justify-center shrink-0">
+              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
             </div>
           </div>
         </div>
-        <div className="vendor-stat-card stat-amber p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase font-semibold">Packages</p>
-              <p className="text-2xl font-bold mt-1">{totalPackages}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{formatPKR(totalPayable)} payable</p>
+        <div className="vendor-stat-card stat-blue p-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Monthly Recharge</p>
+              <p className="text-sm font-bold mt-1 leading-tight">{formatPKR(monthlyRechargeCost)}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">prev month recharge</p>
             </div>
-            <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-950 flex items-center justify-center">
-              <Package className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950 flex items-center justify-center shrink-0">
+              <RefreshCw className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            </div>
+          </div>
+        </div>
+        <div className="vendor-stat-card stat-cyan p-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Add Recharge</p>
+              <p className="text-sm font-bold mt-1 leading-tight">{formatPKR(totalAddRecharge)}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">total recharged from vendor</p>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-cyan-50 dark:bg-cyan-950 flex items-center justify-center shrink-0">
+              <Wallet className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+            </div>
+          </div>
+        </div>
+        <div className="vendor-stat-card stat-emerald p-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Paid Payment</p>
+              <p className="text-sm font-bold mt-1 leading-tight text-emerald-700 dark:text-emerald-400">{formatPKR(totalPaid)}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">paid to panel vendors</p>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center shrink-0">
+              <BadgeDollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
+          </div>
+        </div>
+        <div className="vendor-stat-card stat-red p-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Outstanding Balance</p>
+              <p className="text-sm font-bold mt-1 leading-tight text-red-600 dark:text-red-400">{formatPKR(totalOutstanding)}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">unpaid recharge bills</p>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-950 flex items-center justify-center shrink-0">
+              <TrendingUp className="h-4 w-4 text-red-600 dark:text-red-400" />
+            </div>
+          </div>
+        </div>
+        <div className="vendor-stat-card stat-indigo p-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Credit Advance</p>
+              <p className="text-sm font-bold mt-1 leading-tight text-indigo-600 dark:text-indigo-400">{formatPKR(totalCreditAdv)}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">advance with vendors</p>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center shrink-0">
+              <Banknote className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+            </div>
+          </div>
+        </div>
+        <div className="vendor-stat-card stat-gray p-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Closed Vendors</p>
+              <p className="text-2xl font-bold mt-1">{closedCount}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">inactive / closed</p>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
+              <XCircle className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+            </div>
+          </div>
+        </div>
+        <div className="vendor-stat-card stat-amber p-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Contract Expiring</p>
+              <p className="text-2xl font-bold mt-1">{expiringCount}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">expiring in 30 days</p>
+            </div>
+            <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-950 flex items-center justify-center shrink-0">
+              <Calendar className="h-4 w-4 text-amber-600 dark:text-amber-400" />
             </div>
           </div>
         </div>
@@ -4150,59 +4258,80 @@ function PanelVendorsTab() {
               <Table className="vendor-table-enterprise">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Phone</TableHead>
+                    <TableHead className="hidden sm:table-cell w-12">ID</TableHead>
+                    <TableHead>Company Name</TableHead>
                     <TableHead className="hidden md:table-cell">Service</TableHead>
-                    <TableHead className="hidden md:table-cell">Wallet Balance</TableHead>
-                    <TableHead className="hidden lg:table-cell">Panel URL</TableHead>
-                    <TableHead className="hidden lg:table-cell">Packages</TableHead>
-                    <TableHead className="hidden xl:table-cell">Payable Amount</TableHead>
+                    <TableHead className="hidden md:table-cell">Panel Recharge</TableHead>
+                    <TableHead className="hidden lg:table-cell">Paid Payment</TableHead>
+                    <TableHead className="hidden xl:table-cell">Outstanding B</TableHead>
+                    <TableHead className="hidden xl:table-cell">C Advance</TableHead>
+                    <TableHead className="hidden xl:table-cell">SLA</TableHead>
+                    <TableHead className="hidden 2xl:table-cell">Contract End</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filtered.map(vendor => {
-                    const pkgs = getVendorPackages(vendor.id);
-                    const payable = getVendorTotalPayable(vendor.id);
+                    const vPaid = getVendorPaid(vendor.id);
+                    const vOutstanding = getVendorOutstanding(vendor);
+                    const vCreditAdv = getVendorCreditAdv(vendor);
                     return (
                       <TableRow key={vendor.id} data-testid={`row-panel-vendor-${vendor.id}`}>
-                        <TableCell>
-                          <div className="font-medium">{vendor.name}</div>
-                          {vendor.contactPerson && <div className="text-xs text-muted-foreground">{vendor.contactPerson}</div>}
-                          {vendor.city && <div className="text-xs text-muted-foreground">{vendor.city}</div>}
+                        <TableCell className="hidden sm:table-cell">
+                          <span className="text-[10px] text-muted-foreground font-mono">#{vendor.id}</span>
                         </TableCell>
                         <TableCell>
-                          <span className="text-xs flex items-center gap-1"><Phone className="h-3 w-3 text-muted-foreground" />{vendor.phone}</span>
+                          <div className="font-medium text-sm">{vendor.name}</div>
+                          {vendor.contactPerson && <div className="text-xs text-muted-foreground">{vendor.contactPerson}</div>}
+                          {vendor.city && <div className="text-[10px] text-muted-foreground flex items-center gap-0.5"><Phone className="h-2.5 w-2.5" />{vendor.phone}</div>}
+                          {vendor.panelUrl && <div className="text-[10px] text-blue-500 dark:text-blue-400 truncate max-w-[140px]">{vendor.panelUrl}</div>}
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           <span className="text-xs capitalize">{vendor.serviceType}</span>
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           <div>
-                            <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">{formatPKR(vendor.walletBalance)}</span>
-                            <span className="text-[10px] text-muted-foreground block">wallet balance</span>
+                            <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">{formatPKR(vPaid)}</span>
+                            <span className="text-[10px] text-muted-foreground block">total recharge</span>
                           </div>
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
-                          {vendor.panelUrl ? (
-                            <div>
-                              <a href={vendor.panelUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate block max-w-[160px]" title={vendor.panelUrl}>{vendor.panelUrl}</a>
-                              {vendor.panelUsername && <span className="text-[10px] text-muted-foreground">{vendor.panelUsername}</span>}
-                            </div>
-                          ) : <span className="text-xs text-muted-foreground">Not set</span>}
-                        </TableCell>
-                        <TableCell className="hidden lg:table-cell">
-                          <div className="flex items-center gap-1.5">
-                            <Badge variant="secondary" className="no-default-active-elevate text-[10px]"><Package className="h-3 w-3 mr-0.5" />{pkgs.length}</Badge>
-                            {pkgs.length > 0 && <span className="text-[10px] text-muted-foreground truncate max-w-[80px]" title={pkgs.map(p => p.packageName).join(", ")}>{pkgs[0].packageName}{pkgs.length > 1 ? ` +${pkgs.length - 1}` : ""}</span>}
+                          <div>
+                            <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{formatPKR(vPaid)}</span>
+                            <span className="text-[10px] text-muted-foreground block">paid</span>
                           </div>
                         </TableCell>
                         <TableCell className="hidden xl:table-cell">
                           <div>
-                            <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">{formatPKR(payable)}</span>
-                            <span className="text-[10px] text-muted-foreground block">total pkg cost</span>
+                            {vOutstanding > 0 ? (
+                              <>
+                                <span className="text-xs font-semibold text-red-600 dark:text-red-400">{formatPKR(vOutstanding)}</span>
+                                <span className="text-[10px] text-muted-foreground block">unpaid</span>
+                              </>
+                            ) : <span className="text-[10px] text-muted-foreground">—</span>}
                           </div>
+                        </TableCell>
+                        <TableCell className="hidden xl:table-cell">
+                          <div>
+                            {vCreditAdv > 0 ? (
+                              <>
+                                <span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">{formatPKR(vCreditAdv)}</span>
+                                <span className="text-[10px] text-muted-foreground block">advance</span>
+                              </>
+                            ) : <span className="text-[10px] text-muted-foreground">—</span>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden xl:table-cell">
+                          <Badge variant="secondary" className={`no-default-active-elevate text-[10px] capitalize ${vendor.slaLevel === "enterprise" ? "text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950" : vendor.slaLevel === "premium" ? "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950" : "text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-950"}`}>{vendor.slaLevel || "Standard"}</Badge>
+                        </TableCell>
+                        <TableCell className="hidden 2xl:table-cell">
+                          {vendor.contractEndDate ? (
+                            <div className="text-xs">
+                              <span className="text-muted-foreground">{vendor.contractEndDate}</span>
+                              {(() => { const diff = Math.ceil((new Date(vendor.contractEndDate).getTime() - Date.now()) / 86400000); if (diff < 0) return <span className="block text-red-500 font-medium">Expired</span>; if (diff <= 30) return <span className="block text-amber-500 font-medium">{diff}d left</span>; return null; })()}
+                            </div>
+                          ) : <span className="text-xs text-muted-foreground">N/A</span>}
                         </TableCell>
                         <TableCell>
                           <Badge variant="secondary" className={`no-default-active-elevate text-[10px] capitalize ${statusColors[vendor.status] || ""}`}>{vendor.status}</Badge>
