@@ -324,7 +324,7 @@ export interface IStorage {
   transferBetweenAccounts(fromAccountId: number, toAccountId: number, amount: number, remarks?: string, createdBy?: string): Promise<void>;
   getCompanyAccountLedger(accountId?: number): Promise<CompanyAccountLedgerEntry[]>;
   createCompanyAccountLedgerEntry(data: InsertCompanyAccountLedger): Promise<CompanyAccountLedgerEntry>;
-  resyncResellerWalletLedger(walletTxnId: number, newBankAccountId: number | null, newPaidAmount: number, description?: string, remarks?: string, createdBy?: string): Promise<void>;
+  resyncResellerWalletLedger(walletTxnId: number, newBankAccountId: number | null, newPaidAmount: number, description?: string, remarks?: string, createdBy?: string, oldResellerId?: number, oldBankAccountId?: number, oldPaidAmount?: number): Promise<void>;
 
   getResellerCompanyPackages(): Promise<ResellerCompanyPackage[]>;
   getResellerCompanyPackage(id: number): Promise<ResellerCompanyPackage | undefined>;
@@ -1520,27 +1520,52 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  // Reverse and delete any companyAccountLedger entries linked to a reseller wallet transaction
-  private async reverseResellerWalletLedgerEntries(walletTxnId: number): Promise<void> {
-    const entries = await db.select().from(companyAccountLedger).where(and(
+  // Reverse and delete a single companyAccountLedger entry, adjusting the bank account balance
+  private async reverseLedgerEntry(entry: CompanyAccountLedgerEntry): Promise<void> {
+    const entryAmt = parseFloat(entry.amount || "0");
+    if (entryAmt > 0) {
+      const account = await this.getCompanyBankAccount(entry.accountId);
+      if (account) {
+        // Reverse: if ledger was a debit (money debited from bank), credit it back; vice versa
+        const reversed = entry.type === "debit"
+          ? parseFloat(account.currentBalance || "0") + entryAmt
+          : parseFloat(account.currentBalance || "0") - entryAmt;
+        await db.update(companyBankAccounts)
+          .set({ currentBalance: reversed.toString() })
+          .where(eq(companyBankAccounts.id, entry.accountId));
+      }
+    }
+    await db.delete(companyAccountLedger).where(eq(companyAccountLedger.id, entry.id));
+  }
+
+  // Find and reverse companyAccountLedger entries linked to a reseller wallet transaction.
+  // Supports both new format (referenceId = walletTxnId) and legacy format (referenceId = resellerId).
+  private async reverseResellerWalletLedgerEntries(
+    walletTxnId: number,
+    resellerId?: number,
+    bankAccountId?: number,
+    paidAmount?: number
+  ): Promise<void> {
+    // Try new format first: referenceId = walletTxnId
+    let entries = await db.select().from(companyAccountLedger).where(and(
       eq(companyAccountLedger.referenceModule, "reseller_recharge"),
       eq(companyAccountLedger.referenceId, String(walletTxnId))
     ));
+
+    // Legacy fallback: referenceId = resellerId, matched by accountId + amount
+    if (entries.length === 0 && resellerId && bankAccountId && paidAmount && paidAmount > 0) {
+      const candidates = await db.select().from(companyAccountLedger).where(and(
+        eq(companyAccountLedger.referenceModule, "reseller_recharge"),
+        eq(companyAccountLedger.referenceId, String(resellerId)),
+        eq(companyAccountLedger.accountId, bankAccountId)
+      )).orderBy(desc(companyAccountLedger.id));
+      // Pick the most recent entry whose amount matches the paidAmount
+      const match = candidates.find(e => Math.abs(parseFloat(e.amount || "0") - paidAmount) < 0.01);
+      if (match) entries = [match];
+    }
+
     for (const entry of entries) {
-      const entryAmt = parseFloat(entry.amount || "0");
-      if (entryAmt > 0) {
-        const account = await this.getCompanyBankAccount(entry.accountId);
-        if (account) {
-          // Reverse: if ledger was a debit (reseller paid money in), credit it back
-          const reversed = entry.type === "debit"
-            ? parseFloat(account.currentBalance || "0") + entryAmt
-            : parseFloat(account.currentBalance || "0") - entryAmt;
-          await db.update(companyBankAccounts)
-            .set({ currentBalance: reversed.toString() })
-            .where(eq(companyBankAccounts.id, entry.accountId));
-        }
-      }
-      await db.delete(companyAccountLedger).where(eq(companyAccountLedger.id, entry.id));
+      await this.reverseLedgerEntry(entry);
     }
   }
 
@@ -1550,9 +1575,11 @@ export class DatabaseStorage implements IStorage {
     if (!txn) return;
 
     const resellerId = txn.resellerId;
+    const bankAccountId = txn.bankAccountId ?? undefined;
+    const paidAmount = parseFloat(txn.paidAmount || "0");
 
     // Reverse any linked company account ledger entries before deleting
-    await this.reverseResellerWalletLedgerEntries(id);
+    await this.reverseResellerWalletLedgerEntries(id, resellerId, bankAccountId, paidAmount);
 
     // Delete the transaction
     await db.delete(resellerWalletTransactions).where(eq(resellerWalletTransactions.id, id));
@@ -1901,9 +1928,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Called when a reseller wallet transaction is edited — reverses old ledger entry and creates a new one
-  async resyncResellerWalletLedger(walletTxnId: number, newBankAccountId: number | null, newPaidAmount: number, description?: string, remarks?: string, createdBy?: string): Promise<void> {
-    // Reverse and remove the old ledger entry for this wallet transaction
-    await this.reverseResellerWalletLedgerEntries(walletTxnId);
+  async resyncResellerWalletLedger(
+    walletTxnId: number,
+    newBankAccountId: number | null,
+    newPaidAmount: number,
+    description?: string,
+    remarks?: string,
+    createdBy?: string,
+    oldResellerId?: number,
+    oldBankAccountId?: number,
+    oldPaidAmount?: number
+  ): Promise<void> {
+    // Reverse and remove the old ledger entry (try new format first, fall back to legacy)
+    await this.reverseResellerWalletLedgerEntries(walletTxnId, oldResellerId, oldBankAccountId, oldPaidAmount);
     // If a bank account is still linked, create a fresh ledger entry with the updated amount
     if (newBankAccountId && newPaidAmount > 0) {
       try {

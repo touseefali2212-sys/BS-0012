@@ -1575,7 +1575,11 @@ export async function registerRoutes(
             ? parseFloat(String(data.paidAmount))
             : parseFloat(String(current.paidAmount || "0"));
           const desc = data.description || current.description || `Recharge (edited)`;
-          await storage.resyncResellerWalletLedger(id, finalBankAccountId, finalPaidAmount, desc, undefined, "admin");
+          const oldPaidAmount = parseFloat(String(current.paidAmount || "0"));
+          await storage.resyncResellerWalletLedger(
+            id, finalBankAccountId, finalPaidAmount, desc, undefined, "admin",
+            current.resellerId, current.bankAccountId ?? undefined, oldPaidAmount
+          );
         }
       }
 
