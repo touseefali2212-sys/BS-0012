@@ -2124,6 +2124,15 @@ export default function ResellersPage() {
           const paid = parseFloat(String((t as any).paidAmount || "0"));
           return s + (amt - paid);
         }, 0);
+        // Compute per-transaction balance delta (chronological order → correct ↑/↓ direction)
+        const txnsByIdAsc = [...txns].sort((a, b) => a.id - b.id);
+        const balanceDeltaMap = new Map<number, number>();
+        txnsByIdAsc.forEach((t, i) => {
+          const balBefore = i === 0 ? 0 : parseFloat(String(txnsByIdAsc[i - 1].balanceAfter || "0"));
+          const balAfter = parseFloat(String(t.balanceAfter || "0"));
+          balanceDeltaMap.set(t.id, balAfter - balBefore);
+        });
+
         const filteredTxns = txns.filter(t => {
           const matchType = txnTypeFilter === "all" || t.type === txnTypeFilter;
           const matchSearch = !txnSearch || (t.reference || "").toLowerCase().includes(txnSearch.toLowerCase()) || (t.description || "").toLowerCase().includes(txnSearch.toLowerCase());
@@ -2457,9 +2466,22 @@ export default function ResellersPage() {
                             </td>
                             {/* Balance After */}
                             <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">
-                              <span className={`text-sm font-semibold ${parseFloat(String(txn.balanceAfter || "0")) < 0 ? "text-red-600 dark:text-red-400" : "text-slate-800 dark:text-slate-100"}`}>
-                                {parseFloat(String(txn.balanceAfter || "0")) < 0 ? "− " : ""}{formatPKR(Math.abs(parseFloat(String(txn.balanceAfter || "0"))))}
-                              </span>
+                              {(() => {
+                                const balAfterNum = parseFloat(String(txn.balanceAfter || "0"));
+                                const delta = balanceDeltaMap.get(txn.id) ?? 0;
+                                return (
+                                  <div className="flex flex-col items-end gap-0.5">
+                                    <span className={`text-sm font-semibold ${balAfterNum < 0 ? "text-red-600 dark:text-red-400" : "text-slate-800 dark:text-slate-100"}`}>
+                                      {balAfterNum < 0 ? "− " : ""}{formatPKR(Math.abs(balAfterNum))}
+                                    </span>
+                                    {delta !== 0 && (
+                                      <span className={`text-[10px] font-medium leading-none ${delta > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
+                                        {delta > 0 ? "↑ +" : "↓ −"}{formatPKR(Math.abs(delta))}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </td>
                             {/* Note */}
                             <td className="px-3 py-2.5 hidden xl:table-cell max-w-[160px]">
@@ -2658,9 +2680,22 @@ export default function ResellersPage() {
                                   </td>
                                 )}
                                 <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums whitespace-nowrap">
-                                  <span className={parseFloat(String(t.balanceAfter || "0")) < 0 ? "text-red-600" : "text-slate-700 dark:text-slate-200"}>
-                                    {formatPKR(t.balanceAfter)}
-                                  </span>
+                                  {(() => {
+                                    const balNum = parseFloat(String(t.balanceAfter || "0"));
+                                    const delta = balanceDeltaMap.get(t.id) ?? 0;
+                                    return (
+                                      <div className="flex flex-col items-end gap-0.5">
+                                        <span className={balNum < 0 ? "text-red-600" : "text-slate-700 dark:text-slate-200"}>
+                                          {formatPKR(t.balanceAfter)}
+                                        </span>
+                                        {delta !== 0 && (
+                                          <span className={`text-[9px] font-medium leading-none ${delta > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
+                                            {delta > 0 ? "↑ +" : "↓ −"}{formatPKR(Math.abs(delta))}
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
                                 </td>
                                 {kpiDetailOpen !== 4 && (
                                   <td className="px-3 py-2 whitespace-nowrap">{isCredit ? payStatusBadge(ps) : <span className="text-xs text-muted-foreground">—</span>}</td>
