@@ -3113,6 +3113,1138 @@ function VendorListTab() {
   );
 }
 
+function BandwidthVendorsTab() {
+  const { toast } = useToast();
+  const { canCreate, canEdit, canDelete } = usePermissions();
+  const [, changeTab] = useTab("bandwidth-vendors");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortField, setSortField] = useState<string>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [profileVendor, setProfileVendor] = useState<Vendor | null>(null);
+  const [walletVendor, setWalletVendor] = useState<Vendor | null>(null);
+  const [editBwLinkDialogOpen, setEditBwLinkDialogOpen] = useState(false);
+  const [editBwLinkTarget, setEditBwLinkTarget] = useState<number | null>(null);
+  const [editBwLinkItem, setEditBwLinkItem] = useState<VendorBandwidthLink | null>(null);
+
+  const { data: vendors, isLoading } = useQuery<Vendor[]>({ queryKey: ["/api/vendors"] });
+  const { data: vendorPackages } = useQuery<VendorPackage[]>({ queryKey: ["/api/vendor-packages"] });
+  const { data: allBwLinks } = useQuery<VendorBandwidthLink[]>({ queryKey: ["/api/vendor-bandwidth-links"] });
+  const { data: walletTransactions } = useQuery<VendorWalletTransaction[]>({
+    queryKey: ["/api/vendor-wallet-transactions", walletVendor?.id],
+    enabled: !!walletVendor,
+    queryFn: async () => {
+      if (!walletVendor) return [];
+      const res = await fetch(`/api/vendor-wallet-transactions/${walletVendor.id}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
+  });
+
+  const getVendorBwLinks = (vendorId: number) => (allBwLinks || []).filter(l => l.vendorId === vendorId);
+  const getVendorPackages = (vendorId: number) => (vendorPackages || []).filter(p => p.vendorId === vendorId);
+
+  const editBwLinkForm = useForm<InsertVendorBandwidthLink>({
+    defaultValues: { vendorId: 0, linkName: "", ipAddress: "", vlanDetail: "", city: "", bandwidthMbps: "0", bandwidthRate: "0", totalMonthlyCost: "0", notes: "" },
+  });
+
+  const editCreateBwLink = useMutation({
+    mutationFn: async (data: InsertVendorBandwidthLink) => {
+      const res = await apiRequest("POST", "/api/vendor-bandwidth-links", data);
+      return res.json();
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/vendor-bandwidth-links"] }); toast({ title: "Bandwidth link created" }); setEditBwLinkDialogOpen(false); },
+    onError: (error: Error) => toast({ title: "Error", description: error.message, variant: "destructive" }),
+  });
+
+  const editUpdateBwLink = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<InsertVendorBandwidthLink> }) => {
+      const res = await apiRequest("PATCH", `/api/vendor-bandwidth-links/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/vendor-bandwidth-links"] }); toast({ title: "Bandwidth link updated" }); setEditBwLinkDialogOpen(false); setEditBwLinkItem(null); },
+    onError: (error: Error) => toast({ title: "Error", description: error.message, variant: "destructive" }),
+  });
+
+  const editDeleteBwLink = useMutation({
+    mutationFn: async (id: number) => { await apiRequest("DELETE", `/api/vendor-bandwidth-links/${id}`); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/vendor-bandwidth-links"] }); toast({ title: "Bandwidth link deleted" }); },
+    onError: (error: Error) => toast({ title: "Error", description: error.message, variant: "destructive" }),
+  });
+
+  const form = useForm<InsertVendor>({
+    resolver: zodResolver(vendorFormSchema),
+    defaultValues: { name: "", vendorType: "bandwidth", contactPerson: "", phone: "", email: "", address: "", city: "", serviceType: "fiber", ntn: "", bankAccount: "", bankName: "", bankAccountTitle: "", bankAccountNumber: "", bankBranchCode: "", slaLevel: "standard", totalBandwidth: "", usedBandwidth: "", bandwidthCost: "0", contractStartDate: "", contractEndDate: "", walletBalance: "0", panelUrl: "", panelUsername: "", status: "active" },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<InsertVendor> }) => {
+      const res = await apiRequest("PATCH", `/api/vendors/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/vendors"] }); queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] }); setDialogOpen(false); setEditingVendor(null); form.reset(); toast({ title: "Vendor updated successfully" }); },
+    onError: (error: Error) => toast({ title: "Error", description: error.message, variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => { await apiRequest("DELETE", `/api/vendors/${id}`); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/vendors"] }); queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] }); toast({ title: "Vendor deleted successfully" }); },
+    onError: (error: Error) => toast({ title: "Error", description: error.message, variant: "destructive" }),
+  });
+
+  const openEdit = (vendor: Vendor) => {
+    setEditingVendor(vendor);
+    form.reset({ name: vendor.name, vendorType: vendor.vendorType || "bandwidth", contactPerson: vendor.contactPerson || "", phone: vendor.phone, email: vendor.email || "", address: vendor.address || "", city: vendor.city || "", serviceType: vendor.serviceType, ntn: vendor.ntn || "", bankAccount: vendor.bankAccount || "", bankName: vendor.bankName || "", bankAccountTitle: vendor.bankAccountTitle || "", bankAccountNumber: vendor.bankAccountNumber || "", bankBranchCode: vendor.bankBranchCode || "", slaLevel: vendor.slaLevel || "standard", totalBandwidth: vendor.totalBandwidth || "", usedBandwidth: vendor.usedBandwidth || "", bandwidthCost: vendor.bandwidthCost || "0", contractStartDate: vendor.contractStartDate || "", contractEndDate: vendor.contractEndDate || "", walletBalance: vendor.walletBalance || "0", panelUrl: vendor.panelUrl || "", panelUsername: vendor.panelUsername || "", status: vendor.status });
+    setDialogOpen(true);
+  };
+
+  const bwVendors = (vendors || []).filter(v => v.vendorType === "bandwidth");
+  const totalMonthly = bwVendors.reduce((s, v) => s + Number(v.bandwidthCost || 0), 0);
+  const activeCount = bwVendors.filter(v => v.status === "active").length;
+  const expiringCount = bwVendors.filter(v => { if (!v.contractEndDate) return false; const diff = (new Date(v.contractEndDate).getTime() - Date.now()) / 86400000; return diff >= 0 && diff <= 30; }).length;
+  const totalActiveLinks = (allBwLinks || []).filter(l => l.status === "active").length;
+
+  const filtered = bwVendors.filter(v => {
+    const matchSearch = v.name.toLowerCase().includes(search.toLowerCase()) || v.phone.includes(search) || (v.contactPerson || "").toLowerCase().includes(search.toLowerCase()) || (v.email || "").toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === "all" || v.status === statusFilter;
+    return matchSearch && matchStatus;
+  }).sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    if (sortField === "name") return a.name.localeCompare(b.name) * dir;
+    if (sortField === "cost") return (Number(a.bandwidthCost || 0) - Number(b.bandwidthCost || 0)) * dir;
+    if (sortField === "status") return a.status.localeCompare(b.status) * dir;
+    return 0;
+  });
+
+  const exportCSV = () => {
+    const headers = ["Name", "Contact Person", "Phone", "Email", "City", "Service Type", "Total BW", "Used BW", "Monthly Cost", "SLA", "Contract Start", "Contract End", "Status"];
+    const rows = filtered.map(v => [v.name, v.contactPerson || "", v.phone, v.email || "", v.city || "", v.serviceType, v.totalBandwidth || "", v.usedBandwidth || "", v.bandwidthCost || "0", v.slaLevel || "", v.contractStartDate || "", v.contractEndDate || "", v.status]);
+    const csv = "\uFEFF" + [headers.join(","), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `bandwidth_vendors_${new Date().toISOString().split("T")[0]}.csv`; a.click(); URL.revokeObjectURL(url);
+  };
+
+  const generatePDF = () => {
+    if (filtered.length === 0) return;
+    const rows = filtered.map(v => {
+      const links = getVendorBwLinks(v.id);
+      const diff = v.contractEndDate ? Math.ceil((new Date(v.contractEndDate).getTime() - Date.now()) / 86400000) : null;
+      return `<tr>
+        <td>${escHtml(v.name)}${v.contactPerson ? `<br><small>${escHtml(v.contactPerson)}</small>` : ""}</td>
+        <td>${escHtml(v.phone)}</td>
+        <td class="capitalize">${escHtml(v.serviceType)}</td>
+        <td>${escHtml(v.usedBandwidth || "0")} / ${escHtml(v.totalBandwidth || "0")} Mbps</td>
+        <td>${links.length} (${links.filter(l => l.status === "active").length} active)</td>
+        <td>${escHtml(v.bandwidthCost || "0")}</td>
+        <td class="capitalize">${escHtml(v.slaLevel || "Standard")}</td>
+        <td>${v.contractEndDate ? `${escHtml(v.contractEndDate)}${diff !== null && diff <= 30 ? ` <span class="exp">(${diff}d)</span>` : ""}` : "—"}</td>
+        <td><span class="badge ${v.status === "active" ? "badge-green" : "badge-red"}">${escHtml(v.status)}</span></td>
+      </tr>`;
+    }).join("");
+    const html = `<!DOCTYPE html><html><head><title>Bandwidth Vendors Report</title>
+    <style>* { margin:0; padding:0; box-sizing:border-box; } body { font-family:Arial,sans-serif; font-size:11px; color:#111; padding:20px; }
+    h1 { font-size:16px; margin-bottom:2px; } .meta { font-size:11px; color:#555; margin-bottom:16px; }
+    table { width:100%; border-collapse:collapse; } th { background:#1e3a5f; color:#fff; padding:7px 8px; text-align:left; font-size:10px; text-transform:uppercase; }
+    td { padding:6px 8px; border-bottom:1px solid #e2e8f0; vertical-align:top; } tr:nth-child(even) td { background:#f0f7ff; }
+    .capitalize { text-transform:capitalize; } .exp { color:#d97706; font-weight:600; }
+    .badge { padding:2px 6px; border-radius:4px; font-size:9px; font-weight:600; text-transform:uppercase; }
+    .badge-green { background:#dcfce7; color:#15803d; } .badge-red { background:#fef2f2; color:#dc2626; }
+    .footer { margin-top:16px; font-size:10px; color:#888; text-align:center; border-top:1px solid #e2e8f0; padding-top:8px; }
+    </style></head><body>
+    <h1>Bandwidth Vendors Report</h1>
+    <p class="meta"><strong>Total:</strong> ${filtered.length} &nbsp; <strong>Active:</strong> ${activeCount} &nbsp; <strong>Total Monthly Cost:</strong> PKR ${totalMonthly.toLocaleString()} &nbsp; <strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+    <table><thead><tr><th>Name</th><th>Phone</th><th>Service</th><th>BW Used/Total</th><th>Links</th><th>Monthly Cost (PKR)</th><th>SLA</th><th>Contract End</th><th>Status</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <p class="footer">NetSphere Enterprise — Bandwidth Vendors Report</p></body></html>`;
+    const win = window.open("", "_blank", "width=1100,height=800");
+    if (!win) return;
+    win.document.write(html); win.document.close(); win.focus();
+    setTimeout(() => { win.print(); }, 400);
+  };
+
+  return (
+    <div className="space-y-4 page-fade-in" data-testid="tab-content-bandwidth-vendors">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="vendor-stat-card stat-blue p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-semibold">BW Vendors</p>
+              <p className="text-2xl font-bold mt-1">{bwVendors.length}</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950 flex items-center justify-center">
+              <Wifi className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+          </div>
+        </div>
+        <div className="vendor-stat-card stat-green p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-semibold">Active</p>
+              <p className="text-2xl font-bold mt-1">{activeCount}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{totalActiveLinks} active links</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-green-50 dark:bg-green-950 flex items-center justify-center">
+              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+            </div>
+          </div>
+        </div>
+        <div className="vendor-stat-card stat-purple p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-semibold">Monthly Cost</p>
+              <p className="text-lg font-bold mt-1">{formatPKR(totalMonthly)}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">total bandwidth spend</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-950 flex items-center justify-center">
+              <DollarSign className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            </div>
+          </div>
+        </div>
+        <div className="vendor-stat-card stat-amber p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-semibold">Expiring (30d)</p>
+              <p className="text-2xl font-bold mt-1">{expiringCount}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">contracts expiring</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-950 flex items-center justify-center">
+              <Calendar className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="vendor-filter-bar">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="relative flex-1 w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search bandwidth vendors..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" data-testid="input-search-bw-vendors" />
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[130px]" data-testid="select-bw-status-filter"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sortField} onValueChange={v => { setSortField(v); setSortDir("asc"); }}>
+              <SelectTrigger className="w-[130px]" data-testid="select-bw-sort-field"><SelectValue placeholder="Sort By" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">Name</SelectItem>
+                <SelectItem value="cost">Monthly Cost</SelectItem>
+                <SelectItem value="status">Status</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button size="sm" variant="outline" onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")} data-testid="button-bw-toggle-sort">
+              <ArrowUpDown className="h-3.5 w-3.5 mr-1" />{sortDir === "asc" ? "A→Z" : "Z→A"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={exportCSV} data-testid="button-export-bw-csv"><Download className="h-3.5 w-3.5 mr-1" />Export CSV</Button>
+            <Button size="sm" variant="outline" onClick={generatePDF} data-testid="button-generate-bw-pdf"><FileText className="h-3.5 w-3.5 mr-1" />Generate PDF</Button>
+            {canCreate("vendors") && (
+              <Button size="sm" className="btn-vendor-primary no-default-hover-elevate no-default-active-elevate" onClick={() => changeTab("add")} data-testid="button-add-bw-vendor">
+                <Plus className="h-3.5 w-3.5 mr-1" />Add Bandwidth Vendor
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between text-sm text-muted-foreground px-1">
+        <span>Showing {filtered.length} of {bwVendors.length} bandwidth vendors</span>
+        {(search || statusFilter !== "all") && (
+          <Button size="sm" variant="ghost" onClick={() => { setSearch(""); setStatusFilter("all"); }} data-testid="button-clear-bw-filters">Clear Filters</Button>
+        )}
+      </div>
+
+      {(() => {
+        const expiring = bwVendors.filter(v => { if (!v.contractEndDate) return false; const diff = (new Date(v.contractEndDate).getTime() - Date.now()) / 86400000; return diff >= 0 && diff <= 60; });
+        if (expiring.length === 0) return null;
+        return (
+          <Card className="border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30">
+            <CardContent className="py-3 px-4">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900 flex items-center justify-center shrink-0 mt-0.5">
+                  <Calendar className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">Contract Expiry Alerts</p>
+                  <div className="mt-2 space-y-1.5">
+                    {expiring.map(v => {
+                      const daysLeft = Math.ceil((new Date(v.contractEndDate!).getTime() - Date.now()) / 86400000);
+                      return (
+                        <div key={v.id} className="flex items-center justify-between gap-2 text-xs">
+                          <span className="font-medium">{v.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">Expires: {v.contractEndDate}</span>
+                            <Badge variant="secondary" className={`no-default-active-elevate text-[10px] ${daysLeft <= 7 ? "text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950" : daysLeft <= 30 ? "text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950" : "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950"}`}>{daysLeft} days left</Badge>
+                            <Button size="sm" variant="ghost" className="h-6 text-xs px-2" onClick={() => openEdit(v)} data-testid={`button-renew-bw-${v.id}`}><Edit className="h-3 w-3 mr-1" />Renew</Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-5 space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <Wifi className="h-12 w-12 mb-3 opacity-30" />
+              <p className="font-medium">No bandwidth vendors found</p>
+              <p className="text-sm mt-1">Add your first bandwidth vendor to get started</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table className="vendor-table-enterprise">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead className="hidden md:table-cell">Service</TableHead>
+                    <TableHead className="hidden md:table-cell">BW (Used / Total)</TableHead>
+                    <TableHead className="hidden lg:table-cell">BW Links</TableHead>
+                    <TableHead className="hidden md:table-cell">Monthly Cost</TableHead>
+                    <TableHead className="hidden lg:table-cell">SLA</TableHead>
+                    <TableHead className="hidden xl:table-cell">Contract End</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-10"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map(vendor => {
+                    const bwLinks = getVendorBwLinks(vendor.id);
+                    const activeLinks = bwLinks.filter(l => l.status === "active").length;
+                    return (
+                      <TableRow key={vendor.id} data-testid={`row-bw-vendor-${vendor.id}`}>
+                        <TableCell>
+                          <div className="font-medium">{vendor.name}</div>
+                          {vendor.contactPerson && <div className="text-xs text-muted-foreground">{vendor.contactPerson}</div>}
+                          {vendor.city && <div className="text-xs text-muted-foreground">{vendor.city}</div>}
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-xs flex items-center gap-1"><Phone className="h-3 w-3 text-muted-foreground" />{vendor.phone}</span>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <span className="text-xs capitalize">{vendor.serviceType}</span>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <div>
+                            <span className="text-xs font-medium">{vendor.usedBandwidth || "0"} / {vendor.totalBandwidth || "0"}</span>
+                            <span className="text-[10px] text-muted-foreground block">used / total Mbps</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant="secondary" className="no-default-active-elevate text-[10px]"><Globe className="h-3 w-3 mr-0.5" />{bwLinks.length}</Badge>
+                            {activeLinks > 0 && <span className="text-[10px] text-green-600 dark:text-green-400">{activeLinks} active</span>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <div>
+                            <span className="text-xs font-semibold text-blue-600 dark:text-blue-400">{formatPKR(vendor.bandwidthCost)}</span>
+                            <span className="text-[10px] text-muted-foreground block">/month</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <Badge variant="secondary" className={`no-default-active-elevate text-[10px] capitalize ${vendor.slaLevel === "enterprise" ? "text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950" : vendor.slaLevel === "premium" ? "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950" : "text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-950"}`}>{vendor.slaLevel || "Standard"}</Badge>
+                        </TableCell>
+                        <TableCell className="hidden xl:table-cell">
+                          {vendor.contractEndDate ? (
+                            <div className="text-xs">
+                              <span className="text-muted-foreground">{vendor.contractEndDate}</span>
+                              {(() => { const diff = Math.ceil((new Date(vendor.contractEndDate).getTime() - Date.now()) / 86400000); if (diff < 0) return <span className="block text-red-500 font-medium">Expired</span>; if (diff <= 30) return <span className="block text-amber-500 font-medium">{diff}d left</span>; return null; })()}
+                            </div>
+                          ) : <span className="text-xs text-muted-foreground">N/A</span>}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className={`no-default-active-elevate text-[10px] capitalize ${statusColors[vendor.status] || ""}`}>{vendor.status}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" data-testid={`button-bw-actions-${vendor.id}`}><MoreHorizontal className="h-4 w-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setProfileVendor(vendor)} data-testid={`button-bw-view-profile-${vendor.id}`}><Eye className="h-4 w-4 mr-2" />View Profile</DropdownMenuItem>
+                              {canEdit("vendors") && <DropdownMenuItem onClick={() => openEdit(vendor)} data-testid={`button-bw-edit-${vendor.id}`}><Edit className="h-4 w-4 mr-2" />Edit Profile</DropdownMenuItem>}
+                              <DropdownMenuItem onClick={() => setWalletVendor(vendor)} data-testid={`button-bw-wallet-${vendor.id}`}><Wallet className="h-4 w-4 mr-2" />Wallet & Transactions</DropdownMenuItem>
+                              {canDelete("vendors") && (
+                                <DropdownMenuItem className="text-destructive" onClick={() => { if (confirm(`Delete vendor "${vendor.name}"?`)) deleteMutation.mutate(vendor.id); }} data-testid={`button-bw-delete-${vendor.id}`}><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Edit Bandwidth Vendor</DialogTitle></DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(data => { if (editingVendor) updateMutation.mutate({ id: editingVendor.id, data }); })} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Name</FormLabel><FormControl><Input data-testid="input-bw-edit-name" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="contactPerson" render={({ field }) => (<FormItem><FormLabel>Contact Person</FormLabel><FormControl><Input data-testid="input-bw-edit-contact" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone</FormLabel><FormControl><Input data-testid="input-bw-edit-phone" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input data-testid="input-bw-edit-email" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="serviceType" render={({ field }) => (<FormItem><FormLabel>Service Type</FormLabel><Select onValueChange={field.onChange} value={field.value || "fiber"}><FormControl><SelectTrigger data-testid="select-bw-edit-service"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="fiber">Fiber</SelectItem><SelectItem value="wireless">Wireless</SelectItem><SelectItem value="cable">Cable</SelectItem><SelectItem value="satellite">Satellite</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Lahore" data-testid="input-bw-edit-city" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField control={form.control} name="totalBandwidth" render={({ field }) => (<FormItem><FormLabel>Total Bandwidth (Mbps)</FormLabel><FormControl><Input data-testid="input-bw-edit-total-bw" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="usedBandwidth" render={({ field }) => (<FormItem><FormLabel>Used Bandwidth (Mbps)</FormLabel><FormControl><Input data-testid="input-bw-edit-used-bw" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="bandwidthCost" render={({ field }) => (<FormItem><FormLabel>Monthly Cost (PKR)</FormLabel><FormControl><Input type="number" data-testid="input-bw-edit-cost" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField control={form.control} name="slaLevel" render={({ field }) => (<FormItem><FormLabel>SLA Level</FormLabel><Select onValueChange={field.onChange} value={field.value || "standard"}><FormControl><SelectTrigger data-testid="select-bw-edit-sla"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="standard">Standard</SelectItem><SelectItem value="premium">Premium</SelectItem><SelectItem value="enterprise">Enterprise</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="contractStartDate" render={({ field }) => (<FormItem><FormLabel>Contract Start</FormLabel><FormControl><Input type="date" data-testid="input-bw-edit-contract-start" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="contractEndDate" render={({ field }) => (<FormItem><FormLabel>Contract End</FormLabel><FormControl><Input type="date" data-testid="input-bw-edit-contract-end" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField control={form.control} name="bankName" render={({ field }) => (<FormItem><FormLabel>Bank Name</FormLabel><FormControl><Input placeholder="e.g. HBL" data-testid="input-bw-edit-bank" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="bankAccountTitle" render={({ field }) => (<FormItem><FormLabel>Account Title</FormLabel><FormControl><Input placeholder="Holder name" data-testid="input-bw-edit-bank-title" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="bankAccountNumber" render={({ field }) => (<FormItem><FormLabel>Account No / IBAN</FormLabel><FormControl><Input data-testid="input-bw-edit-bank-number" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              {editingVendor && (() => {
+                const vendorBwLinks = getVendorBwLinks(editingVendor.id);
+                return (
+                  <Card className="border-blue-200 dark:border-blue-800">
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-sm flex items-center gap-1.5"><Globe className="h-4 w-4" />Bandwidth Links ({vendorBwLinks.length})</CardTitle>
+                        <Button type="button" size="sm" variant="outline" onClick={() => { setEditBwLinkTarget(editingVendor.id); setEditBwLinkItem(null); editBwLinkForm.reset({ vendorId: editingVendor.id, linkName: "", ipAddress: "", vlanDetail: "", city: "", bandwidthMbps: "0", bandwidthRate: "0", totalMonthlyCost: "0", notes: "" }); setEditBwLinkDialogOpen(true); }} data-testid="button-bw-edit-add-link"><Plus className="h-3 w-3 mr-1" />Add Link</Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {vendorBwLinks.length === 0 ? <p className="text-xs text-muted-foreground text-center py-3">No bandwidth links yet</p> : (
+                        <div className="overflow-x-auto">
+                          <Table>
+                            <TableHeader><TableRow><TableHead className="text-xs">Link Name</TableHead><TableHead className="text-xs">IP</TableHead><TableHead className="text-xs">City</TableHead><TableHead className="text-xs">Mbps</TableHead><TableHead className="text-xs">Cost</TableHead><TableHead className="text-xs">Status</TableHead><TableHead className="w-8"></TableHead></TableRow></TableHeader>
+                            <TableBody>
+                              {vendorBwLinks.map(link => (
+                                <TableRow key={link.id}>
+                                  <TableCell className="text-xs font-medium">{link.linkName}</TableCell>
+                                  <TableCell className="text-xs font-mono">{link.ipAddress || "N/A"}</TableCell>
+                                  <TableCell className="text-xs">{link.city || "N/A"}</TableCell>
+                                  <TableCell className="text-xs font-semibold">{link.bandwidthMbps}</TableCell>
+                                  <TableCell className="text-xs font-semibold text-blue-600 dark:text-blue-400">{formatPKR(link.totalMonthlyCost)}</TableCell>
+                                  <TableCell><Badge variant={link.status === "active" ? "default" : "secondary"} className="text-[10px] no-default-active-elevate">{link.status}</Badge></TableCell>
+                                  <TableCell>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-6 w-6"><MoreHorizontal className="h-3 w-3" /></Button></DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => { setEditBwLinkTarget(editingVendor.id); setEditBwLinkItem(link); editBwLinkForm.reset({ vendorId: link.vendorId, linkName: link.linkName, ipAddress: link.ipAddress || "", vlanDetail: link.vlanDetail || "", city: link.city || "", bandwidthMbps: link.bandwidthMbps || "0", bandwidthRate: link.bandwidthRate || "0", totalMonthlyCost: link.totalMonthlyCost || "0", notes: link.notes || "" }); setEditBwLinkDialogOpen(true); }}><Edit className="h-3.5 w-3.5 mr-2" />Edit</DropdownMenuItem>
+                                        <DropdownMenuItem className="text-destructive" onClick={() => { if (confirm(`Delete link "${link.linkName}"?`)) editDeleteBwLink.mutate(link.id); }}><Trash2 className="h-3.5 w-3.5 mr-2" />Delete</DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                              {vendorBwLinks.length > 1 && (
+                                <TableRow className="font-bold bg-muted/50">
+                                  <TableCell colSpan={3} className="text-xs font-bold">TOTALS</TableCell>
+                                  <TableCell className="text-xs font-bold">{vendorBwLinks.reduce((s, l) => s + Number(l.bandwidthMbps || 0), 0)} Mbps</TableCell>
+                                  <TableCell className="text-xs font-bold text-blue-600 dark:text-blue-400">{formatPKR(vendorBwLinks.reduce((s, l) => s + Number(l.totalMonthlyCost || 0), 0))}</TableCell>
+                                  <TableCell colSpan={2}></TableCell>
+                                </TableRow>
+                              )}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+              <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} value={field.value || "active"}><FormControl><SelectTrigger data-testid="select-bw-edit-status"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+              <DialogFooter>
+                <Button type="button" variant="secondary" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={updateMutation.isPending} data-testid="button-bw-update-vendor">{updateMutation.isPending ? "Updating..." : "Update Vendor"}</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!profileVendor} onOpenChange={open => { if (!open) setProfileVendor(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Eye className="h-5 w-5" />Vendor Profile</DialogTitle></DialogHeader>
+          {profileVendor && (() => {
+            const pkgs = getVendorPackages(profileVendor.id);
+            const bwLinks = getVendorBwLinks(profileVendor.id);
+            return (
+              <div className="space-y-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl shrink-0">{profileVendor.name.charAt(0).toUpperCase()}</div>
+                  <div>
+                    <h3 className="text-lg font-semibold">{profileVendor.name}</h3>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <Badge variant="secondary" className="no-default-active-elevate text-[10px] text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950">Bandwidth</Badge>
+                      <Badge variant="secondary" className={`no-default-active-elevate text-[10px] capitalize ${statusColors[profileVendor.status] || ""}`}>{profileVendor.status}</Badge>
+                      {profileVendor.slaLevel && <Badge variant="secondary" className={`no-default-active-elevate text-[10px] capitalize ${profileVendor.slaLevel === "enterprise" ? "text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950" : profileVendor.slaLevel === "premium" ? "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950" : "text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-950"}`}>{profileVendor.slaLevel}</Badge>}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {profileVendor.contactPerson && <div className="text-sm"><span className="text-muted-foreground text-xs block">Contact</span>{profileVendor.contactPerson}</div>}
+                  <div className="text-sm"><span className="text-muted-foreground text-xs block">Phone</span>{profileVendor.phone}</div>
+                  {profileVendor.email && <div className="text-sm"><span className="text-muted-foreground text-xs block">Email</span>{profileVendor.email}</div>}
+                  <div className="text-sm"><span className="text-muted-foreground text-xs block">Service Type</span><span className="capitalize">{profileVendor.serviceType}</span></div>
+                  {profileVendor.city && <div className="text-sm"><span className="text-muted-foreground text-xs block">City</span>{profileVendor.city}</div>}
+                  {profileVendor.ntn && <div className="text-sm"><span className="text-muted-foreground text-xs block">NTN</span>{profileVendor.ntn}</div>}
+                  {(profileVendor.bankName || profileVendor.bankAccountNumber) && (
+                    <div className="text-sm space-y-0.5"><span className="text-muted-foreground text-xs block">Bank</span>{profileVendor.bankName && <div>{profileVendor.bankName}</div>}{profileVendor.bankAccountTitle && <div className="text-xs text-muted-foreground">{profileVendor.bankAccountTitle}</div>}{profileVendor.bankAccountNumber && <div className="font-mono text-xs">{profileVendor.bankAccountNumber}</div>}</div>
+                  )}
+                  {profileVendor.contractStartDate && <div className="text-sm"><span className="text-muted-foreground text-xs block">Contract Start</span>{profileVendor.contractStartDate}</div>}
+                  {profileVendor.contractEndDate && (
+                    <div className="text-sm"><span className="text-muted-foreground text-xs block">Contract End</span><span>{profileVendor.contractEndDate}</span>
+                      {(() => { const diff = Math.ceil((new Date(profileVendor.contractEndDate).getTime() - Date.now()) / 86400000); if (diff < 0) return <Badge variant="secondary" className="no-default-active-elevate ml-1 text-[10px] text-red-600 bg-red-50 dark:text-red-300 dark:bg-red-950">Expired</Badge>; if (diff <= 30) return <Badge variant="secondary" className="no-default-active-elevate ml-1 text-[10px] text-amber-600 bg-amber-50 dark:text-amber-300 dark:bg-amber-950">{diff}d left</Badge>; return <Badge variant="secondary" className="no-default-active-elevate ml-1 text-[10px] text-green-600 bg-green-50 dark:text-green-300 dark:bg-green-950">{diff}d left</Badge>; })()}
+                    </div>
+                  )}
+                </div>
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-1.5"><Wifi className="h-4 w-4" />Bandwidth Details</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="text-sm"><span className="text-muted-foreground text-xs block">Total Bandwidth</span>{profileVendor.totalBandwidth || "N/A"}</div>
+                      <div className="text-sm"><span className="text-muted-foreground text-xs block">Used Bandwidth</span>{profileVendor.usedBandwidth || "N/A"}</div>
+                      <div className="text-sm"><span className="text-muted-foreground text-xs block">Monthly Cost</span>{formatPKR(profileVendor.bandwidthCost)}</div>
+                    </div>
+                  </CardContent>
+                </Card>
+                {bwLinks.length > 0 && (
+                  <Card>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-1.5"><Globe className="h-4 w-4" />Bandwidth Links ({bwLinks.length})</CardTitle></CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader><TableRow><TableHead className="text-xs">Link Name</TableHead><TableHead className="text-xs">IP</TableHead><TableHead className="text-xs">City</TableHead><TableHead className="text-xs">Mbps</TableHead><TableHead className="text-xs">Rate</TableHead><TableHead className="text-xs">Monthly Cost</TableHead><TableHead className="text-xs">Status</TableHead></TableRow></TableHeader>
+                          <TableBody>
+                            {bwLinks.map(link => (
+                              <TableRow key={link.id}>
+                                <TableCell className="text-sm font-medium">{link.linkName}</TableCell>
+                                <TableCell className="text-sm font-mono">{link.ipAddress || "N/A"}</TableCell>
+                                <TableCell className="text-sm">{link.city || "N/A"}</TableCell>
+                                <TableCell className="text-sm font-semibold">{link.bandwidthMbps}</TableCell>
+                                <TableCell className="text-sm">{formatPKR(link.bandwidthRate)}</TableCell>
+                                <TableCell className="text-sm font-semibold text-blue-600 dark:text-blue-400">{formatPKR(link.totalMonthlyCost)}</TableCell>
+                                <TableCell><Badge variant={link.status === "active" ? "default" : "secondary"} className="text-[10px] no-default-active-elevate">{link.status}</Badge></TableCell>
+                              </TableRow>
+                            ))}
+                            {bwLinks.length > 1 && (
+                              <TableRow className="font-bold bg-muted/50">
+                                <TableCell colSpan={3} className="text-xs font-bold">TOTALS</TableCell>
+                                <TableCell className="text-xs font-bold">{bwLinks.reduce((s, l) => s + Number(l.bandwidthMbps || 0), 0)} Mbps</TableCell>
+                                <TableCell></TableCell>
+                                <TableCell className="text-sm font-bold text-blue-600 dark:text-blue-400">{formatPKR(bwLinks.reduce((s, l) => s + Number(l.totalMonthlyCost || 0), 0))}</TableCell>
+                                <TableCell></TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+                {pkgs.length > 0 && (
+                  <Card>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-1.5"><Package className="h-4 w-4" />Packages ({pkgs.length})</CardTitle></CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader><TableRow><TableHead className="text-xs">Package</TableHead><TableHead className="text-xs">Speed</TableHead><TableHead className="text-xs">Vendor Price</TableHead><TableHead className="text-xs">ISP Price</TableHead><TableHead className="text-xs">Margin</TableHead></TableRow></TableHeader>
+                          <TableBody>
+                            {pkgs.map(pkg => (
+                              <TableRow key={pkg.id}>
+                                <TableCell className="text-sm font-medium">{pkg.packageName}</TableCell>
+                                <TableCell className="text-sm">{pkg.speed || "N/A"}</TableCell>
+                                <TableCell className="text-sm">{formatPKR(pkg.vendorPrice)}</TableCell>
+                                <TableCell className="text-sm">{formatPKR(pkg.ispSellingPrice)}</TableCell>
+                                <TableCell className="text-sm text-green-600 dark:text-green-400 font-medium">{formatPKR(Number(pkg.ispSellingPrice || 0) - Number(pkg.vendorPrice || 0))}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProfileVendor(null)}>Close</Button>
+            <Button onClick={() => { if (profileVendor) { openEdit(profileVendor); setProfileVendor(null); } }} data-testid="button-bw-profile-edit"><Edit className="h-4 w-4 mr-1" />Edit Profile</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!walletVendor} onOpenChange={open => { if (!open) setWalletVendor(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Wallet className="h-5 w-5" />Wallet & Transactions — {walletVendor?.name}</DialogTitle></DialogHeader>
+          {walletVendor && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <Card><CardContent className="pt-4 pb-3 px-4"><div className="flex items-center gap-2"><div className="p-2 rounded-md bg-green-50 dark:bg-green-950"><DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" /></div><div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Balance</p><p className="text-lg font-bold">{formatPKR(walletVendor.walletBalance)}</p></div></div></CardContent></Card>
+                <Card><CardContent className="pt-4 pb-3 px-4"><div className="flex items-center gap-2"><div className="p-2 rounded-md bg-blue-50 dark:bg-blue-950"><Activity className="h-4 w-4 text-blue-600 dark:text-blue-400" /></div><div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Transactions</p><p className="text-lg font-bold">{(walletTransactions || []).length}</p></div></div></CardContent></Card>
+              </div>
+              <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Transaction History</CardTitle></CardHeader>
+                <CardContent>
+                  {(walletTransactions || []).length === 0 ? (
+                    <div className="text-center py-6 text-muted-foreground text-sm"><Wallet className="h-8 w-8 mx-auto mb-2 opacity-30" /><p>No transactions yet</p></div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader><TableRow><TableHead className="text-xs">Date</TableHead><TableHead className="text-xs">Type</TableHead><TableHead className="text-xs">Amount</TableHead><TableHead className="text-xs">Balance After</TableHead><TableHead className="text-xs">Note</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                          {(walletTransactions || []).map(txn => (
+                            <TableRow key={txn.id}>
+                              <TableCell className="text-xs">{txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : "N/A"}</TableCell>
+                              <TableCell><Badge variant="secondary" className={`no-default-active-elevate text-[10px] ${txn.type === "recharge" ? "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950" : "text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950"}`}>{txn.type === "recharge" ? <><ArrowDownLeft className="h-3 w-3 mr-0.5" />Recharge</> : <><ArrowUpRight className="h-3 w-3 mr-0.5" />Deduct</>}</Badge></TableCell>
+                              <TableCell className={`text-sm font-medium ${txn.type === "recharge" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{txn.type === "recharge" ? "+" : "-"}{formatPKR(txn.amount)}</TableCell>
+                              <TableCell className="text-sm">{formatPKR(txn.balanceAfter)}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">{txn.description || "-"}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWalletVendor(null)}>Close</Button>
+            <Button onClick={() => { setWalletVendor(null); changeTab("wallet"); }} data-testid="button-bw-go-wallet-tab"><Wallet className="h-4 w-4 mr-1" />Manage Wallet</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={editBwLinkDialogOpen} onOpenChange={setEditBwLinkDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle className="flex items-center gap-2">{editBwLinkItem ? <Edit className="h-5 w-5" /> : <Plus className="h-5 w-5" />}{editBwLinkItem ? "Edit Bandwidth Link" : "Add New Bandwidth Link"}</DialogTitle></DialogHeader>
+          <Form {...editBwLinkForm}>
+            <form onSubmit={editBwLinkForm.handleSubmit(data => editBwLinkItem ? editUpdateBwLink.mutate({ id: editBwLinkItem.id, data }) : editCreateBwLink.mutate(data))} className="space-y-4">
+              <FormField control={editBwLinkForm.control} name="linkName" render={({ field }) => (<FormItem><FormLabel>Link Name *</FormLabel><FormControl><Input placeholder="e.g. Link-1 Fiber" data-testid="input-bw-link-name" {...field} /></FormControl><FormMessage /></FormItem>)} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <FormField control={editBwLinkForm.control} name="ipAddress" render={({ field }) => (<FormItem><FormLabel>IP Address</FormLabel><FormControl><Input placeholder="192.168.1.1/30" data-testid="input-bw-link-ip" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={editBwLinkForm.control} name="vlanDetail" render={({ field }) => (<FormItem><FormLabel>VLAN Detail</FormLabel><FormControl><Input placeholder="VLAN 100" data-testid="input-bw-link-vlan" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={editBwLinkForm.control} name="city" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Lahore" data-testid="input-bw-link-city" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <FormField control={editBwLinkForm.control} name="bandwidthMbps" render={({ field }) => (<FormItem><FormLabel>Bandwidth (Mbps) *</FormLabel><FormControl><Input type="number" placeholder="0" data-testid="input-bw-link-mbps" {...field} onChange={e => { field.onChange(e.target.value); editBwLinkForm.setValue("totalMonthlyCost", (Number(e.target.value) * Number(editBwLinkForm.getValues("bandwidthRate") || 0)).toFixed(2)); }} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={editBwLinkForm.control} name="bandwidthRate" render={({ field }) => (<FormItem><FormLabel>Rate per Mbps (PKR)</FormLabel><FormControl><Input type="number" placeholder="0" data-testid="input-bw-link-rate" {...field} onChange={e => { field.onChange(e.target.value); editBwLinkForm.setValue("totalMonthlyCost", (Number(editBwLinkForm.getValues("bandwidthMbps") || 0) * Number(e.target.value)).toFixed(2)); }} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={editBwLinkForm.control} name="totalMonthlyCost" render={({ field }) => (<FormItem><FormLabel>Total Monthly Cost (PKR)</FormLabel><FormControl><Input type="number" className="bg-muted/50 font-semibold" data-testid="input-bw-link-total" {...field} readOnly /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <FormField control={editBwLinkForm.control} name="notes" render={({ field }) => (<FormItem><FormLabel>Notes</FormLabel><FormControl><Input placeholder="Optional notes" data-testid="input-bw-link-notes" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+              <DialogFooter>
+                <Button type="button" variant="secondary" onClick={() => setEditBwLinkDialogOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={editCreateBwLink.isPending || editUpdateBwLink.isPending} data-testid="button-save-bw-link">{(editCreateBwLink.isPending || editUpdateBwLink.isPending) ? "Saving..." : editBwLinkItem ? "Update Link" : "Create Link"}</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function PanelVendorsTab() {
+  const { toast } = useToast();
+  const { canCreate, canEdit, canDelete } = usePermissions();
+  const [, changeTab] = useTab("panel-vendors");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortField, setSortField] = useState<string>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [profileVendor, setProfileVendor] = useState<Vendor | null>(null);
+  const [walletVendor, setWalletVendor] = useState<Vendor | null>(null);
+
+  const { data: vendors, isLoading } = useQuery<Vendor[]>({ queryKey: ["/api/vendors"] });
+  const { data: vendorPackages } = useQuery<VendorPackage[]>({ queryKey: ["/api/vendor-packages"] });
+  const { data: walletTransactions } = useQuery<VendorWalletTransaction[]>({
+    queryKey: ["/api/vendor-wallet-transactions", walletVendor?.id],
+    enabled: !!walletVendor,
+    queryFn: async () => {
+      if (!walletVendor) return [];
+      const res = await fetch(`/api/vendor-wallet-transactions/${walletVendor.id}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
+  });
+
+  const getVendorPackages = (vendorId: number) => (vendorPackages || []).filter(p => p.vendorId === vendorId);
+  const getVendorTotalPayable = (vendorId: number) => getVendorPackages(vendorId).reduce((s, p) => s + Number(p.vendorPrice || 0), 0);
+
+  const form = useForm<InsertVendor>({
+    resolver: zodResolver(vendorFormSchema),
+    defaultValues: { name: "", vendorType: "panel", contactPerson: "", phone: "", email: "", address: "", city: "", serviceType: "fiber", ntn: "", bankAccount: "", bankName: "", bankAccountTitle: "", bankAccountNumber: "", bankBranchCode: "", slaLevel: "standard", totalBandwidth: "", usedBandwidth: "", bandwidthCost: "0", contractStartDate: "", contractEndDate: "", walletBalance: "0", panelUrl: "", panelUsername: "", status: "active" },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<InsertVendor> }) => {
+      const res = await apiRequest("PATCH", `/api/vendors/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/vendors"] }); queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] }); setDialogOpen(false); setEditingVendor(null); form.reset(); toast({ title: "Vendor updated successfully" }); },
+    onError: (error: Error) => toast({ title: "Error", description: error.message, variant: "destructive" }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => { await apiRequest("DELETE", `/api/vendors/${id}`); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/vendors"] }); queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] }); toast({ title: "Vendor deleted successfully" }); },
+    onError: (error: Error) => toast({ title: "Error", description: error.message, variant: "destructive" }),
+  });
+
+  const openEdit = (vendor: Vendor) => {
+    setEditingVendor(vendor);
+    form.reset({ name: vendor.name, vendorType: vendor.vendorType || "panel", contactPerson: vendor.contactPerson || "", phone: vendor.phone, email: vendor.email || "", address: vendor.address || "", city: vendor.city || "", serviceType: vendor.serviceType, ntn: vendor.ntn || "", bankAccount: vendor.bankAccount || "", bankName: vendor.bankName || "", bankAccountTitle: vendor.bankAccountTitle || "", bankAccountNumber: vendor.bankAccountNumber || "", bankBranchCode: vendor.bankBranchCode || "", slaLevel: vendor.slaLevel || "standard", totalBandwidth: vendor.totalBandwidth || "", usedBandwidth: vendor.usedBandwidth || "", bandwidthCost: vendor.bandwidthCost || "0", contractStartDate: vendor.contractStartDate || "", contractEndDate: vendor.contractEndDate || "", walletBalance: vendor.walletBalance || "0", panelUrl: vendor.panelUrl || "", panelUsername: vendor.panelUsername || "", status: vendor.status });
+    setDialogOpen(true);
+  };
+
+  const panelVendors = (vendors || []).filter(v => v.vendorType === "panel");
+  const totalWallet = panelVendors.reduce((s, v) => s + Number(v.walletBalance || 0), 0);
+  const activeCount = panelVendors.filter(v => v.status === "active").length;
+  const totalPackages = panelVendors.reduce((s, v) => s + getVendorPackages(v.id).length, 0);
+  const totalPayable = panelVendors.reduce((s, v) => s + getVendorTotalPayable(v.id), 0);
+
+  const filtered = panelVendors.filter(v => {
+    const matchSearch = v.name.toLowerCase().includes(search.toLowerCase()) || v.phone.includes(search) || (v.contactPerson || "").toLowerCase().includes(search.toLowerCase()) || (v.email || "").toLowerCase().includes(search.toLowerCase()) || (v.panelUrl || "").toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === "all" || v.status === statusFilter;
+    return matchSearch && matchStatus;
+  }).sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1;
+    if (sortField === "name") return a.name.localeCompare(b.name) * dir;
+    if (sortField === "wallet") return (Number(a.walletBalance || 0) - Number(b.walletBalance || 0)) * dir;
+    if (sortField === "payable") return (getVendorTotalPayable(a.id) - getVendorTotalPayable(b.id)) * dir;
+    if (sortField === "status") return a.status.localeCompare(b.status) * dir;
+    return 0;
+  });
+
+  const exportCSV = () => {
+    const headers = ["Name", "Contact Person", "Phone", "Email", "City", "Service Type", "Wallet Balance", "Panel URL", "Panel Username", "Packages", "Payable Amount", "Status"];
+    const rows = filtered.map(v => [v.name, v.contactPerson || "", v.phone, v.email || "", v.city || "", v.serviceType, v.walletBalance || "0", v.panelUrl || "", v.panelUsername || "", getVendorPackages(v.id).length, getVendorTotalPayable(v.id), v.status]);
+    const csv = "\uFEFF" + [headers.join(","), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url; a.download = `panel_vendors_${new Date().toISOString().split("T")[0]}.csv`; a.click(); URL.revokeObjectURL(url);
+  };
+
+  const generatePDF = () => {
+    if (filtered.length === 0) return;
+    const rows = filtered.map(v => {
+      const pkgs = getVendorPackages(v.id);
+      return `<tr>
+        <td>${escHtml(v.name)}${v.contactPerson ? `<br><small>${escHtml(v.contactPerson)}</small>` : ""}</td>
+        <td>${escHtml(v.phone)}</td>
+        <td class="capitalize">${escHtml(v.serviceType)}</td>
+        <td>${escHtml(v.walletBalance || "0")}</td>
+        <td>${v.panelUrl ? `<a href="${escHtml(v.panelUrl)}">${escHtml(v.panelUrl)}</a>` : "—"}</td>
+        <td>${escHtml(v.panelUsername || "—")}</td>
+        <td>${pkgs.length}</td>
+        <td>${escHtml(String(getVendorTotalPayable(v.id)))}</td>
+        <td><span class="badge ${v.status === "active" ? "badge-green" : "badge-red"}">${escHtml(v.status)}</span></td>
+      </tr>`;
+    }).join("");
+    const html = `<!DOCTYPE html><html><head><title>Panel Vendors Report</title>
+    <style>* { margin:0; padding:0; box-sizing:border-box; } body { font-family:Arial,sans-serif; font-size:11px; color:#111; padding:20px; }
+    h1 { font-size:16px; margin-bottom:2px; } .meta { font-size:11px; color:#555; margin-bottom:16px; }
+    table { width:100%; border-collapse:collapse; } th { background:#4c1d95; color:#fff; padding:7px 8px; text-align:left; font-size:10px; text-transform:uppercase; }
+    td { padding:6px 8px; border-bottom:1px solid #e2e8f0; vertical-align:top; } tr:nth-child(even) td { background:#faf5ff; }
+    .capitalize { text-transform:capitalize; } a { color:#7c3aed; }
+    .badge { padding:2px 6px; border-radius:4px; font-size:9px; font-weight:600; text-transform:uppercase; }
+    .badge-green { background:#dcfce7; color:#15803d; } .badge-red { background:#fef2f2; color:#dc2626; }
+    .footer { margin-top:16px; font-size:10px; color:#888; text-align:center; border-top:1px solid #e2e8f0; padding-top:8px; }
+    </style></head><body>
+    <h1>Panel Vendors Report</h1>
+    <p class="meta"><strong>Total:</strong> ${filtered.length} &nbsp; <strong>Active:</strong> ${activeCount} &nbsp; <strong>Total Wallet:</strong> PKR ${totalWallet.toLocaleString()} &nbsp; <strong>Total Packages:</strong> ${totalPackages} &nbsp; <strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+    <table><thead><tr><th>Name</th><th>Phone</th><th>Service</th><th>Wallet Balance (PKR)</th><th>Panel URL</th><th>Panel Username</th><th>Packages</th><th>Payable (PKR)</th><th>Status</th></tr></thead>
+    <tbody>${rows}</tbody></table>
+    <p class="footer">NetSphere Enterprise — Panel Vendors Report</p></body></html>`;
+    const win = window.open("", "_blank", "width=1100,height=800");
+    if (!win) return;
+    win.document.write(html); win.document.close(); win.focus();
+    setTimeout(() => { win.print(); }, 400);
+  };
+
+  return (
+    <div className="space-y-4 page-fade-in" data-testid="tab-content-panel-vendors">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="vendor-stat-card stat-purple p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-semibold">Panel Vendors</p>
+              <p className="text-2xl font-bold mt-1">{panelVendors.length}</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-950 flex items-center justify-center">
+              <Globe className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            </div>
+          </div>
+        </div>
+        <div className="vendor-stat-card stat-green p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-semibold">Active</p>
+              <p className="text-2xl font-bold mt-1">{activeCount}</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-green-50 dark:bg-green-950 flex items-center justify-center">
+              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+            </div>
+          </div>
+        </div>
+        <div className="vendor-stat-card stat-blue p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-semibold">Total Wallet</p>
+              <p className="text-lg font-bold mt-1">{formatPKR(totalWallet)}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">combined balance</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950 flex items-center justify-center">
+              <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+          </div>
+        </div>
+        <div className="vendor-stat-card stat-amber p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase font-semibold">Packages</p>
+              <p className="text-2xl font-bold mt-1">{totalPackages}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{formatPKR(totalPayable)} payable</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-950 flex items-center justify-center">
+              <Package className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="vendor-filter-bar">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="relative flex-1 w-full sm:max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Search panel vendors..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" data-testid="input-search-panel-vendors" />
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[130px]" data-testid="select-panel-status-filter"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={sortField} onValueChange={v => { setSortField(v); setSortDir("asc"); }}>
+              <SelectTrigger className="w-[140px]" data-testid="select-panel-sort-field"><SelectValue placeholder="Sort By" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="name">Name</SelectItem>
+                <SelectItem value="wallet">Wallet Balance</SelectItem>
+                <SelectItem value="payable">Payable Amount</SelectItem>
+                <SelectItem value="status">Status</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button size="sm" variant="outline" onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")} data-testid="button-panel-toggle-sort">
+              <ArrowUpDown className="h-3.5 w-3.5 mr-1" />{sortDir === "asc" ? "A→Z" : "Z→A"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={exportCSV} data-testid="button-export-panel-csv"><Download className="h-3.5 w-3.5 mr-1" />Export CSV</Button>
+            <Button size="sm" variant="outline" onClick={generatePDF} data-testid="button-generate-panel-pdf"><FileText className="h-3.5 w-3.5 mr-1" />Generate PDF</Button>
+            {canCreate("vendors") && (
+              <Button size="sm" className="btn-vendor-primary no-default-hover-elevate no-default-active-elevate" onClick={() => changeTab("add")} data-testid="button-add-panel-vendor">
+                <Plus className="h-3.5 w-3.5 mr-1" />Add Panel Vendor
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between text-sm text-muted-foreground px-1">
+        <span>Showing {filtered.length} of {panelVendors.length} panel vendors</span>
+        {(search || statusFilter !== "all") && (
+          <Button size="sm" variant="ghost" onClick={() => { setSearch(""); setStatusFilter("all"); }} data-testid="button-clear-panel-filters">Clear Filters</Button>
+        )}
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-5 space-y-3">{[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+              <Globe className="h-12 w-12 mb-3 opacity-30" />
+              <p className="font-medium">No panel vendors found</p>
+              <p className="text-sm mt-1">Add your first panel vendor to get started</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table className="vendor-table-enterprise">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead className="hidden md:table-cell">Service</TableHead>
+                    <TableHead className="hidden md:table-cell">Wallet Balance</TableHead>
+                    <TableHead className="hidden lg:table-cell">Panel URL</TableHead>
+                    <TableHead className="hidden lg:table-cell">Packages</TableHead>
+                    <TableHead className="hidden xl:table-cell">Payable Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-10"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map(vendor => {
+                    const pkgs = getVendorPackages(vendor.id);
+                    const payable = getVendorTotalPayable(vendor.id);
+                    return (
+                      <TableRow key={vendor.id} data-testid={`row-panel-vendor-${vendor.id}`}>
+                        <TableCell>
+                          <div className="font-medium">{vendor.name}</div>
+                          {vendor.contactPerson && <div className="text-xs text-muted-foreground">{vendor.contactPerson}</div>}
+                          {vendor.city && <div className="text-xs text-muted-foreground">{vendor.city}</div>}
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-xs flex items-center gap-1"><Phone className="h-3 w-3 text-muted-foreground" />{vendor.phone}</span>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <span className="text-xs capitalize">{vendor.serviceType}</span>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <div>
+                            <span className="text-xs font-semibold text-purple-600 dark:text-purple-400">{formatPKR(vendor.walletBalance)}</span>
+                            <span className="text-[10px] text-muted-foreground block">wallet balance</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          {vendor.panelUrl ? (
+                            <div>
+                              <a href={vendor.panelUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate block max-w-[160px]" title={vendor.panelUrl}>{vendor.panelUrl}</a>
+                              {vendor.panelUsername && <span className="text-[10px] text-muted-foreground">{vendor.panelUsername}</span>}
+                            </div>
+                          ) : <span className="text-xs text-muted-foreground">Not set</span>}
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant="secondary" className="no-default-active-elevate text-[10px]"><Package className="h-3 w-3 mr-0.5" />{pkgs.length}</Badge>
+                            {pkgs.length > 0 && <span className="text-[10px] text-muted-foreground truncate max-w-[80px]" title={pkgs.map(p => p.packageName).join(", ")}>{pkgs[0].packageName}{pkgs.length > 1 ? ` +${pkgs.length - 1}` : ""}</span>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden xl:table-cell">
+                          <div>
+                            <span className="text-xs font-semibold text-amber-600 dark:text-amber-400">{formatPKR(payable)}</span>
+                            <span className="text-[10px] text-muted-foreground block">total pkg cost</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className={`no-default-active-elevate text-[10px] capitalize ${statusColors[vendor.status] || ""}`}>{vendor.status}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" data-testid={`button-panel-actions-${vendor.id}`}><MoreHorizontal className="h-4 w-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => setProfileVendor(vendor)} data-testid={`button-panel-view-profile-${vendor.id}`}><Eye className="h-4 w-4 mr-2" />View Profile</DropdownMenuItem>
+                              {canEdit("vendors") && <DropdownMenuItem onClick={() => openEdit(vendor)} data-testid={`button-panel-edit-${vendor.id}`}><Edit className="h-4 w-4 mr-2" />Edit Profile</DropdownMenuItem>}
+                              <DropdownMenuItem onClick={() => setWalletVendor(vendor)} data-testid={`button-panel-wallet-${vendor.id}`}><Wallet className="h-4 w-4 mr-2" />Wallet & Transactions</DropdownMenuItem>
+                              {canDelete("vendors") && (
+                                <DropdownMenuItem className="text-destructive" onClick={() => { if (confirm(`Delete vendor "${vendor.name}"?`)) deleteMutation.mutate(vendor.id); }} data-testid={`button-panel-delete-${vendor.id}`}><Trash2 className="h-4 w-4 mr-2" />Delete</DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Edit Panel Vendor</DialogTitle></DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(data => { if (editingVendor) updateMutation.mutate({ id: editingVendor.id, data }); })} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Name</FormLabel><FormControl><Input data-testid="input-panel-edit-name" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="contactPerson" render={({ field }) => (<FormItem><FormLabel>Contact Person</FormLabel><FormControl><Input data-testid="input-panel-edit-contact" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone</FormLabel><FormControl><Input data-testid="input-panel-edit-phone" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input data-testid="input-panel-edit-email" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField control={form.control} name="panelUrl" render={({ field }) => (<FormItem><FormLabel>Panel URL</FormLabel><FormControl><Input placeholder="https://panel.example.com" data-testid="input-panel-edit-url" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="panelUsername" render={({ field }) => (<FormItem><FormLabel>Panel Username</FormLabel><FormControl><Input data-testid="input-panel-edit-username" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="walletBalance" render={({ field }) => (<FormItem><FormLabel>Wallet Balance (PKR)</FormLabel><FormControl><Input type="number" data-testid="input-panel-edit-wallet" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField control={form.control} name="serviceType" render={({ field }) => (<FormItem><FormLabel>Service Type</FormLabel><Select onValueChange={field.onChange} value={field.value || "fiber"}><FormControl><SelectTrigger data-testid="select-panel-edit-service"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="fiber">Fiber</SelectItem><SelectItem value="wireless">Wireless</SelectItem><SelectItem value="cable">Cable</SelectItem><SelectItem value="satellite">Satellite</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Lahore" data-testid="input-panel-edit-city" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField control={form.control} name="bankName" render={({ field }) => (<FormItem><FormLabel>Bank Name</FormLabel><FormControl><Input placeholder="e.g. HBL" data-testid="input-panel-edit-bank" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="bankAccountTitle" render={({ field }) => (<FormItem><FormLabel>Account Title</FormLabel><FormControl><Input data-testid="input-panel-edit-bank-title" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="bankAccountNumber" render={({ field }) => (<FormItem><FormLabel>Account No / IBAN</FormLabel><FormControl><Input data-testid="input-panel-edit-bank-number" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField control={form.control} name="contractStartDate" render={({ field }) => (<FormItem><FormLabel>Contract Start</FormLabel><FormControl><Input type="date" data-testid="input-panel-edit-contract-start" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="contractEndDate" render={({ field }) => (<FormItem><FormLabel>Contract End</FormLabel><FormControl><Input type="date" data-testid="input-panel-edit-contract-end" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} value={field.value || "active"}><FormControl><SelectTrigger data-testid="select-panel-edit-status"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="secondary" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                <Button type="submit" disabled={updateMutation.isPending} data-testid="button-panel-update-vendor">{updateMutation.isPending ? "Updating..." : "Update Vendor"}</Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!profileVendor} onOpenChange={open => { if (!open) setProfileVendor(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Eye className="h-5 w-5" />Vendor Profile</DialogTitle></DialogHeader>
+          {profileVendor && (() => {
+            const pkgs = getVendorPackages(profileVendor.id);
+            return (
+              <div className="space-y-5">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl shrink-0">{profileVendor.name.charAt(0).toUpperCase()}</div>
+                  <div>
+                    <h3 className="text-lg font-semibold">{profileVendor.name}</h3>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <Badge variant="secondary" className="no-default-active-elevate text-[10px] text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950">Panel</Badge>
+                      <Badge variant="secondary" className={`no-default-active-elevate text-[10px] capitalize ${statusColors[profileVendor.status] || ""}`}>{profileVendor.status}</Badge>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {profileVendor.contactPerson && <div className="text-sm"><span className="text-muted-foreground text-xs block">Contact</span>{profileVendor.contactPerson}</div>}
+                  <div className="text-sm"><span className="text-muted-foreground text-xs block">Phone</span>{profileVendor.phone}</div>
+                  {profileVendor.email && <div className="text-sm"><span className="text-muted-foreground text-xs block">Email</span>{profileVendor.email}</div>}
+                  <div className="text-sm"><span className="text-muted-foreground text-xs block">Service Type</span><span className="capitalize">{profileVendor.serviceType}</span></div>
+                  {profileVendor.city && <div className="text-sm"><span className="text-muted-foreground text-xs block">City</span>{profileVendor.city}</div>}
+                  {profileVendor.ntn && <div className="text-sm"><span className="text-muted-foreground text-xs block">NTN</span>{profileVendor.ntn}</div>}
+                  {(profileVendor.bankName || profileVendor.bankAccountNumber) && (
+                    <div className="text-sm space-y-0.5"><span className="text-muted-foreground text-xs block">Bank</span>{profileVendor.bankName && <div>{profileVendor.bankName}</div>}{profileVendor.bankAccountTitle && <div className="text-xs text-muted-foreground">{profileVendor.bankAccountTitle}</div>}{profileVendor.bankAccountNumber && <div className="font-mono text-xs">{profileVendor.bankAccountNumber}</div>}</div>
+                  )}
+                </div>
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-1.5"><Wallet className="h-4 w-4" />Panel Details</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="text-sm"><span className="text-muted-foreground text-xs block">Wallet Balance</span><span className="font-semibold text-purple-600 dark:text-purple-400">{formatPKR(profileVendor.walletBalance)}</span></div>
+                      {profileVendor.panelUrl && <div className="text-sm"><span className="text-muted-foreground text-xs block">Panel URL</span><a href={profileVendor.panelUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline text-xs">{profileVendor.panelUrl}</a></div>}
+                      {profileVendor.panelUsername && <div className="text-sm"><span className="text-muted-foreground text-xs block">Panel Username</span>{profileVendor.panelUsername}</div>}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-1.5"><Package className="h-4 w-4" />Packages ({pkgs.length})</CardTitle></CardHeader>
+                  <CardContent>
+                    {pkgs.length === 0 ? <p className="text-xs text-muted-foreground text-center py-3">No packages assigned</p> : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader><TableRow><TableHead className="text-xs">Package</TableHead><TableHead className="text-xs">Speed</TableHead><TableHead className="text-xs">Vendor Price</TableHead><TableHead className="text-xs">ISP Price</TableHead><TableHead className="text-xs">Margin</TableHead></TableRow></TableHeader>
+                          <TableBody>
+                            {pkgs.map(pkg => (
+                              <TableRow key={pkg.id}>
+                                <TableCell className="text-sm font-medium">{pkg.packageName}</TableCell>
+                                <TableCell className="text-sm">{pkg.speed || "N/A"}</TableCell>
+                                <TableCell className="text-sm">{formatPKR(pkg.vendorPrice)}</TableCell>
+                                <TableCell className="text-sm">{formatPKR(pkg.ispSellingPrice)}</TableCell>
+                                <TableCell className="text-sm text-green-600 dark:text-green-400 font-medium">{formatPKR(Number(pkg.ispSellingPrice || 0) - Number(pkg.vendorPrice || 0))}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProfileVendor(null)}>Close</Button>
+            <Button onClick={() => { if (profileVendor) { openEdit(profileVendor); setProfileVendor(null); } }} data-testid="button-panel-profile-edit"><Edit className="h-4 w-4 mr-1" />Edit Profile</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!walletVendor} onOpenChange={open => { if (!open) setWalletVendor(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="flex items-center gap-2"><Wallet className="h-5 w-5" />Wallet & Transactions — {walletVendor?.name}</DialogTitle></DialogHeader>
+          {walletVendor && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <Card><CardContent className="pt-4 pb-3 px-4"><div className="flex items-center gap-2"><div className="p-2 rounded-md bg-purple-50 dark:bg-purple-950"><Wallet className="h-4 w-4 text-purple-600 dark:text-purple-400" /></div><div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Balance</p><p className="text-lg font-bold">{formatPKR(walletVendor.walletBalance)}</p></div></div></CardContent></Card>
+                <Card><CardContent className="pt-4 pb-3 px-4"><div className="flex items-center gap-2"><div className="p-2 rounded-md bg-blue-50 dark:bg-blue-950"><Activity className="h-4 w-4 text-blue-600 dark:text-blue-400" /></div><div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Transactions</p><p className="text-lg font-bold">{(walletTransactions || []).length}</p></div></div></CardContent></Card>
+              </div>
+              <Card>
+                <CardHeader className="pb-2"><CardTitle className="text-sm">Transaction History</CardTitle></CardHeader>
+                <CardContent>
+                  {(walletTransactions || []).length === 0 ? (
+                    <div className="text-center py-6 text-muted-foreground text-sm"><Wallet className="h-8 w-8 mx-auto mb-2 opacity-30" /><p>No transactions yet</p></div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader><TableRow><TableHead className="text-xs">Date</TableHead><TableHead className="text-xs">Type</TableHead><TableHead className="text-xs">Amount</TableHead><TableHead className="text-xs">Balance After</TableHead><TableHead className="text-xs">Note</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                          {(walletTransactions || []).map(txn => (
+                            <TableRow key={txn.id}>
+                              <TableCell className="text-xs">{txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : "N/A"}</TableCell>
+                              <TableCell><Badge variant="secondary" className={`no-default-active-elevate text-[10px] ${txn.type === "recharge" ? "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950" : "text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950"}`}>{txn.type === "recharge" ? <><ArrowDownLeft className="h-3 w-3 mr-0.5" />Recharge</> : <><ArrowUpRight className="h-3 w-3 mr-0.5" />Deduct</>}</Badge></TableCell>
+                              <TableCell className={`text-sm font-medium ${txn.type === "recharge" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{txn.type === "recharge" ? "+" : "-"}{formatPKR(txn.amount)}</TableCell>
+                              <TableCell className="text-sm">{formatPKR(txn.balanceAfter)}</TableCell>
+                              <TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">{txn.description || "-"}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWalletVendor(null)}>Close</Button>
+            <Button onClick={() => { setWalletVendor(null); changeTab("wallet"); }} data-testid="button-panel-go-wallet-tab"><Wallet className="h-4 w-4 mr-1" />Manage Wallet</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 function VendorPackagesTab() {
   const { toast } = useToast();
   const [vendorFilter, setVendorFilter] = useState("all");
@@ -6197,6 +7329,8 @@ export default function VendorsPage() {
       {tab === "types" && <VendorTypesTab />}
       {tab === "add" && <AddVendorTab />}
       {tab === "list" && <VendorListTab />}
+      {tab === "bandwidth-vendors" && <BandwidthVendorsTab />}
+      {tab === "panel-vendors" && <PanelVendorsTab />}
       {tab === "packages" && <VendorPackagesTab />}
       {tab === "bandwidth-changes" && <BandwidthChangesTab />}
       {tab === "wallet" && <WalletTab />}
