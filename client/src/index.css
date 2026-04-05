@@ -398,6 +398,22 @@
     background: linear-gradient(90deg, #E11D48, #FB7185);
   }
 
+  .vendor-stat-card.stat-emerald::before {
+    background: linear-gradient(90deg, #059669, #34D399);
+  }
+
+  .vendor-stat-card.stat-indigo::before {
+    background: linear-gradient(90deg, #4338CA, #818CF8);
+  }
+
+  .vendor-stat-card.stat-red::before {
+    background: linear-gradient(90deg, #DC2626, #F87171);
+  }
+
+  .vendor-stat-card.stat-gray::before {
+    background: linear-gradient(90deg, #475569, #94A3B8);
+  }
+
   .vendor-table-enterprise {
     @apply w-full;
   }
