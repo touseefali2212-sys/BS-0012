@@ -6,7 +6,7 @@ import {
   Building2, Plus, Search, Edit, Trash2, Wallet, Shield, ArrowUpCircle, ArrowDownCircle,
   ArrowLeftRight, Landmark, CreditCard, Smartphone, CheckCircle2, XCircle, MoreHorizontal,
   TrendingUp, TrendingDown, DollarSign, RefreshCw, Eye, FileText, AlertTriangle, Banknote,
-  Hash, Calendar, Filter, X, ChevronRight, Receipt,
+  Hash, Calendar, Filter, X, ChevronRight, Receipt, Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -94,6 +94,17 @@ export default function CompanyBankAccountsPage() {
   const [manualAmount, setManualAmount] = useState("");
   const [manualDescription, setManualDescription] = useState("");
   const [manualRemarks, setManualRemarks] = useState("");
+
+  // Ledger entry action state
+  const [viewEntry, setViewEntry] = useState<CompanyAccountLedgerEntry | null>(null);
+  const [editEntry, setEditEntry] = useState<CompanyAccountLedgerEntry | null>(null);
+  const [deleteLedgerEntry, setDeleteLedgerEntry] = useState<CompanyAccountLedgerEntry | null>(null);
+  const [editDesc, setEditDesc] = useState("");
+  const [editRemarks, setEditRemarks] = useState("");
+  const [editAmount, setEditAmount] = useState("");
+
+  const { data: currentUser } = useQuery<any>({ queryKey: ["/api/auth/me"] });
+  const isAdmin = ["admin", "super_admin", "superadmin", "super admin"].includes((currentUser?.role || "").toLowerCase());
 
   const { data: accounts = [], isLoading } = useQuery<CompanyBankAccount[]>({
     queryKey: ["/api/company-bank-accounts"],
@@ -189,6 +200,38 @@ export default function CompanyBankAccountsPage() {
       setManualDialogOpen(false);
       setManualAccountId(""); setManualAmount(""); setManualDescription(""); setManualRemarks("");
       toast({ title: `Manual ${manualType} entry added` });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const editLedgerMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: { description?: string; remarks?: string; amount?: number } }) => {
+      const res = await apiRequest("PATCH", `/api/company-account-ledger/${id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/company-bank-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/company-account-ledger"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/resellers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reseller-wallet-transactions"] });
+      setEditEntry(null);
+      setEditDesc(""); setEditRemarks(""); setEditAmount("");
+      toast({ title: "Ledger entry updated" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const deleteLedgerMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/company-account-ledger/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/company-bank-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/company-account-ledger"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/resellers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reseller-wallet-transactions"] });
+      setDeleteLedgerEntry(null);
+      toast({ title: "Ledger entry deleted and bank balance reversed." });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
@@ -662,6 +705,7 @@ export default function CompanyBankAccountsPage() {
                       <th className="px-3 py-2.5 text-right font-medium text-xs">Debit</th>
                       <th className="px-3 py-2.5 text-right font-medium text-xs">Credit</th>
                       <th className="px-3 py-2.5 text-right font-medium text-xs">Balance</th>
+                      <th className="px-3 py-2.5 text-center font-medium text-xs">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -711,6 +755,35 @@ export default function CompanyBankAccountsPage() {
                             <span className={`text-xs font-bold ${parseFloat(entry.balanceAfter || "0") < 0 ? "text-red-600" : "text-slate-700 dark:text-slate-200"}`}>
                               {formatPKR(entry.balanceAfter)}
                             </span>
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" data-testid={`menu-ledger-${entry.id}`}>
+                                  <MoreHorizontal className="h-3.5 w-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-52">
+                                <DropdownMenuItem onClick={() => setViewEntry(entry)} data-testid={`view-ledger-entry-${entry.id}`}>
+                                  <Eye className="h-4 w-4 mr-2 text-blue-600" /> View Transaction
+                                </DropdownMenuItem>
+                                {isAdmin ? (
+                                  <>
+                                    <DropdownMenuItem onClick={() => { setEditEntry(entry); setEditDesc(entry.description || ""); setEditRemarks(entry.remarks || ""); setEditAmount(entry.amount || ""); }} data-testid={`edit-ledger-entry-${entry.id}`}>
+                                      <Edit className="h-4 w-4 mr-2 text-amber-600" /> Edit Transaction
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="text-red-600" onClick={() => setDeleteLedgerEntry(entry)} data-testid={`delete-ledger-entry-${entry.id}`}>
+                                      <Trash2 className="h-4 w-4 mr-2" /> Delete Transaction
+                                    </DropdownMenuItem>
+                                  </>
+                                ) : (
+                                  <DropdownMenuItem disabled className="text-muted-foreground text-xs">
+                                    <Lock className="h-3.5 w-3.5 mr-2" /> Admin only — Edit/Delete
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </td>
                         </tr>
                       );
@@ -1012,7 +1085,7 @@ export default function CompanyBankAccountsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* Delete Account Confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1025,6 +1098,175 @@ export default function CompanyBankAccountsPage() {
             <AlertDialogCancel data-testid="cancel-delete">Cancel</AlertDialogCancel>
             <AlertDialogAction className="bg-red-600 text-white" onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)} data-testid="confirm-delete">
               Delete Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* View Ledger Entry Dialog */}
+      <Dialog open={!!viewEntry} onOpenChange={(o) => { if (!o) setViewEntry(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Eye className="h-5 w-5 text-blue-600" /> View Transaction
+              <span className="text-sm font-mono text-muted-foreground ml-1">#{viewEntry && String(viewEntry.id).padStart(6, "0")}</span>
+            </DialogTitle>
+          </DialogHeader>
+          {viewEntry && (() => {
+            const acc = accounts.find(a => a.id === viewEntry.accountId);
+            const isCredit = viewEntry.type === "credit";
+            return (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Account</p>
+                    <p className="text-sm font-medium">{acc?.name || `#${viewEntry.accountId}`}</p>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Date</p>
+                    <p className="text-sm">{viewEntry.createdAt ? new Date(viewEntry.createdAt).toLocaleDateString("en-PK", { day: "2-digit", month: "short", year: "numeric" }) : "—"}</p>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Type</p>
+                    <Badge variant="secondary" className={`no-default-active-elevate text-[10px] capitalize ${isCredit ? "text-green-700 bg-green-50" : "text-red-600 bg-red-50"}`}>
+                      {isCredit ? <ArrowUpCircle className="h-3 w-3 mr-1" /> : <ArrowDownCircle className="h-3 w-3 mr-1" />}
+                      {viewEntry.type}
+                    </Badge>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Amount</p>
+                    <p className={`text-sm font-bold ${isCredit ? "text-green-600" : "text-red-600"}`}>{isCredit ? "+" : "−"} {formatPKR(viewEntry.amount)}</p>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Balance After</p>
+                    <p className={`text-sm font-bold ${parseFloat(viewEntry.balanceAfter || "0") < 0 ? "text-red-600" : "text-slate-700 dark:text-slate-200"}`}>{formatPKR(viewEntry.balanceAfter)}</p>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Module</p>
+                    <p className="text-sm">{MODULE_LABELS[viewEntry.referenceModule || ""] || viewEntry.referenceModule || "—"}</p>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Reference ID</p>
+                    <p className="text-sm font-mono">{viewEntry.referenceId || "—"}</p>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Created By</p>
+                    <p className="text-sm capitalize">{viewEntry.createdBy || "System"}</p>
+                  </div>
+                </div>
+                {(viewEntry.description || viewEntry.remarks) && (
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 space-y-2">
+                    {viewEntry.description && (
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Description</p>
+                        <p className="text-sm">{viewEntry.description}</p>
+                      </div>
+                    )}
+                    {viewEntry.remarks && (
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide font-medium mb-1">Remarks</p>
+                        <p className="text-sm text-muted-foreground">{viewEntry.remarks}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setViewEntry(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Ledger Entry Dialog */}
+      <Dialog open={!!editEntry} onOpenChange={(o) => { if (!o) { setEditEntry(null); setEditDesc(""); setEditRemarks(""); setEditAmount(""); } }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5 text-amber-600" /> Edit Transaction
+              <span className="text-sm font-mono text-muted-foreground ml-1">#{editEntry && String(editEntry.id).padStart(6, "0")}</span>
+            </DialogTitle>
+          </DialogHeader>
+          {editEntry && (
+            <div className="space-y-4">
+              <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-xs text-amber-800 dark:text-amber-300">
+                <p className="font-medium mb-1">Linked Module: {MODULE_LABELS[editEntry.referenceModule || ""] || editEntry.referenceModule || "Manual"}</p>
+                <p>Changes to description and remarks will also sync to the originating module transaction.</p>
+              </div>
+              {editEntry.referenceModule === "manual" && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Amount (PKR)</label>
+                  <Input type="number" step="0.01" min="0.01" value={editAmount} onChange={e => setEditAmount(e.target.value)} data-testid="input-edit-ledger-amount" />
+                  <p className="text-xs text-muted-foreground">Current: {formatPKR(editEntry.amount)}</p>
+                </div>
+              )}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Description</label>
+                <Input placeholder="Transaction description" value={editDesc} onChange={e => setEditDesc(e.target.value)} data-testid="input-edit-ledger-desc" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Remarks</label>
+                <Textarea placeholder="Additional notes (optional)" value={editRemarks} onChange={e => setEditRemarks(e.target.value)} rows={2} data-testid="input-edit-ledger-remarks" />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="secondary" onClick={() => { setEditEntry(null); setEditDesc(""); setEditRemarks(""); setEditAmount(""); }} data-testid="button-cancel-edit-ledger">Cancel</Button>
+            <Button
+              className="bg-amber-600 text-white"
+              disabled={editLedgerMutation.isPending}
+              onClick={() => {
+                if (!editEntry) return;
+                const data: { description?: string; remarks?: string; amount?: number } = {
+                  description: editDesc,
+                  remarks: editRemarks,
+                };
+                if (editEntry.referenceModule === "manual" && editAmount && parseFloat(editAmount) > 0) {
+                  data.amount = parseFloat(editAmount);
+                }
+                editLedgerMutation.mutate({ id: editEntry.id, data });
+              }}
+              data-testid="button-confirm-edit-ledger">
+              {editLedgerMutation.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Ledger Entry Confirmation */}
+      <AlertDialog open={!!deleteLedgerEntry} onOpenChange={(o) => { if (!o) setDeleteLedgerEntry(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" /> Delete Ledger Transaction
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>You are about to permanently delete ledger entry <strong>#{deleteLedgerEntry && String(deleteLedgerEntry.id).padStart(6, "0")}</strong>.</p>
+                {deleteLedgerEntry && (
+                  <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg p-3 text-sm space-y-1">
+                    <p><span className="text-muted-foreground">Amount:</span> <strong className={deleteLedgerEntry.type === "credit" ? "text-green-600" : "text-red-600"}>{formatPKR(deleteLedgerEntry.amount)}</strong></p>
+                    <p><span className="text-muted-foreground">Module:</span> {MODULE_LABELS[deleteLedgerEntry.referenceModule || ""] || deleteLedgerEntry.referenceModule || "—"}</p>
+                    {deleteLedgerEntry.description && <p><span className="text-muted-foreground">Description:</span> {deleteLedgerEntry.description}</p>}
+                  </div>
+                )}
+                <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-3 text-xs text-red-700 dark:text-red-400 space-y-1">
+                  <p className="font-semibold">This action will:</p>
+                  <p>• Reverse the bank account balance effect of this entry</p>
+                  {deleteLedgerEntry?.referenceModule === "reseller_recharge" && <p>• Reset the linked reseller wallet transaction payment status to Unpaid</p>}
+                  <p>• This cannot be undone</p>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="cancel-delete-ledger">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white"
+              onClick={() => deleteLedgerEntry && deleteLedgerMutation.mutate(deleteLedgerEntry.id)}
+              data-testid="confirm-delete-ledger">
+              {deleteLedgerMutation.isPending ? "Deleting..." : "Yes, Delete Transaction"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

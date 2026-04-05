@@ -1379,6 +1379,68 @@ export async function registerRoutes(
     } catch (e: any) { res.status(400).json({ message: e.message }); }
   });
 
+  app.patch("/api/company-account-ledger/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+      const sessionUser = req.session.userId ? await storage.getUser(req.session.userId) : null;
+      const adminRoles = ["admin", "super_admin", "superadmin", "super admin"];
+      if (!sessionUser || !adminRoles.includes((sessionUser.role || "").toLowerCase())) {
+        return res.status(403).json({ message: "Unauthorized. Admin role required to edit ledger entries." });
+      }
+      const entry = await storage.getCompanyAccountLedgerEntryById(id);
+      if (!entry) return res.status(404).json({ message: "Ledger entry not found" });
+      const schema = z.object({
+        description: z.string().optional(),
+        remarks: z.string().optional(),
+        amount: z.union([z.number(), z.string()]).transform(v => parseFloat(String(v))).refine(v => v > 0).optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.errors });
+      const updated = await storage.updateCompanyAccountLedgerEntry(id, parsed.data);
+      // Sync description/remarks to linked module transaction
+      if (entry.referenceModule === "reseller_recharge" && entry.referenceId) {
+        const walletTxnId = parseInt(entry.referenceId);
+        if (!isNaN(walletTxnId) && walletTxnId > 0) {
+          const syncData: Record<string, any> = {};
+          if (parsed.data.description !== undefined) syncData.description = parsed.data.description;
+          if (parsed.data.remarks !== undefined) syncData.remarks = parsed.data.remarks;
+          if (Object.keys(syncData).length > 0) {
+            await storage.updateResellerWalletTransaction(walletTxnId, syncData).catch(() => {});
+          }
+        }
+      }
+      res.json(updated);
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+
+  app.delete("/api/company-account-ledger/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid ID" });
+      const sessionUser = req.session.userId ? await storage.getUser(req.session.userId) : null;
+      const adminRoles = ["admin", "super_admin", "superadmin", "super admin"];
+      if (!sessionUser || !adminRoles.includes((sessionUser.role || "").toLowerCase())) {
+        return res.status(403).json({ message: "Unauthorized. Admin role required to delete ledger entries." });
+      }
+      const entry = await storage.getCompanyAccountLedgerEntryById(id);
+      if (!entry) return res.status(404).json({ message: "Ledger entry not found" });
+      await storage.deleteCompanyAccountLedgerEntryById(id);
+      // Sync to linked module — reset the source transaction payment status
+      if (entry.referenceModule === "reseller_recharge" && entry.referenceId) {
+        const walletTxnId = parseInt(entry.referenceId);
+        if (!isNaN(walletTxnId) && walletTxnId > 0) {
+          await storage.updateResellerWalletTransaction(walletTxnId, {
+            paidAmount: "0",
+            paymentStatus: "unpaid",
+            bankAccountId: undefined,
+          }).catch(() => {});
+        }
+      }
+      res.json({ success: true, message: "Ledger entry deleted and bank balance reversed." });
+    } catch (e: any) { res.status(400).json({ message: e.message }); }
+  });
+
   // Bandwidth Pool Stats API
   app.get("/api/bandwidth-pool/stats", requireAuth, async (req, res) => {
     try {

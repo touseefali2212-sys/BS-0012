@@ -323,7 +323,10 @@ export interface IStorage {
   debitCompanyAccount(accountId: number, amount: number, referenceModule?: string, referenceId?: string, description?: string, remarks?: string, createdBy?: string): Promise<CompanyBankAccount>;
   transferBetweenAccounts(fromAccountId: number, toAccountId: number, amount: number, remarks?: string, createdBy?: string): Promise<void>;
   getCompanyAccountLedger(accountId?: number): Promise<CompanyAccountLedgerEntry[]>;
+  getCompanyAccountLedgerEntryById(id: number): Promise<CompanyAccountLedgerEntry | undefined>;
   createCompanyAccountLedgerEntry(data: InsertCompanyAccountLedger): Promise<CompanyAccountLedgerEntry>;
+  updateCompanyAccountLedgerEntry(id: number, updates: { description?: string; remarks?: string; amount?: number; type?: string }): Promise<CompanyAccountLedgerEntry>;
+  deleteCompanyAccountLedgerEntryById(id: number): Promise<void>;
   resyncResellerWalletLedger(walletTxnId: number, newBankAccountId: number | null, newPaidAmount: number, description?: string, remarks?: string, createdBy?: string, oldResellerId?: number, oldBankAccountId?: number, oldPaidAmount?: number): Promise<void>;
 
   getResellerCompanyPackages(): Promise<ResellerCompanyPackage[]>;
@@ -1521,7 +1524,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Reverse and delete a single companyAccountLedger entry, adjusting the bank account balance
-  private async reverseLedgerEntry(entry: CompanyAccountLedgerEntry): Promise<void> {
+  async reverseLedgerEntry(entry: CompanyAccountLedgerEntry): Promise<void> {
     const entryAmt = parseFloat(entry.amount || "0");
     if (entryAmt > 0) {
       const account = await this.getCompanyBankAccount(entry.accountId);
@@ -1901,6 +1904,45 @@ export class DatabaseStorage implements IStorage {
       return db.select().from(companyAccountLedger).where(eq(companyAccountLedger.accountId, accountId)).orderBy(desc(companyAccountLedger.id));
     }
     return db.select().from(companyAccountLedger).orderBy(desc(companyAccountLedger.id));
+  }
+
+  async getCompanyAccountLedgerEntryById(id: number): Promise<CompanyAccountLedgerEntry | undefined> {
+    const [row] = await db.select().from(companyAccountLedger).where(eq(companyAccountLedger.id, id));
+    return row;
+  }
+
+  async updateCompanyAccountLedgerEntry(id: number, updates: { description?: string; remarks?: string; amount?: number; type?: string }): Promise<CompanyAccountLedgerEntry> {
+    const existing = await this.getCompanyAccountLedgerEntryById(id);
+    if (!existing) throw new Error("Ledger entry not found");
+    const setData: Record<string, any> = {};
+    if (updates.description !== undefined) setData.description = updates.description;
+    if (updates.remarks !== undefined) setData.remarks = updates.remarks;
+    if (updates.amount !== undefined) {
+      const oldAmt = parseFloat(existing.amount || "0");
+      const newAmt = updates.amount;
+      const oldType = (updates.type || existing.type) === "credit" ? 1 : -1;
+      const existingType = existing.type === "credit" ? 1 : -1;
+      const oldEffect = existingType * oldAmt;
+      const newEffect = oldType * newAmt;
+      const delta = newEffect - oldEffect;
+      if (delta !== 0) {
+        const account = await this.getCompanyBankAccount(existing.accountId);
+        if (account) {
+          const newBal = parseFloat(account.currentBalance || "0") + delta;
+          await db.update(companyBankAccounts).set({ currentBalance: newBal.toString() }).where(eq(companyBankAccounts.id, existing.accountId));
+        }
+      }
+      setData.amount = newAmt.toString();
+    }
+    if (updates.type !== undefined) setData.type = updates.type;
+    const [updated] = await db.update(companyAccountLedger).set(setData).where(eq(companyAccountLedger.id, id)).returning();
+    return updated;
+  }
+
+  async deleteCompanyAccountLedgerEntryById(id: number): Promise<void> {
+    const entry = await this.getCompanyAccountLedgerEntryById(id);
+    if (!entry) throw new Error("Ledger entry not found");
+    await this.reverseLedgerEntry(entry);
   }
 
   async creditCompanyAccount(accountId: number, amount: number, referenceModule?: string, referenceId?: string, description?: string, remarks?: string, createdBy?: string): Promise<CompanyBankAccount> {
