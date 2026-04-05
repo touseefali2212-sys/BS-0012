@@ -2124,14 +2124,6 @@ export default function ResellersPage() {
           const paid = parseFloat(String((t as any).paidAmount || "0"));
           return s + (amt - paid);
         }, 0);
-        // Compute per-transaction balance delta (chronological order → correct ↑/↓ direction)
-        const txnsByIdAsc = [...txns].sort((a, b) => a.id - b.id);
-        const balanceDeltaMap = new Map<number, number>();
-        txnsByIdAsc.forEach((t, i) => {
-          const balBefore = i === 0 ? 0 : parseFloat(String(txnsByIdAsc[i - 1].balanceAfter || "0"));
-          const balAfter = parseFloat(String(t.balanceAfter || "0"));
-          balanceDeltaMap.set(t.id, balAfter - balBefore);
-        });
 
         const filteredTxns = txns.filter(t => {
           const matchType = txnTypeFilter === "all" || t.type === txnTypeFilter;
@@ -2452,23 +2444,57 @@ export default function ResellersPage() {
                                 ? <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">{formatPKR((txn as any).paidAmount)}</span>
                                 : <span className="text-xs text-muted-foreground">—</span>}
                             </td>
-                            {/* Balance After */}
+                            {/* Balance — per-transaction payment net */}
                             <td className="px-3 py-2.5 text-right tabular-nums whitespace-nowrap">
                               {(() => {
-                                const balAfterNum = parseFloat(String(txn.balanceAfter || "0"));
-                                const delta = balanceDeltaMap.get(txn.id) ?? 0;
-                                return (
-                                  <div className="flex flex-col items-end gap-0.5">
-                                    <span className={`text-sm font-semibold ${balAfterNum < 0 ? "text-red-600 dark:text-red-400" : "text-slate-800 dark:text-slate-100"}`}>
-                                      {balAfterNum < 0 ? "− " : ""}{formatPKR(Math.abs(balAfterNum))}
-                                    </span>
-                                    {delta !== 0 && (
-                                      <span className={`text-[10px] font-medium leading-none ${delta > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
-                                        {delta > 0 ? "↑ +" : "↓ −"}{formatPKR(Math.abs(delta))}
-                                      </span>
-                                    )}
-                                  </div>
-                                );
+                                const txnAmt = parseFloat(String(txn.amount || "0"));
+                                const paidAmt = parseFloat(String((txn as any).paidAmount || "0"));
+                                const cat = txn.category;
+                                const isDebit = txn.type === "debit";
+
+                                if (cat === "recharge") {
+                                  const net = paidAmt - txnAmt;
+                                  if (net < 0) {
+                                    return (
+                                      <div className="flex flex-col items-end gap-0.5">
+                                        <span className="text-xs font-bold text-red-600 dark:text-red-400">− {formatPKR(Math.abs(net))}</span>
+                                        <span className="text-[10px] font-semibold text-red-500 dark:text-red-400 leading-none">Unpaid</span>
+                                      </div>
+                                    );
+                                  } else if (net > 0) {
+                                    return (
+                                      <div className="flex flex-col items-end gap-0.5">
+                                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">+ {formatPKR(net)}</span>
+                                        <span className="text-[10px] font-semibold text-emerald-500 dark:text-emerald-400 leading-none">Advance</span>
+                                      </div>
+                                    );
+                                  } else {
+                                    return <span className="text-xs font-semibold text-green-600 dark:text-green-400">Paid ✓</span>;
+                                  }
+                                } else if (cat === "advance_payment") {
+                                  return (
+                                    <div className="flex flex-col items-end gap-0.5">
+                                      <span className="text-xs font-bold text-blue-600 dark:text-blue-400">+ {formatPKR(txnAmt)}</span>
+                                      <span className="text-[10px] font-semibold text-blue-500 dark:text-blue-400 leading-none">Advance</span>
+                                    </div>
+                                  );
+                                } else if (isDebit && cat === "credit_balance_payment") {
+                                  return (
+                                    <div className="flex flex-col items-end gap-0.5">
+                                      <span className="text-xs font-bold text-orange-600 dark:text-orange-400">− {formatPKR(txnAmt)}</span>
+                                      <span className="text-[10px] font-semibold text-orange-500 dark:text-orange-400 leading-none">Auto-Settled</span>
+                                    </div>
+                                  );
+                                } else if (isDebit) {
+                                  return (
+                                    <div className="flex flex-col items-end gap-0.5">
+                                      <span className="text-xs font-bold text-slate-600 dark:text-slate-400">− {formatPKR(txnAmt)}</span>
+                                      <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 leading-none">Deducted</span>
+                                    </div>
+                                  );
+                                } else {
+                                  return <span className="text-xs text-muted-foreground">—</span>;
+                                }
                               })()}
                             </td>
                             {/* Note */}
@@ -2666,20 +2692,45 @@ export default function ResellersPage() {
                                 )}
                                 <td className="px-3 py-2 text-right text-xs font-semibold tabular-nums whitespace-nowrap">
                                   {(() => {
-                                    const balNum = parseFloat(String(t.balanceAfter || "0"));
-                                    const delta = balanceDeltaMap.get(t.id) ?? 0;
-                                    return (
+                                    const tAmt = parseFloat(String(t.amount || "0"));
+                                    const tPaid = parseFloat(String((t as any).paidAmount || "0"));
+                                    const tCat = t.category;
+                                    const tIsDebit = t.type === "debit";
+                                    if (tCat === "recharge") {
+                                      const net = tPaid - tAmt;
+                                      if (net < 0) return (
+                                        <div className="flex flex-col items-end gap-0.5">
+                                          <span className="text-red-600 dark:text-red-400">− {formatPKR(Math.abs(net))}</span>
+                                          <span className="text-[9px] font-semibold text-red-500 leading-none">Unpaid</span>
+                                        </div>
+                                      );
+                                      if (net > 0) return (
+                                        <div className="flex flex-col items-end gap-0.5">
+                                          <span className="text-emerald-600 dark:text-emerald-400">+ {formatPKR(net)}</span>
+                                          <span className="text-[9px] font-semibold text-emerald-500 leading-none">Advance</span>
+                                        </div>
+                                      );
+                                      return <span className="text-green-600 dark:text-green-400">Paid ✓</span>;
+                                    }
+                                    if (tCat === "advance_payment") return (
                                       <div className="flex flex-col items-end gap-0.5">
-                                        <span className={balNum < 0 ? "text-red-600" : "text-slate-700 dark:text-slate-200"}>
-                                          {formatPKR(t.balanceAfter)}
-                                        </span>
-                                        {delta !== 0 && (
-                                          <span className={`text-[9px] font-medium leading-none ${delta > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
-                                            {delta > 0 ? "↑ +" : "↓ −"}{formatPKR(Math.abs(delta))}
-                                          </span>
-                                        )}
+                                        <span className="text-blue-600 dark:text-blue-400">+ {formatPKR(tAmt)}</span>
+                                        <span className="text-[9px] font-semibold text-blue-500 leading-none">Advance</span>
                                       </div>
                                     );
+                                    if (tIsDebit && tCat === "credit_balance_payment") return (
+                                      <div className="flex flex-col items-end gap-0.5">
+                                        <span className="text-orange-600 dark:text-orange-400">− {formatPKR(tAmt)}</span>
+                                        <span className="text-[9px] font-semibold text-orange-500 leading-none">Auto-Settled</span>
+                                      </div>
+                                    );
+                                    if (tIsDebit) return (
+                                      <div className="flex flex-col items-end gap-0.5">
+                                        <span className="text-slate-600 dark:text-slate-400">− {formatPKR(tAmt)}</span>
+                                        <span className="text-[9px] font-semibold text-slate-500 leading-none">Deducted</span>
+                                      </div>
+                                    );
+                                    return <span className="text-xs text-muted-foreground">—</span>;
                                   })()}
                                 </td>
                                 {kpiDetailOpen !== 3 && (
