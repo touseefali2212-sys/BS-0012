@@ -393,8 +393,11 @@ export default function ResellersPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/reseller-wallet-transactions", selectedWalletResellerId] });
       queryClient.invalidateQueries({ queryKey: ["/api/reseller-wallet-transactions/all"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/resellers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/company-bank-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/company-account-ledger"] });
       setEditWalletTxn(null);
-      toast({ title: "Transaction updated successfully" });
+      toast({ title: "Transaction updated", description: "Wallet and bank account ledger have been synced." });
     },
     onError: (error: Error) => { toast({ title: "Error", description: error.message, variant: "destructive" }); },
   });
@@ -407,8 +410,10 @@ export default function ResellersPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/reseller-wallet-transactions", selectedWalletResellerId] });
       queryClient.invalidateQueries({ queryKey: ["/api/reseller-wallet-transactions/all"] });
       queryClient.invalidateQueries({ queryKey: ["/api/resellers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/company-bank-accounts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/company-account-ledger"] });
       setDeleteWalletTxnId(null);
-      toast({ title: "Transaction deleted" });
+      toast({ title: "Transaction deleted", description: "Wallet balance and bank account ledger have been updated." });
     },
     onError: (error: Error) => { toast({ title: "Error", description: error.message, variant: "destructive" }); },
   });

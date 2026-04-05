@@ -296,6 +296,7 @@ export interface IStorage {
 
   getResellerWalletTransactions(resellerId: number): Promise<ResellerWalletTransaction[]>;
   getAllResellerWalletTransactions(): Promise<ResellerWalletTransaction[]>;
+  getResellerWalletTransaction(id: number): Promise<ResellerWalletTransaction | undefined>;
   createResellerWalletTransaction(t: InsertResellerWalletTransaction): Promise<ResellerWalletTransaction>;
   updateResellerWalletTransaction(id: number, data: Partial<InsertResellerWalletTransaction>): Promise<ResellerWalletTransaction | undefined>;
   deleteResellerWalletTransaction(id: number): Promise<void>;
@@ -323,6 +324,7 @@ export interface IStorage {
   transferBetweenAccounts(fromAccountId: number, toAccountId: number, amount: number, remarks?: string, createdBy?: string): Promise<void>;
   getCompanyAccountLedger(accountId?: number): Promise<CompanyAccountLedgerEntry[]>;
   createCompanyAccountLedgerEntry(data: InsertCompanyAccountLedger): Promise<CompanyAccountLedgerEntry>;
+  resyncResellerWalletLedger(walletTxnId: number, newBankAccountId: number | null, newPaidAmount: number, description?: string, remarks?: string, createdBy?: string): Promise<void>;
 
   getResellerCompanyPackages(): Promise<ResellerCompanyPackage[]>;
   getResellerCompanyPackage(id: number): Promise<ResellerCompanyPackage | undefined>;
@@ -1503,6 +1505,11 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(resellerWalletTransactions).orderBy(desc(resellerWalletTransactions.id));
   }
 
+  async getResellerWalletTransaction(id: number): Promise<ResellerWalletTransaction | undefined> {
+    const [row] = await db.select().from(resellerWalletTransactions).where(eq(resellerWalletTransactions.id, id));
+    return row;
+  }
+
   async createResellerWalletTransaction(t: InsertResellerWalletTransaction): Promise<ResellerWalletTransaction> {
     const [created] = await db.insert(resellerWalletTransactions).values(t).returning();
     return created;
@@ -1513,12 +1520,39 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  // Reverse and delete any companyAccountLedger entries linked to a reseller wallet transaction
+  private async reverseResellerWalletLedgerEntries(walletTxnId: number): Promise<void> {
+    const entries = await db.select().from(companyAccountLedger).where(and(
+      eq(companyAccountLedger.referenceModule, "reseller_recharge"),
+      eq(companyAccountLedger.referenceId, String(walletTxnId))
+    ));
+    for (const entry of entries) {
+      const entryAmt = parseFloat(entry.amount || "0");
+      if (entryAmt > 0) {
+        const account = await this.getCompanyBankAccount(entry.accountId);
+        if (account) {
+          // Reverse: if ledger was a debit (reseller paid money in), credit it back
+          const reversed = entry.type === "debit"
+            ? parseFloat(account.currentBalance || "0") + entryAmt
+            : parseFloat(account.currentBalance || "0") - entryAmt;
+          await db.update(companyBankAccounts)
+            .set({ currentBalance: reversed.toString() })
+            .where(eq(companyBankAccounts.id, entry.accountId));
+        }
+      }
+      await db.delete(companyAccountLedger).where(eq(companyAccountLedger.id, entry.id));
+    }
+  }
+
   async deleteResellerWalletTransaction(id: number): Promise<void> {
     // Fetch the transaction before deleting so we can reverse its balance effect
     const [txn] = await db.select().from(resellerWalletTransactions).where(eq(resellerWalletTransactions.id, id));
     if (!txn) return;
 
     const resellerId = txn.resellerId;
+
+    // Reverse any linked company account ledger entries before deleting
+    await this.reverseResellerWalletLedgerEntries(id);
 
     // Delete the transaction
     await db.delete(resellerWalletTransactions).where(eq(resellerWalletTransactions.id, id));
@@ -1707,7 +1741,7 @@ export class DatabaseStorage implements IStorage {
 
     if (bankAccountId) {
       try {
-        await this.debitCompanyAccount(bankAccountId, effectivePaidAmount > 0 ? effectivePaidAmount : amount, "reseller_recharge", String(resellerId), `Recharge for reseller #${resellerId}`, remarks, createdBy || "admin");
+        await this.debitCompanyAccount(bankAccountId, effectivePaidAmount > 0 ? effectivePaidAmount : amount, "reseller_recharge", String(newRechargeTxn.id), `Recharge for reseller #${resellerId}`, remarks, createdBy || "admin");
       } catch (_) {}
     }
     const [updated] = await db.update(resellers).set({ walletBalance: finalBalance.toString() }).where(eq(resellers.id, resellerId)).returning();
@@ -1864,6 +1898,18 @@ export class DatabaseStorage implements IStorage {
     });
     const [updated] = await db.update(companyBankAccounts).set({ currentBalance: newBalance.toString() }).where(eq(companyBankAccounts.id, accountId)).returning();
     return updated;
+  }
+
+  // Called when a reseller wallet transaction is edited — reverses old ledger entry and creates a new one
+  async resyncResellerWalletLedger(walletTxnId: number, newBankAccountId: number | null, newPaidAmount: number, description?: string, remarks?: string, createdBy?: string): Promise<void> {
+    // Reverse and remove the old ledger entry for this wallet transaction
+    await this.reverseResellerWalletLedgerEntries(walletTxnId);
+    // If a bank account is still linked, create a fresh ledger entry with the updated amount
+    if (newBankAccountId && newPaidAmount > 0) {
+      try {
+        await this.debitCompanyAccount(newBankAccountId, newPaidAmount, "reseller_recharge", String(walletTxnId), description || `Recharge (edited)`, remarks, createdBy || "admin");
+      } catch (_) {}
+    }
   }
 
   async transferBetweenAccounts(fromAccountId: number, toAccountId: number, amount: number, remarks?: string, createdBy?: string): Promise<void> {

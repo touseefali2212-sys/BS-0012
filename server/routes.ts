@@ -1562,6 +1562,23 @@ export async function registerRoutes(
       for (const key of allowed) {
         if (req.body[key] !== undefined) data[key] = req.body[key] === "" ? null : req.body[key];
       }
+
+      // If paidAmount or bankAccountId is changing, resync the company account ledger entry
+      const financialChange = data.paidAmount !== undefined || data.bankAccountId !== undefined;
+      if (financialChange) {
+        const current = await storage.getResellerWalletTransaction(id);
+        if (current && current.category === "recharge") {
+          const finalBankAccountId = data.bankAccountId !== undefined
+            ? (data.bankAccountId ? Number(data.bankAccountId) : null)
+            : (current.bankAccountId || null);
+          const finalPaidAmount = data.paidAmount !== undefined
+            ? parseFloat(String(data.paidAmount))
+            : parseFloat(String(current.paidAmount || "0"));
+          const desc = data.description || current.description || `Recharge (edited)`;
+          await storage.resyncResellerWalletLedger(id, finalBankAccountId, finalPaidAmount, desc, undefined, "admin");
+        }
+      }
+
       const updated = await storage.updateResellerWalletTransaction(id, data);
       if (!updated) return res.status(404).json({ message: "Transaction not found" });
       res.json(updated);
