@@ -2117,7 +2117,7 @@ export default function ResellersPage() {
         const monthTxns = txns.filter(t => { const d = new Date(t.createdAt); return d.getMonth() === thisMonth && d.getFullYear() === thisYear; });
         const totalRechargeMonth = monthTxns.filter(t => t.type === "credit" && t.category === "recharge").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
         const totalDeductionMonth = monthTxns.filter(t => t.type === "debit" && t.category !== "credit_balance_payment").reduce((s, t) => s + parseFloat(String(t.amount || "0")), 0);
-        const totalPaidMonth = monthTxns.filter(t => t.type === "credit" && ["paid", "credit_balance", "credit_partial"].includes((t as any).paymentStatus) && t.category === "recharge").reduce((s, t) => s + parseFloat(String((t as any).paidAmount || t.amount || "0")), 0);
+        const totalPaidMonth = monthTxns.filter(t => t.type === "credit" && ["paid", "partial", "reconciled", "credit_balance", "credit_partial"].includes((t as any).paymentStatus) && t.category === "recharge").reduce((s, t) => s + parseFloat(String((t as any).paidAmount || "0")), 0);
         const totalUnpaidAll = txns.filter(t => t.type === "credit" && ((t as any).paymentStatus === "unpaid" || (t as any).paymentStatus === "partial" || (t as any).paymentStatus === "credit_partial")).reduce((s, t) => {
           const amt = parseFloat(String(t.amount || "0"));
           const paid = parseFloat(String((t as any).paidAmount || "0"));
@@ -2212,7 +2212,7 @@ export default function ResellersPage() {
                     value: formatPKR(totalPaidMonth),
                     detail1: "Unpaid Due",
                     detail1val: totalUnpaidMonth > 0 ? `− ${formatPKR(totalUnpaidMonth)}` : formatPKR(0),
-                    detail2: `${monthTxns.filter(t => t.type === "credit" && ["paid", "credit_balance", "credit_partial"].includes((t as any).paymentStatus) && t.category === "recharge").length} settled · ${monthTxns.filter(t => t.type === "credit" && ["unpaid", "partial", "credit_partial"].includes((t as any).paymentStatus) && t.category === "recharge").length} pending`,
+                    detail2: `${monthTxns.filter(t => t.type === "credit" && ["paid", "partial", "reconciled", "credit_balance", "credit_partial"].includes((t as any).paymentStatus) && t.category === "recharge").length} with payment · ${monthTxns.filter(t => t.type === "credit" && ["unpaid", "partial", "credit_partial"].includes((t as any).paymentStatus) && t.category === "recharge").length} pending`,
                     icon: CheckCircle2,
                     color: "from-green-600 to-green-500",
                     badge: null, badgeColor: "",
@@ -2595,7 +2595,7 @@ export default function ResellersPage() {
             const kpiRows: typeof txns = kpiDetailOpen === 0
               ? monthTxns.filter(t => t.type === "credit" && t.category === "recharge")
               : kpiDetailOpen === 1
-              ? monthTxns.filter(t => t.type === "credit" && t.category === "recharge" && ["paid", "credit_balance", "credit_partial", "reconciled"].includes((t as any).paymentStatus))
+              ? monthTxns.filter(t => t.type === "credit" && t.category === "recharge" && ["paid", "partial", "reconciled", "credit_balance", "credit_partial"].includes((t as any).paymentStatus))
               : kpiDetailOpen === 2
               ? txns.filter(t => t.type === "credit" && ["unpaid", "partial", "credit_partial"].includes((t as any).paymentStatus))
               : kpiDetailOpen === 3
