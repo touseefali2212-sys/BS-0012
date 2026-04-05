@@ -2196,20 +2196,8 @@ export default function ResellersPage() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                 {[
-                  {
-                    label: isAllResellers ? "Total Wallet Balance" : "Wallet Balance",
-                    sublabel: "Current Balance",
-                    value: formatPKR(walletBal),
-                    detail1: `Month Deductions`,
-                    detail1val: totalDeductionMonth > 0 ? `− ${formatPKR(totalDeductionMonth)}` : formatPKR(0),
-                    detail2: txns.length > 0 ? `${txns.length} total entries` : "No transactions yet",
-                    icon: Wallet,
-                    color: walletBal < 0 ? "from-red-600 to-red-500" : "from-emerald-600 to-emerald-500",
-                    badge: walletBal < 0 ? "Overdrawn" : (walletBal > 0 && walletBal < 500 ? "Low" : null),
-                    badgeColor: walletBal < 0 ? "bg-white/20" : "bg-amber-500/80",
-                  },
                   {
                     label: "Recharge",
                     sublabel: "Current Month Total",
@@ -2564,7 +2552,6 @@ export default function ResellersPage() {
           {/* KPI Card Detail Dialog */}
           {kpiDetailOpen !== null && (() => {
             const kpiTitles = [
-              { icon: Wallet, title: "Wallet Balance", subtitle: "All Transactions" },
               { icon: ArrowUpCircle, title: "Monthly Recharge", subtitle: "This Month's Recharge Entries" },
               { icon: CheckCircle2, title: "Paid Payments", subtitle: "This Month's Settled Payments" },
               { icon: AlertTriangle, title: "Unpaid Balance", subtitle: "All Outstanding Dues" },
@@ -2575,14 +2562,12 @@ export default function ResellersPage() {
             const KpiIcon = kpiMeta.icon;
 
             const kpiRows: typeof txns = kpiDetailOpen === 0
-              ? [...txns].sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
-              : kpiDetailOpen === 1
               ? monthTxns.filter(t => t.type === "credit" && t.category === "recharge")
-              : kpiDetailOpen === 2
+              : kpiDetailOpen === 1
               ? monthTxns.filter(t => t.type === "credit" && t.category === "recharge" && ["paid", "credit_balance", "credit_partial", "reconciled"].includes((t as any).paymentStatus))
-              : kpiDetailOpen === 3
+              : kpiDetailOpen === 2
               ? txns.filter(t => t.type === "credit" && ["unpaid", "partial", "credit_partial"].includes((t as any).paymentStatus))
-              : kpiDetailOpen === 4
+              : kpiDetailOpen === 3
               ? txns.filter(t => (t.type === "credit" && t.category === "advance_payment") || (t.type === "debit" && t.category === "credit_balance_payment"))
               : [];
 
@@ -2604,7 +2589,7 @@ export default function ResellersPage() {
                   </DialogHeader>
 
                   {/* Security Deposit: special layout */}
-                  {kpiDetailOpen === 5 ? (
+                  {kpiDetailOpen === 4 ? (
                     <div className="overflow-y-auto flex-1 space-y-2 py-2">
                       {allResellers.filter(r => parseFloat(String(r.securityDeposit || "0")) >= 0).map(r => (
                         <div key={r.id} className="flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm">
@@ -2631,14 +2616,14 @@ export default function ResellersPage() {
                           <tr className="bg-slate-800 text-white">
                             <th className="px-3 py-2 text-left text-xs font-medium whitespace-nowrap">Date</th>
                             <th className="px-3 py-2 text-left text-xs font-medium whitespace-nowrap">TXN ID</th>
-                            {kpiDetailOpen === 4 && <th className="px-3 py-2 text-left text-xs font-medium whitespace-nowrap">Category</th>}
-                            {kpiDetailOpen !== 4 && <th className="px-3 py-2 text-left text-xs font-medium whitespace-nowrap">Vendor</th>}
+                            {kpiDetailOpen === 3 && <th className="px-3 py-2 text-left text-xs font-medium whitespace-nowrap">Category</th>}
+                            {kpiDetailOpen !== 3 && <th className="px-3 py-2 text-left text-xs font-medium whitespace-nowrap">Vendor</th>}
                             <th className="px-3 py-2 text-right text-xs font-medium whitespace-nowrap">Amount</th>
-                            {(kpiDetailOpen === 0 || kpiDetailOpen === 3) && <th className="px-3 py-2 text-right text-xs font-medium whitespace-nowrap">Paid</th>}
-                            {kpiDetailOpen === 3 && <th className="px-3 py-2 text-right text-xs font-medium whitespace-nowrap">Due</th>}
+                            {kpiDetailOpen === 2 && <th className="px-3 py-2 text-right text-xs font-medium whitespace-nowrap">Paid</th>}
+                            {kpiDetailOpen === 2 && <th className="px-3 py-2 text-right text-xs font-medium whitespace-nowrap">Due</th>}
                             <th className="px-3 py-2 text-right text-xs font-medium whitespace-nowrap">Balance</th>
-                            {kpiDetailOpen !== 4 && <th className="px-3 py-2 text-left text-xs font-medium whitespace-nowrap">P Status</th>}
-                            {kpiDetailOpen === 1 && <th className="px-3 py-2 text-left text-xs font-medium whitespace-nowrap">Method</th>}
+                            {kpiDetailOpen !== 3 && <th className="px-3 py-2 text-left text-xs font-medium whitespace-nowrap">P Status</th>}
+                            {kpiDetailOpen === 0 && <th className="px-3 py-2 text-left text-xs font-medium whitespace-nowrap">Method</th>}
                           </tr>
                         </thead>
                         <tbody>
@@ -2657,7 +2642,7 @@ export default function ResellersPage() {
                                   {t.createdAt ? new Date(t.createdAt).toLocaleDateString("en-PK", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
                                 </td>
                                 <td className="px-3 py-2 text-xs font-mono text-muted-foreground whitespace-nowrap">#{String(t.id).padStart(6, "0")}</td>
-                                {kpiDetailOpen === 4 ? (
+                                {kpiDetailOpen === 3 ? (
                                   <td className="px-3 py-2 text-xs whitespace-nowrap">
                                     <Badge variant="secondary" className={`no-default-active-elevate text-[10px] ${isCredit ? "text-teal-700 bg-teal-50" : "text-slate-600 bg-slate-100"}`}>{catLabel}</Badge>
                                   </td>
@@ -2669,12 +2654,12 @@ export default function ResellersPage() {
                                     {isCredit ? "+ " : "− "}{formatPKR(t.amount)}
                                   </span>
                                 </td>
-                                {(kpiDetailOpen === 0 || kpiDetailOpen === 3) && (
+                                {kpiDetailOpen === 2 && (
                                   <td className="px-3 py-2 text-right text-xs tabular-nums whitespace-nowrap">
                                     {paid > 0 ? <span className="text-emerald-700 dark:text-emerald-400 font-medium">{formatPKR(paid)}</span> : <span className="text-muted-foreground">—</span>}
                                   </td>
                                 )}
-                                {kpiDetailOpen === 3 && (
+                                {kpiDetailOpen === 2 && (
                                   <td className="px-3 py-2 text-right text-xs tabular-nums whitespace-nowrap">
                                     <span className="text-rose-700 dark:text-rose-400 font-semibold">− {formatPKR(due)}</span>
                                   </td>
@@ -2697,10 +2682,10 @@ export default function ResellersPage() {
                                     );
                                   })()}
                                 </td>
-                                {kpiDetailOpen !== 4 && (
+                                {kpiDetailOpen !== 3 && (
                                   <td className="px-3 py-2 whitespace-nowrap">{isCredit ? payStatusBadge(ps) : <span className="text-xs text-muted-foreground">—</span>}</td>
                                 )}
-                                {kpiDetailOpen === 1 && (
+                                {kpiDetailOpen === 0 && (
                                   <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">{payMethod}</td>
                                 )}
                               </tr>
@@ -2711,10 +2696,10 @@ export default function ResellersPage() {
                     </div>
                   )}
 
-                  {kpiRows.length > 0 && kpiDetailOpen !== 5 && (
+                  {kpiRows.length > 0 && kpiDetailOpen !== 4 && (
                     <div className="shrink-0 pt-2 border-t text-xs text-muted-foreground flex items-center justify-between">
                       <span>{kpiRows.length} transaction{kpiRows.length !== 1 ? "s" : ""}</span>
-                      {kpiDetailOpen === 3 && (
+                      {kpiDetailOpen === 2 && (
                         <span className="font-semibold text-rose-700">
                           Total Due: − {formatPKR(kpiRows.reduce((s, t) => {
                             const amt = parseFloat(String(t.amount || "0"));
@@ -2723,10 +2708,7 @@ export default function ResellersPage() {
                           }, 0))}
                         </span>
                       )}
-                      {kpiDetailOpen === 0 && (
-                        <span className="font-semibold text-emerald-700">Current Balance: {formatPKR(walletBal)}</span>
-                      )}
-                      {kpiDetailOpen === 4 && (
+                      {kpiDetailOpen === 3 && (
                         <span className="font-semibold text-blue-700">Net Advance: {formatPKR(netAdvanceBalance)}</span>
                       )}
                     </div>
