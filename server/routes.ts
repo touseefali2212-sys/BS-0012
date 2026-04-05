@@ -1208,12 +1208,12 @@ export async function registerRoutes(
 
   app.post("/api/vendor-wallet/recharge", requireAuth, async (req, res) => {
     try {
-      const schema = z.object({ vendorId: z.number().int().positive(), amount: z.union([z.number(), z.string()]).transform(v => parseFloat(String(v))).refine(v => v > 0, "Amount must be positive"), reference: z.string().optional(), paymentMethod: z.string().optional(), performedBy: z.string().optional(), approvedBy: z.string().optional(), notes: z.string().optional() });
+      const schema = z.object({ vendorId: z.number().int().positive(), amount: z.union([z.number(), z.string()]).transform(v => parseFloat(String(v))).refine(v => v > 0, "Amount must be positive"), reference: z.string().optional(), paymentMethod: z.string().optional(), performedBy: z.string().optional(), approvedBy: z.string().optional(), notes: z.string().optional(), paymentStatus: z.string().optional(), paidAmount: z.union([z.number(), z.string()]).transform(v => v !== undefined && v !== "" ? parseFloat(String(v)) : undefined).optional(), senderName: z.string().optional(), bankAccountId: z.union([z.number(), z.string()]).transform(v => v !== undefined && v !== "" ? parseInt(String(v)) : undefined).optional() });
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
       const vendor = await storage.getVendor(parsed.data.vendorId);
       if (!vendor) return res.status(404).json({ message: "Vendor not found" });
-      const updated = await storage.rechargeVendorWallet(parsed.data.vendorId, parsed.data.amount, parsed.data.reference, parsed.data.paymentMethod, parsed.data.performedBy, parsed.data.approvedBy, parsed.data.notes);
+      const updated = await storage.rechargeVendorWallet(parsed.data.vendorId, parsed.data.amount, parsed.data.reference, parsed.data.paymentMethod, parsed.data.performedBy, parsed.data.approvedBy, parsed.data.notes, parsed.data.paymentStatus, parsed.data.paidAmount, parsed.data.senderName, parsed.data.bankAccountId);
       res.json(updated);
     } catch (error: any) { res.status(400).json({ message: error.message }); }
   });

@@ -291,7 +291,7 @@ export interface IStorage {
   createVendorWalletTransaction(t: InsertVendorWalletTransaction): Promise<VendorWalletTransaction>;
   updateVendorWalletTransaction(id: number, data: Partial<InsertVendorWalletTransaction>): Promise<VendorWalletTransaction | undefined>;
   updateVendorWalletTransactionWithAmount(id: number, newAmount: number, data: Partial<InsertVendorWalletTransaction>): Promise<VendorWalletTransaction | undefined>;
-  rechargeVendorWallet(vendorId: number, amount: number, reference?: string, paymentMethod?: string, performedBy?: string, approvedBy?: string, notes?: string): Promise<Vendor>;
+  rechargeVendorWallet(vendorId: number, amount: number, reference?: string, paymentMethod?: string, performedBy?: string, approvedBy?: string, notes?: string, paymentStatus?: string, paidAmount?: number, senderName?: string, bankAccountId?: number): Promise<Vendor>;
   deductVendorWallet(vendorId: number, amount: number, reference?: string, customerId?: number, resellerId?: number, reason?: string, performedBy?: string, approvedBy?: string, notes?: string): Promise<Vendor>;
 
   getResellerWalletTransactions(resellerId: number): Promise<ResellerWalletTransaction[]>;
@@ -1451,7 +1451,7 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async rechargeVendorWallet(vendorId: number, amount: number, reference?: string, paymentMethod?: string, performedBy?: string, approvedBy?: string, notes?: string): Promise<Vendor> {
+  async rechargeVendorWallet(vendorId: number, amount: number, reference?: string, paymentMethod?: string, performedBy?: string, approvedBy?: string, notes?: string, paymentStatus?: string, paidAmount?: number, senderName?: string, bankAccountId?: number): Promise<Vendor> {
     const vendor = await this.getVendor(vendorId);
     if (!vendor) throw new Error("Vendor not found");
     const currentBalance = parseFloat(vendor.walletBalance || "0");
@@ -1468,6 +1468,10 @@ export class DatabaseStorage implements IStorage {
       performedBy: performedBy || null,
       approvedBy: approvedBy || null,
       notes: notes || null,
+      paymentStatus: paymentStatus || "paid",
+      paidAmount: paidAmount !== undefined ? paidAmount.toString() : null,
+      senderName: senderName || null,
+      bankAccountId: bankAccountId || null,
       createdAt: now,
     });
     const [updated] = await db.update(vendors).set({ walletBalance: newBalance.toString(), lastRechargeDate: now }).where(eq(vendors.id, vendorId)).returning();
