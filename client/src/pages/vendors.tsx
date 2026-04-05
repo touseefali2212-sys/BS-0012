@@ -3131,6 +3131,7 @@ function BandwidthVendorsTab() {
   const [editBwLinkDialogOpen, setEditBwLinkDialogOpen] = useState(false);
   const [editBwLinkTarget, setEditBwLinkTarget] = useState<number | null>(null);
   const [editBwLinkItem, setEditBwLinkItem] = useState<VendorBandwidthLink | null>(null);
+  const [activeStatCard, setActiveStatCard] = useState<string | null>(null);
 
   const { data: vendors, isLoading } = useQuery<Vendor[]>({ queryKey: ["/api/vendors"] });
   const { data: vendorPackages } = useQuery<VendorPackage[]>({ queryKey: ["/api/vendor-packages"] });
@@ -3320,7 +3321,7 @@ function BandwidthVendorsTab() {
   return (
     <div className="space-y-4 page-fade-in" data-testid="tab-content-bandwidth-vendors">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <div className="vendor-stat-card stat-blue p-3">
+        <div className="vendor-stat-card stat-blue p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("total")} data-testid="stat-card-bw-total">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Total BW Vendors</p>
@@ -3332,7 +3333,7 @@ function BandwidthVendorsTab() {
             </div>
           </div>
         </div>
-        <div className="vendor-stat-card stat-green p-3">
+        <div className="vendor-stat-card stat-green p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("active")} data-testid="stat-card-bw-active">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Active Vendors</p>
@@ -3344,7 +3345,7 @@ function BandwidthVendorsTab() {
             </div>
           </div>
         </div>
-        <div className="vendor-stat-card stat-cyan p-3">
+        <div className="vendor-stat-card stat-cyan p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("mbps")} data-testid="stat-card-bw-mbps">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Active BW Mbps</p>
@@ -3356,7 +3357,7 @@ function BandwidthVendorsTab() {
             </div>
           </div>
         </div>
-        <div className="vendor-stat-card stat-purple p-3">
+        <div className="vendor-stat-card stat-purple p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("cost")} data-testid="stat-card-bw-cost">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Active BW Cost</p>
@@ -3368,7 +3369,7 @@ function BandwidthVendorsTab() {
             </div>
           </div>
         </div>
-        <div className="vendor-stat-card stat-emerald p-3">
+        <div className="vendor-stat-card stat-emerald p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("paid")} data-testid="stat-card-bw-paid">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Paid Payment</p>
@@ -3380,7 +3381,7 @@ function BandwidthVendorsTab() {
             </div>
           </div>
         </div>
-        <div className="vendor-stat-card stat-red p-3">
+        <div className="vendor-stat-card stat-red p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("outstanding")} data-testid="stat-card-bw-outstanding">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Outstanding Balance</p>
@@ -3392,7 +3393,7 @@ function BandwidthVendorsTab() {
             </div>
           </div>
         </div>
-        <div className="vendor-stat-card stat-indigo p-3">
+        <div className="vendor-stat-card stat-indigo p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("credit")} data-testid="stat-card-bw-credit">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Credit Advance</p>
@@ -3404,7 +3405,7 @@ function BandwidthVendorsTab() {
             </div>
           </div>
         </div>
-        <div className="vendor-stat-card stat-gray p-3">
+        <div className="vendor-stat-card stat-gray p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("closed")} data-testid="stat-card-bw-closed">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Closed Vendors</p>
@@ -3416,7 +3417,7 @@ function BandwidthVendorsTab() {
             </div>
           </div>
         </div>
-        <div className="vendor-stat-card stat-amber p-3">
+        <div className="vendor-stat-card stat-amber p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("expiring")} data-testid="stat-card-bw-expiring">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Contract Expiring</p>
@@ -3915,6 +3916,112 @@ function BandwidthVendorsTab() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!activeStatCard} onOpenChange={o => { if (!o) setActiveStatCard(null); }}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto" data-testid="dialog-bw-stat-detail">
+          {activeStatCard && (() => {
+            const cardRows =
+              activeStatCard === "total" ? bwVendors :
+              activeStatCard === "active" ? activeVendors :
+              activeStatCard === "mbps" ? [...activeVendors].sort((a, b) => Number(b.totalBandwidth || 0) - Number(a.totalBandwidth || 0)) :
+              activeStatCard === "cost" ? [...activeVendors].sort((a, b) => Number(b.bandwidthCost || 0) - Number(a.bandwidthCost || 0)) :
+              activeStatCard === "paid" ? [...bwVendors].sort((a, b) => getVendorPaid(b.id) - getVendorPaid(a.id)) :
+              activeStatCard === "outstanding" ? bwVendors.filter(v => getVendorOutstanding(v) > 0).sort((a, b) => getVendorOutstanding(b) - getVendorOutstanding(a)) :
+              activeStatCard === "credit" ? bwVendors.filter(v => getVendorCreditAdv(v) > 0).sort((a, b) => getVendorCreditAdv(b) - getVendorCreditAdv(a)) :
+              activeStatCard === "closed" ? closedVendors :
+              bwVendors.filter(v => { if (!v.contractEndDate) return false; const d = (new Date(v.contractEndDate).getTime() - Date.now()) / 86400000; return d >= 0 && d <= 30; }).sort((a, b) => new Date(a.contractEndDate!).getTime() - new Date(b.contractEndDate!).getTime());
+
+            const cardTitles: Record<string, string> = {
+              total: "All Bandwidth Vendors", active: "Active Vendors", mbps: "Active BW Mbps Breakdown",
+              cost: "Active BW Monthly Cost", paid: "Paid Payments", outstanding: "Outstanding Balance",
+              credit: "Credit Advance", closed: "Closed Vendors", expiring: "Contract Expiring (30 days)"
+            };
+            const cardMetrics: Record<string, string> = {
+              total: `${bwVendors.length} vendors`, active: `${activeCount} active`,
+              mbps: `${activeMbps.toLocaleString()} Mbps total`, cost: formatPKR(activeMonthlyCost),
+              paid: formatPKR(totalPaid), outstanding: formatPKR(totalOutstanding),
+              credit: formatPKR(totalCreditAdv), closed: `${closedCount} vendors`,
+              expiring: `${expiringCount} expiring`
+            };
+            return (
+              <div>
+                <DialogHeader className="mb-4">
+                  <DialogTitle className="flex items-center gap-2 text-base">
+                    {cardTitles[activeStatCard]}
+                    <Badge variant="secondary" className="ml-2 no-default-active-elevate font-semibold">{cardMetrics[activeStatCard]}</Badge>
+                  </DialogTitle>
+                </DialogHeader>
+                {cardRows.length === 0 ? (
+                  <div className="py-10 text-center text-muted-foreground">
+                    <Wifi className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No vendors in this category</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-10">ID</TableHead>
+                          <TableHead>Company Name</TableHead>
+                          {(activeStatCard === "total" || activeStatCard === "active" || activeStatCard === "mbps" || activeStatCard === "cost") && <TableHead>Service</TableHead>}
+                          {(activeStatCard === "mbps" || activeStatCard === "total" || activeStatCard === "cost") && <TableHead className="text-right">Total Mbps</TableHead>}
+                          {(activeStatCard === "mbps" || activeStatCard === "total") && <TableHead className="text-right">Used Mbps</TableHead>}
+                          {(activeStatCard === "active" || activeStatCard === "total") && <TableHead className="text-right">BW Links</TableHead>}
+                          {(activeStatCard === "active" || activeStatCard === "cost" || activeStatCard === "total") && <TableHead className="text-right">Monthly Cost</TableHead>}
+                          {(activeStatCard === "paid") && <TableHead className="text-right">Total Paid</TableHead>}
+                          {(activeStatCard === "outstanding") && <TableHead className="text-right">Outstanding</TableHead>}
+                          {(activeStatCard === "credit") && <TableHead className="text-right">Credit Advance</TableHead>}
+                          {(activeStatCard === "paid" || activeStatCard === "outstanding" || activeStatCard === "credit") && <TableHead className="text-right">Wallet Balance</TableHead>}
+                          {(activeStatCard === "active" || activeStatCard === "cost") && <TableHead>SLA</TableHead>}
+                          {(activeStatCard === "closed" || activeStatCard === "expiring") && <TableHead>Contract End</TableHead>}
+                          {activeStatCard === "expiring" && <TableHead className="text-right">Days Left</TableHead>}
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {cardRows.map(v => {
+                          const links = getVendorBwLinks(v.id);
+                          const activeLinks = links.filter(l => l.status === "active");
+                          const vPaid = getVendorPaid(v.id);
+                          const vOut = getVendorOutstanding(v);
+                          const vCred = getVendorCreditAdv(v);
+                          const contractDiff = v.contractEndDate ? Math.ceil((new Date(v.contractEndDate).getTime() - Date.now()) / 86400000) : null;
+                          return (
+                            <TableRow key={v.id} data-testid={`stat-detail-row-bw-${v.id}`}>
+                              <TableCell><span className="text-[10px] text-muted-foreground font-mono">#{v.id}</span></TableCell>
+                              <TableCell>
+                                <div className="font-medium text-sm">{v.name}</div>
+                                {v.contactPerson && <div className="text-[10px] text-muted-foreground">{v.contactPerson}</div>}
+                                {v.city && <div className="text-[10px] text-muted-foreground">{v.city}</div>}
+                              </TableCell>
+                              {(activeStatCard === "total" || activeStatCard === "active" || activeStatCard === "mbps" || activeStatCard === "cost") && <TableCell><span className="text-xs capitalize">{v.serviceType}</span></TableCell>}
+                              {(activeStatCard === "mbps" || activeStatCard === "total" || activeStatCard === "cost") && <TableCell className="text-right"><span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400">{Number(v.totalBandwidth || 0).toLocaleString()}</span></TableCell>}
+                              {(activeStatCard === "mbps" || activeStatCard === "total") && <TableCell className="text-right"><span className="text-xs text-muted-foreground">{Number(v.usedBandwidth || 0).toLocaleString()}</span></TableCell>}
+                              {(activeStatCard === "active" || activeStatCard === "total") && <TableCell className="text-right"><span className="text-xs">{activeLinks.length}<span className="text-muted-foreground">/{links.length}</span></span></TableCell>}
+                              {(activeStatCard === "active" || activeStatCard === "cost" || activeStatCard === "total") && <TableCell className="text-right"><span className="text-xs font-semibold text-purple-600 dark:text-purple-400">{formatPKR(v.bandwidthCost)}</span></TableCell>}
+                              {activeStatCard === "paid" && <TableCell className="text-right"><span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{formatPKR(vPaid)}</span></TableCell>}
+                              {activeStatCard === "outstanding" && <TableCell className="text-right"><span className="text-xs font-semibold text-red-600 dark:text-red-400">{formatPKR(vOut)}</span></TableCell>}
+                              {activeStatCard === "credit" && <TableCell className="text-right"><span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">{formatPKR(vCred)}</span></TableCell>}
+                              {(activeStatCard === "paid" || activeStatCard === "outstanding" || activeStatCard === "credit") && <TableCell className="text-right"><span className={`text-xs font-semibold ${Number(v.walletBalance || 0) < 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}>{formatPKR(v.walletBalance)}</span></TableCell>}
+                              {(activeStatCard === "active" || activeStatCard === "cost") && <TableCell><Badge variant="secondary" className="no-default-active-elevate text-[10px] capitalize">{v.slaLevel || "Standard"}</Badge></TableCell>}
+                              {(activeStatCard === "closed" || activeStatCard === "expiring") && <TableCell><span className="text-xs text-muted-foreground">{v.contractEndDate || "N/A"}</span></TableCell>}
+                              {activeStatCard === "expiring" && <TableCell className="text-right"><span className={`text-xs font-semibold ${contractDiff !== null && contractDiff <= 7 ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}`}>{contractDiff !== null ? `${contractDiff}d` : "—"}</span></TableCell>}
+                              <TableCell><Badge variant="secondary" className={`no-default-active-elevate text-[10px] capitalize ${statusColors[v.status] || ""}`}>{v.status}</Badge></TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+                <DialogFooter className="mt-4">
+                  <Button variant="outline" onClick={() => setActiveStatCard(null)} data-testid="button-close-bw-stat-detail">Close</Button>
+                </DialogFooter>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -3931,6 +4038,7 @@ function PanelVendorsTab() {
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
   const [profileVendor, setProfileVendor] = useState<Vendor | null>(null);
   const [walletVendor, setWalletVendor] = useState<Vendor | null>(null);
+  const [activeStatCard, setActiveStatCard] = useState<string | null>(null);
 
   const { data: vendors, isLoading } = useQuery<Vendor[]>({ queryKey: ["/api/vendors"] });
   const { data: vendorPackages } = useQuery<VendorPackage[]>({ queryKey: ["/api/vendor-packages"] });
@@ -4088,7 +4196,7 @@ function PanelVendorsTab() {
   return (
     <div className="space-y-4 page-fade-in" data-testid="tab-content-panel-vendors">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <div className="vendor-stat-card stat-purple p-3">
+        <div className="vendor-stat-card stat-purple p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("total")} data-testid="stat-card-panel-total">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Total Panel Vendors</p>
@@ -4100,7 +4208,7 @@ function PanelVendorsTab() {
             </div>
           </div>
         </div>
-        <div className="vendor-stat-card stat-green p-3">
+        <div className="vendor-stat-card stat-green p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("active")} data-testid="stat-card-panel-active">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Active Vendors</p>
@@ -4112,7 +4220,7 @@ function PanelVendorsTab() {
             </div>
           </div>
         </div>
-        <div className="vendor-stat-card stat-blue p-3">
+        <div className="vendor-stat-card stat-blue p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("monthly-recharge")} data-testid="stat-card-panel-monthly-recharge">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Monthly Recharge</p>
@@ -4124,7 +4232,7 @@ function PanelVendorsTab() {
             </div>
           </div>
         </div>
-        <div className="vendor-stat-card stat-cyan p-3">
+        <div className="vendor-stat-card stat-cyan p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("add-recharge")} data-testid="stat-card-panel-add-recharge">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Add Recharge</p>
@@ -4136,7 +4244,7 @@ function PanelVendorsTab() {
             </div>
           </div>
         </div>
-        <div className="vendor-stat-card stat-emerald p-3">
+        <div className="vendor-stat-card stat-emerald p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("paid")} data-testid="stat-card-panel-paid">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Paid Payment</p>
@@ -4148,7 +4256,7 @@ function PanelVendorsTab() {
             </div>
           </div>
         </div>
-        <div className="vendor-stat-card stat-red p-3">
+        <div className="vendor-stat-card stat-red p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("outstanding")} data-testid="stat-card-panel-outstanding">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Outstanding Balance</p>
@@ -4160,7 +4268,7 @@ function PanelVendorsTab() {
             </div>
           </div>
         </div>
-        <div className="vendor-stat-card stat-indigo p-3">
+        <div className="vendor-stat-card stat-indigo p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("credit")} data-testid="stat-card-panel-credit">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Credit Advance</p>
@@ -4172,7 +4280,7 @@ function PanelVendorsTab() {
             </div>
           </div>
         </div>
-        <div className="vendor-stat-card stat-gray p-3">
+        <div className="vendor-stat-card stat-gray p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("closed")} data-testid="stat-card-panel-closed">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Closed Vendors</p>
@@ -4184,7 +4292,7 @@ function PanelVendorsTab() {
             </div>
           </div>
         </div>
-        <div className="vendor-stat-card stat-amber p-3">
+        <div className="vendor-stat-card stat-amber p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("expiring")} data-testid="stat-card-panel-expiring">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Contract Expiring</p>
@@ -4513,6 +4621,117 @@ function PanelVendorsTab() {
             <Button variant="outline" onClick={() => setWalletVendor(null)}>Close</Button>
             <Button onClick={() => { setWalletVendor(null); changeTab("wallet"); }} data-testid="button-panel-go-wallet-tab"><Wallet className="h-4 w-4 mr-1" />Manage Wallet</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!activeStatCard} onOpenChange={o => { if (!o) setActiveStatCard(null); }}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto" data-testid="dialog-panel-stat-detail">
+          {activeStatCard && (() => {
+            const cardRows =
+              activeStatCard === "total" ? panelVendors :
+              activeStatCard === "active" ? activeVendors :
+              activeStatCard === "monthly-recharge" ? [...panelVendors].sort((a, b) => {
+                const aTxns = panelTxns.filter(t => t.vendorId === a.id && isPaid(t) && (t.createdAt || "").startsWith(lastMonthKey)).reduce((s, t) => s + Number(t.amount || 0), 0);
+                const bTxns = panelTxns.filter(t => t.vendorId === b.id && isPaid(t) && (t.createdAt || "").startsWith(lastMonthKey)).reduce((s, t) => s + Number(t.amount || 0), 0);
+                return bTxns - aTxns;
+              }) :
+              activeStatCard === "add-recharge" ? [...panelVendors].sort((a, b) => getVendorPaid(b.id) - getVendorPaid(a.id)) :
+              activeStatCard === "paid" ? [...panelVendors].sort((a, b) => getVendorPaid(b.id) - getVendorPaid(a.id)) :
+              activeStatCard === "outstanding" ? panelVendors.filter(v => getVendorOutstanding(v) > 0).sort((a, b) => getVendorOutstanding(b) - getVendorOutstanding(a)) :
+              activeStatCard === "credit" ? panelVendors.filter(v => getVendorCreditAdv(v) > 0).sort((a, b) => getVendorCreditAdv(b) - getVendorCreditAdv(a)) :
+              activeStatCard === "closed" ? closedVendors :
+              panelVendors.filter(v => { if (!v.contractEndDate) return false; const d = (new Date(v.contractEndDate).getTime() - Date.now()) / 86400000; return d >= 0 && d <= 30; }).sort((a, b) => new Date(a.contractEndDate!).getTime() - new Date(b.contractEndDate!).getTime());
+
+            const cardTitles: Record<string, string> = {
+              total: "All Panel Vendors", active: "Active Panel Vendors",
+              "monthly-recharge": "Monthly Recharge Breakdown", "add-recharge": "Total Recharge from Vendors",
+              paid: "Paid Payments", outstanding: "Outstanding Balance",
+              credit: "Credit Advance", closed: "Closed Vendors", expiring: "Contract Expiring (30 days)"
+            };
+            const cardMetrics: Record<string, string> = {
+              total: `${panelVendors.length} vendors`, active: `${activeCount} active`,
+              "monthly-recharge": formatPKR(monthlyRechargeCost), "add-recharge": formatPKR(totalAddRecharge),
+              paid: formatPKR(totalPaid), outstanding: formatPKR(totalOutstanding),
+              credit: formatPKR(totalCreditAdv), closed: `${closedCount} vendors`,
+              expiring: `${expiringCount} expiring`
+            };
+            return (
+              <div>
+                <DialogHeader className="mb-4">
+                  <DialogTitle className="flex items-center gap-2 text-base">
+                    {cardTitles[activeStatCard]}
+                    <Badge variant="secondary" className="ml-2 no-default-active-elevate font-semibold">{cardMetrics[activeStatCard]}</Badge>
+                  </DialogTitle>
+                </DialogHeader>
+                {cardRows.length === 0 ? (
+                  <div className="py-10 text-center text-muted-foreground">
+                    <Globe className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No vendors in this category</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-10">ID</TableHead>
+                          <TableHead>Company Name</TableHead>
+                          {(activeStatCard === "total" || activeStatCard === "active") && <TableHead>Service</TableHead>}
+                          {(activeStatCard === "total" || activeStatCard === "active") && <TableHead>Panel URL</TableHead>}
+                          {(activeStatCard === "active") && <TableHead className="text-right">Packages</TableHead>}
+                          {(activeStatCard === "active") && <TableHead>SLA</TableHead>}
+                          {activeStatCard === "monthly-recharge" && <TableHead className="text-right">Last Month Recharge</TableHead>}
+                          {activeStatCard === "add-recharge" && <TableHead className="text-right">Total Recharge</TableHead>}
+                          {activeStatCard === "paid" && <TableHead className="text-right">Total Paid</TableHead>}
+                          {activeStatCard === "outstanding" && <TableHead className="text-right">Outstanding</TableHead>}
+                          {activeStatCard === "credit" && <TableHead className="text-right">Credit Advance</TableHead>}
+                          {(activeStatCard === "monthly-recharge" || activeStatCard === "add-recharge" || activeStatCard === "paid" || activeStatCard === "outstanding" || activeStatCard === "credit") && <TableHead className="text-right">Wallet Balance</TableHead>}
+                          {(activeStatCard === "closed" || activeStatCard === "expiring") && <TableHead>Contract End</TableHead>}
+                          {activeStatCard === "expiring" && <TableHead className="text-right">Days Left</TableHead>}
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {cardRows.map(v => {
+                          const pkgs = getVendorPackages(v.id);
+                          const vPaid = getVendorPaid(v.id);
+                          const vOut = getVendorOutstanding(v);
+                          const vCred = getVendorCreditAdv(v);
+                          const vMonthly = panelTxns.filter(t => t.vendorId === v.id && isPaid(t) && (t.createdAt || "").startsWith(lastMonthKey)).reduce((s, t) => s + Number(t.amount || 0), 0);
+                          const contractDiff = v.contractEndDate ? Math.ceil((new Date(v.contractEndDate).getTime() - Date.now()) / 86400000) : null;
+                          return (
+                            <TableRow key={v.id} data-testid={`stat-detail-row-panel-${v.id}`}>
+                              <TableCell><span className="text-[10px] text-muted-foreground font-mono">#{v.id}</span></TableCell>
+                              <TableCell>
+                                <div className="font-medium text-sm">{v.name}</div>
+                                {v.contactPerson && <div className="text-[10px] text-muted-foreground">{v.contactPerson}</div>}
+                                {v.city && <div className="text-[10px] text-muted-foreground">{v.city}</div>}
+                              </TableCell>
+                              {(activeStatCard === "total" || activeStatCard === "active") && <TableCell><span className="text-xs capitalize">{v.serviceType}</span></TableCell>}
+                              {(activeStatCard === "total" || activeStatCard === "active") && <TableCell>{v.panelUrl ? <a href={v.panelUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline truncate max-w-[140px] block">{v.panelUrl}</a> : <span className="text-xs text-muted-foreground">—</span>}</TableCell>}
+                              {activeStatCard === "active" && <TableCell className="text-right"><Badge variant="secondary" className="no-default-active-elevate text-[10px]"><Package className="h-3 w-3 mr-0.5" />{pkgs.length}</Badge></TableCell>}
+                              {activeStatCard === "active" && <TableCell><Badge variant="secondary" className="no-default-active-elevate text-[10px] capitalize">{v.slaLevel || "Standard"}</Badge></TableCell>}
+                              {activeStatCard === "monthly-recharge" && <TableCell className="text-right"><span className="text-xs font-semibold text-blue-600 dark:text-blue-400">{formatPKR(vMonthly)}</span></TableCell>}
+                              {activeStatCard === "add-recharge" && <TableCell className="text-right"><span className="text-xs font-semibold text-cyan-600 dark:text-cyan-400">{formatPKR(vPaid)}</span></TableCell>}
+                              {activeStatCard === "paid" && <TableCell className="text-right"><span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{formatPKR(vPaid)}</span></TableCell>}
+                              {activeStatCard === "outstanding" && <TableCell className="text-right"><span className="text-xs font-semibold text-red-600 dark:text-red-400">{formatPKR(vOut)}</span></TableCell>}
+                              {activeStatCard === "credit" && <TableCell className="text-right"><span className="text-xs font-semibold text-indigo-600 dark:text-indigo-400">{formatPKR(vCred)}</span></TableCell>}
+                              {(activeStatCard === "monthly-recharge" || activeStatCard === "add-recharge" || activeStatCard === "paid" || activeStatCard === "outstanding" || activeStatCard === "credit") && <TableCell className="text-right"><span className={`text-xs font-semibold ${Number(v.walletBalance || 0) < 0 ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}>{formatPKR(v.walletBalance)}</span></TableCell>}
+                              {(activeStatCard === "closed" || activeStatCard === "expiring") && <TableCell><span className="text-xs text-muted-foreground">{v.contractEndDate || "N/A"}</span></TableCell>}
+                              {activeStatCard === "expiring" && <TableCell className="text-right"><span className={`text-xs font-semibold ${contractDiff !== null && contractDiff <= 7 ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"}`}>{contractDiff !== null ? `${contractDiff}d` : "—"}</span></TableCell>}
+                              <TableCell><Badge variant="secondary" className={`no-default-active-elevate text-[10px] capitalize ${statusColors[v.status] || ""}`}>{v.status}</Badge></TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+                <DialogFooter className="mt-4">
+                  <Button variant="outline" onClick={() => setActiveStatCard(null)} data-testid="button-close-panel-stat-detail">Close</Button>
+                </DialogFooter>
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
