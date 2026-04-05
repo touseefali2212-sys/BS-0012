@@ -1348,6 +1348,7 @@ export async function registerRoutes(
   app.get("/api/company-account-ledger", requireAuth, async (req, res) => {
     try {
       const accountId = req.query.accountId ? parseInt(req.query.accountId as string) : undefined;
+      res.set("Cache-Control", "no-store");
       res.json(await storage.getCompanyAccountLedger(accountId));
     } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
