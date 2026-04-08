@@ -725,6 +725,7 @@ function AddVendorTab() {
   const { toast } = useToast();
   const [, changeTab] = useTab("bandwidth-vendors");
   const [currentStep, setCurrentStep] = useState(1);
+  const [contractFile, setContractFile] = useState<File | null>(null);
   const [panelPackages, setPanelPackages] = useState<PanelPackageRow[]>([]);
   const [showAddPkgRow, setShowAddPkgRow] = useState(false);
   const [newPkg, setNewPkg] = useState<PanelPackageRow>({
@@ -872,7 +873,6 @@ function AddVendorTab() {
     { label: "Service Details", icon: vendorType === "panel" ? Globe : Network },
     { label: "Business & Contract", icon: Building2 },
     { label: "Banking", icon: CreditCard },
-    { label: "Review", icon: Eye },
   ];
 
   return (
@@ -1085,6 +1085,38 @@ function AddVendorTab() {
                     <FormField control={form.control} name="contractStartDate" render={({ field }) => (<FormItem><FormLabel>Contract Start Date</FormLabel><FormControl><Input type="date" data-testid="input-vendor-contract-start" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="contractEndDate" render={({ field }) => (<FormItem><FormLabel>Contract End Date</FormLabel><FormControl><Input type="date" data-testid="input-vendor-contract-end" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
                   </div>
+                  {/* Contract Document Upload */}
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Contract Document <span className="text-muted-foreground font-normal">(optional)</span></label>
+                    <div className={`flex items-center gap-3 rounded-lg border-2 border-dashed p-4 transition-colors ${contractFile ? "border-primary/50 bg-primary/5" : "border-muted-foreground/25 bg-muted/20"}`}>
+                      <div className="flex-1 min-w-0">
+                        {contractFile ? (
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-primary shrink-0" />
+                            <span className="text-sm font-medium truncate">{contractFile.name}</span>
+                            <span className="text-xs text-muted-foreground shrink-0">({(contractFile.size / 1024).toFixed(1)} KB)</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <FileText className="h-4 w-4 shrink-0" />
+                            <span className="text-sm">No document selected</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {contractFile && (
+                          <Button type="button" variant="ghost" size="sm" className="h-8 px-2 text-xs text-destructive hover:text-destructive" onClick={() => setContractFile(null)} data-testid="button-contract-remove">
+                            Remove
+                          </Button>
+                        )}
+                        <Button type="button" variant="outline" size="sm" className="h-8 px-3 text-xs gap-1.5" onClick={() => document.getElementById("contract-file-input")?.click()} data-testid="button-contract-upload">
+                          <FileText className="h-3.5 w-3.5" />{contractFile ? "Replace" : "Upload"}
+                        </Button>
+                      </div>
+                    </div>
+                    <input id="contract-file-input" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" className="hidden" data-testid="input-contract-file" onChange={e => { const f = e.target.files?.[0]; if (f) setContractFile(f); e.target.value = ""; }} />
+                    <p className="text-xs text-muted-foreground">Accepted: PDF, Word documents, or images (max 10 MB)</p>
+                  </div>
                 </div>
               )}
 
@@ -1101,51 +1133,6 @@ function AddVendorTab() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField control={form.control} name="bankAccountNumber" render={({ field }) => (<FormItem><FormLabel>Account Number / IBAN</FormLabel><FormControl><Input placeholder="Account number or IBAN" data-testid="input-vendor-bank-number" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="bankBranchCode" render={({ field }) => (<FormItem><FormLabel>Branch Code</FormLabel><FormControl><Input placeholder="Branch code" data-testid="input-vendor-branch-code" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                  </div>
-                </div>
-              )}
-
-              {/* STEP 5: Review */}
-              {currentStep === 5 && (
-                <div className="space-y-4">
-                  <div className="rounded-lg border bg-muted/20 p-4 space-y-3 text-sm">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vendor Info</p>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                      <span className="text-muted-foreground">Name:</span><span className="font-medium">{form.getValues("name") || "—"}</span>
-                      <span className="text-muted-foreground">Type:</span><span className="font-medium capitalize">{form.getValues("vendorType")}</span>
-                      <span className="text-muted-foreground">Phone:</span><span className="font-medium">{form.getValues("phone") || "—"}</span>
-                      <span className="text-muted-foreground">Email:</span><span className="font-medium">{form.getValues("email") || "—"}</span>
-                      <span className="text-muted-foreground">City:</span><span className="font-medium">{form.getValues("city") || "—"}</span>
-                      <span className="text-muted-foreground">Status:</span><span className="font-medium capitalize">{form.getValues("status") || "active"}</span>
-                    </div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-2">Business & Contract</p>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                      <span className="text-muted-foreground">Service Type:</span><span className="font-medium capitalize">{form.getValues("serviceType") || "—"}</span>
-                      <span className="text-muted-foreground">SLA Level:</span><span className="font-medium capitalize">{form.getValues("slaLevel") || "—"}</span>
-                      <span className="text-muted-foreground">NTN:</span><span className="font-medium">{form.getValues("ntn") || "—"}</span>
-                      <span className="text-muted-foreground">Contract:</span><span className="font-medium">{form.getValues("contractStartDate") || "—"} → {form.getValues("contractEndDate") || "—"}</span>
-                    </div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-2">Banking</p>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-                      <span className="text-muted-foreground">Bank:</span><span className="font-medium">{form.getValues("bankName") || "—"}</span>
-                      <span className="text-muted-foreground">Account No:</span><span className="font-medium">{form.getValues("bankAccountNumber") || "—"}</span>
-                    </div>
-                    {vendorType === "panel" && panelPackages.length > 0 && (
-                      <>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-2">Packages ({panelPackages.length})</p>
-                        {panelPackages.map((p, i) => (
-                          <div key={i} className="flex justify-between"><span className="font-medium">{p.packageName}</span><span className="text-muted-foreground">Vendor: {formatPKR(p.vendorPrice)} / ISP: {formatPKR(p.ispSellingPrice)}</span></div>
-                        ))}
-                      </>
-                    )}
-                    {vendorType === "bandwidth" && bandwidthLinks.length > 0 && (
-                      <>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-2">Bandwidth Links ({bandwidthLinks.length})</p>
-                        {bandwidthLinks.map((l, i) => (
-                          <div key={i} className="flex justify-between"><span className="font-medium">{l.linkName}</span><span className="text-muted-foreground">{l.bandwidthMbps} Mbps — {formatPKR(l.totalMonthlyCost)}/mo</span></div>
-                        ))}
-                      </>
-                    )}
                   </div>
                 </div>
               )}
