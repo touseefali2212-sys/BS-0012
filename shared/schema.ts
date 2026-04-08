@@ -1080,6 +1080,10 @@ export const vendorPanelLinks = pgTable("vendor_panel_links", {
   monthlyFee: decimal("monthly_fee", { precision: 12, scale: 2 }).default("0"),
   status: text("status").notNull().default("active"),
   notes: text("notes"),
+  serviceType: text("service_type"),
+  networkInterface: text("network_interface"),
+  portDetails: text("port_details"),
+  popLocation: text("pop_location"),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 

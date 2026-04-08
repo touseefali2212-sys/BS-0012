@@ -729,6 +729,15 @@ type PanelAccountRow = {
   panelUsername: string;
 };
 
+type PanelNetworkItem = {
+  panelUsername: string;
+  serviceType: string;
+  networkInterface: string;
+  portDetails: string;
+  city: string;
+  popLocation: string;
+};
+
 type BandwidthLinkRow = {
   linkName: string;
   ipAddress: string;
@@ -781,6 +790,9 @@ function AddVendorTab() {
   const [panelAccounts, setPanelAccounts] = useState<PanelAccountRow[]>([]);
   const [showAddAccountRow, setShowAddAccountRow] = useState(false);
   const [newAccount, setNewAccount] = useState<PanelAccountRow>({ panelName: "", panelUrl: "", panelUsername: "" });
+  const [panelNetworkList, setPanelNetworkList] = useState<PanelNetworkItem[]>([]);
+  const [showAddPanelNetworkRow, setShowAddPanelNetworkRow] = useState(false);
+  const [newPanelNetwork, setNewPanelNetwork] = useState<PanelNetworkItem>({ panelUsername: "", serviceType: "fiber", networkInterface: "", portDetails: "", city: "", popLocation: "" });
   const [bandwidthLinks, setBandwidthLinks] = useState<BandwidthLinkRow[]>([]);
   const [showAddLinkRow, setShowAddLinkRow] = useState(false);
   const [networkInfraList, setNetworkInfraList] = useState<NetworkInfraItem[]>([]);
@@ -848,14 +860,20 @@ function AddVendorTab() {
         try {
           const savedAccounts: Array<{ panelUsername: string; id: number }> = [];
           if (panelAccounts.length > 0) {
-            const results = await Promise.all(panelAccounts.map(acc =>
-              apiRequest("POST", "/api/vendor-panel-links", {
+            const results = await Promise.all(panelAccounts.map(acc => {
+              const net = panelNetworkList.find(n => n.panelUsername === acc.panelUsername);
+              return apiRequest("POST", "/api/vendor-panel-links", {
                 vendorId: vendor.id,
                 panelName: acc.panelName,
                 panelUrl: acc.panelUrl || null,
                 panelUsername: acc.panelUsername || null,
-              })
-            ));
+                serviceType: net?.serviceType || null,
+                networkInterface: net?.networkInterface || null,
+                portDetails: net?.portDetails || null,
+                city: net?.city || null,
+                popLocation: net?.popLocation || null,
+              });
+            }));
             results.forEach((r: { id: number; panelUsername?: string }, i) => {
               savedAccounts.push({ panelUsername: panelAccounts[i].panelUsername, id: r.id });
             });
@@ -925,6 +943,8 @@ function AddVendorTab() {
       setPanelPackages([]);
       setPanelAccounts([]);
       setShowAddAccountRow(false);
+      setPanelNetworkList([]);
+      setShowAddPanelNetworkRow(false);
       setBandwidthLinks([]);
       setNetworkInfraList([]);
       setShowAddNetworkRow(false);
@@ -983,11 +1003,12 @@ function AddVendorTab() {
   const WIZARD_STEPS_PANEL = [
     { label: "Vendor Info", icon: User },
     { label: "Service Detail", icon: Globe },
+    { label: "Network & Infrastructure", icon: Network },
     { label: "Business & Contract", icon: Building2 },
     { label: "Banking", icon: CreditCard },
   ];
   const WIZARD_STEPS = vendorType === "bandwidth" ? WIZARD_STEPS_BW : WIZARD_STEPS_PANEL;
-  const contentStep = vendorType === "bandwidth" ? currentStep : currentStep < 3 ? currentStep : currentStep + 1;
+  const contentStep = currentStep;
 
   return (
     <div className="page-fade-in" data-testid="tab-content-add">
@@ -1285,8 +1306,142 @@ function AddVendorTab() {
                 </div>
               )}
 
-              {/* STEP 3: Network & Infrastructure (Bandwidth Only) */}
-              {contentStep === 3 && (
+              {/* STEP 3: Network & Infrastructure */}
+              {contentStep === 3 && vendorType === "panel" && (
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30 p-3">
+                    <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-1.5"><Server className="h-3.5 w-3.5" />Configure network and location details for each panel account. Different locations may have different infrastructure.</p>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div>
+                      <h3 className="text-sm font-semibold flex items-center gap-1.5"><Network className="h-4 w-4 text-primary" />Network Infrastructure per Panel Account</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Assign network details to each panel username / location</p>
+                    </div>
+                    <Button type="button" size="sm" variant="outline" onClick={() => { setShowAddPanelNetworkRow(true); setNewPanelNetwork({ panelUsername: panelAccounts.find(a => !panelNetworkList.some(n => n.panelUsername === a.panelUsername))?.panelUsername || "", serviceType: "fiber", networkInterface: "", portDetails: "", city: "", popLocation: "" }); }} data-testid="button-add-panel-network" disabled={showAddPanelNetworkRow}>
+                      <Plus className="h-3.5 w-3.5 mr-1" />Add Network Infrastructure
+                    </Button>
+                  </div>
+
+                  {panelNetworkList.map((item, idx) => (
+                    <Card key={idx} className="border-2 border-primary/20">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Network className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-semibold">{item.panelUsername || "Unassigned Account"}</span>
+                            {item.serviceType && <Badge variant="secondary" className="text-[10px] capitalize no-default-active-elevate">{item.serviceType.replace("_", " ")}</Badge>}
+                            {item.city && <span className="text-xs text-muted-foreground">{item.city}</span>}
+                          </div>
+                          <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => setPanelNetworkList(panelNetworkList.filter((_, i) => i !== idx))} data-testid={`button-remove-panel-network-${idx}`}><Trash2 className="h-3.5 w-3.5" /></Button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-xs font-medium">Panel Account (Username)</Label>
+                            <Select value={item.panelUsername} onValueChange={(v) => setPanelNetworkList(panelNetworkList.map((n, i) => i === idx ? { ...n, panelUsername: v } : n))}>
+                              <SelectTrigger className="h-8 text-xs mt-1" data-testid={`select-panel-net-account-${idx}`}><SelectValue placeholder="Select panel account" /></SelectTrigger>
+                              <SelectContent>
+                                {panelAccounts.map(a => <SelectItem key={a.panelUsername || a.panelName} value={a.panelUsername || a.panelName}>{a.panelName}{a.panelUsername ? ` — ${a.panelUsername}` : ""}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Service Type</Label>
+                            <Select value={item.serviceType} onValueChange={(v) => setPanelNetworkList(panelNetworkList.map((n, i) => i === idx ? { ...n, serviceType: v } : n))}>
+                              <SelectTrigger className="h-8 text-xs mt-1" data-testid={`select-panel-net-service-${idx}`}><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="fiber">Fiber</SelectItem>
+                                <SelectItem value="exchange">Exchange</SelectItem>
+                                <SelectItem value="tower">Tower</SelectItem>
+                                <SelectItem value="wireless_p2p">Wireless P2P</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Interface Type</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. GigabitEthernet, SFP+" value={item.networkInterface} onChange={(e) => setPanelNetworkList(panelNetworkList.map((n, i) => i === idx ? { ...n, networkInterface: e.target.value } : n))} data-testid={`input-panel-net-interface-${idx}`} />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Port / Slot Details</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. Port 1, Slot 2" value={item.portDetails} onChange={(e) => setPanelNetworkList(panelNetworkList.map((n, i) => i === idx ? { ...n, portDetails: e.target.value } : n))} data-testid={`input-panel-net-port-${idx}`} />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">City</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. Lahore, Karachi" value={item.city} onChange={(e) => setPanelNetworkList(panelNetworkList.map((n, i) => i === idx ? { ...n, city: e.target.value } : n))} data-testid={`input-panel-net-city-${idx}`} />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">POP Location / ID</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. DHA POP-01, Main Hub" value={item.popLocation} onChange={(e) => setPanelNetworkList(panelNetworkList.map((n, i) => i === idx ? { ...n, popLocation: e.target.value } : n))} data-testid={`input-panel-net-pop-${idx}`} />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  {showAddPanelNetworkRow && (
+                    <Card className="border-dashed border-2 border-primary/40">
+                      <CardContent className="p-4 space-y-3">
+                        <h4 className="text-sm font-semibold flex items-center gap-1.5"><Network className="h-4 w-4 text-primary" />New Network Infrastructure</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-xs font-medium">Panel Account (Username) <span className="text-destructive">*</span></Label>
+                            <Select value={newPanelNetwork.panelUsername} onValueChange={(v) => setNewPanelNetwork({ ...newPanelNetwork, panelUsername: v })}>
+                              <SelectTrigger className="h-8 text-xs mt-1" data-testid="select-new-panel-net-account"><SelectValue placeholder="Select panel account" /></SelectTrigger>
+                              <SelectContent>
+                                {panelAccounts.map(a => <SelectItem key={a.panelUsername || a.panelName} value={a.panelUsername || a.panelName}>{a.panelName}{a.panelUsername ? ` — ${a.panelUsername}` : ""}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Service Type</Label>
+                            <Select value={newPanelNetwork.serviceType} onValueChange={(v) => setNewPanelNetwork({ ...newPanelNetwork, serviceType: v })}>
+                              <SelectTrigger className="h-8 text-xs mt-1" data-testid="select-new-panel-net-service"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="fiber">Fiber</SelectItem>
+                                <SelectItem value="exchange">Exchange</SelectItem>
+                                <SelectItem value="tower">Tower</SelectItem>
+                                <SelectItem value="wireless_p2p">Wireless P2P</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Interface Type</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. GigabitEthernet, SFP+" value={newPanelNetwork.networkInterface} onChange={(e) => setNewPanelNetwork({ ...newPanelNetwork, networkInterface: e.target.value })} data-testid="input-new-panel-net-interface" />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Port / Slot Details</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. Port 1, Slot 2" value={newPanelNetwork.portDetails} onChange={(e) => setNewPanelNetwork({ ...newPanelNetwork, portDetails: e.target.value })} data-testid="input-new-panel-net-port" />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">City</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. Lahore, Karachi" value={newPanelNetwork.city} onChange={(e) => setNewPanelNetwork({ ...newPanelNetwork, city: e.target.value })} data-testid="input-new-panel-net-city" />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">POP Location / ID</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. DHA POP-01, Main Hub" value={newPanelNetwork.popLocation} onChange={(e) => setNewPanelNetwork({ ...newPanelNetwork, popLocation: e.target.value })} data-testid="input-new-panel-net-pop" />
+                          </div>
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddPanelNetworkRow(false)}>Cancel</Button>
+                          <Button type="button" size="sm" onClick={() => { if (!newPanelNetwork.panelUsername) { toast({ title: "Please select a panel account", variant: "destructive" }); return; } setPanelNetworkList([...panelNetworkList, { ...newPanelNetwork }]); setShowAddPanelNetworkRow(false); setNewPanelNetwork({ panelUsername: "", serviceType: "fiber", networkInterface: "", portDetails: "", city: "", popLocation: "" }); }} data-testid="button-confirm-add-panel-network">
+                            <CheckCircle className="h-3.5 w-3.5 mr-1" />Add Infrastructure
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {panelNetworkList.length === 0 && !showAddPanelNetworkRow && (
+                    <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                      <Network className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">No network infrastructure configured yet</p>
+                      <p className="text-xs mt-1">Click "Add Network Infrastructure" to configure per-account network details</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {contentStep === 3 && vendorType === "bandwidth" && (
                 <div className="space-y-4">
                   <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30 p-3">
                     <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-1.5"><Server className="h-3.5 w-3.5" />Each bandwidth link can have its own network infrastructure. Select a link and configure its technical details.</p>
