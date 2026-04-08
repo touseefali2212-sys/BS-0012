@@ -140,8 +140,8 @@ const managementNav: NavItem[] = [
       { title: "Panel Vendors", url: "/vendors?tab=panel-vendors", icon: Globe },
       { title: "Vendor Packages", url: "/vendors?tab=packages", icon: Package },
       { title: "Bandwidth Changes", url: "/vendors?tab=bandwidth-changes", icon: Activity },
-      { title: "Account & Ledger", url: "/vendors?tab=account", icon: BookOpen },
       { title: "Wallet & Billing", url: "/vendors?tab=wallet", icon: Wallet },
+      { title: "Account & Ledger", url: "/vendors?tab=account", icon: BookOpen },
     ],
   },
   {
