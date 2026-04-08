@@ -720,6 +720,13 @@ type PanelPackageRow = {
   resellerPrice: string;
   dataLimit: string;
   validity: string;
+  panelUsername: string;
+};
+
+type PanelAccountRow = {
+  panelName: string;
+  panelUrl: string;
+  panelUsername: string;
 };
 
 type BandwidthLinkRow = {
@@ -769,8 +776,11 @@ function AddVendorTab() {
   const [panelPackages, setPanelPackages] = useState<PanelPackageRow[]>([]);
   const [showAddPkgRow, setShowAddPkgRow] = useState(false);
   const [newPkg, setNewPkg] = useState<PanelPackageRow>({
-    packageName: "", speed: "", vendorPrice: "", ispSellingPrice: "", resellerPrice: "", dataLimit: "", validity: "30 days",
+    packageName: "", speed: "", vendorPrice: "", ispSellingPrice: "", resellerPrice: "", dataLimit: "", validity: "30 days", panelUsername: "",
   });
+  const [panelAccounts, setPanelAccounts] = useState<PanelAccountRow[]>([]);
+  const [showAddAccountRow, setShowAddAccountRow] = useState(false);
+  const [newAccount, setNewAccount] = useState<PanelAccountRow>({ panelName: "", panelUrl: "", panelUsername: "" });
   const [bandwidthLinks, setBandwidthLinks] = useState<BandwidthLinkRow[]>([]);
   const [showAddLinkRow, setShowAddLinkRow] = useState(false);
   const [networkInfraList, setNetworkInfraList] = useState<NetworkInfraItem[]>([]);
@@ -834,24 +844,45 @@ function AddVendorTab() {
     },
     onSuccess: async (vendor: Vendor) => {
       let extraMsg = "";
-      if (vendorType === "panel" && panelPackages.length > 0) {
+      if (vendorType === "panel") {
         try {
-          await Promise.all(panelPackages.map(pkg =>
-            apiRequest("POST", "/api/vendor-packages", {
-              vendorId: vendor.id,
-              packageName: pkg.packageName,
-              speed: pkg.speed,
-              vendorPrice: pkg.vendorPrice || "0",
-              ispSellingPrice: pkg.ispSellingPrice || "0",
-              resellerPrice: pkg.resellerPrice || "0",
-              dataLimit: pkg.dataLimit,
-              validity: pkg.validity || "30 days",
-            })
-          ));
-          queryClient.invalidateQueries({ queryKey: ["/api/vendor-packages"] });
-          extraMsg = ` with ${panelPackages.length} package(s)`;
+          const savedAccounts: Array<{ panelUsername: string; id: number }> = [];
+          if (panelAccounts.length > 0) {
+            const results = await Promise.all(panelAccounts.map(acc =>
+              apiRequest("POST", "/api/vendor-panel-links", {
+                vendorId: vendor.id,
+                panelName: acc.panelName,
+                panelUrl: acc.panelUrl || null,
+                panelUsername: acc.panelUsername || null,
+              })
+            ));
+            results.forEach((r: { id: number; panelUsername?: string }, i) => {
+              savedAccounts.push({ panelUsername: panelAccounts[i].panelUsername, id: r.id });
+            });
+            queryClient.invalidateQueries({ queryKey: ["/api/vendor-panel-links"] });
+          }
+          if (panelPackages.length > 0) {
+            await Promise.all(panelPackages.map(pkg => {
+              const matched = savedAccounts.find(a => a.panelUsername === pkg.panelUsername);
+              return apiRequest("POST", "/api/vendor-packages", {
+                vendorId: vendor.id,
+                panelLinkId: matched?.id || null,
+                packageName: pkg.packageName,
+                speed: pkg.speed,
+                vendorPrice: pkg.vendorPrice || "0",
+                ispSellingPrice: pkg.ispSellingPrice || "0",
+                resellerPrice: pkg.resellerPrice || "0",
+                dataLimit: pkg.dataLimit,
+                validity: pkg.validity || "30 days",
+              });
+            }));
+            queryClient.invalidateQueries({ queryKey: ["/api/vendor-packages"] });
+            extraMsg = ` with ${panelAccounts.length} account(s) and ${panelPackages.length} package(s)`;
+          } else if (panelAccounts.length > 0) {
+            extraMsg = ` with ${panelAccounts.length} panel account(s)`;
+          }
         } catch {
-          toast({ title: "Vendor created but some packages failed", variant: "destructive" });
+          toast({ title: "Vendor created but some data failed to save", variant: "destructive" });
         }
       }
       if (vendorType === "bandwidth" && bandwidthLinks.length > 0) {
@@ -892,6 +923,8 @@ function AddVendorTab() {
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
       form.reset();
       setPanelPackages([]);
+      setPanelAccounts([]);
+      setShowAddAccountRow(false);
       setBandwidthLinks([]);
       setNetworkInfraList([]);
       setShowAddNetworkRow(false);
@@ -913,7 +946,7 @@ function AddVendorTab() {
       return;
     }
     setPanelPackages([...panelPackages, { ...newPkg }]);
-    setNewPkg({ packageName: "", speed: "", vendorPrice: "", ispSellingPrice: "", resellerPrice: "", dataLimit: "", validity: "30 days" });
+    setNewPkg({ packageName: "", speed: "", vendorPrice: "", ispSellingPrice: "", resellerPrice: "", dataLimit: "", validity: "30 days", panelUsername: "" });
     setShowAddPkgRow(false);
   };
 
@@ -1124,21 +1157,71 @@ function AddVendorTab() {
                   )}
                   {vendorType === "panel" && (
                     <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <FormField control={form.control} name="panelUrl" render={({ field }) => (<FormItem><FormLabel>Panel URL</FormLabel><FormControl><Input placeholder="https://panel.vendor.com" data-testid="input-vendor-panel-url" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="panelUsername" render={({ field }) => (<FormItem><FormLabel>Panel Username</FormLabel><FormControl><Input placeholder="Panel login username" data-testid="input-vendor-panel-username" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                      </div>
+                      {/* Panel Accounts Section */}
                       <div className="space-y-3">
                         <div className="flex items-center justify-between gap-2 flex-wrap">
                           <div>
-                            <h3 className="text-sm font-semibold flex items-center gap-1.5"><Package className="h-4 w-4" />Panel Packages</h3>
-                            <p className="text-xs text-muted-foreground mt-0.5">Add packages offered by this vendor</p>
+                            <h3 className="text-sm font-semibold flex items-center gap-1.5"><Globe className="h-4 w-4" />Panel Accounts</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">Add multiple panel URLs and login credentials</p>
                           </div>
-                          <Button type="button" size="sm" variant="outline" onClick={() => setShowAddPkgRow(true)} data-testid="button-add-pkg"><Plus className="h-3.5 w-3.5 mr-1" />Add Package</Button>
+                          <Button type="button" size="sm" variant="outline" onClick={() => { setShowAddAccountRow(true); setNewAccount({ panelName: "", panelUrl: "", panelUsername: "" }); }} data-testid="button-add-panel-account" disabled={showAddAccountRow}>
+                            <Plus className="h-3.5 w-3.5 mr-1" />Add Panel Account
+                          </Button>
+                        </div>
+                        {panelAccounts.length > 0 && (
+                          <Card><CardContent className="p-0"><div className="overflow-x-auto"><Table><TableHeader><TableRow>
+                            <TableHead className="text-xs">Account Name</TableHead>
+                            <TableHead className="text-xs">Panel URL</TableHead>
+                            <TableHead className="text-xs">Username</TableHead>
+                            <TableHead className="w-10"></TableHead>
+                          </TableRow></TableHeader><TableBody>
+                            {panelAccounts.map((acc, idx) => (
+                              <TableRow key={idx} data-testid={`row-panel-account-${idx}`}>
+                                <TableCell className="text-sm font-medium">{acc.panelName}</TableCell>
+                                <TableCell className="text-sm text-blue-600 dark:text-blue-400">{acc.panelUrl || "—"}</TableCell>
+                                <TableCell className="text-sm font-mono">{acc.panelUsername || "—"}</TableCell>
+                                <TableCell><Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setPanelAccounts(panelAccounts.filter((_, i) => i !== idx))} data-testid={`button-remove-account-${idx}`}><Trash2 className="h-3.5 w-3.5" /></Button></TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody></Table></div></CardContent></Card>
+                        )}
+                        {showAddAccountRow && (
+                          <Card className="border-dashed border-2 border-primary/40">
+                            <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-1.5"><Globe className="h-4 w-4 text-primary" />New Panel Account</CardTitle></CardHeader>
+                            <CardContent className="space-y-3">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div><Label className="text-xs font-medium">Account Name *</Label><Input placeholder="e.g. Main Panel, Backup Panel" value={newAccount.panelName} onChange={(e) => setNewAccount({ ...newAccount, panelName: e.target.value })} data-testid="input-new-account-name" /></div>
+                                <div><Label className="text-xs font-medium">Panel URL</Label><Input placeholder="https://panel.vendor.com" value={newAccount.panelUrl} onChange={(e) => setNewAccount({ ...newAccount, panelUrl: e.target.value })} data-testid="input-new-account-url" /></div>
+                                <div><Label className="text-xs font-medium">Panel Username</Label><Input placeholder="Login username" value={newAccount.panelUsername} onChange={(e) => setNewAccount({ ...newAccount, panelUsername: e.target.value })} data-testid="input-new-account-username" /></div>
+                              </div>
+                              <div className="flex gap-2 justify-end">
+                                <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddAccountRow(false)}>Cancel</Button>
+                                <Button type="button" size="sm" onClick={() => { if (!newAccount.panelName.trim()) { toast({ title: "Account name is required", variant: "destructive" }); return; } setPanelAccounts([...panelAccounts, { ...newAccount }]); setShowAddAccountRow(false); setNewAccount({ panelName: "", panelUrl: "", panelUsername: "" }); }} data-testid="button-confirm-add-account"><CheckCircle className="h-3.5 w-3.5 mr-1" />Add Account</Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                        {panelAccounts.length === 0 && !showAddAccountRow && (
+                          <div className="text-center py-4 border rounded-lg text-muted-foreground text-sm">
+                            <Globe className="h-6 w-6 mx-auto mb-1.5 opacity-30" />
+                            <p className="text-xs">No panel accounts added yet. Click "Add Panel Account" to add one.</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Panel Packages Section */}
+                      <div className="space-y-3 border-t pt-4">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div>
+                            <h3 className="text-sm font-semibold flex items-center gap-1.5"><Package className="h-4 w-4" />Panel Packages</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">Add packages offered by this vendor panel</p>
+                          </div>
+                          <Button type="button" size="sm" variant="outline" onClick={() => setShowAddPkgRow(true)} data-testid="button-add-pkg" disabled={showAddPkgRow}><Plus className="h-3.5 w-3.5 mr-1" />Add Package</Button>
                         </div>
                         {panelPackages.length > 0 && (
                           <Card><CardContent className="p-0"><div className="overflow-x-auto"><Table><TableHeader><TableRow>
                             <TableHead className="text-xs">Package Name</TableHead>
+                            <TableHead className="text-xs">Panel Account</TableHead>
                             <TableHead className="text-xs">Speed</TableHead>
                             <TableHead className="text-xs">Vendor Price</TableHead>
                             <TableHead className="text-xs">ISP Price</TableHead>
@@ -1147,7 +1230,8 @@ function AddVendorTab() {
                             {panelPackages.map((pkg, idx) => (
                               <TableRow key={idx} data-testid={`row-pkg-${idx}`}>
                                 <TableCell className="text-sm font-medium">{pkg.packageName}</TableCell>
-                                <TableCell className="text-sm">{pkg.speed || "N/A"}</TableCell>
+                                <TableCell className="text-xs font-mono text-muted-foreground">{pkg.panelUsername || "—"}</TableCell>
+                                <TableCell className="text-sm">{pkg.speed || "—"}</TableCell>
                                 <TableCell className="text-sm">{formatPKR(pkg.vendorPrice)}</TableCell>
                                 <TableCell className="text-sm">{formatPKR(pkg.ispSellingPrice)}</TableCell>
                                 <TableCell><Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removePackageRow(idx)} data-testid={`button-remove-pkg-${idx}`}><Trash2 className="h-3.5 w-3.5" /></Button></TableCell>
@@ -1156,13 +1240,26 @@ function AddVendorTab() {
                           </TableBody></Table></div></CardContent></Card>
                         )}
                         {showAddPkgRow && (
-                          <Card>
+                          <Card className="border-dashed border-2 border-primary/40">
                             <CardHeader className="pb-2"><CardTitle className="text-sm">New Package</CardTitle></CardHeader>
                             <CardContent className="space-y-3">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                  <Label className="text-xs font-medium">Panel Account</Label>
+                                  <Select value={newPkg.panelUsername} onValueChange={(v) => setNewPkg({ ...newPkg, panelUsername: v })}>
+                                    <SelectTrigger className="h-9 text-xs mt-1" data-testid="select-new-pkg-account"><SelectValue placeholder="Select panel account (optional)" /></SelectTrigger>
+                                    <SelectContent>
+                                      {panelAccounts.map(acc => <SelectItem key={acc.panelUsername || acc.panelName} value={acc.panelUsername || acc.panelName}>{acc.panelName}{acc.panelUsername ? ` — ${acc.panelUsername}` : ""}</SelectItem>)}
+                                      <SelectItem value="__none__">— No specific account —</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div><Label className="text-xs font-medium">Package Name *</Label><Input className="mt-1" placeholder="e.g. 10 Mbps Unlimited" value={newPkg.packageName} onChange={(e) => setNewPkg({ ...newPkg, packageName: e.target.value })} data-testid="input-new-pkg-name" /></div>
+                              </div>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div><Label className="text-xs font-medium">Package Name *</Label><Input placeholder="e.g. 10 Mbps Unlimited" value={newPkg.packageName} onChange={(e) => setNewPkg({ ...newPkg, packageName: e.target.value })} data-testid="input-new-pkg-name" /></div>
                                 <div><Label className="text-xs font-medium">Speed</Label><Input placeholder="e.g. 10 Mbps" value={newPkg.speed} onChange={(e) => setNewPkg({ ...newPkg, speed: e.target.value })} data-testid="input-new-pkg-speed" /></div>
                                 <div><Label className="text-xs font-medium">Data Limit</Label><Input placeholder="Unlimited" value={newPkg.dataLimit} onChange={(e) => setNewPkg({ ...newPkg, dataLimit: e.target.value })} data-testid="input-new-pkg-data-limit" /></div>
+                                <div><Label className="text-xs font-medium">Validity</Label><Input placeholder="30 days" value={newPkg.validity} onChange={(e) => setNewPkg({ ...newPkg, validity: e.target.value })} data-testid="input-new-pkg-validity" /></div>
                               </div>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                 <div><Label className="text-xs font-medium">Vendor Price (PKR) *</Label><Input type="number" placeholder="0" value={newPkg.vendorPrice} onChange={(e) => setNewPkg({ ...newPkg, vendorPrice: e.target.value })} data-testid="input-new-pkg-vendor-price" /></div>
