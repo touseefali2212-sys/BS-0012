@@ -2907,95 +2907,153 @@ function BandwidthVendorsTab() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Edit Bandwidth Vendor</DialogTitle></DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(data => { if (editingVendor) updateMutation.mutate({ id: editingVendor.id, data }); })} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Name</FormLabel><FormControl><Input data-testid="input-bw-edit-name" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="contactPerson" render={({ field }) => (<FormItem><FormLabel>Contact Person</FormLabel><FormControl><Input data-testid="input-bw-edit-contact" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone</FormLabel><FormControl><Input data-testid="input-bw-edit-phone" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input data-testid="input-bw-edit-email" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="serviceType" render={({ field }) => (<FormItem><FormLabel>Service Type</FormLabel><Select onValueChange={field.onChange} value={field.value || "fiber"}><FormControl><SelectTrigger data-testid="select-bw-edit-service"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="fiber">Fiber</SelectItem><SelectItem value="wireless">Wireless</SelectItem><SelectItem value="cable">Cable</SelectItem><SelectItem value="satellite">Satellite</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Lahore" data-testid="input-bw-edit-city" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField control={form.control} name="totalBandwidth" render={({ field }) => (<FormItem><FormLabel>Total Bandwidth (Mbps)</FormLabel><FormControl><Input data-testid="input-bw-edit-total-bw" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="usedBandwidth" render={({ field }) => (<FormItem><FormLabel>Used Bandwidth (Mbps)</FormLabel><FormControl><Input data-testid="input-bw-edit-used-bw" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="bandwidthCost" render={({ field }) => (<FormItem><FormLabel>Monthly Cost (PKR)</FormLabel><FormControl><Input type="number" data-testid="input-bw-edit-cost" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField control={form.control} name="slaLevel" render={({ field }) => (<FormItem><FormLabel>SLA Level</FormLabel><Select onValueChange={field.onChange} value={field.value || "standard"}><FormControl><SelectTrigger data-testid="select-bw-edit-sla"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="standard">Standard</SelectItem><SelectItem value="premium">Premium</SelectItem><SelectItem value="enterprise">Enterprise</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="contractStartDate" render={({ field }) => (<FormItem><FormLabel>Contract Start</FormLabel><FormControl><Input type="date" data-testid="input-bw-edit-contract-start" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="contractEndDate" render={({ field }) => (<FormItem><FormLabel>Contract End</FormLabel><FormControl><Input type="date" data-testid="input-bw-edit-contract-end" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField control={form.control} name="bankName" render={({ field }) => (<FormItem><FormLabel>Bank Name</FormLabel><FormControl><Input placeholder="e.g. HBL" data-testid="input-bw-edit-bank" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="bankAccountTitle" render={({ field }) => (<FormItem><FormLabel>Account Title</FormLabel><FormControl><Input placeholder="Holder name" data-testid="input-bw-edit-bank-title" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="bankAccountNumber" render={({ field }) => (<FormItem><FormLabel>Account No / IBAN</FormLabel><FormControl><Input data-testid="input-bw-edit-bank-number" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              {editingVendor && (() => {
-                const vendorBwLinks = getVendorBwLinks(editingVendor.id);
-                return (
-                  <Card className="border-blue-200 dark:border-blue-800">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm flex items-center gap-1.5"><Globe className="h-4 w-4" />Bandwidth Links ({vendorBwLinks.length})</CardTitle>
-                        <Button type="button" size="sm" variant="outline" onClick={() => { setEditBwLinkTarget(editingVendor.id); setEditBwLinkItem(null); editBwLinkForm.reset({ vendorId: editingVendor.id, linkName: "", ipAddress: "", vlanDetail: "", city: "", bandwidthMbps: "0", bandwidthRate: "0", totalMonthlyCost: "0", notes: "" }); setEditBwLinkDialogOpen(true); }} data-testid="button-bw-edit-add-link"><Plus className="h-3 w-3 mr-1" />Add Link</Button>
+        <DialogContent className="max-w-4xl max-h-[92vh] overflow-hidden p-0 gap-0">
+          {editingVendor && (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(data => { if (editingVendor) updateMutation.mutate({ id: editingVendor.id, data }); })} className="flex flex-col h-full">
+                {/* Hero Header */}
+                <div className="vendor-page-header rounded-t-lg px-5 py-4 shrink-0">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-white/20 flex items-center justify-center text-white text-xl font-bold shrink-0 border-2 border-white/30">
+                      {editingVendor.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-base font-bold text-white truncate">{editingVendor.name}</h2>
+                        <Badge className="bg-blue-400/30 text-white border-blue-300/30 text-[10px] no-default-active-elevate">Bandwidth Vendor</Badge>
+                        <Badge className={`text-[10px] no-default-active-elevate ${editingVendor.status === "active" ? "bg-green-400/30 text-white border-green-300/30" : "bg-red-400/30 text-white border-red-300/30"}`}>{editingVendor.status}</Badge>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      {vendorBwLinks.length === 0 ? <p className="text-xs text-muted-foreground text-center py-3">No bandwidth links yet</p> : (
-                        <div className="overflow-x-auto">
-                          <Table>
-                            <TableHeader><TableRow><TableHead className="text-xs">Link Name</TableHead><TableHead className="text-xs">IP</TableHead><TableHead className="text-xs">City</TableHead><TableHead className="text-xs">Mbps</TableHead><TableHead className="text-xs">Cost</TableHead><TableHead className="text-xs">Status</TableHead><TableHead className="w-8"></TableHead></TableRow></TableHeader>
-                            <TableBody>
-                              {vendorBwLinks.map(link => (
-                                <TableRow key={link.id}>
-                                  <TableCell className="text-xs font-medium">{link.linkName}</TableCell>
-                                  <TableCell className="text-xs font-mono">{link.ipAddress || "N/A"}</TableCell>
-                                  <TableCell className="text-xs">{link.city || "N/A"}</TableCell>
-                                  <TableCell className="text-xs font-semibold">{link.bandwidthMbps}</TableCell>
-                                  <TableCell className="text-xs font-semibold text-blue-600 dark:text-blue-400">{formatPKR(link.totalMonthlyCost)}</TableCell>
-                                  <TableCell><Badge variant={link.status === "active" ? "default" : "secondary"} className="text-[10px] no-default-active-elevate">{link.status}</Badge></TableCell>
-                                  <TableCell>
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-6 w-6"><MoreHorizontal className="h-3 w-3" /></Button></DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => { setEditBwLinkTarget(editingVendor.id); setEditBwLinkItem(link); editBwLinkForm.reset({ vendorId: link.vendorId, linkName: link.linkName, ipAddress: link.ipAddress || "", vlanDetail: link.vlanDetail || "", city: link.city || "", bandwidthMbps: link.bandwidthMbps || "0", bandwidthRate: link.bandwidthRate || "0", totalMonthlyCost: link.totalMonthlyCost || "0", notes: link.notes || "" }); setEditBwLinkDialogOpen(true); }}><Edit className="h-3.5 w-3.5 mr-2" />Edit</DropdownMenuItem>
-                                        <DropdownMenuItem className="text-destructive" onClick={() => { if (confirm(`Delete link "${link.linkName}"?`)) editDeleteBwLink.mutate(link.id); }}><Trash2 className="h-3.5 w-3.5 mr-2" />Delete</DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                              {vendorBwLinks.length > 1 && (
-                                <TableRow className="font-bold bg-muted/50">
-                                  <TableCell colSpan={3} className="text-xs font-bold">TOTALS</TableCell>
-                                  <TableCell className="text-xs font-bold">{vendorBwLinks.reduce((s, l) => s + Number(l.bandwidthMbps || 0), 0)} Mbps</TableCell>
-                                  <TableCell className="text-xs font-bold text-blue-600 dark:text-blue-400">{formatPKR(vendorBwLinks.reduce((s, l) => s + Number(l.totalMonthlyCost || 0), 0))}</TableCell>
-                                  <TableCell colSpan={2}></TableCell>
-                                </TableRow>
-                              )}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })()}
-              <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} value={field.value || "active"}><FormControl><SelectTrigger data-testid="select-bw-edit-status"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-              <DialogFooter>
-                <Button type="button" variant="secondary" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                <Button type="submit" disabled={updateMutation.isPending} data-testid="button-bw-update-vendor">{updateMutation.isPending ? "Updating..." : "Update Vendor"}</Button>
-              </DialogFooter>
-            </form>
-          </Form>
+                      <p className="text-blue-100 text-xs mt-0.5">Edit vendor profile — fill in details across tabs and save</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button type="button" variant="ghost" size="sm" className="text-white hover:bg-white/20 border border-white/30 h-8 px-3 text-xs" onClick={() => setDialogOpen(false)} data-testid="button-bw-edit-cancel">Cancel</Button>
+                      <Button type="submit" size="sm" className="bg-white text-blue-800 hover:bg-blue-50 font-semibold h-8 px-3 text-xs" disabled={updateMutation.isPending} data-testid="button-bw-update-vendor">
+                        {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                {/* Tabbed body */}
+                <Tabs defaultValue="basic" className="flex-1 overflow-hidden flex flex-col">
+                  <div className="border-b bg-muted/30 px-4 shrink-0">
+                    <TabsList className="h-auto py-0 bg-transparent gap-0 rounded-none">
+                      <TabsTrigger value="basic" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><User className="h-3.5 w-3.5" />Basic Info</TabsTrigger>
+                      <TabsTrigger value="business" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><Building2 className="h-3.5 w-3.5" />Business & Contract</TabsTrigger>
+                      <TabsTrigger value="banking" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><CreditCard className="h-3.5 w-3.5" />Banking</TabsTrigger>
+                      <TabsTrigger value="links" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><Network className="h-3.5 w-3.5" />Bandwidth Links</TabsTrigger>
+                    </TabsList>
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    <TabsContent value="basic" className="p-5 space-y-4 mt-0">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Vendor Name</FormLabel><FormControl><Input data-testid="input-bw-edit-name" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="contactPerson" render={({ field }) => (<FormItem><FormLabel>Contact Person</FormLabel><FormControl><Input placeholder="Contact name" data-testid="input-bw-edit-contact" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone</FormLabel><FormControl><Input placeholder="03XX-XXXXXXX" data-testid="input-bw-edit-phone" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="email@example.com" data-testid="input-bw-edit-email" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Lahore, Karachi" data-testid="input-bw-edit-city" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} value={field.value || "active"}><FormControl><SelectTrigger data-testid="select-bw-edit-status"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                      </div>
+                      <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>Address</FormLabel><FormControl><Textarea placeholder="Full address" data-testid="input-bw-edit-address" {...field} value={field.value || ""} rows={3} /></FormControl><FormMessage /></FormItem>)} />
+                    </TabsContent>
+                    <TabsContent value="business" className="p-5 space-y-4 mt-0">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="serviceType" render={({ field }) => (<FormItem><FormLabel>Service Type</FormLabel><Select onValueChange={field.onChange} value={field.value || "fiber"}><FormControl><SelectTrigger data-testid="select-bw-edit-service"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="fiber">Fiber</SelectItem><SelectItem value="wireless">Wireless</SelectItem><SelectItem value="cable">Cable</SelectItem><SelectItem value="satellite">Satellite</SelectItem><SelectItem value="maintenance">Maintenance</SelectItem><SelectItem value="equipment">Equipment</SelectItem><SelectItem value="software">Software</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="slaLevel" render={({ field }) => (<FormItem><FormLabel>SLA Level</FormLabel><Select onValueChange={field.onChange} value={field.value || "standard"}><FormControl><SelectTrigger data-testid="select-bw-edit-sla"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="standard">Standard</SelectItem><SelectItem value="premium">Premium</SelectItem><SelectItem value="enterprise">Enterprise</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                      </div>
+                      <FormField control={form.control} name="ntn" render={({ field }) => (<FormItem><FormLabel>NTN (Tax Registration No.)</FormLabel><FormControl><Input placeholder="e.g. 1234567-8" data-testid="input-bw-edit-ntn" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="contractStartDate" render={({ field }) => (<FormItem><FormLabel>Contract Start Date</FormLabel><FormControl><Input type="date" data-testid="input-bw-edit-contract-start" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="contractEndDate" render={({ field }) => (<FormItem><FormLabel>Contract End Date</FormLabel><FormControl><Input type="date" data-testid="input-bw-edit-contract-end" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormField control={form.control} name="totalBandwidth" render={({ field }) => (<FormItem><FormLabel>Total Bandwidth (Mbps)</FormLabel><FormControl><Input placeholder="0" data-testid="input-bw-edit-total-bw" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="usedBandwidth" render={({ field }) => (<FormItem><FormLabel>Used Bandwidth (Mbps)</FormLabel><FormControl><Input placeholder="0" data-testid="input-bw-edit-used-bw" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="bandwidthCost" render={({ field }) => (<FormItem><FormLabel>Monthly Cost (PKR)</FormLabel><FormControl><Input type="number" placeholder="0" data-testid="input-bw-edit-cost" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="banking" className="p-5 space-y-4 mt-0">
+                      <div className="rounded-lg border border-dashed border-muted-foreground/30 p-4 bg-muted/20 mb-1">
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5" />Banking details are used for payment processing and reconciliation.</p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="bankName" render={({ field }) => (<FormItem><FormLabel>Bank Name</FormLabel><FormControl><Input placeholder="e.g. HBL, MCB, UBL" data-testid="input-bw-edit-bank" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="bankAccountTitle" render={({ field }) => (<FormItem><FormLabel>Account Title</FormLabel><FormControl><Input placeholder="Account holder name" data-testid="input-bw-edit-bank-title" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="bankAccountNumber" render={({ field }) => (<FormItem><FormLabel>Account Number / IBAN</FormLabel><FormControl><Input placeholder="Account number or IBAN" data-testid="input-bw-edit-bank-number" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="bankBranchCode" render={({ field }) => (<FormItem><FormLabel>Branch Code</FormLabel><FormControl><Input placeholder="Branch code" data-testid="input-bw-edit-branch-code" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="links" className="p-5 mt-0">
+                      {(() => {
+                        const vendorBwLinks = getVendorBwLinks(editingVendor.id);
+                        return (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h3 className="text-sm font-semibold flex items-center gap-1.5"><Network className="h-4 w-4 text-blue-500" />Bandwidth Links ({vendorBwLinks.length})</h3>
+                                <p className="text-xs text-muted-foreground mt-0.5">Manage physical bandwidth links assigned to this vendor</p>
+                              </div>
+                              <Button type="button" size="sm" variant="outline" onClick={() => { setEditBwLinkTarget(editingVendor.id); setEditBwLinkItem(null); editBwLinkForm.reset({ vendorId: editingVendor.id, linkName: "", ipAddress: "", vlanDetail: "", city: "", bandwidthMbps: "0", bandwidthRate: "0", totalMonthlyCost: "0", notes: "" }); setEditBwLinkDialogOpen(true); }} data-testid="button-bw-edit-add-link"><Plus className="h-3 w-3 mr-1" />Add Link</Button>
+                            </div>
+                            {vendorBwLinks.length === 0 ? (
+                              <div className="text-center py-12 border border-dashed rounded-lg text-muted-foreground">
+                                <Network className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                                <p className="text-sm font-medium">No bandwidth links yet</p>
+                                <p className="text-xs mt-1">Click "Add Link" to add the first one</p>
+                              </div>
+                            ) : (
+                              <div className="overflow-x-auto rounded-lg border">
+                                <Table>
+                                  <TableHeader><TableRow className="bg-muted/50"><TableHead className="text-xs">Link Name</TableHead><TableHead className="text-xs">IP Address</TableHead><TableHead className="text-xs">VLAN</TableHead><TableHead className="text-xs">City</TableHead><TableHead className="text-xs">Mbps</TableHead><TableHead className="text-xs">Rate/Mbps</TableHead><TableHead className="text-xs">Monthly Cost</TableHead><TableHead className="text-xs">Status</TableHead><TableHead className="w-8"></TableHead></TableRow></TableHeader>
+                                  <TableBody>
+                                    {vendorBwLinks.map(link => (
+                                      <TableRow key={link.id}>
+                                        <TableCell className="text-xs font-medium">{link.linkName}</TableCell>
+                                        <TableCell className="text-xs font-mono">{link.ipAddress || "—"}</TableCell>
+                                        <TableCell className="text-xs">{link.vlanDetail || "—"}</TableCell>
+                                        <TableCell className="text-xs">{link.city || "—"}</TableCell>
+                                        <TableCell className="text-xs font-semibold">{link.bandwidthMbps} Mbps</TableCell>
+                                        <TableCell className="text-xs">{link.bandwidthRate ? `${link.bandwidthRate}/Mbps` : "—"}</TableCell>
+                                        <TableCell className="text-xs font-semibold text-blue-600 dark:text-blue-400">{formatPKR(link.totalMonthlyCost)}</TableCell>
+                                        <TableCell><Badge variant={link.status === "active" ? "default" : "secondary"} className="text-[10px] no-default-active-elevate">{link.status}</Badge></TableCell>
+                                        <TableCell>
+                                          <DropdownMenu>
+                                            <DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon" className="h-6 w-6"><MoreHorizontal className="h-3 w-3" /></Button></DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                              <DropdownMenuItem onClick={() => { setEditBwLinkTarget(editingVendor.id); setEditBwLinkItem(link); editBwLinkForm.reset({ vendorId: link.vendorId, linkName: link.linkName, ipAddress: link.ipAddress || "", vlanDetail: link.vlanDetail || "", city: link.city || "", bandwidthMbps: link.bandwidthMbps || "0", bandwidthRate: link.bandwidthRate || "0", totalMonthlyCost: link.totalMonthlyCost || "0", notes: link.notes || "" }); setEditBwLinkDialogOpen(true); }}><Edit className="h-3.5 w-3.5 mr-2" />Edit</DropdownMenuItem>
+                                              <DropdownMenuItem className="text-destructive" onClick={() => { if (confirm(`Delete link "${link.linkName}"?`)) editDeleteBwLink.mutate(link.id); }}><Trash2 className="h-3.5 w-3.5 mr-2" />Delete</DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                          </DropdownMenu>
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                    {vendorBwLinks.length > 0 && (
+                                      <TableRow className="bg-muted/50 font-bold">
+                                        <TableCell colSpan={4} className="text-xs font-bold">TOTALS</TableCell>
+                                        <TableCell className="text-xs font-bold">{vendorBwLinks.reduce((s, l) => s + Number(l.bandwidthMbps || 0), 0)} Mbps</TableCell>
+                                        <TableCell></TableCell>
+                                        <TableCell className="text-xs font-bold text-blue-600 dark:text-blue-400">{formatPKR(vendorBwLinks.reduce((s, l) => s + Number(l.totalMonthlyCost || 0), 0))}</TableCell>
+                                        <TableCell colSpan={2}></TableCell>
+                                      </TableRow>
+                                    )}
+                                  </TableBody>
+                                </Table>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </TabsContent>
+                  </div>
+                </Tabs>
+              </form>
+            </Form>
+          )}
         </DialogContent>
       </Dialog>
 
@@ -3641,43 +3699,97 @@ function PanelVendorsTab() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Edit Panel Vendor</DialogTitle></DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(data => { if (editingVendor) updateMutation.mutate({ id: editingVendor.id, data }); })} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Name</FormLabel><FormControl><Input data-testid="input-panel-edit-name" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="contactPerson" render={({ field }) => (<FormItem><FormLabel>Contact Person</FormLabel><FormControl><Input data-testid="input-panel-edit-contact" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone</FormLabel><FormControl><Input data-testid="input-panel-edit-phone" {...field} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input data-testid="input-panel-edit-email" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField control={form.control} name="panelUrl" render={({ field }) => (<FormItem><FormLabel>Panel URL</FormLabel><FormControl><Input placeholder="https://panel.example.com" data-testid="input-panel-edit-url" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="panelUsername" render={({ field }) => (<FormItem><FormLabel>Panel Username</FormLabel><FormControl><Input data-testid="input-panel-edit-username" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="walletBalance" render={({ field }) => (<FormItem><FormLabel>Wallet Balance (PKR)</FormLabel><FormControl><Input type="number" data-testid="input-panel-edit-wallet" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField control={form.control} name="serviceType" render={({ field }) => (<FormItem><FormLabel>Service Type</FormLabel><Select onValueChange={field.onChange} value={field.value || "fiber"}><FormControl><SelectTrigger data-testid="select-panel-edit-service"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="fiber">Fiber</SelectItem><SelectItem value="wireless">Wireless</SelectItem><SelectItem value="cable">Cable</SelectItem><SelectItem value="satellite">Satellite</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Lahore" data-testid="input-panel-edit-city" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField control={form.control} name="bankName" render={({ field }) => (<FormItem><FormLabel>Bank Name</FormLabel><FormControl><Input placeholder="e.g. HBL" data-testid="input-panel-edit-bank" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="bankAccountTitle" render={({ field }) => (<FormItem><FormLabel>Account Title</FormLabel><FormControl><Input data-testid="input-panel-edit-bank-title" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="bankAccountNumber" render={({ field }) => (<FormItem><FormLabel>Account No / IBAN</FormLabel><FormControl><Input data-testid="input-panel-edit-bank-number" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField control={form.control} name="contractStartDate" render={({ field }) => (<FormItem><FormLabel>Contract Start</FormLabel><FormControl><Input type="date" data-testid="input-panel-edit-contract-start" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="contractEndDate" render={({ field }) => (<FormItem><FormLabel>Contract End</FormLabel><FormControl><Input type="date" data-testid="input-panel-edit-contract-end" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} value={field.value || "active"}><FormControl><SelectTrigger data-testid="select-panel-edit-status"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-              </div>
-              <DialogFooter>
-                <Button type="button" variant="secondary" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                <Button type="submit" disabled={updateMutation.isPending} data-testid="button-panel-update-vendor">{updateMutation.isPending ? "Updating..." : "Update Vendor"}</Button>
-              </DialogFooter>
-            </form>
-          </Form>
+        <DialogContent className="max-w-4xl max-h-[92vh] overflow-hidden p-0 gap-0">
+          {editingVendor && (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(data => { if (editingVendor) updateMutation.mutate({ id: editingVendor.id, data }); })} className="flex flex-col h-full">
+                {/* Hero Header */}
+                <div className="rounded-t-lg px-5 py-4 shrink-0" style={{ background: "linear-gradient(135deg, #4c1d95 0%, #6d28d9 50%, #7c3aed 100%)" }}>
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-white/20 flex items-center justify-center text-white text-xl font-bold shrink-0 border-2 border-white/30">
+                      {editingVendor.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h2 className="text-base font-bold text-white truncate">{editingVendor.name}</h2>
+                        <Badge className="bg-purple-400/30 text-white border-purple-300/30 text-[10px] no-default-active-elevate">Panel Vendor</Badge>
+                        <Badge className={`text-[10px] no-default-active-elevate ${editingVendor.status === "active" ? "bg-green-400/30 text-white border-green-300/30" : "bg-red-400/30 text-white border-red-300/30"}`}>{editingVendor.status}</Badge>
+                      </div>
+                      <p className="text-purple-100 text-xs mt-0.5">Edit vendor profile — fill in details across tabs and save</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button type="button" variant="ghost" size="sm" className="text-white hover:bg-white/20 border border-white/30 h-8 px-3 text-xs" onClick={() => setDialogOpen(false)} data-testid="button-panel-edit-cancel">Cancel</Button>
+                      <Button type="submit" size="sm" className="bg-white text-purple-800 hover:bg-purple-50 font-semibold h-8 px-3 text-xs" disabled={updateMutation.isPending} data-testid="button-panel-update-vendor">
+                        {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                {/* Tabbed body */}
+                <Tabs defaultValue="basic" className="flex-1 overflow-hidden flex flex-col">
+                  <div className="border-b bg-muted/30 px-4 shrink-0">
+                    <TabsList className="h-auto py-0 bg-transparent gap-0 rounded-none">
+                      <TabsTrigger value="basic" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><User className="h-3.5 w-3.5" />Basic Info</TabsTrigger>
+                      <TabsTrigger value="business" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><Building2 className="h-3.5 w-3.5" />Business & Contract</TabsTrigger>
+                      <TabsTrigger value="banking" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><CreditCard className="h-3.5 w-3.5" />Banking</TabsTrigger>
+                      <TabsTrigger value="panel" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><Globe className="h-3.5 w-3.5" />Panel Details</TabsTrigger>
+                    </TabsList>
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    <TabsContent value="basic" className="p-5 space-y-4 mt-0">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Vendor Name</FormLabel><FormControl><Input data-testid="input-panel-edit-name" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="contactPerson" render={({ field }) => (<FormItem><FormLabel>Contact Person</FormLabel><FormControl><Input placeholder="Contact name" data-testid="input-panel-edit-contact" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone</FormLabel><FormControl><Input placeholder="03XX-XXXXXXX" data-testid="input-panel-edit-phone" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="email@example.com" data-testid="input-panel-edit-email" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Lahore, Karachi" data-testid="input-panel-edit-city" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} value={field.value || "active"}><FormControl><SelectTrigger data-testid="select-panel-edit-status"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                      </div>
+                      <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>Address</FormLabel><FormControl><Textarea placeholder="Full address" data-testid="input-panel-edit-address" {...field} value={field.value || ""} rows={3} /></FormControl><FormMessage /></FormItem>)} />
+                    </TabsContent>
+                    <TabsContent value="business" className="p-5 space-y-4 mt-0">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="serviceType" render={({ field }) => (<FormItem><FormLabel>Service Type</FormLabel><Select onValueChange={field.onChange} value={field.value || "fiber"}><FormControl><SelectTrigger data-testid="select-panel-edit-service"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="fiber">Fiber</SelectItem><SelectItem value="wireless">Wireless</SelectItem><SelectItem value="cable">Cable</SelectItem><SelectItem value="satellite">Satellite</SelectItem><SelectItem value="maintenance">Maintenance</SelectItem><SelectItem value="equipment">Equipment</SelectItem><SelectItem value="software">Software</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="slaLevel" render={({ field }) => (<FormItem><FormLabel>SLA Level</FormLabel><Select onValueChange={field.onChange} value={field.value || "standard"}><FormControl><SelectTrigger data-testid="select-panel-edit-sla"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="standard">Standard</SelectItem><SelectItem value="premium">Premium</SelectItem><SelectItem value="enterprise">Enterprise</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                      </div>
+                      <FormField control={form.control} name="ntn" render={({ field }) => (<FormItem><FormLabel>NTN (Tax Registration No.)</FormLabel><FormControl><Input placeholder="e.g. 1234567-8" data-testid="input-panel-edit-ntn" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="contractStartDate" render={({ field }) => (<FormItem><FormLabel>Contract Start Date</FormLabel><FormControl><Input type="date" data-testid="input-panel-edit-contract-start" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="contractEndDate" render={({ field }) => (<FormItem><FormLabel>Contract End Date</FormLabel><FormControl><Input type="date" data-testid="input-panel-edit-contract-end" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="banking" className="p-5 space-y-4 mt-0">
+                      <div className="rounded-lg border border-dashed border-muted-foreground/30 p-4 bg-muted/20 mb-1">
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5" />Banking details are used for payment processing and reconciliation.</p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="bankName" render={({ field }) => (<FormItem><FormLabel>Bank Name</FormLabel><FormControl><Input placeholder="e.g. HBL, MCB, UBL" data-testid="input-panel-edit-bank" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="bankAccountTitle" render={({ field }) => (<FormItem><FormLabel>Account Title</FormLabel><FormControl><Input placeholder="Account holder name" data-testid="input-panel-edit-bank-title" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="bankAccountNumber" render={({ field }) => (<FormItem><FormLabel>Account Number / IBAN</FormLabel><FormControl><Input placeholder="Account number or IBAN" data-testid="input-panel-edit-bank-number" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="bankBranchCode" render={({ field }) => (<FormItem><FormLabel>Branch Code</FormLabel><FormControl><Input placeholder="Branch code" data-testid="input-panel-edit-branch-code" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="panel" className="p-5 space-y-4 mt-0">
+                      <div className="rounded-lg border border-dashed border-purple-300/50 dark:border-purple-700/50 p-4 bg-purple-50/50 dark:bg-purple-950/20 mb-1">
+                        <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Globe className="h-3.5 w-3.5 text-purple-500" />Panel credentials are used for automated recharge and balance queries.</p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="panelUrl" render={({ field }) => (<FormItem><FormLabel>Panel URL</FormLabel><FormControl><Input placeholder="e.g. panel.vendor.com" data-testid="input-panel-edit-url" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="panelUsername" render={({ field }) => (<FormItem><FormLabel>Panel Username</FormLabel><FormControl><Input placeholder="Login username" data-testid="input-panel-edit-username" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                      </div>
+                      <FormField control={form.control} name="walletBalance" render={({ field }) => (<FormItem><FormLabel>Wallet Balance (PKR)</FormLabel><FormControl><Input type="number" placeholder="0" data-testid="input-panel-edit-wallet" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                    </TabsContent>
+                  </div>
+                </Tabs>
+              </form>
+            </Form>
+          )}
         </DialogContent>
       </Dialog>
 
