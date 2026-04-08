@@ -54,6 +54,11 @@ import {
   ChevronRight,
   ChevronLeft,
   Check,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  CheckCircle2,
+  Users,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useTab } from "@/hooks/use-tab";
 import { Button } from "@/components/ui/button";
@@ -66,6 +71,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -4508,6 +4514,16 @@ function WalletTab() {
   const [vendorRechargeSenderName, setVendorRechargeSenderName] = useState("");
 
   const [selectedPanelLinkId, setSelectedPanelLinkId] = useState<string>("none");
+  const [txnSearch, setTxnSearch] = useState("");
+  const [txnTypeFilter, setTxnTypeFilter] = useState<string>("all");
+  const [kpiDetailOpen, setKpiDetailOpen] = useState<number | null>(null);
+  const [adjustDialogOpen, setAdjustDialogOpen] = useState(false);
+  const [adjustVendorId, setAdjustVendorId] = useState<number | null>(null);
+  const [adjustAmount, setAdjustAmount] = useState("");
+  const [adjustType, setAdjustType] = useState<"credit" | "debit">("credit");
+  const [adjustReason, setAdjustReason] = useState("");
+  const [adjustReference, setAdjustReference] = useState("");
+  const [adjustSubmitting, setAdjustSubmitting] = useState(false);
 
   const { data: vendors, isLoading: vendorsLoading } = useQuery<Vendor[]>({
     queryKey: ["/api/vendors"],
@@ -4531,12 +4547,22 @@ function WalletTab() {
     enabled: txnVendorId !== "none",
     queryFn: async () => {
       if (txnVendorId === "none") return [];
-      const endpoint = txnVendorId === "all"
+      const isAllVariant = txnVendorId === "all" || txnVendorId === "all-panel" || txnVendorId === "all-bandwidth";
+      const endpoint = isAllVariant
         ? "/api/vendor-wallet-transactions/all"
         : `/api/vendor-wallet-transactions/${txnVendorId}`;
       const res = await fetch(endpoint, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch");
-      return res.json();
+      const allTxns = await res.json();
+      if (txnVendorId === "all-panel") {
+        const panelIds = new Set(panelVendors.map(v => v.id));
+        return allTxns.filter((t: any) => panelIds.has(t.vendorId));
+      }
+      if (txnVendorId === "all-bandwidth") {
+        const bwIds = new Set(bandwidthVendors.map(v => v.id));
+        return allTxns.filter((t: any) => bwIds.has(t.vendorId));
+      }
+      return allTxns;
     },
   });
 
@@ -4700,11 +4726,24 @@ function WalletTab() {
   const totalDeductions = (transactions || []).filter(t => !isRecharge(t.type)).reduce((s, t) => s + Number(t.amount || 0), 0);
 
   const filteredTransactions = (transactions || []).filter(txn => {
-    if (!txnDateFrom && !txnDateTo) return true;
+    if (txnTypeFilter !== "all") {
+      const isCredit = isRecharge(txn.type);
+      if (txnTypeFilter === "credit" && !isCredit) return false;
+      if (txnTypeFilter === "debit" && isCredit) return false;
+    }
+    if (txnSearch) {
+      const q = txnSearch.toLowerCase();
+      const matchRef = (txn.reference || "").toLowerCase().includes(q);
+      const matchDesc = (txn.description || "").toLowerCase().includes(q);
+      const matchPerfBy = (txn.performedBy || "").toLowerCase().includes(q);
+      const matchVendor = allVendorsList.find(v => v.id === txn.vendorId)?.name?.toLowerCase().includes(q);
+      if (!matchRef && !matchDesc && !matchPerfBy && !matchVendor) return false;
+    }
     const txnDate = txn.createdAt ? new Date(txn.createdAt) : null;
-    if (!txnDate) return true;
-    if (txnDateFrom && txnDate < new Date(txnDateFrom)) return false;
-    if (txnDateTo && txnDate > new Date(txnDateTo + "T23:59:59")) return false;
+    if (txnDate) {
+      if (txnDateFrom && txnDate < new Date(txnDateFrom)) return false;
+      if (txnDateTo && txnDate > new Date(txnDateTo + "T23:59:59")) return false;
+    }
     return true;
   });
 
@@ -4794,7 +4833,7 @@ function WalletTab() {
 
   const isBandwidthSelected = selectedVendorType === "bandwidth";
   const selectedVendor = selectedVendorId ? allVendorsList.find(v => v.id === selectedVendorId) : null;
-  const txnVendor = (txnVendorId !== "none" && txnVendorId !== "all") ? allVendorsList.find(v => String(v.id) === txnVendorId) : null;
+  const txnVendor = (txnVendorId !== "none" && txnVendorId !== "all" && txnVendorId !== "all-panel" && txnVendorId !== "all-bandwidth") ? allVendorsList.find(v => String(v.id) === txnVendorId) : null;
   const isTxnVendorBandwidth = txnVendor?.vendorType === "bandwidth";
 
   const totalWalletBalance = walletVendors.reduce((s, v) => s + Number(v.walletBalance || 0), 0);
@@ -4802,341 +4841,532 @@ function WalletTab() {
 
   return (
     <div className="space-y-6 page-fade-in" data-testid="tab-content-wallet">
-      <div className="vendor-wallet-hero px-6 py-6 text-white">
-        <div className="relative z-10">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Wallet className="h-5 w-5 text-white/80" />
-                <h2 className="text-lg font-bold">Vendor Wallet & Billing</h2>
+      {/* ── Vendor Selector ──────────────────────────────────── */}
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2"><Wallet className="h-5 w-5" />Select Vendor</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
+            <Select value={txnVendorId} onValueChange={(v) => { setTxnVendorId(v); setTxnBankEditMode(false); setTxnSearch(""); setTxnTypeFilter("all"); }}>
+              <SelectTrigger className="w-full sm:w-[300px]" data-testid="select-wallet-vendor">
+                <SelectValue placeholder="Choose a vendor to manage wallet" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">— Choose Vendor —</SelectItem>
+                <SelectItem value="all">All Vendors</SelectItem>
+                {panelVendors.length > 0 && <SelectItem value="all-panel">All Panel Vendors ({panelVendors.length})</SelectItem>}
+                {bandwidthVendors.length > 0 && <SelectItem value="all-bandwidth">All Bandwidth Vendors ({bandwidthVendors.length})</SelectItem>}
+                {[...panelVendors, ...bandwidthVendors].map((v) => (
+                  <SelectItem key={v.id} value={String(v.id)}>
+                    {v.name} — {v.vendorType === "panel" ? "Panel" : "BW"} · {formatPKR(v.walletBalance)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {txnVendor && (
+              <div className="flex items-center gap-3 text-sm text-muted-foreground flex-wrap">
+                {txnVendor.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{txnVendor.phone}</span>}
+                {txnVendor.city && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{txnVendor.city}</span>}
+                <Badge variant="secondary" className={`no-default-active-elevate text-[10px] capitalize ${statusColors[txnVendor.status] || ""}`}>{txnVendor.status}</Badge>
+                <Badge variant="secondary" className={`no-default-active-elevate text-[10px] ${isTxnVendorBandwidth ? "text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950" : "text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950"}`}>
+                  {isTxnVendorBandwidth ? "Bandwidth Vendor" : "Panel Vendor"}
+                </Badge>
               </div>
-              <p className="text-sm text-white/60">Manage wallet balances, billing & dues for all vendors</p>
-            </div>
-            <div className="flex items-center gap-6">
-              <div className="text-right">
-                <p className="text-xs text-white/60 uppercase tracking-wider">Total Balance</p>
-                <p className="text-2xl font-bold" data-testid="text-total-wallet-balance">{formatPKR(totalWalletBalance)}</p>
+            )}
+            {(txnVendorId === "all" || txnVendorId === "none") && (
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="secondary" className="no-default-active-elevate text-[10px]"><Users className="h-3 w-3 mr-1" />{allVendorsList.length} Total</Badge>
+                <Badge variant="secondary" className="no-default-active-elevate text-[10px] text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950">{bandwidthVendors.length} Bandwidth</Badge>
+                <Badge variant="secondary" className="no-default-active-elevate text-[10px] text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950">{panelVendors.length} Panel</Badge>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-white/60 uppercase tracking-wider">Monthly Dues</p>
-                <p className="text-2xl font-bold" data-testid="text-total-monthly-dues">{formatPKR(totalMonthlyDues)}</p>
+            )}
+            {txnVendorId === "all-panel" && (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="no-default-active-elevate text-[10px] text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950"><Users className="h-3 w-3 mr-1" />{panelVendors.length} Panel Vendors</Badge>
+                <span className="text-sm text-muted-foreground">Showing all panel vendor transactions</span>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-white/60 uppercase tracking-wider">Vendors</p>
-                <p className="text-2xl font-bold">{walletVendors.length}</p>
+            )}
+            {txnVendorId === "all-bandwidth" && (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="no-default-active-elevate text-[10px] text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950"><Users className="h-3 w-3 mr-1" />{bandwidthVendors.length} Bandwidth Vendors</Badge>
+                <span className="text-sm text-muted-foreground">Showing all bandwidth vendor transactions</span>
               </div>
-            </div>
+            )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Alert Banners ──────────────────────────────────── */}
+      {txnVendorId !== "none" && txnVendor && (() => {
+        const bal = Number(txnVendor.walletBalance || 0);
+        const dues = isTxnVendorBandwidth ? getVendorTotalMonthlyDues(txnVendor.id) : 0;
+        return (
+          <>
+            {bal < 0 && (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-sm" data-testid="alert-negative-balance">
+                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                <span><strong>{txnVendor.name}</strong> has a negative wallet balance of <strong>{formatPKR(bal)}</strong>. Please recharge immediately.</span>
+              </div>
+            )}
+            {bal >= 0 && bal < 5000 && (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-sm" data-testid="alert-low-balance">
+                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                <span><strong>{txnVendor.name}</strong> has a low wallet balance of <strong>{formatPKR(bal)}</strong>. Consider adding funds.</span>
+              </div>
+            )}
+            {dues > 0 && isTxnVendorBandwidth && (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-orange-50 dark:bg-orange-950/40 border border-orange-200 dark:border-orange-800 text-orange-700 dark:text-orange-300 text-sm" data-testid="alert-monthly-dues">
+                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                <span>Monthly dues of <strong>{formatPKR(dues)}</strong> are pending for <strong>{txnVendor.name}</strong>.</span>
+              </div>
+            )}
+          </>
+        );
+      })()}
+
+      {/* ── KPI Cards ──────────────────────────────────────── */}
+      {txnVendorId !== "none" && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {/* Card 1: Wallet Balance */}
+          <button
+            type="button"
+            className="text-left rounded-xl p-4 text-white shadow-md hover:scale-[1.02] transition-transform cursor-pointer bg-gradient-to-br from-teal-500 to-teal-700"
+            onClick={() => setKpiDetailOpen(1)}
+            data-testid="kpi-wallet-balance"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-white/80">Wallet Balance</span>
+              <Wallet className="h-4 w-4 text-white/60" />
+            </div>
+            <p className="text-2xl font-bold" data-testid="kpi-text-wallet-balance">
+              {txnVendor ? formatPKR(txnVendor.walletBalance) : formatPKR(totalWalletBalance)}
+            </p>
+            <p className="text-xs text-white/70 mt-1">{txnVendor ? txnVendor.name : `${walletVendors.length} vendors`}</p>
+          </button>
+
+          {/* Card 2: Total Recharges / Payments */}
+          <button
+            type="button"
+            className="text-left rounded-xl p-4 text-white shadow-md hover:scale-[1.02] transition-transform cursor-pointer bg-gradient-to-br from-green-500 to-green-700"
+            onClick={() => setKpiDetailOpen(2)}
+            data-testid="kpi-total-credits"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-white/80">{isTxnVendorBandwidth ? "Total Payments" : "Total Recharges"}</span>
+              <ArrowUpCircle className="h-4 w-4 text-white/60" />
+            </div>
+            <p className="text-2xl font-bold">{formatPKR(totalRecharges)}</p>
+            <p className="text-xs text-white/70 mt-1">{(transactions || []).filter(t => isRecharge(t.type)).length} transactions</p>
+          </button>
+
+          {/* Card 3: Total Deductions / Refunds */}
+          <button
+            type="button"
+            className="text-left rounded-xl p-4 text-white shadow-md hover:scale-[1.02] transition-transform cursor-pointer bg-gradient-to-br from-rose-500 to-rose-700"
+            onClick={() => setKpiDetailOpen(3)}
+            data-testid="kpi-total-debits"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-white/80">{isTxnVendorBandwidth ? "Total Refunds" : "Total Deductions"}</span>
+              <ArrowDownCircle className="h-4 w-4 text-white/60" />
+            </div>
+            <p className="text-2xl font-bold">{formatPKR(totalDeductions)}</p>
+            <p className="text-xs text-white/70 mt-1">{(transactions || []).filter(t => !isRecharge(t.type)).length} transactions</p>
+          </button>
+
+          {/* Card 4: Monthly Dues / Payable */}
+          <button
+            type="button"
+            className={`text-left rounded-xl p-4 text-white shadow-md hover:scale-[1.02] transition-transform cursor-pointer bg-gradient-to-br ${isTxnVendorBandwidth ? "from-orange-500 to-orange-700" : "from-purple-500 to-purple-700"}`}
+            onClick={() => setKpiDetailOpen(4)}
+            data-testid="kpi-dues"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-white/80">{isTxnVendorBandwidth ? "Monthly Dues" : "Payable Amount"}</span>
+              <AlertTriangle className="h-4 w-4 text-white/60" />
+            </div>
+            <p className="text-2xl font-bold">
+              {txnVendor
+                ? (isTxnVendorBandwidth ? formatPKR(getVendorTotalMonthlyDues(txnVendor.id)) : formatPKR(txnVendor.payableAmount))
+                : formatPKR(totalMonthlyDues)}
+            </p>
+            <p className="text-xs text-white/70 mt-1">{isTxnVendorBandwidth ? "Bandwidth dues" : "Panel payable"}</p>
+          </button>
+
+          {/* Card 5: Net Flow / Transactions */}
+          <button
+            type="button"
+            className="text-left rounded-xl p-4 text-white shadow-md hover:scale-[1.02] transition-transform cursor-pointer bg-gradient-to-br from-blue-500 to-blue-700"
+            onClick={() => setKpiDetailOpen(5)}
+            data-testid="kpi-net-flow"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-white/80">Net Flow</span>
+              <TrendingUp className="h-4 w-4 text-white/60" />
+            </div>
+            <p className="text-2xl font-bold">{formatPKR(totalRecharges - totalDeductions)}</p>
+            <p className="text-xs text-white/70 mt-1">{(transactions || []).length} total txns</p>
+          </button>
         </div>
-      </div>
+      )}
 
-      <div className="flex items-center gap-2">
-        <Button size="sm" variant={walletViewFilter === "all" ? "default" : "outline"} onClick={() => setWalletViewFilter("all")} data-testid="button-filter-all">All Vendors ({panelVendors.length + bandwidthVendors.length})</Button>
-        <Button size="sm" variant={walletViewFilter === "bandwidth" ? "default" : "outline"} onClick={() => setWalletViewFilter("bandwidth")} data-testid="button-filter-bandwidth">Bandwidth ({bandwidthVendors.length})</Button>
-        <Button size="sm" variant={walletViewFilter === "panel" ? "default" : "outline"} onClick={() => setWalletViewFilter("panel")} data-testid="button-filter-panel">Panel ({panelVendors.length})</Button>
-      </div>
-
-      {vendorsLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-48 w-full" />
-          ))}
+      {/* ── Action Buttons (specific vendor only) ─────────── */}
+      {txnVendor && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            className="btn-vendor-primary no-default-hover-elevate no-default-active-elevate gap-2"
+            onClick={() => openRecharge(txnVendor.id, txnVendor.name, txnVendor.vendorType)}
+            data-testid="button-wallet-recharge"
+          >
+            <ArrowDownLeft className="h-4 w-4" />
+            {isTxnVendorBandwidth ? "Send Payment" : "Recharge Wallet"}
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2 border-rose-300 dark:border-rose-700 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950"
+            onClick={() => openDeduct(txnVendor.id, txnVendor.name, txnVendor.vendorType)}
+            data-testid="button-wallet-deduct"
+          >
+            <ArrowUpRight className="h-4 w-4" />
+            {isTxnVendorBandwidth ? "Refund" : "Manual Deduction"}
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => { setAdjustVendorId(txnVendor.id); setAdjustAmount(""); setAdjustType("credit"); setAdjustReason(""); setAdjustReference(""); setAdjustDialogOpen(true); }}
+            data-testid="button-wallet-adjust"
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            Adjustment Entry
+          </Button>
+          {filteredTransactions.length > 0 && (
+            <Button variant="outline" size="sm" onClick={printAllVendorSlips} data-testid="button-print-all-vendor-slips" className="gap-2 ml-auto">
+              <Printer className="h-4 w-4" />
+              Print All Slips
+            </Button>
+          )}
         </div>
-      ) : walletVendors.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-            <Wallet className="h-12 w-12 mb-3 opacity-30" />
-            <p className="font-medium">No vendors found</p>
-            <p className="text-sm mt-1">Add vendors to manage wallets and billing</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {walletVendors.map((vendor) => {
-            const isBandwidth = vendor.vendorType === "bandwidth";
-            const vendorLinks = getVendorLinks(vendor.id);
-            const monthlyDues = getVendorTotalMonthlyDues(vendor.id);
-            const balance = Number(vendor.walletBalance || 0);
+      )}
 
-            return (
-              <Card key={vendor.id} className={`overflow-hidden ${isBandwidth ? "border-blue-200 dark:border-blue-800" : "border-purple-200 dark:border-purple-800"}`} data-testid={`card-wallet-${vendor.id}`}>
-                <div className={`px-4 py-2 ${isBandwidth ? "bg-blue-50 dark:bg-blue-950" : "bg-purple-50 dark:bg-purple-950"}`}>
-                  <div className="flex items-center justify-between">
-                    <span className="text-base font-semibold">{vendor.name}</span>
-                    <Badge variant="secondary" className={`no-default-active-elevate text-[10px] ${isBandwidth ? "text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900" : "text-purple-700 dark:text-purple-300 bg-purple-100 dark:bg-purple-900"}`}>{isBandwidth ? "Bandwidth" : "Panel"}</Badge>
+      {/* ── Payment Transfer Details Panel ─────────────────── */}
+      {txnVendor && (
+        <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20" data-testid="txn-vendor-bank-details">
+          <CardHeader className="pb-2 pt-3 px-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider flex items-center gap-1.5">
+                <Building2 className="h-3.5 w-3.5" />
+                Payment Transfer Details
+              </CardTitle>
+              {!txnBankEditMode ? (
+                <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs text-blue-600 dark:text-blue-400" onClick={() => { setTxnBankEditMode(true); setTxnBankEditData({ bankName: txnVendor.bankName || "", bankAccountTitle: txnVendor.bankAccountTitle || "", bankAccountNumber: txnVendor.bankAccountNumber || "", bankBranchCode: txnVendor.bankBranchCode || "" }); }} data-testid="button-txn-edit-bank">
+                  <Edit className="h-3 w-3 mr-1" />Edit
+                </Button>
+              ) : (
+                <div className="flex gap-1">
+                  <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setTxnBankEditMode(false)} data-testid="button-txn-cancel-bank-edit">Cancel</Button>
+                  <Button type="button" size="sm" className="h-6 px-2 text-xs" disabled={saveBankDetailsMutation.isPending} onClick={() => { if (txnVendor) saveBankDetailsMutation.mutate({ vendorId: txnVendor.id, data: txnBankEditData }); }} data-testid="button-txn-save-bank">
+                    {saveBankDetailsMutation.isPending ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent className="px-4 pb-3 space-y-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-xs">
+              <div><span className="text-muted-foreground">Vendor:</span> <span className="font-medium">{txnVendor.name}</span></div>
+              <div><span className="text-muted-foreground">Type:</span> <span className="font-medium capitalize">{txnVendor.vendorType}</span></div>
+              <div><span className="text-muted-foreground">Phone:</span> <span className="font-medium">{txnVendor.phone || "—"}</span></div>
+              <div><span className="text-muted-foreground">Wallet Balance:</span> <span className="font-medium">{formatPKR(txnVendor.walletBalance)}</span></div>
+            </div>
+            <div className="border-t border-blue-200 dark:border-blue-800 pt-2">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Bank Account</p>
+              {txnBankEditMode ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div>
+                    <label className="text-[10px] text-muted-foreground">Bank Name</label>
+                    <Input className="h-7 text-xs" placeholder="e.g. HBL, MCB" value={txnBankEditData.bankName} onChange={(e) => setTxnBankEditData(p => ({ ...p, bankName: e.target.value }))} data-testid="input-txn-bank-edit-name" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground">Account Title</label>
+                    <Input className="h-7 text-xs" placeholder="Account holder" value={txnBankEditData.bankAccountTitle} onChange={(e) => setTxnBankEditData(p => ({ ...p, bankAccountTitle: e.target.value }))} data-testid="input-txn-bank-edit-title" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground">Account / IBAN</label>
+                    <Input className="h-7 text-xs font-mono" placeholder="Account number or IBAN" value={txnBankEditData.bankAccountNumber} onChange={(e) => setTxnBankEditData(p => ({ ...p, bankAccountNumber: e.target.value }))} data-testid="input-txn-bank-edit-number" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-muted-foreground">Branch Code</label>
+                    <Input className="h-7 text-xs" placeholder="Branch code" value={txnBankEditData.bankBranchCode} onChange={(e) => setTxnBankEditData(p => ({ ...p, bankBranchCode: e.target.value }))} data-testid="input-txn-bank-edit-branch" />
                   </div>
                 </div>
-                <CardContent className="pt-3 pb-4 px-4 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Wallet Balance</span>
-                    <span className={`font-semibold text-lg ${balance > 0 ? "text-green-600 dark:text-green-400" : balance < 0 ? "text-red-600 dark:text-red-400" : ""}`}>{formatPKR(balance)}</span>
-                  </div>
-                  {isBandwidth && (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Monthly Dues</span>
-                        <span className="font-semibold text-red-600 dark:text-red-400">{formatPKR(monthlyDues)}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Active Links</span>
-                        <span className="text-sm font-medium">{vendorLinks.length}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Total Bandwidth</span>
-                        <span className="text-sm font-medium">{vendorLinks.reduce((s, l) => s + Number(l.bandwidthMbps || 0), 0)} Mbps</span>
-                      </div>
-                    </>
-                  )}
-                  {!isBandwidth && (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Payable Amount</span>
-                        <span className="text-sm font-medium">{formatPKR(vendor.payableAmount)}</span>
-                      </div>
-                    </>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">{isBandwidth ? "Last Payment" : "Last Recharge"}</span>
-                    <span className="text-sm">{vendor.lastRechargeDate ? new Date(vendor.lastRechargeDate).toLocaleDateString() : "Never"}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <Button
-                      className="btn-vendor-primary no-default-hover-elevate no-default-active-elevate"
-                      onClick={() => openRecharge(vendor.id, vendor.name, vendor.vendorType)}
-                      data-testid={`button-recharge-${vendor.id}`}
-                    >
-                      <ArrowDownLeft className="h-4 w-4 mr-1" />
-                      {isBandwidth ? "Send Payment" : "Recharge"}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => openDeduct(vendor.id, vendor.name, vendor.vendorType)}
-                      data-testid={`button-deduct-${vendor.id}`}
-                    >
-                      <ArrowUpRight className="h-4 w-4 mr-1" />
-                      {isBandwidth ? "Refund" : "Deduct"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-
-      {txnVendorId !== "none" && transactions && transactions.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="vendor-stat-card stat-green p-4">
-            <p className="text-xs text-muted-foreground uppercase font-semibold">{isTxnVendorBandwidth ? "Total Payments" : "Total Recharges"}</p>
-            <p className="text-xl font-bold mt-1 vendor-ledger-credit">{formatPKR(totalRecharges)}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{(transactions || []).filter(t => isRecharge(t.type)).length} transactions</p>
-          </div>
-          <div className="vendor-stat-card stat-rose p-4">
-            <p className="text-xs text-muted-foreground uppercase font-semibold">{isTxnVendorBandwidth ? "Total Refunds" : "Total Deductions"}</p>
-            <p className="text-xl font-bold mt-1 vendor-ledger-debit">{formatPKR(totalDeductions)}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{(transactions || []).filter(t => !isRecharge(t.type)).length} transactions</p>
-
-          </div>
-          <div className="vendor-stat-card stat-blue p-4">
-            <p className="text-xs text-muted-foreground uppercase font-semibold">Net Flow</p>
-            <p className="text-xl font-bold mt-1">{formatPKR(totalRecharges - totalDeductions)}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">{isTxnVendorBandwidth ? "Payments - Refunds" : "Recharges - Deductions"}</p>
-          </div>
-          <div className="vendor-stat-card stat-purple p-4">
-            <p className="text-xs text-muted-foreground uppercase font-semibold">Total Transactions</p>
-            <p className="text-xl font-bold mt-1">{(transactions || []).length}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">All time</p>
-          </div>
-        </div>
-      )}
-
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 flex-wrap">
-            <CardTitle className="text-base">Transaction History</CardTitle>
-            <div className="flex items-center gap-2 flex-wrap">
-              {filteredTransactions.length > 0 && (
-                <Button variant="outline" size="sm" onClick={printAllVendorSlips} data-testid="button-print-all-vendor-slips">
-                  <Printer className="h-4 w-4 mr-1" />
-                  Print All Slips
-                </Button>
+              ) : (txnVendor.bankName || txnVendor.bankAccountTitle || txnVendor.bankAccountNumber) ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-xs">
+                  <div><span className="text-muted-foreground">Bank:</span> <span className="font-medium">{txnVendor.bankName || "—"}</span></div>
+                  <div><span className="text-muted-foreground">Title:</span> <span className="font-medium">{txnVendor.bankAccountTitle || "—"}</span></div>
+                  <div><span className="text-muted-foreground">Account:</span> <span className="font-medium font-mono">{txnVendor.bankAccountNumber || "—"}</span></div>
+                  {txnVendor.bankBranchCode && <div><span className="text-muted-foreground">Branch:</span> <span className="font-medium">{txnVendor.bankBranchCode}</span></div>}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground italic">No bank details added. Click Edit to add bank account info for payment transfers.</p>
               )}
-              <Select value={txnVendorId} onValueChange={(v) => { setTxnVendorId(v); setTxnBankEditMode(false); }}>
-                <SelectTrigger className="w-[220px]" data-testid="select-wallet-vendor">
-                  <SelectValue placeholder="Select vendor" />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Transaction Table ────────────────────────────────── */}
+      <Card>
+        <CardHeader className="pb-0">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 flex-wrap">
+            <CardTitle className="text-base flex items-center gap-2"><Activity className="h-4 w-4" />Transaction History</CardTitle>
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="relative">
+                <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input className="pl-8 w-[180px] h-8 text-xs" placeholder="Search transactions…" value={txnSearch} onChange={(e) => setTxnSearch(e.target.value)} data-testid="input-txn-search" />
+              </div>
+              <Select value={txnTypeFilter} onValueChange={setTxnTypeFilter}>
+                <SelectTrigger className="w-[130px] h-8 text-xs" data-testid="select-txn-type-filter">
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Select Vendor</SelectItem>
-                  <SelectItem value="all">All Vendors</SelectItem>
-                  {[...panelVendors, ...bandwidthVendors].map((v) => (
-                    <SelectItem key={v.id} value={String(v.id)}>{v.name} ({v.vendorType})</SelectItem>
-                  ))}
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="credit">Credits Only</SelectItem>
+                  <SelectItem value="debit">Debits Only</SelectItem>
                 </SelectContent>
               </Select>
-              <Input type="date" className="w-[150px]" value={txnDateFrom} onChange={(e) => setTxnDateFrom(e.target.value)} placeholder="From" data-testid="input-txn-date-from" />
-              <Input type="date" className="w-[150px]" value={txnDateTo} onChange={(e) => setTxnDateTo(e.target.value)} placeholder="To" data-testid="input-txn-date-to" />
-              {(txnDateFrom || txnDateTo) && (
-                <Button size="sm" variant="ghost" onClick={() => { setTxnDateFrom(""); setTxnDateTo(""); }} data-testid="button-clear-date-filter">
+              <Input type="date" className="w-[140px] h-8 text-xs" value={txnDateFrom} onChange={(e) => setTxnDateFrom(e.target.value)} data-testid="input-txn-date-from" />
+              <Input type="date" className="w-[140px] h-8 text-xs" value={txnDateTo} onChange={(e) => setTxnDateTo(e.target.value)} data-testid="input-txn-date-to" />
+              {(txnDateFrom || txnDateTo || txnSearch || txnTypeFilter !== "all") && (
+                <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => { setTxnDateFrom(""); setTxnDateTo(""); setTxnSearch(""); setTxnTypeFilter("all"); }} data-testid="button-clear-txn-filters">
                   <RefreshCw className="h-3.5 w-3.5" />
+                </Button>
+              )}
+              {filteredTransactions.length > 0 && !txnVendor && (
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={printAllVendorSlips} data-testid="button-print-all-vendor-slips">
+                  <Printer className="h-3.5 w-3.5" />Print All
                 </Button>
               )}
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          {txnVendor && (
-            <div className="mx-4 mt-3 mb-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30 p-3 space-y-2" data-testid="txn-vendor-bank-details">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <Building2 className="h-3.5 w-3.5" />
-                  Payment Transfer Details
-                </p>
-                {!txnBankEditMode ? (
-                  <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs text-blue-600 dark:text-blue-400" onClick={() => { setTxnBankEditMode(true); setTxnBankEditData({ bankName: txnVendor.bankName || "", bankAccountTitle: txnVendor.bankAccountTitle || "", bankAccountNumber: txnVendor.bankAccountNumber || "", bankBranchCode: txnVendor.bankBranchCode || "" }); }} data-testid="button-txn-edit-bank">
-                    <Edit className="h-3 w-3 mr-1" />
-                    Edit
-                  </Button>
-                ) : (
-                  <div className="flex gap-1">
-                    <Button type="button" size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => setTxnBankEditMode(false)} data-testid="button-txn-cancel-bank-edit">Cancel</Button>
-                    <Button type="button" size="sm" className="h-6 px-2 text-xs" disabled={saveBankDetailsMutation.isPending} onClick={() => { if (txnVendor) saveBankDetailsMutation.mutate({ vendorId: txnVendor.id, data: txnBankEditData }); }} data-testid="button-txn-save-bank">
-                      {saveBankDetailsMutation.isPending ? "Saving..." : "Save"}
-                    </Button>
-                  </div>
-                )}
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-xs">
-                <div><span className="text-muted-foreground">Vendor:</span> <span className="font-medium">{txnVendor.name}</span></div>
-                <div><span className="text-muted-foreground">Type:</span> <span className="font-medium capitalize">{txnVendor.vendorType}</span></div>
-                <div><span className="text-muted-foreground">Phone:</span> <span className="font-medium">{txnVendor.phone || "—"}</span></div>
-                <div><span className="text-muted-foreground">Wallet Balance:</span> <span className="font-medium">{formatPKR(txnVendor.walletBalance)}</span></div>
-              </div>
-              <div className="border-t border-blue-200 dark:border-blue-800 pt-2">
-                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Bank Account</p>
-                {txnBankEditMode ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    <div>
-                      <label className="text-[10px] text-muted-foreground">Bank Name</label>
-                      <Input className="h-7 text-xs" placeholder="e.g. HBL, MCB" value={txnBankEditData.bankName} onChange={(e) => setTxnBankEditData(p => ({ ...p, bankName: e.target.value }))} data-testid="input-txn-bank-edit-name" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-muted-foreground">Account Title</label>
-                      <Input className="h-7 text-xs" placeholder="Account holder" value={txnBankEditData.bankAccountTitle} onChange={(e) => setTxnBankEditData(p => ({ ...p, bankAccountTitle: e.target.value }))} data-testid="input-txn-bank-edit-title" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-muted-foreground">Account / IBAN</label>
-                      <Input className="h-7 text-xs font-mono" placeholder="Account number or IBAN" value={txnBankEditData.bankAccountNumber} onChange={(e) => setTxnBankEditData(p => ({ ...p, bankAccountNumber: e.target.value }))} data-testid="input-txn-bank-edit-number" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-muted-foreground">Branch Code</label>
-                      <Input className="h-7 text-xs" placeholder="Branch code" value={txnBankEditData.bankBranchCode} onChange={(e) => setTxnBankEditData(p => ({ ...p, bankBranchCode: e.target.value }))} data-testid="input-txn-bank-edit-branch" />
-                    </div>
-                  </div>
-                ) : (txnVendor.bankName || txnVendor.bankAccountTitle || txnVendor.bankAccountNumber) ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 text-xs">
-                    <div><span className="text-muted-foreground">Bank:</span> <span className="font-medium">{txnVendor.bankName || "—"}</span></div>
-                    <div><span className="text-muted-foreground">Title:</span> <span className="font-medium">{txnVendor.bankAccountTitle || "—"}</span></div>
-                    <div><span className="text-muted-foreground">Account:</span> <span className="font-medium font-mono">{txnVendor.bankAccountNumber || "—"}</span></div>
-                    {txnVendor.bankBranchCode && (
-                      <div><span className="text-muted-foreground">Branch:</span> <span className="font-medium">{txnVendor.bankBranchCode}</span></div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground italic">No bank details added. Click Edit to add bank account info for payment transfers.</p>
-                )}
-              </div>
-            </div>
-          )}
+        <CardContent className="p-0 mt-3">
           {txnVendorId === "none" ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <Activity className="h-12 w-12 mb-3 opacity-30" />
-              <p className="font-medium">Select a vendor</p>
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <Wallet className="h-12 w-12 mb-3 opacity-20" />
+              <p className="font-medium">Select a vendor above</p>
               <p className="text-sm mt-1">Choose a vendor from the dropdown to view transactions</p>
             </div>
           ) : txnLoading ? (
             <div className="p-5 space-y-3">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
+              {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
             </div>
           ) : !filteredTransactions || filteredTransactions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-              <CreditCard className="h-12 w-12 mb-3 opacity-30" />
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+              <CreditCard className="h-12 w-12 mb-3 opacity-20" />
               <p className="font-medium">No transactions found</p>
-              <p className="text-sm mt-1">No wallet transactions for this vendor yet</p>
+              <p className="text-sm mt-1">
+                {txnSearch || txnTypeFilter !== "all" || txnDateFrom || txnDateTo
+                  ? "Try adjusting your filters"
+                  : "No wallet transactions for this vendor yet"}
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table className="vendor-table-enterprise">
+              <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Vendor Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Balance After</TableHead>
-                    <TableHead className="hidden md:table-cell">Payment Method</TableHead>
-                    <TableHead className="hidden md:table-cell">Performed By</TableHead>
-                    <TableHead className="hidden md:table-cell">Approved By</TableHead>
-                    <TableHead className="text-right">Detail</TableHead>
+                  <TableRow className="bg-muted/50 hover:bg-muted/50">
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Date</TableHead>
+                    {(txnVendorId === "all" || txnVendorId === "all-panel" || txnVendorId === "all-bandwidth") && <TableHead className="text-xs font-semibold uppercase tracking-wider">Vendor</TableHead>}
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">TXN ID</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Type</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider">Amount</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Payment Method</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden md:table-cell">Balance After</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">Note</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider hidden lg:table-cell">Performed By</TableHead>
+                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTransactions.map((txn) => (
-                    <TableRow key={txn.id} data-testid={`row-txn-${txn.id}`}>
-                      <TableCell className="text-sm">{txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : "N/A"}</TableCell>
-                      <TableCell className="text-sm font-medium">{allVendorsList.find(v => v.id === txn.vendorId)?.name || "—"}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="secondary"
-                          className={`no-default-active-elevate text-[10px] capitalize ${
-                            isRecharge(txn.type) ? "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950" :
-                            "text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950"
-                          }`}
-                        >
-                          {isRecharge(txn.type) ? (isTxnVendorBandwidth ? "Payment" : "Recharge") : (isTxnVendorBandwidth ? "Refund" : "Deduction")}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <span className={isRecharge(txn.type) ? "vendor-ledger-credit font-medium" : "vendor-ledger-debit font-medium"}>
-                          {isRecharge(txn.type) ? "+" : "-"}{formatPKR(txn.amount)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="font-medium">{formatPKR(txn.balanceAfter)}</TableCell>
-                      <TableCell className="hidden md:table-cell text-sm">
-                        <span className="text-muted-foreground">{txn.paymentMethod || "-"}</span>
-                        {txnVendor && (txnVendor.bankName || txnVendor.bankAccountNumber) && (
-                          <div className="text-[10px] text-blue-600 dark:text-blue-400 mt-0.5 leading-tight">
-                            {txnVendor.bankName}{txnVendor.bankAccountNumber ? ` — ${txnVendor.bankAccountNumber}` : ""}
-                          </div>
+                  {filteredTransactions.map((txn) => {
+                    const isCredit = isRecharge(txn.type);
+                    const txnVendorRow = allVendorsList.find(v => v.id === txn.vendorId);
+                    const isBwRow = txnVendorRow?.vendorType === "bandwidth";
+                    return (
+                      <TableRow key={txn.id} data-testid={`row-txn-${txn.id}`} className="hover:bg-muted/30">
+                        <TableCell className="text-sm whitespace-nowrap">
+                          <div>{txn.createdAt ? new Date(txn.createdAt).toLocaleDateString() : "N/A"}</div>
+                          <div className="text-[10px] text-muted-foreground">{txn.createdAt ? new Date(txn.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}</div>
+                        </TableCell>
+                        {(txnVendorId === "all" || txnVendorId === "all-panel" || txnVendorId === "all-bandwidth") && (
+                          <TableCell className="text-sm font-medium">{txnVendorRow?.name || "—"}</TableCell>
                         )}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-sm">{txn.performedBy || "-"}</TableCell>
-                      <TableCell className="hidden md:table-cell text-sm">{txn.approvedBy || "-"}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button size="sm" variant="ghost" onClick={() => openEditTxn(txn)} data-testid={`button-edit-txn-${txn.id}`}>
-                            <Edit className="h-3.5 w-3.5 mr-1" />
-                            Edit
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => { setDetailTxn(txn); setDetailDialogOpen(true); }} data-testid={`button-detail-txn-${txn.id}`}>
-                            <Eye className="h-3.5 w-3.5 mr-1" />
-                            Detail
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => printVendorSlip(txn)} data-testid={`button-print-slip-txn-${txn.id}`}>
-                            <Printer className="h-3.5 w-3.5 mr-1" />
-                            Print
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        <TableCell className="text-xs font-mono text-muted-foreground">#{txn.id}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="secondary"
+                            className={`no-default-active-elevate text-[10px] capitalize ${isCredit ? "text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950" : "text-orange-700 dark:text-orange-300 bg-orange-50 dark:bg-orange-950"}`}
+                          >
+                            {isCredit ? (isBwRow ? "Payment" : "Recharge") : (isBwRow ? "Refund" : "Deduction")}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`font-semibold ${isCredit ? "text-green-600 dark:text-green-400" : "text-rose-600 dark:text-rose-400"}`}>
+                            {isCredit ? "+" : "−"}{formatPKR(txn.amount)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground capitalize">{txn.paymentMethod || "—"}</TableCell>
+                        <TableCell className="hidden md:table-cell text-sm font-medium">{formatPKR(txn.balanceAfter)}</TableCell>
+                        <TableCell className="hidden lg:table-cell text-xs text-muted-foreground max-w-[140px] truncate">{txn.description || txn.reference || "—"}</TableCell>
+                        <TableCell className="hidden lg:table-cell text-xs text-muted-foreground">{txn.performedBy || "—"}</TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" data-testid={`button-txn-actions-${txn.id}`}>
+                                <MoreHorizontal className="h-3.5 w-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-36">
+                              <DropdownMenuItem onClick={() => { setDetailTxn(txn); setDetailDialogOpen(true); }} data-testid={`menu-view-txn-${txn.id}`}>
+                                <Eye className="h-3.5 w-3.5 mr-2" />View Detail
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openEditTxn(txn)} data-testid={`menu-edit-txn-${txn.id}`}>
+                                <Edit className="h-3.5 w-3.5 mr-2" />Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => printVendorSlip(txn)} data-testid={`menu-print-txn-${txn.id}`}>
+                                <Printer className="h-3.5 w-3.5 mr-2" />Print Slip
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* ── KPI Detail Dialog ────────────────────────────────── */}
+      <Dialog open={kpiDetailOpen !== null} onOpenChange={() => setKpiDetailOpen(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {kpiDetailOpen === 1 && "Wallet Balance"}
+              {kpiDetailOpen === 2 && (isTxnVendorBandwidth ? "Total Payments" : "Total Recharges")}
+              {kpiDetailOpen === 3 && (isTxnVendorBandwidth ? "Total Refunds" : "Total Deductions")}
+              {kpiDetailOpen === 4 && (isTxnVendorBandwidth ? "Monthly Dues" : "Payable Amount")}
+              {kpiDetailOpen === 5 && "Net Flow"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            {kpiDetailOpen === 1 && (
+              <>
+                <div className="flex justify-between"><span className="text-muted-foreground">Current Balance</span><span className="font-semibold">{txnVendor ? formatPKR(txnVendor.walletBalance) : formatPKR(totalWalletBalance)}</span></div>
+                {txnVendor && <div className="flex justify-between"><span className="text-muted-foreground">Last Recharge</span><span>{txnVendor.lastRechargeDate ? new Date(txnVendor.lastRechargeDate).toLocaleDateString() : "Never"}</span></div>}
+              </>
+            )}
+            {kpiDetailOpen === 2 && (
+              <>
+                <div className="flex justify-between"><span className="text-muted-foreground">Total Amount</span><span className="font-semibold text-green-600 dark:text-green-400">{formatPKR(totalRecharges)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Transaction Count</span><span>{(transactions || []).filter(t => isRecharge(t.type)).length}</span></div>
+              </>
+            )}
+            {kpiDetailOpen === 3 && (
+              <>
+                <div className="flex justify-between"><span className="text-muted-foreground">Total Amount</span><span className="font-semibold text-rose-600 dark:text-rose-400">{formatPKR(totalDeductions)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Transaction Count</span><span>{(transactions || []).filter(t => !isRecharge(t.type)).length}</span></div>
+              </>
+            )}
+            {kpiDetailOpen === 4 && txnVendor && (
+              <>
+                {isTxnVendorBandwidth
+                  ? <div className="flex justify-between"><span className="text-muted-foreground">Monthly Dues</span><span className="font-semibold text-orange-600 dark:text-orange-400">{formatPKR(getVendorTotalMonthlyDues(txnVendor.id))}</span></div>
+                  : <div className="flex justify-between"><span className="text-muted-foreground">Payable Amount</span><span className="font-semibold text-purple-600 dark:text-purple-400">{formatPKR(txnVendor.payableAmount)}</span></div>
+                }
+              </>
+            )}
+            {kpiDetailOpen === 5 && (
+              <>
+                <div className="flex justify-between"><span className="text-muted-foreground">Total Credits</span><span className="text-green-600 dark:text-green-400">{formatPKR(totalRecharges)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Total Debits</span><span className="text-rose-600 dark:text-rose-400">{formatPKR(totalDeductions)}</span></div>
+                <div className="flex justify-between border-t pt-2"><span className="font-semibold">Net Flow</span><span className="font-bold">{formatPKR(totalRecharges - totalDeductions)}</span></div>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setKpiDetailOpen(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Adjustment Entry Dialog ──────────────────────────── */}
+      <Dialog open={adjustDialogOpen} onOpenChange={setAdjustDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adjustment Entry</DialogTitle>
+            <DialogDescription>Manually adjust the wallet balance for a vendor.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Adjustment Type</label>
+              <Select value={adjustType} onValueChange={(v: "credit" | "debit") => setAdjustType(v)}>
+                <SelectTrigger data-testid="select-adjust-type"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit">Credit (Add to Balance)</SelectItem>
+                  <SelectItem value="debit">Debit (Reduce Balance)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Amount (PKR)</label>
+              <Input type="number" min="0" placeholder="e.g. 1000" value={adjustAmount} onChange={(e) => setAdjustAmount(e.target.value)} data-testid="input-adjust-amount" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Reference</label>
+              <Input placeholder="e.g. ADJ-2024-001" value={adjustReference} onChange={(e) => setAdjustReference(e.target.value)} data-testid="input-adjust-reference" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Reason / Notes</label>
+              <Input placeholder="Brief reason for adjustment" value={adjustReason} onChange={(e) => setAdjustReason(e.target.value)} data-testid="input-adjust-reason" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAdjustDialogOpen(false)}>Cancel</Button>
+            <Button
+              disabled={adjustSubmitting || !adjustAmount || Number(adjustAmount) <= 0}
+              onClick={async () => {
+                if (!adjustVendorId || !adjustAmount || Number(adjustAmount) <= 0) return;
+                setAdjustSubmitting(true);
+                try {
+                  await apiRequest("POST", `/api/vendor-wallet-transactions`, {
+                    vendorId: adjustVendorId,
+                    type: adjustType,
+                    amount: Number(adjustAmount),
+                    description: adjustReason || "Manual Adjustment",
+                    reference: adjustReference || undefined,
+                    paymentMethod: "adjustment",
+                    performedBy: "admin",
+                  });
+                  queryClient.invalidateQueries({ queryKey: ["/api/vendor-wallet-transactions"] });
+                  queryClient.invalidateQueries({ queryKey: ["/api/vendor-wallet-transactions/all"] });
+                  queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+                  setAdjustDialogOpen(false);
+                } catch {
+                } finally {
+                  setAdjustSubmitting(false);
+                }
+              }}
+              data-testid="button-adjust-submit"
+            >
+              {adjustSubmitting ? "Saving…" : "Save Adjustment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={rechargeDialogOpen} onOpenChange={setRechargeDialogOpen}>
         <DialogContent className="max-w-lg">
