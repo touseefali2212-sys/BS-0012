@@ -22,6 +22,7 @@ import InvoicesPage from "@/pages/invoices";
 import TicketsPage from "@/pages/tickets";
 import AreasPage from "@/pages/areas";
 import VendorsPage from "@/pages/vendors";
+import VendorProfilePage from "@/pages/vendor-profile";
 import ResellersPage from "@/pages/resellers";
 import AddResellerPage from "@/pages/add-reseller";
 import EditResellerPage from "@/pages/edit-reseller";
@@ -237,6 +238,7 @@ function Router() {
       <Route path="/noc-dashboard" component={NocDashboardPage} />
       <Route path="/olt-management" component={OltListPage} />
       <Route path="/olt-management/:id" component={OltManagementPage} />
+      <Route path="/vendors/profile/:id" component={VendorProfilePage} />
       <Route path="/login">{() => <Redirect to="/" />}</Route>
       <Route component={NotFound} />
     </Switch>

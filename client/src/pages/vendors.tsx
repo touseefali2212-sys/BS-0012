@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -2373,6 +2374,7 @@ function VendorProfileDialog({
 function BandwidthVendorsTab() {
   const { toast } = useToast();
   const { canCreate, canEdit, canDelete } = usePermissions();
+  const [, setLocation] = useLocation();
   const [, changeTab] = useTab("bandwidth-vendors");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -2887,7 +2889,7 @@ function BandwidthVendorsTab() {
                               <Button variant="ghost" size="icon" data-testid={`button-bw-actions-${vendor.id}`}><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setProfileVendor(vendor)} data-testid={`button-bw-view-profile-${vendor.id}`}><Eye className="h-4 w-4 mr-2" />View Profile</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setLocation(`/vendors/profile/${vendor.id}`)} data-testid={`button-bw-view-profile-${vendor.id}`}><Eye className="h-4 w-4 mr-2" />View Profile</DropdownMenuItem>
                               {canEdit("vendors") && <DropdownMenuItem onClick={() => openEdit(vendor)} data-testid={`button-bw-edit-${vendor.id}`}><Edit className="h-4 w-4 mr-2" />Edit Profile</DropdownMenuItem>}
                               <DropdownMenuItem onClick={() => setWalletVendor(vendor)} data-testid={`button-bw-wallet-${vendor.id}`}><Wallet className="h-4 w-4 mr-2" />Wallet & Transactions</DropdownMenuItem>
                               {canDelete("vendors") && (
@@ -3248,6 +3250,7 @@ function BandwidthVendorsTab() {
 function PanelVendorsTab() {
   const { toast } = useToast();
   const { canCreate, canEdit, canDelete } = usePermissions();
+  const [, setLocation] = useLocation();
   const [, changeTab] = useTab("panel-vendors");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -3679,7 +3682,7 @@ function PanelVendorsTab() {
                               <Button variant="ghost" size="icon" data-testid={`button-panel-actions-${vendor.id}`}><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setProfileVendor(vendor)} data-testid={`button-panel-view-profile-${vendor.id}`}><Eye className="h-4 w-4 mr-2" />View Profile</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setLocation(`/vendors/profile/${vendor.id}`)} data-testid={`button-panel-view-profile-${vendor.id}`}><Eye className="h-4 w-4 mr-2" />View Profile</DropdownMenuItem>
                               {canEdit("vendors") && <DropdownMenuItem onClick={() => openEdit(vendor)} data-testid={`button-panel-edit-${vendor.id}`}><Edit className="h-4 w-4 mr-2" />Edit Profile</DropdownMenuItem>}
                               <DropdownMenuItem onClick={() => setWalletVendor(vendor)} data-testid={`button-panel-wallet-${vendor.id}`}><Wallet className="h-4 w-4 mr-2" />Wallet & Transactions</DropdownMenuItem>
                               {canDelete("vendors") && (
