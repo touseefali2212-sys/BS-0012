@@ -256,6 +256,14 @@ export default function VendorProfilePage() {
         <div className="ml-auto flex items-center gap-2">
           <Button
             size="sm"
+            className="gap-1.5 h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-0 no-default-hover-elevate"
+            onClick={() => setLocation(`/vendors?tab=wallet&recharge=${vendor.id}`)}
+            data-testid="button-vendor-profile-recharge"
+          >
+            <ArrowDownLeft className="h-3.5 w-3.5" />{vendorType === "panel" ? "Recharge" : "Send Payment"}
+          </Button>
+          <Button
+            size="sm"
             variant="outline"
             className="gap-1.5 h-8 text-xs"
             onClick={() => setLocation(`/vendors?tab=${vendorType === "panel" ? "panel-vendors" : "bandwidth-vendors"}&edit=${vendor.id}`)}
@@ -296,7 +304,7 @@ export default function VendorProfilePage() {
               {vendor.city && <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{vendor.city}</span>}
             </div>
           </div>
-          <div className="flex gap-2 shrink-0">
+          <div className="flex gap-2 shrink-0 flex-wrap">
             <Button
               size="sm"
               variant="outline"
@@ -305,6 +313,14 @@ export default function VendorProfilePage() {
               data-testid="button-vendor-profile-back-hero"
             >
               <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />Back
+            </Button>
+            <Button
+              size="sm"
+              className="bg-emerald-500/80 hover:bg-emerald-500 border border-white/20 text-white no-default-hover-elevate"
+              onClick={() => setLocation(`/vendors?tab=wallet&recharge=${vendor.id}`)}
+              data-testid="button-vendor-profile-recharge-hero"
+            >
+              <ArrowDownLeft className="h-3.5 w-3.5 mr-1.5" />{vendorType === "panel" ? "Recharge" : "Send Payment"}
             </Button>
             <Button
               size="sm"

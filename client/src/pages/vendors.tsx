@@ -5092,6 +5092,21 @@ function WalletTab() {
   const bandwidthVendors = allVendorsList.filter((v) => v.vendorType === "bandwidth");
   const walletVendors = walletViewFilter === "all" ? [...panelVendors, ...bandwidthVendors] : walletViewFilter === "panel" ? panelVendors : bandwidthVendors;
 
+  // Auto-open recharge dialog from URL param (e.g. ?tab=wallet&recharge=5)
+  useEffect(() => {
+    if (!allVendorsList.length) return;
+    const params = new URLSearchParams(window.location.search);
+    const rechargeId = params.get("recharge");
+    if (!rechargeId) return;
+    const v = allVendorsList.find(v => v.id === Number(rechargeId));
+    if (!v) return;
+    openRecharge(v.id, v.name, v.vendorType);
+    params.delete("recharge");
+    const newSearch = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (newSearch ? `?${newSearch}` : ""));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allVendorsList.length]);
+
   const getVendorLinks = (vendorId: number) => (allLinks || []).filter(l => l.vendorId === vendorId && l.status === "active");
   const getVendorTotalMonthlyDues = (vendorId: number) => getVendorLinks(vendorId).reduce((s, l) => s + Number(l.totalMonthlyCost || 0), 0);
 
