@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -2478,6 +2478,19 @@ function BandwidthVendorsTab() {
     setDialogOpen(true);
   };
 
+  useEffect(() => {
+    if (!vendors) return;
+    const editId = new URLSearchParams(window.location.search).get("edit");
+    if (!editId) return;
+    const match = vendors.find(v => v.id === Number(editId));
+    if (match) {
+      openEdit(match);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("edit");
+      history.replaceState({}, "", url.toString());
+    }
+  }, [vendors]);
+
   const bwVendors = (vendors || []).filter(v => v.vendorType === "bandwidth");
   const activeVendors = bwVendors.filter(v => v.status === "active");
   const closedVendors = bwVendors.filter(v => v.status !== "active");
@@ -3321,6 +3334,19 @@ function PanelVendorsTab() {
     form.reset({ name: vendor.name, vendorType: vendor.vendorType || "panel", contactPerson: vendor.contactPerson || "", phone: vendor.phone, email: vendor.email || "", address: vendor.address || "", city: vendor.city || "", serviceType: vendor.serviceType, ntn: vendor.ntn || "", bankAccount: vendor.bankAccount || "", bankName: vendor.bankName || "", bankAccountTitle: vendor.bankAccountTitle || "", bankAccountNumber: vendor.bankAccountNumber || "", bankBranchCode: vendor.bankBranchCode || "", slaLevel: vendor.slaLevel || "standard", totalBandwidth: vendor.totalBandwidth || "", usedBandwidth: vendor.usedBandwidth || "", bandwidthCost: vendor.bandwidthCost || "0", contractStartDate: vendor.contractStartDate || "", contractEndDate: vendor.contractEndDate || "", walletBalance: vendor.walletBalance || "0", panelUrl: vendor.panelUrl || "", panelUsername: vendor.panelUsername || "", status: vendor.status });
     setDialogOpen(true);
   };
+
+  useEffect(() => {
+    if (!vendors) return;
+    const editId = new URLSearchParams(window.location.search).get("edit");
+    if (!editId) return;
+    const match = vendors.find(v => v.id === Number(editId));
+    if (match) {
+      openEdit(match);
+      const url = new URL(window.location.href);
+      url.searchParams.delete("edit");
+      history.replaceState({}, "", url.toString());
+    }
+  }, [vendors]);
 
   const panelVendors = (vendors || []).filter(v => v.vendorType === "panel");
   const activeVendors = panelVendors.filter(v => v.status === "active");
