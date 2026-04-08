@@ -1396,6 +1396,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteVendor(id: number): Promise<void> {
+    await db.delete(vendorWalletTransactions).where(eq(vendorWalletTransactions.vendorId, id));
+    await db.delete(vendorPackages).where(eq(vendorPackages.vendorId, id));
+    await db.delete(vendorBandwidthLinks).where(eq(vendorBandwidthLinks.vendorId, id));
+    await db.delete(vendorPanelLinks).where(eq(vendorPanelLinks.vendorId, id));
     await db.delete(vendors).where(eq(vendors.id, id));
   }
 

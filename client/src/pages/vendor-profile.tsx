@@ -55,6 +55,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -93,11 +94,16 @@ type PanelLinkForm = {
   monthlyFee: string;
   status: string;
   notes: string;
+  serviceType: string;
+  networkInterface: string;
+  portDetails: string;
+  popLocation: string;
 };
 
 const emptyPanelLinkForm: PanelLinkForm = {
   panelName: "", panelUrl: "", panelUsername: "", city: "",
   walletBalance: "0", monthlyFee: "0", status: "active", notes: "",
+  serviceType: "fiber", networkInterface: "", portDetails: "", popLocation: "",
 };
 
 type AddPkgForm = {
@@ -124,6 +130,7 @@ type EditVendorForm = {
   bankName: string; bankAccountTitle: string; bankAccountNumber: string; bankBranchCode: string;
   slaLevel: string; totalBandwidth: string; usedBandwidth: string; bandwidthCost: string;
   contractStartDate: string; contractEndDate: string;
+  contractType: string; paymentTerms: string; autoRenewal: boolean; penaltyClause: string;
   panelUrl: string; panelUsername: string; status: string;
 };
 
@@ -137,6 +144,8 @@ function vendorToEditForm(v: Vendor): EditVendorForm {
     slaLevel: v.slaLevel || "standard", totalBandwidth: v.totalBandwidth || "",
     usedBandwidth: v.usedBandwidth || "", bandwidthCost: v.bandwidthCost || "0",
     contractStartDate: v.contractStartDate || "", contractEndDate: v.contractEndDate || "",
+    contractType: v.contractType || "monthly", paymentTerms: v.paymentTerms || "net30",
+    autoRenewal: v.autoRenewal ?? false, penaltyClause: v.penaltyClause || "",
     panelUrl: v.panelUrl || "", panelUsername: v.panelUsername || "", status: v.status || "active",
   };
 }
@@ -248,6 +257,10 @@ export default function VendorProfilePage() {
         bandwidthCost: editVendorForm.bandwidthCost || "0",
         contractStartDate: editVendorForm.contractStartDate || null,
         contractEndDate: editVendorForm.contractEndDate || null,
+        contractType: editVendorForm.contractType || null,
+        paymentTerms: editVendorForm.paymentTerms || null,
+        autoRenewal: editVendorForm.autoRenewal,
+        penaltyClause: editVendorForm.penaltyClause.trim() || null,
         panelUrl: editVendorForm.panelUrl.trim() || null,
         panelUsername: editVendorForm.panelUsername.trim() || null,
         status: editVendorForm.status,
@@ -309,11 +322,18 @@ export default function VendorProfilePage() {
       monthlyFee: pl.monthlyFee || "0",
       status: pl.status || "active",
       notes: pl.notes || "",
+      serviceType: pl.serviceType || "fiber",
+      networkInterface: pl.networkInterface || "",
+      portDetails: pl.portDetails || "",
+      popLocation: pl.popLocation || "",
     });
     setPlDialogOpen(true);
   };
 
   const submitPlForm = () => {
+    if (!plForm.panelName.trim()) {
+      toast({ title: "Panel name is required", variant: "destructive" }); return;
+    }
     const payload = {
       vendorId: Number(id),
       panelName: plForm.panelName,
@@ -324,6 +344,10 @@ export default function VendorProfilePage() {
       monthlyFee: plForm.monthlyFee || "0",
       status: plForm.status || "active",
       notes: plForm.notes || null,
+      serviceType: plForm.serviceType || null,
+      networkInterface: plForm.networkInterface || null,
+      portDetails: plForm.portDetails || null,
+      popLocation: plForm.popLocation || null,
     };
     if (editingPl) {
       updatePlMutation.mutate({ id: editingPl.id, data: payload });
@@ -834,10 +858,11 @@ export default function VendorProfilePage() {
 
                             {bwLinks.length > 1 && (
                               <TableRow className="font-bold bg-muted/60">
-                                <TableCell colSpan={4} className="text-xs font-bold">TOTALS</TableCell>
+                                <TableCell colSpan={3} className="text-xs font-bold">TOTALS</TableCell>
                                 <TableCell className="text-sm font-bold text-blue-600 dark:text-blue-400">{totalMbps} Mbps</TableCell>
-                                <TableCell />
                                 <TableCell className="text-sm font-bold text-blue-600 dark:text-blue-400">{formatPKR(totalMonthlyCost)}</TableCell>
+                                <TableCell />
+                                <TableCell />
                                 <TableCell />
                               </TableRow>
                             )}
@@ -1393,6 +1418,56 @@ export default function VendorProfilePage() {
                   data-testid="input-panel-link-monthly-fee"
                 />
               </div>
+              <div className="col-span-2 pt-2 border-t">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Network Infrastructure</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Service Type</label>
+                <Select value={plForm.serviceType} onValueChange={v => setPlForm(p => ({ ...p, serviceType: v }))}>
+                  <SelectTrigger className="mt-1" data-testid="select-panel-link-service-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fiber">Fiber</SelectItem>
+                    <SelectItem value="exchange">Exchange</SelectItem>
+                    <SelectItem value="tower">Tower</SelectItem>
+                    <SelectItem value="wireless_p2p">Wireless P2P</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-medium">POP Location</label>
+                <Input
+                  placeholder="e.g. DHA POP-01"
+                  value={plForm.popLocation}
+                  onChange={e => setPlForm(p => ({ ...p, popLocation: e.target.value }))}
+                  className="mt-1"
+                  data-testid="input-panel-link-pop"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Interface Type</label>
+                <Input
+                  placeholder="e.g. GigabitEthernet"
+                  value={plForm.networkInterface}
+                  onChange={e => setPlForm(p => ({ ...p, networkInterface: e.target.value }))}
+                  className="mt-1"
+                  data-testid="input-panel-link-interface"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Port / Slot</label>
+                <Input
+                  placeholder="e.g. Port 1, Slot 2"
+                  value={plForm.portDetails}
+                  onChange={e => setPlForm(p => ({ ...p, portDetails: e.target.value }))}
+                  className="mt-1"
+                  data-testid="input-panel-link-port"
+                />
+              </div>
+              <div className="col-span-2 pt-2 border-t">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Status & Notes</p>
+              </div>
               <div className="col-span-2">
                 <label className="text-sm font-medium">Status</label>
                 <Select value={plForm.status} onValueChange={v => setPlForm(p => ({ ...p, status: v }))}>
@@ -1805,12 +1880,49 @@ export default function VendorProfilePage() {
                       <Input value={editVendorForm.ntn} onChange={e => setEditVendorForm(f => f ? { ...f, ntn: e.target.value } : f)} data-testid="input-editvendor-ntn" placeholder="Tax number" />
                     </div>
                     <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Contract Type</label>
+                      <Select value={editVendorForm.contractType} onValueChange={v => setEditVendorForm(f => f ? { ...f, contractType: v } : f)}>
+                        <SelectTrigger data-testid="select-editvendor-contract-type"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                          <SelectItem value="quarterly">Quarterly</SelectItem>
+                          <SelectItem value="yearly">Yearly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Payment Terms</label>
+                      <Select value={editVendorForm.paymentTerms} onValueChange={v => setEditVendorForm(f => f ? { ...f, paymentTerms: v } : f)}>
+                        <SelectTrigger data-testid="select-editvendor-payment-terms"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="advance">Advance Payment</SelectItem>
+                          <SelectItem value="net15">Net 15 Days</SelectItem>
+                          <SelectItem value="net30">Net 30 Days</SelectItem>
+                          <SelectItem value="net45">Net 45 Days</SelectItem>
+                          <SelectItem value="on_delivery">On Delivery</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
                       <label className="text-sm font-medium">Contract Start</label>
                       <Input type="date" value={editVendorForm.contractStartDate} onChange={e => setEditVendorForm(f => f ? { ...f, contractStartDate: e.target.value } : f)} data-testid="input-editvendor-contract-start" />
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm font-medium">Contract End</label>
                       <Input type="date" value={editVendorForm.contractEndDate} onChange={e => setEditVendorForm(f => f ? { ...f, contractEndDate: e.target.value } : f)} data-testid="input-editvendor-contract-end" />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <div className="flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
+                        <Switch id="edit-auto-renewal" checked={editVendorForm.autoRenewal} onCheckedChange={v => setEditVendorForm(f => f ? { ...f, autoRenewal: v } : f)} data-testid="switch-editvendor-auto-renewal" />
+                        <div>
+                          <label htmlFor="edit-auto-renewal" className="text-sm font-medium cursor-pointer">Auto-Renewal</label>
+                          <p className="text-xs text-muted-foreground">Automatically renew this contract when it expires</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="sm:col-span-2 space-y-1.5">
+                      <label className="text-sm font-medium">Penalty Clause / SLA Notes</label>
+                      <Textarea value={editVendorForm.penaltyClause} onChange={e => setEditVendorForm(f => f ? { ...f, penaltyClause: e.target.value } : f)} data-testid="input-editvendor-penalty" placeholder="Penalty clauses, SLA breach notes..." rows={3} className="resize-none" />
                     </div>
                   </div>
                 </TabsContent>

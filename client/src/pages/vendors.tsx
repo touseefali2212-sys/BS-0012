@@ -860,9 +860,9 @@ function AddVendorTab() {
         try {
           const savedAccounts: Array<{ panelUsername: string; id: number }> = [];
           if (panelAccounts.length > 0) {
-            const results = await Promise.all(panelAccounts.map(acc => {
+            const results = await Promise.all(panelAccounts.map(async acc => {
               const net = panelNetworkList.find(n => n.panelUsername === acc.panelUsername);
-              return apiRequest("POST", "/api/vendor-panel-links", {
+              const res = await apiRequest("POST", "/api/vendor-panel-links", {
                 vendorId: vendor.id,
                 panelName: acc.panelName,
                 panelUrl: acc.panelUrl || null,
@@ -873,8 +873,9 @@ function AddVendorTab() {
                 city: net?.city || null,
                 popLocation: net?.popLocation || null,
               });
+              return res.json();
             }));
-            results.forEach((r: { id: number; panelUsername?: string }, i) => {
+            results.forEach((r: { id: number }, i) => {
               savedAccounts.push({ panelUsername: panelAccounts[i].panelUsername, id: r.id });
             });
             queryClient.invalidateQueries({ queryKey: ["/api/vendor-panel-links"] });
@@ -965,7 +966,8 @@ function AddVendorTab() {
       toast({ title: "Vendor price and ISP price are required", variant: "destructive" });
       return;
     }
-    setPanelPackages([...panelPackages, { ...newPkg }]);
+    const normalizedPanelUsername = newPkg.panelUsername === "__none__" ? "" : newPkg.panelUsername;
+    setPanelPackages([...panelPackages, { ...newPkg, panelUsername: normalizedPanelUsername }]);
     setNewPkg({ packageName: "", speed: "", vendorPrice: "", ispSellingPrice: "", resellerPrice: "", dataLimit: "", validity: "30 days", panelUsername: "" });
     setShowAddPkgRow(false);
   };
@@ -1730,7 +1732,13 @@ function AddVendorTab() {
                 </Button>
                 <span className="text-xs text-muted-foreground">{currentStep} / {WIZARD_STEPS.length}</span>
                 {currentStep < WIZARD_STEPS.length ? (
-                  <Button type="button" className="btn-vendor-primary no-default-hover-elevate no-default-active-elevate" onClick={() => setCurrentStep(s => s + 1)} data-testid="button-wizard-next">
+                  <Button type="button" className="btn-vendor-primary no-default-hover-elevate no-default-active-elevate" onClick={async () => {
+                    if (currentStep === 1) {
+                      const valid = await form.trigger(["name", "phone", "serviceType"]);
+                      if (!valid) return;
+                    }
+                    setCurrentStep(s => s + 1);
+                  }} data-testid="button-wizard-next">
                     Next <ChevronRight className="h-4 w-4 ml-1" />
                   </Button>
                 ) : (
