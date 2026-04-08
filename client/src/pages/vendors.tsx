@@ -980,11 +980,6 @@ function AddVendorTab() {
                 <div className="space-y-5">
                   {vendorType === "bandwidth" && (
                     <>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <FormField control={form.control} name="totalBandwidth" render={({ field }) => (<FormItem><FormLabel>Total Bandwidth</FormLabel><FormControl><Input placeholder="e.g. 100 Mbps" data-testid="input-vendor-total-bandwidth" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="usedBandwidth" render={({ field }) => (<FormItem><FormLabel>Used Bandwidth</FormLabel><FormControl><Input placeholder="e.g. 60 Mbps" data-testid="input-vendor-used-bandwidth" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                        <FormField control={form.control} name="bandwidthCost" render={({ field }) => (<FormItem><FormLabel>Monthly Cost (PKR)</FormLabel><FormControl><Input type="number" placeholder="0" data-testid="input-vendor-bandwidth-cost" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
-                      </div>
                       <div className="space-y-3">
                         <div className="flex items-center justify-between gap-2 flex-wrap">
                           <div>
