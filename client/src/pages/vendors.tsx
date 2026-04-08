@@ -2828,10 +2828,10 @@ function BandwidthVendorsTab() {
                     return (
                       <TableRow key={vendor.id} data-testid={`row-bw-vendor-${vendor.id}`}>
                         <TableCell className="hidden sm:table-cell">
-                          <span className="text-[10px] text-muted-foreground font-mono">#{vendor.id}</span>
+                          <span className="text-[10px] text-primary font-mono cursor-pointer hover:underline" onClick={() => setLocation(`/vendors/profile/${vendor.id}`)} data-testid={`link-bw-vendor-id-${vendor.id}`}>#{vendor.id}</span>
                         </TableCell>
                         <TableCell>
-                          <div className="font-medium text-sm">{vendor.name}</div>
+                          <div className="font-medium text-sm text-primary cursor-pointer hover:underline" onClick={() => setLocation(`/vendors/profile/${vendor.id}`)} data-testid={`link-bw-vendor-name-${vendor.id}`}>{vendor.name}</div>
                           {vendor.contactPerson && <div className="text-xs text-muted-foreground">{vendor.contactPerson}</div>}
                           {vendor.city && <div className="text-[10px] text-muted-foreground flex items-center gap-0.5"><Phone className="h-2.5 w-2.5" />{vendor.phone}</div>}
                         </TableCell>
@@ -3645,10 +3645,10 @@ function PanelVendorsTab() {
                     return (
                       <TableRow key={vendor.id} data-testid={`row-panel-vendor-${vendor.id}`}>
                         <TableCell className="hidden sm:table-cell">
-                          <span className="text-[10px] text-muted-foreground font-mono">#{vendor.id}</span>
+                          <span className="text-[10px] text-primary font-mono cursor-pointer hover:underline" onClick={() => setLocation(`/vendors/profile/${vendor.id}`)} data-testid={`link-panel-vendor-id-${vendor.id}`}>#{vendor.id}</span>
                         </TableCell>
                         <TableCell>
-                          <div className="font-medium text-sm">{vendor.name}</div>
+                          <div className="font-medium text-sm text-primary cursor-pointer hover:underline" onClick={() => setLocation(`/vendors/profile/${vendor.id}`)} data-testid={`link-panel-vendor-name-${vendor.id}`}>{vendor.name}</div>
                           {vendor.contactPerson && <div className="text-xs text-muted-foreground">{vendor.contactPerson}</div>}
                           {vendor.city && <div className="text-[10px] text-muted-foreground flex items-center gap-0.5"><Phone className="h-2.5 w-2.5" />{vendor.phone}</div>}
                           {vendor.panelUrl && <div className="text-[10px] text-blue-500 dark:text-blue-400 truncate max-w-[140px]">{vendor.panelUrl}</div>}
