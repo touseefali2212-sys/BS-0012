@@ -5615,24 +5615,42 @@ function WalletTab() {
                         </div>
                       </div>
 
-                      {/* Payment Send From */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Payment Send From</label>
-                        <Input placeholder="Name of person who sent the payment"
-                          value={vendorRechargeSenderName} onChange={(e) => setVendorRechargeSenderName(e.target.value)}
-                          data-testid="input-recharge-sender-name" />
-                      </div>
+                      {/* Payment Send To — Vendor Bank Account (destination) */}
+                      {selectedVendor && (selectedVendor.bankName || selectedVendor.bankAccountTitle || selectedVendor.bankAccountNumber) ? (
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium flex items-center gap-1.5">
+                            <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground" />
+                            Payment Send To
+                          </label>
+                          <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50/60 dark:bg-green-950/20 p-3 space-y-1" data-testid="vendor-send-to-box">
+                            <p className="text-[10px] font-semibold text-green-700 dark:text-green-400 uppercase tracking-wider">Vendor Bank Account</p>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
+                              <div><span className="text-muted-foreground">Vendor:</span> <span className="font-medium">{selectedVendor.name}</span></div>
+                              {selectedVendor.bankName && <div><span className="text-muted-foreground">Bank:</span> <span className="font-medium">{selectedVendor.bankName}</span></div>}
+                              {selectedVendor.bankAccountTitle && <div><span className="text-muted-foreground">Title:</span> <span className="font-medium">{selectedVendor.bankAccountTitle}</span></div>}
+                              {selectedVendor.bankAccountNumber && <div className="col-span-2"><span className="text-muted-foreground">Account:</span> <span className="font-medium font-mono">{selectedVendor.bankAccountNumber}</span></div>}
+                              {selectedVendor.bankBranchCode && <div><span className="text-muted-foreground">Branch:</span> <span className="font-medium">{selectedVendor.bankBranchCode}</span></div>}
+                            </div>
+                          </div>
+                        </div>
+                      ) : selectedVendor ? (
+                        <div className="rounded-md border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20 p-2.5 flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400">
+                          <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                          <span>No bank account set for this vendor. <button type="button" className="underline" onClick={() => setBankEditMode(true)}>Add bank details</button></span>
+                        </div>
+                      ) : null}
 
-                      {/* Payment Send To */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">
-                          Payment Send To
+                      {/* Payment Send From — Company Bank Account (source, gets deducted) */}
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium flex items-center gap-1.5">
+                          <ArrowDownLeft className="h-3.5 w-3.5 text-muted-foreground" />
+                          Payment Send From
                           {filtered.length > 0 && <span className="text-red-500 ml-0.5">*</span>}
-                          {filtered.length === 0 && <span className="text-xs text-muted-foreground ml-2">(No accounts for this type — <a href="/company-bank-accounts" className="underline text-blue-600">add one</a>)</span>}
+                          {filtered.length === 0 && <span className="text-xs text-muted-foreground ml-1">(<a href="/company-bank-accounts" className="underline text-blue-600">add account</a>)</span>}
                         </label>
                         <Select value={vendorRechargeBankAccountId} onValueChange={setVendorRechargeBankAccountId}>
                           <SelectTrigger data-testid="select-recharge-bank-account">
-                            <SelectValue placeholder={filtered.length === 0 ? "No accounts available" : "Select account"} />
+                            <SelectValue placeholder={filtered.length === 0 ? "No accounts available" : "Select your account to debit"} />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="none">— None —</SelectItem>
@@ -5644,9 +5662,9 @@ function WalletTab() {
                           </SelectContent>
                         </Select>
                         {selectedAcc && (
-                          <div className="bg-slate-50 dark:bg-slate-900 rounded-md p-2 text-xs text-muted-foreground flex items-center justify-between">
-                            <span>{selectedAcc.name}{selectedAcc.bankName ? ` · ${selectedAcc.bankName}` : ""}</span>
-                            <span className="font-semibold text-slate-700 dark:text-slate-300">{formatPKR(selectedAcc.currentBalance)}</span>
+                          <div className="rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-3 py-2 text-xs flex items-center justify-between">
+                            <span className="text-blue-700 dark:text-blue-300">{selectedAcc.name}{selectedAcc.bankName ? ` · ${selectedAcc.bankName}` : ""}</span>
+                            <span className="font-semibold text-blue-800 dark:text-blue-200">{formatPKR(selectedAcc.currentBalance)} available</span>
                           </div>
                         )}
                       </div>
@@ -5743,20 +5761,48 @@ function WalletTab() {
                           })}
                         </div>
                       </div>
-                      {/* Payment Send To */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Payment Send To{filtered.length === 0 && <span className="text-xs text-muted-foreground ml-2">(No accounts — <a href="/company-bank-accounts" className="underline text-blue-600">add one</a>)</span>}</label>
+                      {/* Payment Send To — Vendor Bank Account (destination) */}
+                      {selectedVendor && (selectedVendor.bankName || selectedVendor.bankAccountTitle || selectedVendor.bankAccountNumber) ? (
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium flex items-center gap-1.5">
+                            <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground" />
+                            Payment Send To
+                          </label>
+                          <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50/60 dark:bg-green-950/20 p-3 space-y-1" data-testid="vendor-send-to-box-credit">
+                            <p className="text-[10px] font-semibold text-green-700 dark:text-green-400 uppercase tracking-wider">Vendor Bank Account</p>
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
+                              <div><span className="text-muted-foreground">Vendor:</span> <span className="font-medium">{selectedVendor.name}</span></div>
+                              {selectedVendor.bankName && <div><span className="text-muted-foreground">Bank:</span> <span className="font-medium">{selectedVendor.bankName}</span></div>}
+                              {selectedVendor.bankAccountTitle && <div><span className="text-muted-foreground">Title:</span> <span className="font-medium">{selectedVendor.bankAccountTitle}</span></div>}
+                              {selectedVendor.bankAccountNumber && <div className="col-span-2"><span className="text-muted-foreground">Account:</span> <span className="font-medium font-mono">{selectedVendor.bankAccountNumber}</span></div>}
+                            </div>
+                          </div>
+                        </div>
+                      ) : selectedVendor ? (
+                        <div className="rounded-md border border-dashed border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/20 p-2.5 flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400">
+                          <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+                          <span>No bank account set for this vendor. <button type="button" className="underline" onClick={() => setBankEditMode(true)}>Add bank details</button></span>
+                        </div>
+                      ) : null}
+
+                      {/* Payment Send From — Company Bank Account (source, gets deducted) */}
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium flex items-center gap-1.5">
+                          <ArrowDownLeft className="h-3.5 w-3.5 text-muted-foreground" />
+                          Payment Send From
+                          {filtered.length === 0 && <span className="text-xs text-muted-foreground ml-1">(<a href="/company-bank-accounts" className="underline text-blue-600">add account</a>)</span>}
+                        </label>
                         <Select value={vendorRechargeBankAccountId} onValueChange={setVendorRechargeBankAccountId}>
-                          <SelectTrigger data-testid="select-credit-bank-account"><SelectValue placeholder={filtered.length === 0 ? "No accounts available" : "Select account"} /></SelectTrigger>
+                          <SelectTrigger data-testid="select-credit-bank-account"><SelectValue placeholder={filtered.length === 0 ? "No accounts available" : "Select your account to debit"} /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="none">— None —</SelectItem>
                             {filtered.map(a => <SelectItem key={a.id} value={String(a.id)}>{a.name}{a.bankName ? ` — ${a.bankName}` : ""}{a.accountNumber ? ` (${a.accountNumber})` : ""}</SelectItem>)}
                           </SelectContent>
                         </Select>
                         {selectedAcc && (
-                          <div className="bg-slate-50 dark:bg-slate-900 rounded-md p-2 text-xs text-muted-foreground flex items-center justify-between">
-                            <span>{selectedAcc.name}{selectedAcc.bankName ? ` · ${selectedAcc.bankName}` : ""}</span>
-                            <span className="font-semibold text-slate-700 dark:text-slate-300">{formatPKR(selectedAcc.currentBalance)}</span>
+                          <div className="rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-3 py-2 text-xs flex items-center justify-between">
+                            <span className="text-blue-700 dark:text-blue-300">{selectedAcc.name}{selectedAcc.bankName ? ` · ${selectedAcc.bankName}` : ""}</span>
+                            <span className="font-semibold text-blue-800 dark:text-blue-200">{formatPKR(selectedAcc.currentBalance)} available</span>
                           </div>
                         )}
                       </div>

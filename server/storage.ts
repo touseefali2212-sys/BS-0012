@@ -1482,6 +1482,10 @@ export class DatabaseStorage implements IStorage {
       createdAt: now,
     });
     const [updated] = await db.update(vendors).set({ walletBalance: newBalance.toString(), lastRechargeDate: now }).where(eq(vendors.id, vendorId)).returning();
+    const effectivePaid = paidAmount !== undefined ? paidAmount : amount;
+    if (bankAccountId && effectivePaid > 0 && (paymentStatus === "paid" || paymentStatus === "credit_balance")) {
+      await this.debitCompanyAccount(bankAccountId, effectivePaid, "vendor_recharge", reference || `Recharge-${Date.now()}`, `Payment to vendor #${vendorId}`, notes, performedBy || "admin");
+    }
     return updated;
   }
 
