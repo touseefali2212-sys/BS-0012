@@ -880,6 +880,7 @@ export const resellerWalletTransactions = pgTable("reseller_wallet_transactions"
 export const vendorPackages = pgTable("vendor_packages", {
   id: serial("id").primaryKey(),
   vendorId: integer("vendor_id").notNull(),
+  panelLinkId: integer("panel_link_id"),
   packageName: text("package_name").notNull(),
   speed: text("speed"),
   vendorPrice: decimal("vendor_price", { precision: 10, scale: 2 }).notNull(),

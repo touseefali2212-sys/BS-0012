@@ -99,6 +99,24 @@ const emptyPanelLinkForm: PanelLinkForm = {
   walletBalance: "0", monthlyFee: "0", status: "active", notes: "",
 };
 
+type AddPkgForm = {
+  panelLinkId: string;
+  packageName: string;
+  speed: string;
+  vendorPrice: string;
+  ispSellingPrice: string;
+  resellerPrice: string;
+  dataLimit: string;
+  validity: string;
+  isActive: boolean;
+};
+
+const emptyAddPkgForm: AddPkgForm = {
+  panelLinkId: "", packageName: "", speed: "",
+  vendorPrice: "0", ispSellingPrice: "0", resellerPrice: "",
+  dataLimit: "", validity: "30 days", isActive: true,
+};
+
 export default function VendorProfilePage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
@@ -110,6 +128,11 @@ export default function VendorProfilePage() {
   const [editingPl, setEditingPl] = useState<VendorPanelLink | null>(null);
   const [plForm, setPlForm] = useState<PanelLinkForm>(emptyPanelLinkForm);
   const [plDeleteId, setPlDeleteId] = useState<number | null>(null);
+
+  // Add Package dialog state
+  const [addPkgOpen, setAddPkgOpen] = useState(false);
+  const [addPkgForm, setAddPkgForm] = useState<AddPkgForm>(emptyAddPkgForm);
+  const [addPkgSubmitting, setAddPkgSubmitting] = useState(false);
 
   const { data: vendors, isLoading: vendorsLoading } = useQuery<Vendor[]>({
     queryKey: ["/api/vendors"],
@@ -160,6 +183,40 @@ export default function VendorProfilePage() {
     onSuccess: () => { invalidatePanelLinks(); setPlDeleteId(null); toast({ title: "Panel link deleted" }); },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
+
+  const openAddPkg = () => { setAddPkgForm(emptyAddPkgForm); setAddPkgOpen(true); };
+
+  const submitAddPkg = async () => {
+    if (!addPkgForm.packageName.trim()) {
+      toast({ title: "Package name is required", variant: "destructive" }); return;
+    }
+    if (!addPkgForm.vendorPrice || !addPkgForm.ispSellingPrice) {
+      toast({ title: "Vendor price and ISP price are required", variant: "destructive" }); return;
+    }
+    setAddPkgSubmitting(true);
+    try {
+      await apiRequest("POST", "/api/vendor-packages", {
+        vendorId: Number(id),
+        panelLinkId: addPkgForm.panelLinkId ? Number(addPkgForm.panelLinkId) : null,
+        packageName: addPkgForm.packageName.trim(),
+        speed: addPkgForm.speed.trim() || null,
+        vendorPrice: addPkgForm.vendorPrice,
+        ispSellingPrice: addPkgForm.ispSellingPrice,
+        resellerPrice: addPkgForm.resellerPrice || null,
+        dataLimit: addPkgForm.dataLimit.trim() || null,
+        validity: addPkgForm.validity.trim() || "30 days",
+        isActive: addPkgForm.isActive,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor-packages"] });
+      setAddPkgOpen(false);
+      setAddPkgForm(emptyAddPkgForm);
+      toast({ title: "Package added successfully" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: e instanceof Error ? e.message : "Failed to add package", variant: "destructive" });
+    } finally {
+      setAddPkgSubmitting(false);
+    }
+  };
 
   const openAddPl = () => { setEditingPl(null); setPlForm(emptyPanelLinkForm); setPlDialogOpen(true); };
   const openEditPl = (pl: VendorPanelLink) => {
@@ -918,7 +975,7 @@ export default function VendorProfilePage() {
                       <Button
                         size="sm"
                         className="gap-1.5 h-7 text-xs"
-                        onClick={() => setLocation(`/vendors?tab=packages&addPackage=${vendor.id}`)}
+                        onClick={openAddPkg}
                         data-testid="button-profile-add-package"
                       >
                         <Plus className="h-3.5 w-3.5" />Add Package
@@ -935,7 +992,7 @@ export default function VendorProfilePage() {
                         size="sm"
                         variant="outline"
                         className="mt-3 gap-1.5"
-                        onClick={() => setLocation(`/vendors?tab=packages&addPackage=${vendor.id}`)}
+                        onClick={openAddPkg}
                         data-testid="button-profile-add-first-package"
                       >
                         <Plus className="h-3.5 w-3.5" />Add First Package
@@ -947,6 +1004,7 @@ export default function VendorProfilePage() {
                         <TableHeader>
                           <TableRow>
                             <TableHead className="text-xs">Package Name</TableHead>
+                            <TableHead className="text-xs">Panel Link</TableHead>
                             <TableHead className="text-xs">Speed</TableHead>
                             <TableHead className="text-xs">Vendor Price</TableHead>
                             <TableHead className="text-xs">ISP Price</TableHead>
@@ -960,9 +1018,18 @@ export default function VendorProfilePage() {
                         <TableBody>
                           {pkgs.map(pkg => {
                             const margin = Number(pkg.ispSellingPrice || 0) - Number(pkg.vendorPrice || 0);
+                            const linkedPanel = pkg.panelLinkId ? panelLinks.find(pl => pl.id === pkg.panelLinkId) : null;
                             return (
                               <TableRow key={pkg.id}>
                                 <TableCell className="text-sm font-medium">{pkg.packageName}</TableCell>
+                                <TableCell className="text-sm">
+                                  {linkedPanel ? (
+                                    <div className="flex flex-col">
+                                      <span className="font-medium text-xs">{linkedPanel.panelName}</span>
+                                      {linkedPanel.city && <span className="text-[10px] text-muted-foreground">{linkedPanel.city}</span>}
+                                    </div>
+                                  ) : <span className="text-muted-foreground">—</span>}
+                                </TableCell>
                                 <TableCell className="text-sm">{pkg.speed || "—"}</TableCell>
                                 <TableCell className="text-sm">{formatPKR(pkg.vendorPrice)}</TableCell>
                                 <TableCell className="text-sm">{formatPKR(pkg.ispSellingPrice)}</TableCell>
@@ -970,7 +1037,7 @@ export default function VendorProfilePage() {
                                 <TableCell className="text-sm">{pkg.dataLimit || "Unlimited"}</TableCell>
                                 <TableCell className="text-sm">{pkg.validity || "—"}</TableCell>
                                 <TableCell className={`text-sm font-semibold ${margin >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{formatPKR(margin)}</TableCell>
-                                <TableCell><Badge variant={pkg.status === "active" ? "default" : "secondary"} className="text-[10px] no-default-active-elevate capitalize">{pkg.status || "active"}</Badge></TableCell>
+                                <TableCell><Badge variant={pkg.isActive !== false ? "default" : "secondary"} className="text-[10px] no-default-active-elevate capitalize">{pkg.isActive !== false ? "Active" : "Inactive"}</Badge></TableCell>
                               </TableRow>
                             );
                           })}
@@ -1194,6 +1261,174 @@ export default function VendorProfilePage() {
             >
               {deletePlMutation.isPending ? "Deleting..." : "Delete"}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Package Dialog */}
+      <Dialog open={addPkgOpen} onOpenChange={open => { if (!open) { setAddPkgOpen(false); setAddPkgForm(emptyAddPkgForm); } }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Package className="h-4 w-4 text-primary" />Add Package
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            {/* Vendor — locked */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Vendor</label>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-muted/50 text-sm">
+                <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <span className="font-medium">{vendor?.name}</span>
+                <Badge variant="secondary" className="ml-auto text-[10px] capitalize no-default-active-elevate">{vendor?.vendorType}</Badge>
+              </div>
+            </div>
+
+            {/* Panel Link */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Link with Panel <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <Select
+                value={addPkgForm.panelLinkId}
+                onValueChange={v => setAddPkgForm(f => ({ ...f, panelLinkId: v === "__none__" ? "" : v }))}
+              >
+                <SelectTrigger data-testid="select-addpkg-panel-link">
+                  <SelectValue placeholder="Select a panel link…" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">— None —</SelectItem>
+                  {panelLinks.map(pl => (
+                    <SelectItem key={pl.id} value={String(pl.id)}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{pl.panelName}</span>
+                        {(pl.panelUrl || pl.city) && (
+                          <span className="text-[11px] text-muted-foreground">
+                            {[pl.panelUrl, pl.city].filter(Boolean).join(" · ")}
+                          </span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {panelLinks.length === 0 && (
+                <p className="text-[11px] text-muted-foreground">No panel links configured for this vendor yet.</p>
+              )}
+            </div>
+
+            {/* Package Name */}
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Package Name <span className="text-destructive">*</span></label>
+              <Input
+                placeholder="e.g. 10 Mbps Unlimited"
+                value={addPkgForm.packageName}
+                onChange={e => setAddPkgForm(f => ({ ...f, packageName: e.target.value }))}
+                data-testid="input-addpkg-name"
+              />
+            </div>
+
+            {/* Speed & Data Limit row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Speed</label>
+                <Input
+                  placeholder="e.g. 10 Mbps"
+                  value={addPkgForm.speed}
+                  onChange={e => setAddPkgForm(f => ({ ...f, speed: e.target.value }))}
+                  data-testid="input-addpkg-speed"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Data Limit</label>
+                <Input
+                  placeholder="e.g. Unlimited / 100 GB"
+                  value={addPkgForm.dataLimit}
+                  onChange={e => setAddPkgForm(f => ({ ...f, dataLimit: e.target.value }))}
+                  data-testid="input-addpkg-data-limit"
+                />
+              </div>
+            </div>
+
+            {/* Prices row */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Vendor Price <span className="text-destructive">*</span></label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={addPkgForm.vendorPrice}
+                  onChange={e => setAddPkgForm(f => ({ ...f, vendorPrice: e.target.value }))}
+                  data-testid="input-addpkg-vendor-price"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">ISP Price <span className="text-destructive">*</span></label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={addPkgForm.ispSellingPrice}
+                  onChange={e => setAddPkgForm(f => ({ ...f, ispSellingPrice: e.target.value }))}
+                  data-testid="input-addpkg-isp-price"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Reseller Price</label>
+                <Input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={addPkgForm.resellerPrice}
+                  onChange={e => setAddPkgForm(f => ({ ...f, resellerPrice: e.target.value }))}
+                  data-testid="input-addpkg-reseller-price"
+                />
+              </div>
+            </div>
+
+            {/* Margin preview */}
+            {addPkgForm.ispSellingPrice && addPkgForm.vendorPrice && (
+              <div className={`text-xs px-3 py-1.5 rounded-md flex items-center gap-1.5 ${Number(addPkgForm.ispSellingPrice) - Number(addPkgForm.vendorPrice) >= 0 ? "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300" : "bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300"}`}>
+                ISP Margin: {formatPKR(Number(addPkgForm.ispSellingPrice) - Number(addPkgForm.vendorPrice))}
+              </div>
+            )}
+
+            {/* Validity & Status row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Validity</label>
+                <Input
+                  placeholder="e.g. 30 days"
+                  value={addPkgForm.validity}
+                  onChange={e => setAddPkgForm(f => ({ ...f, validity: e.target.value }))}
+                  data-testid="input-addpkg-validity"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-sm font-medium">Status</label>
+                <Select
+                  value={addPkgForm.isActive ? "active" : "inactive"}
+                  onValueChange={v => setAddPkgForm(f => ({ ...f, isActive: v === "active" }))}
+                >
+                  <SelectTrigger data-testid="select-addpkg-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 justify-end pt-1">
+              <Button variant="outline" onClick={() => { setAddPkgOpen(false); setAddPkgForm(emptyAddPkgForm); }} data-testid="button-addpkg-cancel">
+                Cancel
+              </Button>
+              <Button onClick={submitAddPkg} disabled={addPkgSubmitting} data-testid="button-addpkg-submit">
+                {addPkgSubmitting ? "Saving…" : "Add Package"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
