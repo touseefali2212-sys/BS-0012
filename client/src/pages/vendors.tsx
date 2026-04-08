@@ -1178,12 +1178,6 @@ function AddVendorTab() {
                               <SelectItem value="exchange">Exchange</SelectItem>
                               <SelectItem value="tower">Tower</SelectItem>
                               <SelectItem value="wireless_p2p">Wireless P2P</SelectItem>
-                              <SelectItem value="wireless">Wireless / Radio</SelectItem>
-                              <SelectItem value="cable">Cable</SelectItem>
-                              <SelectItem value="satellite">Satellite</SelectItem>
-                              <SelectItem value="maintenance">Maintenance</SelectItem>
-                              <SelectItem value="equipment">Equipment</SelectItem>
-                              <SelectItem value="software">Software</SelectItem>
                             </SelectContent>
                           </Select><FormMessage />
                         </FormItem>)} />
