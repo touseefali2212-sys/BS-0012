@@ -736,6 +736,18 @@ type BandwidthLinkRow = {
   popLocation: string;
 };
 
+type NetworkInfraItem = {
+  linkName: string;
+  serviceType: string;
+  networkInterface: string;
+  portDetails: string;
+  routingType: string;
+  gateway: string;
+  dnsServers: string;
+  asNumber: string;
+  bgpConfig: string;
+};
+
 const calcProRata = (totalMonthlyCost: string, startDate: string) => {
   if (!startDate || !totalMonthlyCost || Number(totalMonthlyCost) <= 0) return null;
   const start = new Date(startDate);
@@ -761,6 +773,12 @@ function AddVendorTab() {
   });
   const [bandwidthLinks, setBandwidthLinks] = useState<BandwidthLinkRow[]>([]);
   const [showAddLinkRow, setShowAddLinkRow] = useState(false);
+  const [networkInfraList, setNetworkInfraList] = useState<NetworkInfraItem[]>([]);
+  const [showAddNetworkRow, setShowAddNetworkRow] = useState(false);
+  const [newNetworkInfra, setNewNetworkInfra] = useState<NetworkInfraItem>({
+    linkName: "", serviceType: "fiber", networkInterface: "", portDetails: "",
+    routingType: "static", gateway: "", dnsServers: "", asNumber: "", bgpConfig: "",
+  });
   const [newLink, setNewLink] = useState<BandwidthLinkRow>({
     linkName: "", ipAddress: "", vlanDetail: "", city: "", bandwidthMbps: "", bandwidthRate: "", totalMonthlyCost: "", notes: "",
     startDate: "", billingType: "full_month", popLocation: "",
@@ -838,8 +856,9 @@ function AddVendorTab() {
       }
       if (vendorType === "bandwidth" && bandwidthLinks.length > 0) {
         try {
-          await Promise.all(bandwidthLinks.map(link =>
-            apiRequest("POST", "/api/vendor-bandwidth-links", {
+          await Promise.all(bandwidthLinks.map(link => {
+            const infra = networkInfraList.find(n => n.linkName === link.linkName);
+            return apiRequest("POST", "/api/vendor-bandwidth-links", {
               vendorId: vendor.id,
               linkName: link.linkName,
               ipAddress: link.ipAddress || null,
@@ -852,8 +871,16 @@ function AddVendorTab() {
               startDate: link.startDate || null,
               billingType: link.billingType || "full_month",
               popLocation: link.popLocation || null,
-            })
-          ));
+              serviceType: infra?.serviceType || null,
+              networkInterface: infra?.networkInterface || null,
+              portDetails: infra?.portDetails || null,
+              routingType: infra?.routingType || "static",
+              gateway: infra?.gateway || null,
+              dnsServers: infra?.dnsServers || null,
+              asNumber: infra?.asNumber || null,
+              bgpConfig: infra?.bgpConfig || null,
+            });
+          }));
           queryClient.invalidateQueries({ queryKey: ["/api/vendor-bandwidth-links"] });
           extraMsg = ` with ${bandwidthLinks.length} bandwidth link(s)`;
         } catch {
@@ -866,6 +893,8 @@ function AddVendorTab() {
       form.reset();
       setPanelPackages([]);
       setBandwidthLinks([]);
+      setNetworkInfraList([]);
+      setShowAddNetworkRow(false);
       setCurrentStep(1);
       changeTab(vendorType === "panel" ? "panel-vendors" : "bandwidth-vendors");
     },
@@ -1161,83 +1190,180 @@ function AddVendorTab() {
 
               {/* STEP 3: Network & Infrastructure (Bandwidth Only) */}
               {contentStep === 3 && (
-                <div className="space-y-5">
+                <div className="space-y-4">
                   <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30 p-3">
-                    <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-1.5"><Server className="h-3.5 w-3.5" />Configure technical network details, routing, and infrastructure for this bandwidth vendor.</p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-1.5"><Server className="h-3.5 w-3.5" />Each bandwidth link can have its own network infrastructure. Select a link and configure its technical details.</p>
                   </div>
 
-                  <div>
-                    <h3 className="text-sm font-semibold flex items-center gap-1.5 mb-3"><Layers className="h-4 w-4 text-primary" />Provider & Connection</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField control={form.control} name="serviceType" render={({ field }) => (
-                        <FormItem><FormLabel>Provider / Service Type</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || "fiber"}>
-                            <FormControl><SelectTrigger data-testid="select-vendor-service-type"><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent>
-                              <SelectItem value="fiber">Fiber</SelectItem>
-                              <SelectItem value="exchange">Exchange</SelectItem>
-                              <SelectItem value="tower">Tower</SelectItem>
-                              <SelectItem value="wireless_p2p">Wireless P2P</SelectItem>
-                            </SelectContent>
-                          </Select><FormMessage />
-                        </FormItem>)} />
-                      <FormField control={form.control} name="networkInterface" render={({ field }) => (
-                        <FormItem><FormLabel>Interface Type</FormLabel>
-                          <FormControl><Input placeholder="e.g. GigabitEthernet0/0, SFP+, GPON" data-testid="input-vendor-interface" {...field} value={field.value || ""} /></FormControl>
-                          <FormMessage />
-                        </FormItem>)} />
+                  {/* Header row */}
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div>
+                      <h3 className="text-sm font-semibold flex items-center gap-1.5"><Network className="h-4 w-4 text-primary" />Network Infrastructure per Link</h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">Configure routing, interface, and IP details for each bandwidth link</p>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                      <FormField control={form.control} name="portDetails" render={({ field }) => (
-                        <FormItem><FormLabel>Port / Slot Details</FormLabel>
-                          <FormControl><Input placeholder="e.g. Port 1, Slot 2, VLAN Trunk" data-testid="input-vendor-port" {...field} value={field.value || ""} /></FormControl>
-                          <FormMessage />
-                        </FormItem>)} />
-                      <FormField control={form.control} name="routingType" render={({ field }) => (
-                        <FormItem><FormLabel>Routing Type</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || "static"}>
-                            <FormControl><SelectTrigger data-testid="select-vendor-routing-type"><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent>
-                              <SelectItem value="static">Static Routing</SelectItem>
-                              <SelectItem value="bgp">BGP (Dynamic)</SelectItem>
-                              <SelectItem value="ospf">OSPF</SelectItem>
-                            </SelectContent>
-                          </Select><FormMessage />
-                        </FormItem>)} />
-                    </div>
+                    <Button type="button" size="sm" variant="outline" onClick={() => { setShowAddNetworkRow(true); setNewNetworkInfra({ linkName: bandwidthLinks.length > 0 ? bandwidthLinks.find(l => !networkInfraList.some(n => n.linkName === l.linkName))?.linkName || "" : "", serviceType: "fiber", networkInterface: "", portDetails: "", routingType: "static", gateway: "", dnsServers: "", asNumber: "", bgpConfig: "" }); }} data-testid="button-add-network-infra" disabled={showAddNetworkRow}>
+                      <Plus className="h-3.5 w-3.5 mr-1" />Add Network Infrastructure
+                    </Button>
                   </div>
 
-                  <div className="border-t pt-4">
-                    <h3 className="text-sm font-semibold flex items-center gap-1.5 mb-3"><Network className="h-4 w-4 text-primary" />IP & DNS Configuration</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField control={form.control} name="gateway" render={({ field }) => (
-                        <FormItem><FormLabel>Gateway IP</FormLabel>
-                          <FormControl><Input placeholder="e.g. 192.168.1.1" data-testid="input-vendor-gateway" {...field} value={field.value || ""} /></FormControl>
-                          <FormMessage />
-                        </FormItem>)} />
-                      <FormField control={form.control} name="dnsServers" render={({ field }) => (
-                        <FormItem><FormLabel>DNS Servers</FormLabel>
-                          <FormControl><Input placeholder="e.g. 8.8.8.8, 1.1.1.1" data-testid="input-vendor-dns" {...field} value={field.value || ""} /></FormControl>
-                          <FormMessage />
-                        </FormItem>)} />
-                    </div>
-                  </div>
+                  {/* Existing network infra cards */}
+                  {networkInfraList.map((infra, idx) => (
+                    <Card key={idx} className="border-2 border-primary/20">
+                      <CardContent className="p-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Server className="h-4 w-4 text-primary" />
+                            <span className="text-sm font-semibold">{infra.linkName || "Unassigned Link"}</span>
+                            {infra.serviceType && <Badge variant="secondary" className="text-[10px] capitalize no-default-active-elevate">{infra.serviceType.replace("_", " ")}</Badge>}
+                          </div>
+                          <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => setNetworkInfraList(networkInfraList.filter((_, i) => i !== idx))} data-testid={`button-remove-network-infra-${idx}`}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-xs font-medium">Bandwidth Link</Label>
+                            <Select value={infra.linkName} onValueChange={(v) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, linkName: v } : n))}>
+                              <SelectTrigger className="h-8 text-xs mt-1" data-testid={`select-network-link-${idx}`}><SelectValue placeholder="Select a link" /></SelectTrigger>
+                              <SelectContent>
+                                {bandwidthLinks.map(l => <SelectItem key={l.linkName} value={l.linkName}>{l.linkName}</SelectItem>)}
+                                <SelectItem value="__new__">— New / Standalone —</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Provider / Service Type</Label>
+                            <Select value={infra.serviceType} onValueChange={(v) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, serviceType: v } : n))}>
+                              <SelectTrigger className="h-8 text-xs mt-1" data-testid={`select-network-service-${idx}`}><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="fiber">Fiber</SelectItem>
+                                <SelectItem value="exchange">Exchange</SelectItem>
+                                <SelectItem value="tower">Tower</SelectItem>
+                                <SelectItem value="wireless_p2p">Wireless P2P</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Interface Type</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. GigabitEthernet0/0, SFP+" value={infra.networkInterface} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, networkInterface: e.target.value } : n))} data-testid={`input-network-interface-${idx}`} />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Port / Slot Details</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. Port 1, Slot 2" value={infra.portDetails} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, portDetails: e.target.value } : n))} data-testid={`input-network-port-${idx}`} />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Routing Type</Label>
+                            <Select value={infra.routingType} onValueChange={(v) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, routingType: v } : n))}>
+                              <SelectTrigger className="h-8 text-xs mt-1" data-testid={`select-network-routing-${idx}`}><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="static">Static Routing</SelectItem>
+                                <SelectItem value="bgp">BGP (Dynamic)</SelectItem>
+                                <SelectItem value="ospf">OSPF</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Gateway IP</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. 192.168.1.1" value={infra.gateway} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, gateway: e.target.value } : n))} data-testid={`input-network-gateway-${idx}`} />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">DNS Servers</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. 8.8.8.8, 1.1.1.1" value={infra.dnsServers} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, dnsServers: e.target.value } : n))} data-testid={`input-network-dns-${idx}`} />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">AS Number (ASN)</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. AS65000" value={infra.asNumber} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, asNumber: e.target.value } : n))} data-testid={`input-network-asn-${idx}`} />
+                          </div>
+                          <div className="md:col-span-2">
+                            <Label className="text-xs font-medium">BGP Configuration / Neighbor</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. Neighbor 1.2.3.4 remote-as 65001" value={infra.bgpConfig} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, bgpConfig: e.target.value } : n))} data-testid={`input-network-bgp-${idx}`} />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
 
-                  <div className="border-t pt-4">
-                    <h3 className="text-sm font-semibold flex items-center gap-1.5 mb-3"><GitBranch className="h-4 w-4 text-primary" />BGP / ASN Configuration</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField control={form.control} name="asNumber" render={({ field }) => (
-                        <FormItem><FormLabel>AS Number (ASN)</FormLabel>
-                          <FormControl><Input placeholder="e.g. AS65000" data-testid="input-vendor-asn" {...field} value={field.value || ""} /></FormControl>
-                          <FormMessage />
-                        </FormItem>)} />
-                      <FormField control={form.control} name="bgpConfig" render={({ field }) => (
-                        <FormItem><FormLabel>BGP Configuration / Neighbor</FormLabel>
-                          <FormControl><Input placeholder="e.g. Neighbor 1.2.3.4 remote-as 65001" data-testid="input-vendor-bgp" {...field} value={field.value || ""} /></FormControl>
-                          <FormMessage />
-                        </FormItem>)} />
+                  {/* Add new network infra form */}
+                  {showAddNetworkRow && (
+                    <Card className="border-dashed border-2 border-primary/40">
+                      <CardContent className="p-4 space-y-4">
+                        <h4 className="text-sm font-semibold flex items-center gap-1.5"><Server className="h-4 w-4 text-primary" />New Network Infrastructure</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-xs font-medium">Bandwidth Link <span className="text-destructive">*</span></Label>
+                            <Select value={newNetworkInfra.linkName} onValueChange={(v) => setNewNetworkInfra({ ...newNetworkInfra, linkName: v })}>
+                              <SelectTrigger className="h-8 text-xs mt-1" data-testid="select-new-network-link"><SelectValue placeholder="Select a bandwidth link" /></SelectTrigger>
+                              <SelectContent>
+                                {bandwidthLinks.map(l => <SelectItem key={l.linkName} value={l.linkName}>{l.linkName}</SelectItem>)}
+                                <SelectItem value="__new__">— New / Standalone —</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Provider / Service Type</Label>
+                            <Select value={newNetworkInfra.serviceType} onValueChange={(v) => setNewNetworkInfra({ ...newNetworkInfra, serviceType: v })}>
+                              <SelectTrigger className="h-8 text-xs mt-1" data-testid="select-new-network-service"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="fiber">Fiber</SelectItem>
+                                <SelectItem value="exchange">Exchange</SelectItem>
+                                <SelectItem value="tower">Tower</SelectItem>
+                                <SelectItem value="wireless_p2p">Wireless P2P</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Interface Type</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. GigabitEthernet0/0, SFP+" value={newNetworkInfra.networkInterface} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, networkInterface: e.target.value })} data-testid="input-new-network-interface" />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Port / Slot Details</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. Port 1, Slot 2" value={newNetworkInfra.portDetails} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, portDetails: e.target.value })} data-testid="input-new-network-port" />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Routing Type</Label>
+                            <Select value={newNetworkInfra.routingType} onValueChange={(v) => setNewNetworkInfra({ ...newNetworkInfra, routingType: v })}>
+                              <SelectTrigger className="h-8 text-xs mt-1" data-testid="select-new-network-routing"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="static">Static Routing</SelectItem>
+                                <SelectItem value="bgp">BGP (Dynamic)</SelectItem>
+                                <SelectItem value="ospf">OSPF</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">Gateway IP</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. 192.168.1.1" value={newNetworkInfra.gateway} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, gateway: e.target.value })} data-testid="input-new-network-gateway" />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">DNS Servers</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. 8.8.8.8, 1.1.1.1" value={newNetworkInfra.dnsServers} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, dnsServers: e.target.value })} data-testid="input-new-network-dns" />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-medium">AS Number (ASN)</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. AS65000" value={newNetworkInfra.asNumber} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, asNumber: e.target.value })} data-testid="input-new-network-asn" />
+                          </div>
+                          <div className="md:col-span-2">
+                            <Label className="text-xs font-medium">BGP Configuration / Neighbor</Label>
+                            <Input className="h-8 text-xs mt-1" placeholder="e.g. Neighbor 1.2.3.4 remote-as 65001" value={newNetworkInfra.bgpConfig} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, bgpConfig: e.target.value })} data-testid="input-new-network-bgp" />
+                          </div>
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                          <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddNetworkRow(false)}>Cancel</Button>
+                          <Button type="button" size="sm" onClick={() => { if (!newNetworkInfra.linkName) return; setNetworkInfraList([...networkInfraList, { ...newNetworkInfra }]); setShowAddNetworkRow(false); setNewNetworkInfra({ linkName: "", serviceType: "fiber", networkInterface: "", portDetails: "", routingType: "static", gateway: "", dnsServers: "", asNumber: "", bgpConfig: "" }); }} data-testid="button-confirm-add-network-infra">
+                            <CheckCircle className="h-3.5 w-3.5 mr-1" />Add Infrastructure
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {networkInfraList.length === 0 && !showAddNetworkRow && (
+                    <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                      <Network className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">No network infrastructure configured yet</p>
+                      <p className="text-xs mt-1">Click "Add Network Infrastructure" to configure per-link network details</p>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 

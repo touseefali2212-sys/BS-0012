@@ -919,6 +919,14 @@ export const vendorBandwidthLinks = pgTable("vendor_bandwidth_links", {
   startDate: text("start_date"),
   billingType: text("billing_type").default("full_month"),
   popLocation: text("pop_location"),
+  serviceType: text("service_type"),
+  networkInterface: text("network_interface"),
+  portDetails: text("port_details"),
+  routingType: text("routing_type").default("static"),
+  gateway: text("gateway"),
+  dnsServers: text("dns_servers"),
+  asNumber: text("as_number"),
+  bgpConfig: text("bgp_config"),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
