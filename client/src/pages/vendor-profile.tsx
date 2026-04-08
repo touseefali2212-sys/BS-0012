@@ -1515,171 +1515,223 @@ export default function VendorProfilePage() {
       {/* Edit Vendor Dialog */}
       {editVendorForm && (
         <Dialog open={editVendorOpen} onOpenChange={open => { if (!open) { setEditVendorOpen(false); setEditVendorForm(null); } }}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Edit className="h-4 w-4 text-primary" />Edit Vendor Profile
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-5 pt-1">
-
-              {/* Basic Info */}
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Basic Information</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1 sm:col-span-2">
-                    <label className="text-sm font-medium">Vendor Name <span className="text-destructive">*</span></label>
-                    <Input value={editVendorForm.name} onChange={e => setEditVendorForm(f => f ? { ...f, name: e.target.value } : f)} data-testid="input-editvendor-name" placeholder="Vendor name" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium">Contact Person</label>
-                    <Input value={editVendorForm.contactPerson} onChange={e => setEditVendorForm(f => f ? { ...f, contactPerson: e.target.value } : f)} data-testid="input-editvendor-contact" placeholder="Contact person" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium">Phone <span className="text-destructive">*</span></label>
-                    <Input value={editVendorForm.phone} onChange={e => setEditVendorForm(f => f ? { ...f, phone: e.target.value } : f)} data-testid="input-editvendor-phone" placeholder="Phone number" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium">Email</label>
-                    <Input type="email" value={editVendorForm.email} onChange={e => setEditVendorForm(f => f ? { ...f, email: e.target.value } : f)} data-testid="input-editvendor-email" placeholder="Email address" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium">City</label>
-                    <Input value={editVendorForm.city} onChange={e => setEditVendorForm(f => f ? { ...f, city: e.target.value } : f)} data-testid="input-editvendor-city" placeholder="City" />
-                  </div>
-                  <div className="space-y-1 sm:col-span-2">
-                    <label className="text-sm font-medium">Address</label>
-                    <Input value={editVendorForm.address} onChange={e => setEditVendorForm(f => f ? { ...f, address: e.target.value } : f)} data-testid="input-editvendor-address" placeholder="Address" />
-                  </div>
+          <DialogContent className="max-w-3xl max-h-[92vh] overflow-hidden p-0 gap-0">
+            {/* Hero Header */}
+            <div className={`rounded-t-lg px-5 py-4 shrink-0 ${vendorType === "panel" ? "bg-gradient-to-r from-purple-900 via-purple-700 to-violet-700" : "vendor-page-header"}`}>
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-xl bg-white/20 flex items-center justify-center text-white text-xl font-bold shrink-0 border-2 border-white/30">
+                  {editVendorForm.name.charAt(0).toUpperCase()}
                 </div>
-              </div>
-
-              {/* Service & Contract */}
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Service & Contract</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium">Service Type</label>
-                    <Select value={editVendorForm.serviceType} onValueChange={v => setEditVendorForm(f => f ? { ...f, serviceType: v } : f)}>
-                      <SelectTrigger data-testid="select-editvendor-service-type"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="fiber">Fiber</SelectItem>
-                        <SelectItem value="wireless">Wireless</SelectItem>
-                        <SelectItem value="cable">Cable</SelectItem>
-                        <SelectItem value="satellite">Satellite</SelectItem>
-                        <SelectItem value="dsl">DSL</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-base font-bold text-white truncate">{editVendorForm.name}</h2>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${vendorType === "panel" ? "bg-purple-400/30 text-white border-purple-300/30" : "bg-blue-400/30 text-white border-blue-300/30"}`}>
+                      {vendorType === "panel" ? "Panel Vendor" : "Bandwidth Vendor"}
+                    </span>
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium">SLA Level</label>
-                    <Select value={editVendorForm.slaLevel} onValueChange={v => setEditVendorForm(f => f ? { ...f, slaLevel: v } : f)}>
-                      <SelectTrigger data-testid="select-editvendor-sla"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="standard">Standard</SelectItem>
-                        <SelectItem value="premium">Premium</SelectItem>
-                        <SelectItem value="enterprise">Enterprise</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium">Contract Start</label>
-                    <Input type="date" value={editVendorForm.contractStartDate} onChange={e => setEditVendorForm(f => f ? { ...f, contractStartDate: e.target.value } : f)} data-testid="input-editvendor-contract-start" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium">Contract End</label>
-                    <Input type="date" value={editVendorForm.contractEndDate} onChange={e => setEditVendorForm(f => f ? { ...f, contractEndDate: e.target.value } : f)} data-testid="input-editvendor-contract-end" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium">Status</label>
-                    <Select value={editVendorForm.status} onValueChange={v => setEditVendorForm(f => f ? { ...f, status: v } : f)}>
-                      <SelectTrigger data-testid="select-editvendor-status"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                        <SelectItem value="suspended">Suspended</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium">NTN</label>
-                    <Input value={editVendorForm.ntn} onChange={e => setEditVendorForm(f => f ? { ...f, ntn: e.target.value } : f)} data-testid="input-editvendor-ntn" placeholder="Tax number" />
-                  </div>
+                  <p className="text-white/70 text-xs mt-0.5">Edit vendor profile — update details across tabs and save</p>
                 </div>
-              </div>
-
-              {/* Bandwidth (shown for bandwidth vendors) */}
-              {vendorType === "bandwidth" && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Bandwidth Details</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium">Total Bandwidth</label>
-                      <Input value={editVendorForm.totalBandwidth} onChange={e => setEditVendorForm(f => f ? { ...f, totalBandwidth: e.target.value } : f)} data-testid="input-editvendor-total-bw" placeholder="e.g. 100 Mbps" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium">Used Bandwidth</label>
-                      <Input value={editVendorForm.usedBandwidth} onChange={e => setEditVendorForm(f => f ? { ...f, usedBandwidth: e.target.value } : f)} data-testid="input-editvendor-used-bw" placeholder="e.g. 60 Mbps" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium">Monthly Cost (PKR)</label>
-                      <Input type="number" min="0" value={editVendorForm.bandwidthCost} onChange={e => setEditVendorForm(f => f ? { ...f, bandwidthCost: e.target.value } : f)} data-testid="input-editvendor-bw-cost" />
-                    </div>
-                  </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 border border-white/30 h-8 px-3 text-xs" onClick={() => { setEditVendorOpen(false); setEditVendorForm(null); }} data-testid="button-editvendor-cancel">Cancel</Button>
+                  <Button size="sm" className="bg-white text-blue-800 hover:bg-blue-50 font-semibold h-8 px-3 text-xs" onClick={submitEditVendor} disabled={editVendorSubmitting} data-testid="button-editvendor-submit">
+                    {editVendorSubmitting ? "Saving…" : "Save Changes"}
+                  </Button>
                 </div>
-              )}
-
-              {/* Panel Details (shown for panel vendors) */}
-              {vendorType === "panel" && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Panel Details</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium">Panel URL</label>
-                      <Input value={editVendorForm.panelUrl} onChange={e => setEditVendorForm(f => f ? { ...f, panelUrl: e.target.value } : f)} data-testid="input-editvendor-panel-url" placeholder="e.g. panel.vendor.com" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium">Panel Username</label>
-                      <Input value={editVendorForm.panelUsername} onChange={e => setEditVendorForm(f => f ? { ...f, panelUsername: e.target.value } : f)} data-testid="input-editvendor-panel-username" placeholder="Panel login username" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Bank Details */}
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Bank Details</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium">Bank Name</label>
-                    <Input value={editVendorForm.bankName} onChange={e => setEditVendorForm(f => f ? { ...f, bankName: e.target.value } : f)} data-testid="input-editvendor-bank-name" placeholder="Bank name" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium">Account Title</label>
-                    <Input value={editVendorForm.bankAccountTitle} onChange={e => setEditVendorForm(f => f ? { ...f, bankAccountTitle: e.target.value } : f)} data-testid="input-editvendor-bank-title" placeholder="Account title" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium">Account Number</label>
-                    <Input value={editVendorForm.bankAccountNumber} onChange={e => setEditVendorForm(f => f ? { ...f, bankAccountNumber: e.target.value } : f)} data-testid="input-editvendor-bank-number" placeholder="Account number" />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-sm font-medium">Branch Code</label>
-                    <Input value={editVendorForm.bankBranchCode} onChange={e => setEditVendorForm(f => f ? { ...f, bankBranchCode: e.target.value } : f)} data-testid="input-editvendor-bank-branch" placeholder="Branch code" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-2 justify-end pt-1 border-t">
-                <Button variant="outline" onClick={() => { setEditVendorOpen(false); setEditVendorForm(null); }} data-testid="button-editvendor-cancel">
-                  Cancel
-                </Button>
-                <Button onClick={submitEditVendor} disabled={editVendorSubmitting} data-testid="button-editvendor-submit">
-                  {editVendorSubmitting ? "Saving…" : "Save Changes"}
-                </Button>
               </div>
             </div>
+            {/* Tabbed body */}
+            <Tabs defaultValue="vendorinfo" className="flex flex-col overflow-hidden" style={{ maxHeight: "calc(92vh - 80px)" }}>
+              <div className="border-b bg-muted/30 px-4 shrink-0">
+                <TabsList className="h-auto py-0 bg-transparent gap-0 rounded-none">
+                  <TabsTrigger value="vendorinfo" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><User className="h-3.5 w-3.5" />Vendor Info</TabsTrigger>
+                  {vendorType === "panel" && <TabsTrigger value="panelinfo" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><Globe className="h-3.5 w-3.5" />Panel Info</TabsTrigger>}
+                  {vendorType === "bandwidth" && <TabsTrigger value="bwinfo" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><Network className="h-3.5 w-3.5" />Bandwidth</TabsTrigger>}
+                  <TabsTrigger value="packages" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><Package className="h-3.5 w-3.5" />Packages</TabsTrigger>
+                  <TabsTrigger value="business" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><Building2 className="h-3.5 w-3.5" />Business & Contract</TabsTrigger>
+                  <TabsTrigger value="banking" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><CreditCard className="h-3.5 w-3.5" />Banking</TabsTrigger>
+                </TabsList>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {/* Vendor Info */}
+                <TabsContent value="vendorinfo" className="p-5 space-y-4 mt-0">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <label className="text-sm font-medium">Vendor Name <span className="text-destructive">*</span></label>
+                      <Input value={editVendorForm.name} onChange={e => setEditVendorForm(f => f ? { ...f, name: e.target.value } : f)} data-testid="input-editvendor-name" placeholder="Vendor name" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Contact Person</label>
+                      <Input value={editVendorForm.contactPerson} onChange={e => setEditVendorForm(f => f ? { ...f, contactPerson: e.target.value } : f)} data-testid="input-editvendor-contact" placeholder="Contact person" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Phone <span className="text-destructive">*</span></label>
+                      <Input value={editVendorForm.phone} onChange={e => setEditVendorForm(f => f ? { ...f, phone: e.target.value } : f)} data-testid="input-editvendor-phone" placeholder="Phone number" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Email</label>
+                      <Input type="email" value={editVendorForm.email} onChange={e => setEditVendorForm(f => f ? { ...f, email: e.target.value } : f)} data-testid="input-editvendor-email" placeholder="Email address" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">City</label>
+                      <Input value={editVendorForm.city} onChange={e => setEditVendorForm(f => f ? { ...f, city: e.target.value } : f)} data-testid="input-editvendor-city" placeholder="City" />
+                    </div>
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <label className="text-sm font-medium">Address</label>
+                      <Input value={editVendorForm.address} onChange={e => setEditVendorForm(f => f ? { ...f, address: e.target.value } : f)} data-testid="input-editvendor-address" placeholder="Address" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Status</label>
+                      <Select value={editVendorForm.status} onValueChange={v => setEditVendorForm(f => f ? { ...f, status: v } : f)}>
+                        <SelectTrigger data-testid="select-editvendor-status"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                          <SelectItem value="suspended">Suspended</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Panel Info */}
+                {vendorType === "panel" && (
+                  <TabsContent value="panelinfo" className="p-5 space-y-4 mt-0">
+                    <div className="rounded-lg border border-dashed border-purple-300/50 dark:border-purple-700/50 p-4 bg-purple-50/50 dark:bg-purple-950/20">
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Globe className="h-3.5 w-3.5 text-purple-500" />Panel credentials are used for automated recharge and balance queries.</p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Panel URL</label>
+                        <Input value={editVendorForm.panelUrl} onChange={e => setEditVendorForm(f => f ? { ...f, panelUrl: e.target.value } : f)} data-testid="input-editvendor-panel-url" placeholder="e.g. panel.vendor.com" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Panel Username</label>
+                        <Input value={editVendorForm.panelUsername} onChange={e => setEditVendorForm(f => f ? { ...f, panelUsername: e.target.value } : f)} data-testid="input-editvendor-panel-username" placeholder="Panel login username" />
+                      </div>
+                    </div>
+                  </TabsContent>
+                )}
+
+                {/* Bandwidth Info */}
+                {vendorType === "bandwidth" && (
+                  <TabsContent value="bwinfo" className="p-5 space-y-4 mt-0">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Total Bandwidth</label>
+                        <Input value={editVendorForm.totalBandwidth} onChange={e => setEditVendorForm(f => f ? { ...f, totalBandwidth: e.target.value } : f)} data-testid="input-editvendor-total-bw" placeholder="e.g. 100 Mbps" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Used Bandwidth</label>
+                        <Input value={editVendorForm.usedBandwidth} onChange={e => setEditVendorForm(f => f ? { ...f, usedBandwidth: e.target.value } : f)} data-testid="input-editvendor-used-bw" placeholder="e.g. 60 Mbps" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Monthly Cost (PKR)</label>
+                        <Input type="number" min="0" value={editVendorForm.bandwidthCost} onChange={e => setEditVendorForm(f => f ? { ...f, bandwidthCost: e.target.value } : f)} data-testid="input-editvendor-bw-cost" />
+                      </div>
+                    </div>
+                  </TabsContent>
+                )}
+
+                {/* Packages */}
+                <TabsContent value="packages" className="p-5 mt-0">
+                  {(() => {
+                    const pkgs = (allPackages || []).filter(p => p.vendorId === vendor?.id);
+                    return pkgs.length === 0 ? (
+                      <div className="text-center py-8 border rounded-lg text-muted-foreground">
+                        <Package className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                        <p className="text-sm font-medium">No packages yet</p>
+                        <p className="text-xs mt-1">Close this dialog and use "Add Package" on the profile page to add packages.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted-foreground mb-3">{pkgs.length} package(s) configured for this vendor. Manage packages from the profile page.</p>
+                        {pkgs.map(pkg => (
+                          <div key={pkg.id} data-testid={`row-profile-pkg-${pkg.id}`} className="flex items-center justify-between rounded-lg border px-4 py-3 gap-2">
+                            <div>
+                              <p className="text-sm font-medium">{pkg.packageName}</p>
+                              <p className="text-xs text-muted-foreground">{pkg.speed || "N/A"} · {pkg.dataLimit || "N/A"} · {pkg.validity || "N/A"}</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-xs text-muted-foreground">Vendor: <span className="font-semibold text-foreground">PKR {Number(pkg.vendorPrice).toLocaleString()}</span></p>
+                              <p className="text-xs text-muted-foreground">ISP: <span className="font-semibold text-primary">PKR {Number(pkg.ispSellingPrice).toLocaleString()}</span></p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </TabsContent>
+
+                {/* Business & Contract */}
+                <TabsContent value="business" className="p-5 space-y-4 mt-0">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Service Type</label>
+                      <Select value={editVendorForm.serviceType} onValueChange={v => setEditVendorForm(f => f ? { ...f, serviceType: v } : f)}>
+                        <SelectTrigger data-testid="select-editvendor-service-type"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fiber">Fiber</SelectItem>
+                          <SelectItem value="wireless">Wireless</SelectItem>
+                          <SelectItem value="cable">Cable</SelectItem>
+                          <SelectItem value="satellite">Satellite</SelectItem>
+                          <SelectItem value="maintenance">Maintenance</SelectItem>
+                          <SelectItem value="equipment">Equipment</SelectItem>
+                          <SelectItem value="software">Software</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">SLA Level</label>
+                      <Select value={editVendorForm.slaLevel} onValueChange={v => setEditVendorForm(f => f ? { ...f, slaLevel: v } : f)}>
+                        <SelectTrigger data-testid="select-editvendor-sla"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="standard">Standard</SelectItem>
+                          <SelectItem value="premium">Premium</SelectItem>
+                          <SelectItem value="enterprise">Enterprise</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">NTN</label>
+                      <Input value={editVendorForm.ntn} onChange={e => setEditVendorForm(f => f ? { ...f, ntn: e.target.value } : f)} data-testid="input-editvendor-ntn" placeholder="Tax number" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Contract Start</label>
+                      <Input type="date" value={editVendorForm.contractStartDate} onChange={e => setEditVendorForm(f => f ? { ...f, contractStartDate: e.target.value } : f)} data-testid="input-editvendor-contract-start" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Contract End</label>
+                      <Input type="date" value={editVendorForm.contractEndDate} onChange={e => setEditVendorForm(f => f ? { ...f, contractEndDate: e.target.value } : f)} data-testid="input-editvendor-contract-end" />
+                    </div>
+                  </div>
+                </TabsContent>
+
+                {/* Banking */}
+                <TabsContent value="banking" className="p-5 space-y-4 mt-0">
+                  <div className="rounded-lg border border-dashed border-muted-foreground/30 p-4 bg-muted/20">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5" />Banking details are used for payment processing and reconciliation.</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Bank Name</label>
+                      <Input value={editVendorForm.bankName} onChange={e => setEditVendorForm(f => f ? { ...f, bankName: e.target.value } : f)} data-testid="input-editvendor-bank-name" placeholder="Bank name" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Account Title</label>
+                      <Input value={editVendorForm.bankAccountTitle} onChange={e => setEditVendorForm(f => f ? { ...f, bankAccountTitle: e.target.value } : f)} data-testid="input-editvendor-bank-title" placeholder="Account title" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Account Number</label>
+                      <Input value={editVendorForm.bankAccountNumber} onChange={e => setEditVendorForm(f => f ? { ...f, bankAccountNumber: e.target.value } : f)} data-testid="input-editvendor-bank-number" placeholder="Account number" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Branch Code</label>
+                      <Input value={editVendorForm.bankBranchCode} onChange={e => setEditVendorForm(f => f ? { ...f, bankBranchCode: e.target.value } : f)} data-testid="input-editvendor-bank-branch" placeholder="Branch code" />
+                    </div>
+                  </div>
+                </TabsContent>
+              </div>
+            </Tabs>
           </DialogContent>
         </Dialog>
       )}

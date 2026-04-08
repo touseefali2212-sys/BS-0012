@@ -51,6 +51,9 @@ import {
   Headphones,
   Network,
   Lock,
+  ChevronRight,
+  ChevronLeft,
+  Check,
 } from "lucide-react";
 import { useTab } from "@/hooks/use-tab";
 import { Button } from "@/components/ui/button";
@@ -721,6 +724,7 @@ type BandwidthLinkRow = {
 function AddVendorTab() {
   const { toast } = useToast();
   const [, changeTab] = useTab("bandwidth-vendors");
+  const [currentStep, setCurrentStep] = useState(1);
   const [panelPackages, setPanelPackages] = useState<PanelPackageRow[]>([]);
   const [showAddPkgRow, setShowAddPkgRow] = useState(false);
   const [newPkg, setNewPkg] = useState<PanelPackageRow>({
@@ -818,6 +822,7 @@ function AddVendorTab() {
       form.reset();
       setPanelPackages([]);
       setBandwidthLinks([]);
+      setCurrentStep(1);
       changeTab(vendorType === "panel" ? "panel-vendors" : "bandwidth-vendors");
     },
     onError: (error: Error) => {
@@ -862,741 +867,304 @@ function AddVendorTab() {
     setBandwidthLinks(bandwidthLinks.filter((_, i) => i !== index));
   };
 
+  const WIZARD_STEPS = [
+    { label: "Vendor Info", icon: User },
+    { label: "Service Details", icon: vendorType === "panel" ? Globe : Network },
+    { label: "Business & Contract", icon: Building2 },
+    { label: "Banking", icon: CreditCard },
+    { label: "Review", icon: Eye },
+  ];
+
   return (
     <div className="page-fade-in" data-testid="tab-content-add">
       <Card>
-        <CardHeader>
-          <CardTitle>Add New Vendor</CardTitle>
-          <CardDescription>Fill in the details below to register a new vendor</CardDescription>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2"><Plus className="h-4 w-4" />Add New Vendor</CardTitle>
+          <CardDescription>Step {currentStep} of {WIZARD_STEPS.length} — {WIZARD_STEPS[currentStep - 1].label}</CardDescription>
+          <div className="flex items-center gap-1 pt-3 flex-wrap">
+            {WIZARD_STEPS.map((step, i) => {
+              const n = i + 1;
+              const done = currentStep > n;
+              const active = currentStep === n;
+              const StepIcon = step.icon;
+              return (
+                <div key={n} className="flex items-center">
+                  <div className={`flex items-center justify-center h-7 w-7 rounded-full text-xs font-bold border-2 shrink-0 transition-colors ${done ? "bg-primary border-primary text-primary-foreground" : active ? "border-primary text-primary bg-primary/10" : "border-muted-foreground/30 text-muted-foreground"}`}>
+                    {done ? <Check className="h-3.5 w-3.5" /> : <StepIcon className="h-3.5 w-3.5" />}
+                  </div>
+                  <span className={`hidden lg:inline text-xs ml-1.5 font-medium ${active ? "text-primary" : done ? "text-muted-foreground" : "text-muted-foreground/40"}`}>{step.label}</span>
+                  {i < WIZARD_STEPS.length - 1 && <div className={`h-0.5 w-5 lg:w-8 mx-1.5 rounded shrink-0 transition-colors ${done ? "bg-primary" : "bg-muted-foreground/20"}`} />}
+                </div>
+              );
+            })}
+          </div>
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit((data) => createMutation.mutate(data))} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Vendor Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter vendor name" data-testid="input-vendor-name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="vendorType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Vendor Type</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || "bandwidth"}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-vendor-type">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="bandwidth">Bandwidth (CIR-Based)</SelectItem>
-                          <SelectItem value="panel">Panel (Recharge-Based)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+            <form onSubmit={form.handleSubmit((data) => createMutation.mutate(data))} className="space-y-0">
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="contactPerson"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contact Person</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Contact person name" data-testid="input-vendor-contact-person" {...field} value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone</FormLabel>
-                      <FormControl>
-                        <Input placeholder="03XX-XXXXXXX" data-testid="input-vendor-phone" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="email@example.com" data-testid="input-vendor-email" {...field} value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="serviceType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Service Type</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || "fiber"}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-vendor-service-type">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="fiber">Fiber</SelectItem>
-                          <SelectItem value="wireless">Wireless</SelectItem>
-                          <SelectItem value="cable">Cable</SelectItem>
-                          <SelectItem value="satellite">Satellite</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="address"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Address</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Full address" data-testid="input-vendor-address" {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {vendorType === "bandwidth" && (
-                <FormField
-                  control={form.control}
-                  name="city"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>City</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. Lahore, Karachi, Islamabad" data-testid="input-vendor-city" {...field} value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              {/* STEP 1: Vendor Info */}
+              {currentStep === 1 && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Vendor Name <span className="text-destructive">*</span></FormLabel><FormControl><Input placeholder="Enter vendor name" data-testid="input-vendor-name" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="vendorType" render={({ field }) => (<FormItem><FormLabel>Vendor Type</FormLabel><Select onValueChange={field.onChange} value={field.value || "bandwidth"}><FormControl><SelectTrigger data-testid="select-vendor-type"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="bandwidth">Bandwidth (CIR-Based)</SelectItem><SelectItem value="panel">Panel (Recharge-Based)</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="contactPerson" render={({ field }) => (<FormItem><FormLabel>Contact Person</FormLabel><FormControl><Input placeholder="Contact person name" data-testid="input-vendor-contact-person" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="phone" render={({ field }) => (<FormItem><FormLabel>Phone <span className="text-destructive">*</span></FormLabel><FormControl><Input placeholder="03XX-XXXXXXX" data-testid="input-vendor-phone" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="email" render={({ field }) => (<FormItem><FormLabel>Email</FormLabel><FormControl><Input placeholder="email@example.com" data-testid="input-vendor-email" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="city" render={({ field }) => (<FormItem><FormLabel>City</FormLabel><FormControl><Input placeholder="e.g. Lahore, Karachi, Islamabad" data-testid="input-vendor-city" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                  </div>
+                  <FormField control={form.control} name="address" render={({ field }) => (<FormItem><FormLabel>Address</FormLabel><FormControl><Textarea placeholder="Full address" data-testid="input-vendor-address" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                  <FormField control={form.control} name="status" render={({ field }) => (<FormItem><FormLabel>Status</FormLabel><Select onValueChange={field.onChange} value={field.value || "active"}><FormControl><SelectTrigger data-testid="select-vendor-status"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="ntn"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>NTN</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Tax registration number" data-testid="input-vendor-ntn" {...field} value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="bankName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Bank Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. HBL, MCB, UBL" data-testid="input-vendor-bank-name" {...field} value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="bankAccountTitle"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Account Title</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Account holder name" data-testid="input-vendor-bank-title" {...field} value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="bankAccountNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Account Number / IBAN</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Account number or IBAN" data-testid="input-vendor-bank-number" {...field} value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="bankBranchCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Branch Code</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Branch code" data-testid="input-vendor-branch-code" {...field} value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="slaLevel"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>SLA Level</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || "standard"}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-vendor-sla-level">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="standard">Standard</SelectItem>
-                          <SelectItem value="premium">Premium</SelectItem>
-                          <SelectItem value="enterprise">Enterprise</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="contractStartDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contract Start Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" data-testid="input-vendor-contract-start" {...field} value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="contractEndDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contract End Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" data-testid="input-vendor-contract-end" {...field} value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {vendorType === "bandwidth" && (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="totalBandwidth"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Total Bandwidth</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g. 100 Mbps" data-testid="input-vendor-total-bandwidth" {...field} value={field.value || ""} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="usedBandwidth"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Used Bandwidth</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g. 60 Mbps" data-testid="input-vendor-used-bandwidth" {...field} value={field.value || ""} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="bandwidthCost"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Total Bandwidth Cost (Monthly)</FormLabel>
-                          <FormControl>
-                            <Input type="number" placeholder="0" data-testid="input-vendor-bandwidth-cost" {...field} value={field.value || ""} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div>
-                        <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                          <Wifi className="h-4 w-4" />
-                          Bandwidth Links & IP/VLAN Details
-                        </h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">Add multiple bandwidth links with IP addresses and VLAN details</p>
+              {/* STEP 2: Service Details */}
+              {currentStep === 2 && (
+                <div className="space-y-5">
+                  {vendorType === "bandwidth" && (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <FormField control={form.control} name="totalBandwidth" render={({ field }) => (<FormItem><FormLabel>Total Bandwidth</FormLabel><FormControl><Input placeholder="e.g. 100 Mbps" data-testid="input-vendor-total-bandwidth" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="usedBandwidth" render={({ field }) => (<FormItem><FormLabel>Used Bandwidth</FormLabel><FormControl><Input placeholder="e.g. 60 Mbps" data-testid="input-vendor-used-bandwidth" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="bandwidthCost" render={({ field }) => (<FormItem><FormLabel>Monthly Cost (PKR)</FormLabel><FormControl><Input type="number" placeholder="0" data-testid="input-vendor-bandwidth-cost" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
                       </div>
-                      <Button type="button" size="sm" variant="outline" onClick={() => setShowAddLinkRow(true)} data-testid="button-add-bw-link">
-                        <Plus className="h-3.5 w-3.5 mr-1" />
-                        Add Link
-                      </Button>
-                    </div>
-
-                    {bandwidthLinks.length > 0 && (
-                      <Card>
-                        <CardContent className="p-0">
-                          <div className="overflow-x-auto">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="text-xs">Link Name</TableHead>
-                                  <TableHead className="text-xs">IP Address</TableHead>
-                                  <TableHead className="text-xs">VLAN</TableHead>
-                                  <TableHead className="text-xs">City</TableHead>
-                                  <TableHead className="text-xs">Mbps</TableHead>
-                                  <TableHead className="text-xs">Rate/Mbps</TableHead>
-                                  <TableHead className="text-xs">Monthly Cost</TableHead>
-                                  <TableHead className="w-10"></TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {bandwidthLinks.map((link, idx) => (
-                                  <TableRow key={idx} data-testid={`row-bw-link-${idx}`}>
-                                    <TableCell className="text-sm font-medium">{link.linkName}</TableCell>
-                                    <TableCell className="text-sm font-mono">{link.ipAddress || "N/A"}</TableCell>
-                                    <TableCell className="text-sm">{link.vlanDetail || "N/A"}</TableCell>
-                                    <TableCell className="text-sm">{link.city || "N/A"}</TableCell>
-                                    <TableCell className="text-sm">{link.bandwidthMbps}</TableCell>
-                                    <TableCell className="text-sm">{formatPKR(link.bandwidthRate)}</TableCell>
-                                    <TableCell className="text-sm font-semibold text-blue-600 dark:text-blue-400">{formatPKR(link.totalMonthlyCost)}</TableCell>
-                                    <TableCell>
-                                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeLinkRow(idx)} data-testid={`button-remove-link-${idx}`}>
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                                {bandwidthLinks.length > 1 && (
-                                  <TableRow className="font-bold bg-muted/50">
-                                    <TableCell colSpan={4} className="text-xs font-bold">TOTALS</TableCell>
-                                    <TableCell className="text-xs font-bold">{bandwidthLinks.reduce((s, l) => s + Number(l.bandwidthMbps || 0), 0)} Mbps</TableCell>
-                                    <TableCell></TableCell>
-                                    <TableCell className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                                      {formatPKR(bandwidthLinks.reduce((s, l) => s + Number(l.totalMonthlyCost || 0), 0))}
-                                    </TableCell>
-                                    <TableCell></TableCell>
-                                  </TableRow>
-                                )}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {showAddLinkRow && (
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-sm">New Bandwidth Link</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div>
-                              <Label className="text-xs font-medium">Link Name *</Label>
-                              <Input
-                                placeholder="e.g. Link-1 Fiber"
-                                value={newLink.linkName}
-                                onChange={(e) => setNewLink({ ...newLink, linkName: e.target.value })}
-                                data-testid="input-new-link-name"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs font-medium">IP Address</Label>
-                              <Input
-                                placeholder="e.g. 192.168.1.1/30"
-                                value={newLink.ipAddress}
-                                onChange={(e) => setNewLink({ ...newLink, ipAddress: e.target.value })}
-                                data-testid="input-new-link-ip"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs font-medium">VLAN Detail</Label>
-                              <Input
-                                placeholder="e.g. VLAN 100"
-                                value={newLink.vlanDetail}
-                                onChange={(e) => setNewLink({ ...newLink, vlanDetail: e.target.value })}
-                                data-testid="input-new-link-vlan"
-                              />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                            <div>
-                              <Label className="text-xs font-medium">City</Label>
-                              <Input
-                                placeholder="e.g. Lahore"
-                                value={newLink.city}
-                                onChange={(e) => setNewLink({ ...newLink, city: e.target.value })}
-                                data-testid="input-new-link-city"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs font-medium">Bandwidth (Mbps) *</Label>
-                              <Input
-                                type="number"
-                                placeholder="0"
-                                value={newLink.bandwidthMbps}
-                                onChange={(e) => {
-                                  const mbps = e.target.value;
-                                  const cost = (Number(mbps) * Number(newLink.bandwidthRate || 0)).toFixed(2);
-                                  setNewLink({ ...newLink, bandwidthMbps: mbps, totalMonthlyCost: cost });
-                                }}
-                                data-testid="input-new-link-mbps"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs font-medium">Rate per Mbps (PKR) *</Label>
-                              <Input
-                                type="number"
-                                placeholder="0"
-                                value={newLink.bandwidthRate}
-                                onChange={(e) => {
-                                  const rate = e.target.value;
-                                  const cost = (Number(newLink.bandwidthMbps || 0) * Number(rate)).toFixed(2);
-                                  setNewLink({ ...newLink, bandwidthRate: rate, totalMonthlyCost: cost });
-                                }}
-                                data-testid="input-new-link-rate"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs font-medium">Total Monthly Cost (PKR)</Label>
-                              <Input
-                                type="number"
-                                placeholder="Auto-calculated"
-                                value={newLink.totalMonthlyCost}
-                                readOnly
-                                className="bg-muted/50 font-semibold"
-                                data-testid="input-new-link-total-cost"
-                              />
-                            </div>
-                          </div>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
                           <div>
-                            <Label className="text-xs font-medium">Notes</Label>
-                            <Input
-                              placeholder="Optional notes about this link"
-                              value={newLink.notes}
-                              onChange={(e) => setNewLink({ ...newLink, notes: e.target.value })}
-                              data-testid="input-new-link-notes"
-                            />
+                            <h3 className="text-sm font-semibold flex items-center gap-1.5"><Wifi className="h-4 w-4" />Bandwidth Links & IP/VLAN Details</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">Add multiple bandwidth links with IP addresses and VLAN details</p>
                           </div>
-                          {newLink.bandwidthMbps && newLink.bandwidthRate && (
-                            <div className="text-xs text-muted-foreground">
-                              Total Cost: <span className="font-semibold text-blue-600 dark:text-blue-400">{formatPKR(Number(newLink.bandwidthMbps) * Number(newLink.bandwidthRate))} / month</span>
-                              {" "}({newLink.bandwidthMbps} Mbps × {formatPKR(newLink.bandwidthRate)}/Mbps)
-                            </div>
-                          )}
-                          <div className="flex items-center gap-2 justify-end">
-                            <Button type="button" size="sm" variant="outline" onClick={() => { setShowAddLinkRow(false); setNewLink({ linkName: "", ipAddress: "", vlanDetail: "", city: "", bandwidthMbps: "", bandwidthRate: "", totalMonthlyCost: "", notes: "" }); }} data-testid="button-cancel-new-link">
-                              Cancel
-                            </Button>
-                            <Button type="button" size="sm" onClick={addLinkRow} data-testid="button-save-new-link">
-                              <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                              Add Link
-                            </Button>
+                          <Button type="button" size="sm" variant="outline" onClick={() => setShowAddLinkRow(true)} data-testid="button-add-bw-link"><Plus className="h-3.5 w-3.5 mr-1" />Add Link</Button>
+                        </div>
+                        {bandwidthLinks.length > 0 && (
+                          <Card><CardContent className="p-0"><div className="overflow-x-auto"><Table><TableHeader><TableRow>
+                            <TableHead className="text-xs">Link Name</TableHead>
+                            <TableHead className="text-xs">IP Address</TableHead>
+                            <TableHead className="text-xs">VLAN</TableHead>
+                            <TableHead className="text-xs">City</TableHead>
+                            <TableHead className="text-xs">Mbps</TableHead>
+                            <TableHead className="text-xs">Rate/Mbps</TableHead>
+                            <TableHead className="text-xs">Monthly Cost</TableHead>
+                            <TableHead className="w-10"></TableHead>
+                          </TableRow></TableHeader><TableBody>
+                            {bandwidthLinks.map((link, idx) => (
+                              <TableRow key={idx} data-testid={`row-bw-link-${idx}`}>
+                                <TableCell className="text-sm font-medium">{link.linkName}</TableCell>
+                                <TableCell className="text-sm font-mono">{link.ipAddress || "N/A"}</TableCell>
+                                <TableCell className="text-sm">{link.vlanDetail || "N/A"}</TableCell>
+                                <TableCell className="text-sm">{link.city || "N/A"}</TableCell>
+                                <TableCell className="text-sm">{link.bandwidthMbps}</TableCell>
+                                <TableCell className="text-sm">{formatPKR(link.bandwidthRate)}</TableCell>
+                                <TableCell className="text-sm font-semibold text-blue-600 dark:text-blue-400">{formatPKR(link.totalMonthlyCost)}</TableCell>
+                                <TableCell><Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeLinkRow(idx)} data-testid={`button-remove-link-${idx}`}><Trash2 className="h-3.5 w-3.5" /></Button></TableCell>
+                              </TableRow>
+                            ))}
+                            {bandwidthLinks.length > 1 && (
+                              <TableRow className="font-bold bg-muted/50">
+                                <TableCell colSpan={4} className="text-xs font-bold">TOTALS</TableCell>
+                                <TableCell className="text-xs font-bold">{bandwidthLinks.reduce((s, l) => s + Number(l.bandwidthMbps || 0), 0)} Mbps</TableCell>
+                                <TableCell></TableCell>
+                                <TableCell className="text-sm font-bold text-blue-600 dark:text-blue-400">{formatPKR(bandwidthLinks.reduce((s, l) => s + Number(l.totalMonthlyCost || 0), 0))}</TableCell>
+                                <TableCell></TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody></Table></div></CardContent></Card>
+                        )}
+                        {showAddLinkRow && (
+                          <Card>
+                            <CardHeader className="pb-2"><CardTitle className="text-sm">New Bandwidth Link</CardTitle></CardHeader>
+                            <CardContent className="space-y-3">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div><Label className="text-xs font-medium">Link Name *</Label><Input placeholder="e.g. Link-1 Fiber" value={newLink.linkName} onChange={(e) => setNewLink({ ...newLink, linkName: e.target.value })} data-testid="input-new-link-name" /></div>
+                                <div><Label className="text-xs font-medium">IP Address</Label><Input placeholder="192.168.1.1" value={newLink.ipAddress} onChange={(e) => setNewLink({ ...newLink, ipAddress: e.target.value })} data-testid="input-new-link-ip" /></div>
+                                <div><Label className="text-xs font-medium">VLAN Detail</Label><Input placeholder="VLAN 100" value={newLink.vlanDetail} onChange={(e) => setNewLink({ ...newLink, vlanDetail: e.target.value })} data-testid="input-new-link-vlan" /></div>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                <div><Label className="text-xs font-medium">City</Label><Input placeholder="Lahore" value={newLink.city} onChange={(e) => setNewLink({ ...newLink, city: e.target.value })} data-testid="input-new-link-city" /></div>
+                                <div><Label className="text-xs font-medium">Mbps *</Label><Input type="number" placeholder="10" value={newLink.bandwidthMbps} onChange={(e) => { const v = e.target.value; const cost = (Number(v) * Number(newLink.bandwidthRate || 0)).toFixed(2); setNewLink({ ...newLink, bandwidthMbps: v, totalMonthlyCost: cost }); }} data-testid="input-new-link-mbps" /></div>
+                                <div><Label className="text-xs font-medium">Rate/Mbps *</Label><Input type="number" placeholder="1000" value={newLink.bandwidthRate} onChange={(e) => { const v = e.target.value; const cost = (Number(newLink.bandwidthMbps || 0) * Number(v)).toFixed(2); setNewLink({ ...newLink, bandwidthRate: v, totalMonthlyCost: cost }); }} data-testid="input-new-link-rate" /></div>
+                                <div><Label className="text-xs font-medium">Monthly Cost</Label><Input type="number" value={newLink.totalMonthlyCost} onChange={(e) => setNewLink({ ...newLink, totalMonthlyCost: e.target.value })} data-testid="input-new-link-cost" /></div>
+                              </div>
+                              <div><Label className="text-xs font-medium">Notes</Label><Input placeholder="Optional notes" value={newLink.notes} onChange={(e) => setNewLink({ ...newLink, notes: e.target.value })} data-testid="input-new-link-notes" /></div>
+                              <div className="flex gap-2 justify-end">
+                                <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddLinkRow(false)}>Cancel</Button>
+                                <Button type="button" size="sm" onClick={addLinkRow} data-testid="button-confirm-add-link"><CheckCircle className="h-3.5 w-3.5 mr-1" />Add Link</Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                        {bandwidthLinks.length === 0 && !showAddLinkRow && (
+                          <div className="text-center py-4 border rounded-lg text-muted-foreground text-sm">
+                            <Wifi className="h-6 w-6 mx-auto mb-1.5 opacity-30" />
+                            <p className="text-xs">No bandwidth links added yet. Click "Add Link" to add IP/VLAN details.</p>
                           </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {bandwidthLinks.length === 0 && !showAddLinkRow && (
-                      <div className="text-center py-4 border rounded-lg text-muted-foreground text-sm">
-                        <Wifi className="h-6 w-6 mx-auto mb-1.5 opacity-30" />
-                        <p className="text-xs">No bandwidth links added yet. Click "Add Link" to add IP/VLAN details.</p>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </>
+                    </>
+                  )}
+                  {vendorType === "panel" && (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField control={form.control} name="panelUrl" render={({ field }) => (<FormItem><FormLabel>Panel URL</FormLabel><FormControl><Input placeholder="https://panel.vendor.com" data-testid="input-vendor-panel-url" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                        <FormField control={form.control} name="panelUsername" render={({ field }) => (<FormItem><FormLabel>Panel Username</FormLabel><FormControl><Input placeholder="Panel login username" data-testid="input-vendor-panel-username" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                      </div>
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <div>
+                            <h3 className="text-sm font-semibold flex items-center gap-1.5"><Package className="h-4 w-4" />Panel Packages</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">Add packages offered by this vendor</p>
+                          </div>
+                          <Button type="button" size="sm" variant="outline" onClick={() => setShowAddPkgRow(true)} data-testid="button-add-pkg"><Plus className="h-3.5 w-3.5 mr-1" />Add Package</Button>
+                        </div>
+                        {panelPackages.length > 0 && (
+                          <Card><CardContent className="p-0"><div className="overflow-x-auto"><Table><TableHeader><TableRow>
+                            <TableHead className="text-xs">Package Name</TableHead>
+                            <TableHead className="text-xs">Speed</TableHead>
+                            <TableHead className="text-xs">Vendor Price</TableHead>
+                            <TableHead className="text-xs">ISP Price</TableHead>
+                            <TableHead className="w-10"></TableHead>
+                          </TableRow></TableHeader><TableBody>
+                            {panelPackages.map((pkg, idx) => (
+                              <TableRow key={idx} data-testid={`row-pkg-${idx}`}>
+                                <TableCell className="text-sm font-medium">{pkg.packageName}</TableCell>
+                                <TableCell className="text-sm">{pkg.speed || "N/A"}</TableCell>
+                                <TableCell className="text-sm">{formatPKR(pkg.vendorPrice)}</TableCell>
+                                <TableCell className="text-sm">{formatPKR(pkg.ispSellingPrice)}</TableCell>
+                                <TableCell><Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removePackageRow(idx)} data-testid={`button-remove-pkg-${idx}`}><Trash2 className="h-3.5 w-3.5" /></Button></TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody></Table></div></CardContent></Card>
+                        )}
+                        {showAddPkgRow && (
+                          <Card>
+                            <CardHeader className="pb-2"><CardTitle className="text-sm">New Package</CardTitle></CardHeader>
+                            <CardContent className="space-y-3">
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div><Label className="text-xs font-medium">Package Name *</Label><Input placeholder="e.g. 10 Mbps Unlimited" value={newPkg.packageName} onChange={(e) => setNewPkg({ ...newPkg, packageName: e.target.value })} data-testid="input-new-pkg-name" /></div>
+                                <div><Label className="text-xs font-medium">Speed</Label><Input placeholder="e.g. 10 Mbps" value={newPkg.speed} onChange={(e) => setNewPkg({ ...newPkg, speed: e.target.value })} data-testid="input-new-pkg-speed" /></div>
+                                <div><Label className="text-xs font-medium">Data Limit</Label><Input placeholder="Unlimited" value={newPkg.dataLimit} onChange={(e) => setNewPkg({ ...newPkg, dataLimit: e.target.value })} data-testid="input-new-pkg-data-limit" /></div>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div><Label className="text-xs font-medium">Vendor Price (PKR) *</Label><Input type="number" placeholder="0" value={newPkg.vendorPrice} onChange={(e) => setNewPkg({ ...newPkg, vendorPrice: e.target.value })} data-testid="input-new-pkg-vendor-price" /></div>
+                                <div><Label className="text-xs font-medium">ISP Price (PKR) *</Label><Input type="number" placeholder="0" value={newPkg.ispSellingPrice} onChange={(e) => setNewPkg({ ...newPkg, ispSellingPrice: e.target.value })} data-testid="input-new-pkg-isp-price" /></div>
+                                <div><Label className="text-xs font-medium">Reseller Price (PKR)</Label><Input type="number" placeholder="0" value={newPkg.resellerPrice} onChange={(e) => setNewPkg({ ...newPkg, resellerPrice: e.target.value })} data-testid="input-new-pkg-reseller-price" /></div>
+                              </div>
+                              <div className="flex gap-2 justify-end">
+                                <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddPkgRow(false)}>Cancel</Button>
+                                <Button type="button" size="sm" onClick={addPackageRow} data-testid="button-confirm-add-pkg"><CheckCircle className="h-3.5 w-3.5 mr-1" />Add Package</Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                        {panelPackages.length === 0 && !showAddPkgRow && (
+                          <div className="text-center py-4 border rounded-lg text-muted-foreground text-sm">
+                            <Package className="h-6 w-6 mx-auto mb-1.5 opacity-30" />
+                            <p className="text-xs">No packages added yet. Click "Add Package" to create one.</p>
+                          </div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
               )}
 
-              {vendorType === "panel" && (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="panelUrl"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Panel URL</FormLabel>
-                          <FormControl>
-                            <Input placeholder="https://panel.vendor.com" data-testid="input-vendor-panel-url" {...field} value={field.value || ""} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="panelUsername"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Panel Username</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Username" data-testid="input-vendor-panel-username" {...field} value={field.value || ""} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="walletBalance"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Wallet Balance</FormLabel>
-                          <FormControl>
-                            <Input type="number" placeholder="0" data-testid="input-vendor-wallet-balance" {...field} value={field.value || ""} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+              {/* STEP 3: Business & Contract */}
+              {currentStep === 3 && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="serviceType" render={({ field }) => (<FormItem><FormLabel>Service Type</FormLabel><Select onValueChange={field.onChange} value={field.value || "fiber"}><FormControl><SelectTrigger data-testid="select-vendor-service-type"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="fiber">Fiber</SelectItem><SelectItem value="wireless">Wireless</SelectItem><SelectItem value="cable">Cable</SelectItem><SelectItem value="satellite">Satellite</SelectItem><SelectItem value="maintenance">Maintenance</SelectItem><SelectItem value="equipment">Equipment</SelectItem><SelectItem value="software">Software</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="slaLevel" render={({ field }) => (<FormItem><FormLabel>SLA Level</FormLabel><Select onValueChange={field.onChange} value={field.value || "standard"}><FormControl><SelectTrigger data-testid="select-vendor-sla-level"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="standard">Standard</SelectItem><SelectItem value="premium">Premium</SelectItem><SelectItem value="enterprise">Enterprise</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                   </div>
+                  <FormField control={form.control} name="ntn" render={({ field }) => (<FormItem><FormLabel>NTN (Tax Registration No.)</FormLabel><FormControl><Input placeholder="Tax registration number" data-testid="input-vendor-ntn" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="contractStartDate" render={({ field }) => (<FormItem><FormLabel>Contract Start Date</FormLabel><FormControl><Input type="date" data-testid="input-vendor-contract-start" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="contractEndDate" render={({ field }) => (<FormItem><FormLabel>Contract End Date</FormLabel><FormControl><Input type="date" data-testid="input-vendor-contract-end" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                  </div>
+                </div>
+              )}
 
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <div>
-                        <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                          <Package className="h-4 w-4" />
-                          Vendor Packages
-                        </h3>
-                        <p className="text-xs text-muted-foreground mt-0.5">Add packages that this panel vendor offers</p>
-                      </div>
-                      <Button type="button" size="sm" variant="outline" onClick={() => setShowAddPkgRow(true)} data-testid="button-add-panel-package">
-                        <Plus className="h-3.5 w-3.5 mr-1" />
-                        Add Package
-                      </Button>
+              {/* STEP 4: Banking */}
+              {currentStep === 4 && (
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-dashed border-muted-foreground/30 p-4 bg-muted/20">
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5" />Banking details are used for payment processing and reconciliation.</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="bankName" render={({ field }) => (<FormItem><FormLabel>Bank Name</FormLabel><FormControl><Input placeholder="e.g. HBL, MCB, UBL" data-testid="input-vendor-bank-name" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="bankAccountTitle" render={({ field }) => (<FormItem><FormLabel>Account Title</FormLabel><FormControl><Input placeholder="Account holder name" data-testid="input-vendor-bank-title" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="bankAccountNumber" render={({ field }) => (<FormItem><FormLabel>Account Number / IBAN</FormLabel><FormControl><Input placeholder="Account number or IBAN" data-testid="input-vendor-bank-number" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="bankBranchCode" render={({ field }) => (<FormItem><FormLabel>Branch Code</FormLabel><FormControl><Input placeholder="Branch code" data-testid="input-vendor-branch-code" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 5: Review */}
+              {currentStep === 5 && (
+                <div className="space-y-4">
+                  <div className="rounded-lg border bg-muted/20 p-4 space-y-3 text-sm">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Vendor Info</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                      <span className="text-muted-foreground">Name:</span><span className="font-medium">{form.getValues("name") || "—"}</span>
+                      <span className="text-muted-foreground">Type:</span><span className="font-medium capitalize">{form.getValues("vendorType")}</span>
+                      <span className="text-muted-foreground">Phone:</span><span className="font-medium">{form.getValues("phone") || "—"}</span>
+                      <span className="text-muted-foreground">Email:</span><span className="font-medium">{form.getValues("email") || "—"}</span>
+                      <span className="text-muted-foreground">City:</span><span className="font-medium">{form.getValues("city") || "—"}</span>
+                      <span className="text-muted-foreground">Status:</span><span className="font-medium capitalize">{form.getValues("status") || "active"}</span>
                     </div>
-
-                    {panelPackages.length > 0 && (
-                      <Card>
-                        <CardContent className="p-0">
-                          <div className="overflow-x-auto">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead className="text-xs">Package Name</TableHead>
-                                  <TableHead className="text-xs">Speed</TableHead>
-                                  <TableHead className="text-xs">Vendor Price</TableHead>
-                                  <TableHead className="text-xs">ISP Price</TableHead>
-                                  <TableHead className="text-xs">Reseller Price</TableHead>
-                                  <TableHead className="text-xs">Data Limit</TableHead>
-                                  <TableHead className="text-xs">Validity</TableHead>
-                                  <TableHead className="text-xs">Margin</TableHead>
-                                  <TableHead className="w-10"></TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {panelPackages.map((pkg, idx) => (
-                                  <TableRow key={idx} data-testid={`row-new-pkg-${idx}`}>
-                                    <TableCell className="text-sm font-medium">{pkg.packageName}</TableCell>
-                                    <TableCell className="text-sm">{pkg.speed || "N/A"}</TableCell>
-                                    <TableCell className="text-sm">{formatPKR(pkg.vendorPrice)}</TableCell>
-                                    <TableCell className="text-sm">{formatPKR(pkg.ispSellingPrice)}</TableCell>
-                                    <TableCell className="text-sm">{formatPKR(pkg.resellerPrice || 0)}</TableCell>
-                                    <TableCell className="text-sm">{pkg.dataLimit || "Unlimited"}</TableCell>
-                                    <TableCell className="text-sm">{pkg.validity}</TableCell>
-                                    <TableCell className="text-sm text-green-600 dark:text-green-400 font-medium">
-                                      {formatPKR(Number(pkg.ispSellingPrice || 0) - Number(pkg.vendorPrice || 0))}
-                                    </TableCell>
-                                    <TableCell>
-                                      <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removePackageRow(idx)} data-testid={`button-remove-pkg-${idx}`}>
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </CardContent>
-                      </Card>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-2">Business & Contract</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                      <span className="text-muted-foreground">Service Type:</span><span className="font-medium capitalize">{form.getValues("serviceType") || "—"}</span>
+                      <span className="text-muted-foreground">SLA Level:</span><span className="font-medium capitalize">{form.getValues("slaLevel") || "—"}</span>
+                      <span className="text-muted-foreground">NTN:</span><span className="font-medium">{form.getValues("ntn") || "—"}</span>
+                      <span className="text-muted-foreground">Contract:</span><span className="font-medium">{form.getValues("contractStartDate") || "—"} → {form.getValues("contractEndDate") || "—"}</span>
+                    </div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-2">Banking</p>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                      <span className="text-muted-foreground">Bank:</span><span className="font-medium">{form.getValues("bankName") || "—"}</span>
+                      <span className="text-muted-foreground">Account No:</span><span className="font-medium">{form.getValues("bankAccountNumber") || "—"}</span>
+                    </div>
+                    {vendorType === "panel" && panelPackages.length > 0 && (
+                      <>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-2">Packages ({panelPackages.length})</p>
+                        {panelPackages.map((p, i) => (
+                          <div key={i} className="flex justify-between"><span className="font-medium">{p.packageName}</span><span className="text-muted-foreground">Vendor: {formatPKR(p.vendorPrice)} / ISP: {formatPKR(p.ispSellingPrice)}</span></div>
+                        ))}
+                      </>
                     )}
-
-                    {showAddPkgRow && (
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-sm">New Package</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div>
-                              <Label className="text-xs font-medium">Package Name *</Label>
-                              <Input
-                                placeholder="e.g. 10 Mbps Unlimited"
-                                value={newPkg.packageName}
-                                onChange={(e) => setNewPkg({ ...newPkg, packageName: e.target.value })}
-                                data-testid="input-new-pkg-name"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs font-medium">Speed</Label>
-                              <Input
-                                placeholder="e.g. 10 Mbps"
-                                value={newPkg.speed}
-                                onChange={(e) => setNewPkg({ ...newPkg, speed: e.target.value })}
-                                data-testid="input-new-pkg-speed"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs font-medium">Data Limit</Label>
-                              <Input
-                                placeholder="Unlimited"
-                                value={newPkg.dataLimit}
-                                onChange={(e) => setNewPkg({ ...newPkg, dataLimit: e.target.value })}
-                                data-testid="input-new-pkg-data-limit"
-                              />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                            <div>
-                              <Label className="text-xs font-medium">Vendor Price (PKR) *</Label>
-                              <Input
-                                type="number"
-                                placeholder="0"
-                                value={newPkg.vendorPrice}
-                                onChange={(e) => setNewPkg({ ...newPkg, vendorPrice: e.target.value })}
-                                data-testid="input-new-pkg-vendor-price"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs font-medium">ISP Selling Price (PKR) *</Label>
-                              <Input
-                                type="number"
-                                placeholder="0"
-                                value={newPkg.ispSellingPrice}
-                                onChange={(e) => setNewPkg({ ...newPkg, ispSellingPrice: e.target.value })}
-                                data-testid="input-new-pkg-isp-price"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs font-medium">Reseller Price (PKR)</Label>
-                              <Input
-                                type="number"
-                                placeholder="0"
-                                value={newPkg.resellerPrice}
-                                onChange={(e) => setNewPkg({ ...newPkg, resellerPrice: e.target.value })}
-                                data-testid="input-new-pkg-reseller-price"
-                              />
-                            </div>
-                            <div>
-                              <Label className="text-xs font-medium">Validity</Label>
-                              <Input
-                                placeholder="30 days"
-                                value={newPkg.validity}
-                                onChange={(e) => setNewPkg({ ...newPkg, validity: e.target.value })}
-                                data-testid="input-new-pkg-validity"
-                              />
-                            </div>
-                          </div>
-                          {newPkg.vendorPrice && newPkg.ispSellingPrice && (
-                            <div className="text-xs text-muted-foreground">
-                              ISP Margin: <span className="font-semibold text-green-600 dark:text-green-400">{formatPKR(Number(newPkg.ispSellingPrice) - Number(newPkg.vendorPrice))}</span>
-                            </div>
-                          )}
-                          <div className="flex items-center gap-2 justify-end">
-                            <Button type="button" size="sm" variant="outline" onClick={() => { setShowAddPkgRow(false); setNewPkg({ packageName: "", speed: "", vendorPrice: "", ispSellingPrice: "", resellerPrice: "", dataLimit: "", validity: "30 days" }); }} data-testid="button-cancel-new-pkg">
-                              Cancel
-                            </Button>
-                            <Button type="button" size="sm" onClick={addPackageRow} data-testid="button-save-new-pkg">
-                              <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                              Add Package
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {panelPackages.length === 0 && !showAddPkgRow && (
-                      <div className="text-center py-4 border rounded-lg text-muted-foreground text-sm">
-                        <Package className="h-6 w-6 mx-auto mb-1.5 opacity-30" />
-                        <p className="text-xs">No packages added yet. Click "Add Package" to create one.</p>
-                      </div>
+                    {vendorType === "bandwidth" && bandwidthLinks.length > 0 && (
+                      <>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mt-2">Bandwidth Links ({bandwidthLinks.length})</p>
+                        {bandwidthLinks.map((l, i) => (
+                          <div key={i} className="flex justify-between"><span className="font-medium">{l.linkName}</span><span className="text-muted-foreground">{l.bandwidthMbps} Mbps — {formatPKR(l.totalMonthlyCost)}/mo</span></div>
+                        ))}
+                      </>
                     )}
                   </div>
-                </>
+                </div>
               )}
 
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || "active"}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-vendor-status">
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+              {/* Wizard Navigation */}
+              <div className="flex items-center justify-between gap-3 pt-6 border-t mt-6">
+                <Button type="button" variant="outline" onClick={() => { if (currentStep === 1) changeTab(vendorType === "panel" ? "panel-vendors" : "bandwidth-vendors"); else setCurrentStep(s => s - 1); }} data-testid="button-wizard-back">
+                  {currentStep === 1 ? "Cancel" : <><ChevronLeft className="h-4 w-4 mr-1" />Back</>}
+                </Button>
+                <span className="text-xs text-muted-foreground">{currentStep} / {WIZARD_STEPS.length}</span>
+                {currentStep < WIZARD_STEPS.length ? (
+                  <Button type="button" className="btn-vendor-primary no-default-hover-elevate no-default-active-elevate" onClick={() => setCurrentStep(s => s + 1)} data-testid="button-wizard-next">
+                    Next <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                ) : (
+                  <Button type="submit" disabled={createMutation.isPending} className="btn-vendor-primary no-default-hover-elevate no-default-active-elevate" data-testid="button-save-vendor">
+                    {createMutation.isPending ? "Creating..." : "Create Vendor"}
+                  </Button>
                 )}
-              />
-
-              <div className="flex items-center justify-end gap-3 flex-wrap">
-                <Button type="button" variant="secondary" onClick={() => changeTab(vendorType === "panel" ? "panel-vendors" : "bandwidth-vendors")} data-testid="button-cancel-vendor">
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createMutation.isPending} className="btn-vendor-primary no-default-hover-elevate no-default-active-elevate" data-testid="button-save-vendor">
-                  {createMutation.isPending ? "Creating..." : "Create Vendor"}
-                </Button>
               </div>
             </form>
           </Form>
@@ -2953,7 +2521,7 @@ function BandwidthVendorsTab() {
                 <Tabs defaultValue="basic" className="flex-1 overflow-hidden flex flex-col">
                   <div className="border-b bg-muted/30 px-4 shrink-0">
                     <TabsList className="h-auto py-0 bg-transparent gap-0 rounded-none">
-                      <TabsTrigger value="basic" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><User className="h-3.5 w-3.5" />Basic Info</TabsTrigger>
+                      <TabsTrigger value="basic" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><User className="h-3.5 w-3.5" />Vendor Info</TabsTrigger>
                       <TabsTrigger value="business" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><Building2 className="h-3.5 w-3.5" />Business & Contract</TabsTrigger>
                       <TabsTrigger value="banking" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><CreditCard className="h-3.5 w-3.5" />Banking</TabsTrigger>
                       <TabsTrigger value="links" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><Network className="h-3.5 w-3.5" />Bandwidth Links</TabsTrigger>
@@ -3771,10 +3339,11 @@ function PanelVendorsTab() {
                 <Tabs defaultValue="basic" className="flex-1 overflow-hidden flex flex-col">
                   <div className="border-b bg-muted/30 px-4 shrink-0">
                     <TabsList className="h-auto py-0 bg-transparent gap-0 rounded-none">
-                      <TabsTrigger value="basic" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><User className="h-3.5 w-3.5" />Basic Info</TabsTrigger>
+                      <TabsTrigger value="basic" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><User className="h-3.5 w-3.5" />Vendor Info</TabsTrigger>
+                      <TabsTrigger value="panel" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><Globe className="h-3.5 w-3.5" />Panel Info</TabsTrigger>
+                      <TabsTrigger value="packages" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><Package className="h-3.5 w-3.5" />Packages</TabsTrigger>
                       <TabsTrigger value="business" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><Building2 className="h-3.5 w-3.5" />Business & Contract</TabsTrigger>
                       <TabsTrigger value="banking" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><CreditCard className="h-3.5 w-3.5" />Banking</TabsTrigger>
-                      <TabsTrigger value="panel" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-3"><Globe className="h-3.5 w-3.5" />Panel Details</TabsTrigger>
                     </TabsList>
                   </div>
                   <div className="flex-1 overflow-y-auto">
@@ -3826,6 +3395,34 @@ function PanelVendorsTab() {
                         <FormField control={form.control} name="panelUsername" render={({ field }) => (<FormItem><FormLabel>Panel Username</FormLabel><FormControl><Input placeholder="Login username" data-testid="input-panel-edit-username" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
                       </div>
                       <FormField control={form.control} name="walletBalance" render={({ field }) => (<FormItem><FormLabel>Wallet Balance (PKR)</FormLabel><FormControl><Input type="number" placeholder="0" data-testid="input-panel-edit-wallet" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                    </TabsContent>
+                    <TabsContent value="packages" className="p-5 mt-0">
+                      {editingVendor && (() => {
+                        const pkgs = getVendorPackages(editingVendor.id);
+                        return pkgs.length === 0 ? (
+                          <div className="text-center py-8 border rounded-lg text-muted-foreground">
+                            <Package className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                            <p className="text-sm font-medium">No packages yet</p>
+                            <p className="text-xs mt-1">Packages can be added from the vendor profile page.</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <p className="text-xs text-muted-foreground mb-3">{pkgs.length} package(s) configured for this vendor.</p>
+                            {pkgs.map(pkg => (
+                              <div key={pkg.id} data-testid={`row-edit-pkg-${pkg.id}`} className="flex items-center justify-between rounded-lg border px-4 py-3 gap-2">
+                                <div>
+                                  <p className="text-sm font-medium">{pkg.packageName}</p>
+                                  <p className="text-xs text-muted-foreground">{pkg.speed || "N/A"} · {pkg.dataLimit || "N/A"} · {pkg.validity || "N/A"}</p>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <p className="text-xs text-muted-foreground">Vendor: <span className="font-semibold text-foreground">{formatPKR(pkg.vendorPrice)}</span></p>
+                                  <p className="text-xs text-muted-foreground">ISP: <span className="font-semibold text-primary">{formatPKR(pkg.ispSellingPrice)}</span></p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })()}
                     </TabsContent>
                   </div>
                 </Tabs>
