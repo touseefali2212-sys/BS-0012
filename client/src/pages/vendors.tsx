@@ -4186,10 +4186,10 @@ function VendorPackagesTab() {
     setTimeout(() => { win.print(); }, 400);
   };
 
-  const openCreate = () => {
+  const openCreate = (presetVendorId?: number) => {
     setEditingPkg(null);
     form.reset({
-      vendorId: 0,
+      vendorId: presetVendorId ?? 0,
       packageName: "",
       speed: "",
       vendorPrice: "0",
@@ -4200,6 +4200,19 @@ function VendorPackagesTab() {
     });
     setDialogOpen(true);
   };
+
+  // Auto-open add dialog from URL param (e.g. ?tab=packages&addPackage=5)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const addPkgId = params.get("addPackage");
+    if (!addPkgId) return;
+    openCreate(Number(addPkgId));
+    if (addPkgId !== "0") setVendorFilter(addPkgId);
+    params.delete("addPackage");
+    const newSearch = params.toString();
+    window.history.replaceState({}, "", window.location.pathname + (newSearch ? `?${newSearch}` : ""));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const openEdit = (pkg: VendorPackage) => {
     setEditingPkg(pkg);

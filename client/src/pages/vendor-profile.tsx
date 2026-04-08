@@ -909,11 +909,21 @@ export default function VendorProfilePage() {
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <CardTitle className="text-sm flex items-center gap-2"><Package className="h-4 w-4 text-primary" />Packages ({pkgs.length})</CardTitle>
-                    {pkgs.length > 0 && (
-                      <Badge variant="secondary" className="no-default-active-elevate text-xs text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950">
-                        Avg Margin: {formatPKR(pkgs.reduce((s, p) => s + Number(p.ispSellingPrice || 0) - Number(p.vendorPrice || 0), 0) / pkgs.length)}
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {pkgs.length > 0 && (
+                        <Badge variant="secondary" className="no-default-active-elevate text-xs text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950">
+                          Avg Margin: {formatPKR(pkgs.reduce((s, p) => s + Number(p.ispSellingPrice || 0) - Number(p.vendorPrice || 0), 0) / pkgs.length)}
+                        </Badge>
+                      )}
+                      <Button
+                        size="sm"
+                        className="gap-1.5 h-7 text-xs"
+                        onClick={() => setLocation(`/vendors?tab=packages&addPackage=${vendor.id}`)}
+                        data-testid="button-profile-add-package"
+                      >
+                        <Plus className="h-3.5 w-3.5" />Add Package
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -921,6 +931,15 @@ export default function VendorProfilePage() {
                     <div className="text-center py-10 text-muted-foreground">
                       <Package className="h-10 w-10 mx-auto mb-3 opacity-20" />
                       <p className="text-sm">No packages assigned to this vendor</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-3 gap-1.5"
+                        onClick={() => setLocation(`/vendors?tab=packages&addPackage=${vendor.id}`)}
+                        data-testid="button-profile-add-first-package"
+                      >
+                        <Plus className="h-3.5 w-3.5" />Add First Package
+                      </Button>
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
