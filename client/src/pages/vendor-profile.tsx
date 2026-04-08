@@ -71,6 +71,7 @@ import type {
   VendorBandwidthLink,
   VendorPanelLink,
   InsertVendorPanelLink,
+  InsertVendor,
 } from "@shared/schema";
 
 const formatPKR = (value: string | number | null | undefined) => {
@@ -117,6 +118,29 @@ const emptyAddPkgForm: AddPkgForm = {
   dataLimit: "", validity: "30 days", isActive: true,
 };
 
+type EditVendorForm = {
+  name: string; contactPerson: string; phone: string; email: string;
+  address: string; city: string; serviceType: string; ntn: string;
+  bankName: string; bankAccountTitle: string; bankAccountNumber: string; bankBranchCode: string;
+  slaLevel: string; totalBandwidth: string; usedBandwidth: string; bandwidthCost: string;
+  contractStartDate: string; contractEndDate: string;
+  panelUrl: string; panelUsername: string; status: string;
+};
+
+function vendorToEditForm(v: Vendor): EditVendorForm {
+  return {
+    name: v.name || "", contactPerson: v.contactPerson || "", phone: v.phone || "",
+    email: v.email || "", address: v.address || "", city: v.city || "",
+    serviceType: v.serviceType || "fiber", ntn: v.ntn || "",
+    bankName: v.bankName || "", bankAccountTitle: v.bankAccountTitle || "",
+    bankAccountNumber: v.bankAccountNumber || "", bankBranchCode: v.bankBranchCode || "",
+    slaLevel: v.slaLevel || "standard", totalBandwidth: v.totalBandwidth || "",
+    usedBandwidth: v.usedBandwidth || "", bandwidthCost: v.bandwidthCost || "0",
+    contractStartDate: v.contractStartDate || "", contractEndDate: v.contractEndDate || "",
+    panelUrl: v.panelUrl || "", panelUsername: v.panelUsername || "", status: v.status || "active",
+  };
+}
+
 export default function VendorProfilePage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
@@ -133,6 +157,11 @@ export default function VendorProfilePage() {
   const [addPkgOpen, setAddPkgOpen] = useState(false);
   const [addPkgForm, setAddPkgForm] = useState<AddPkgForm>(emptyAddPkgForm);
   const [addPkgSubmitting, setAddPkgSubmitting] = useState(false);
+
+  // Edit Vendor dialog state
+  const [editVendorOpen, setEditVendorOpen] = useState(false);
+  const [editVendorForm, setEditVendorForm] = useState<EditVendorForm | null>(null);
+  const [editVendorSubmitting, setEditVendorSubmitting] = useState(false);
 
   const { data: vendors, isLoading: vendorsLoading } = useQuery<Vendor[]>({
     queryKey: ["/api/vendors"],
@@ -183,6 +212,56 @@ export default function VendorProfilePage() {
     onSuccess: () => { invalidatePanelLinks(); setPlDeleteId(null); toast({ title: "Panel link deleted" }); },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
+
+  const openEditVendor = () => {
+    if (!vendor) return;
+    setEditVendorForm(vendorToEditForm(vendor));
+    setEditVendorOpen(true);
+  };
+
+  const submitEditVendor = async () => {
+    if (!vendor || !editVendorForm) return;
+    if (!editVendorForm.name.trim()) {
+      toast({ title: "Vendor name is required", variant: "destructive" }); return;
+    }
+    if (!editVendorForm.phone.trim()) {
+      toast({ title: "Phone number is required", variant: "destructive" }); return;
+    }
+    setEditVendorSubmitting(true);
+    try {
+      await apiRequest("PATCH", `/api/vendors/${vendor.id}`, {
+        name: editVendorForm.name.trim(),
+        contactPerson: editVendorForm.contactPerson.trim() || null,
+        phone: editVendorForm.phone.trim(),
+        email: editVendorForm.email.trim() || null,
+        address: editVendorForm.address.trim() || null,
+        city: editVendorForm.city.trim() || null,
+        serviceType: editVendorForm.serviceType,
+        ntn: editVendorForm.ntn.trim() || null,
+        bankName: editVendorForm.bankName.trim() || null,
+        bankAccountTitle: editVendorForm.bankAccountTitle.trim() || null,
+        bankAccountNumber: editVendorForm.bankAccountNumber.trim() || null,
+        bankBranchCode: editVendorForm.bankBranchCode.trim() || null,
+        slaLevel: editVendorForm.slaLevel,
+        totalBandwidth: editVendorForm.totalBandwidth.trim() || null,
+        usedBandwidth: editVendorForm.usedBandwidth.trim() || null,
+        bandwidthCost: editVendorForm.bandwidthCost || "0",
+        contractStartDate: editVendorForm.contractStartDate || null,
+        contractEndDate: editVendorForm.contractEndDate || null,
+        panelUrl: editVendorForm.panelUrl.trim() || null,
+        panelUsername: editVendorForm.panelUsername.trim() || null,
+        status: editVendorForm.status,
+      } as Partial<InsertVendor>);
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      setEditVendorOpen(false);
+      setEditVendorForm(null);
+      toast({ title: "Vendor profile updated" });
+    } catch (e: unknown) {
+      toast({ title: "Error", description: e instanceof Error ? e.message : "Failed to update vendor", variant: "destructive" });
+    } finally {
+      setEditVendorSubmitting(false);
+    }
+  };
 
   const openAddPkg = () => { setAddPkgForm(emptyAddPkgForm); setAddPkgOpen(true); };
 
@@ -323,10 +402,10 @@ export default function VendorProfilePage() {
             size="sm"
             variant="outline"
             className="gap-1.5 h-8 text-xs"
-            onClick={() => setLocation(`/vendors?tab=${vendorType === "panel" ? "panel-vendors" : "bandwidth-vendors"}&edit=${vendor.id}`)}
+            onClick={openEditVendor}
             data-testid="button-vendor-profile-edit"
           >
-            <Edit className="h-3.5 w-3.5" />Edit
+            <Edit className="h-3.5 w-3.5" />Edit Profile
           </Button>
         </div>
       </div>
@@ -383,10 +462,10 @@ export default function VendorProfilePage() {
               size="sm"
               variant="outline"
               className="bg-white/10 border-white/30 text-white hover:bg-white/20 hover:text-white no-default-hover-elevate"
-              onClick={() => setLocation(`/vendors?tab=${vendorType === "panel" ? "panel-vendors" : "bandwidth-vendors"}&edit=${vendor.id}`)}
+              onClick={openEditVendor}
               data-testid="button-vendor-profile-edit-hero"
             >
-              <Edit className="h-3.5 w-3.5 mr-1.5" />Edit
+              <Edit className="h-3.5 w-3.5 mr-1.5" />Edit Profile
             </Button>
           </div>
         </div>
@@ -1432,6 +1511,178 @@ export default function VendorProfilePage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Vendor Dialog */}
+      {editVendorForm && (
+        <Dialog open={editVendorOpen} onOpenChange={open => { if (!open) { setEditVendorOpen(false); setEditVendorForm(null); } }}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Edit className="h-4 w-4 text-primary" />Edit Vendor Profile
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-5 pt-1">
+
+              {/* Basic Info */}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Basic Information</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-sm font-medium">Vendor Name <span className="text-destructive">*</span></label>
+                    <Input value={editVendorForm.name} onChange={e => setEditVendorForm(f => f ? { ...f, name: e.target.value } : f)} data-testid="input-editvendor-name" placeholder="Vendor name" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Contact Person</label>
+                    <Input value={editVendorForm.contactPerson} onChange={e => setEditVendorForm(f => f ? { ...f, contactPerson: e.target.value } : f)} data-testid="input-editvendor-contact" placeholder="Contact person" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Phone <span className="text-destructive">*</span></label>
+                    <Input value={editVendorForm.phone} onChange={e => setEditVendorForm(f => f ? { ...f, phone: e.target.value } : f)} data-testid="input-editvendor-phone" placeholder="Phone number" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Email</label>
+                    <Input type="email" value={editVendorForm.email} onChange={e => setEditVendorForm(f => f ? { ...f, email: e.target.value } : f)} data-testid="input-editvendor-email" placeholder="Email address" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">City</label>
+                    <Input value={editVendorForm.city} onChange={e => setEditVendorForm(f => f ? { ...f, city: e.target.value } : f)} data-testid="input-editvendor-city" placeholder="City" />
+                  </div>
+                  <div className="space-y-1 sm:col-span-2">
+                    <label className="text-sm font-medium">Address</label>
+                    <Input value={editVendorForm.address} onChange={e => setEditVendorForm(f => f ? { ...f, address: e.target.value } : f)} data-testid="input-editvendor-address" placeholder="Address" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Service & Contract */}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Service & Contract</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Service Type</label>
+                    <Select value={editVendorForm.serviceType} onValueChange={v => setEditVendorForm(f => f ? { ...f, serviceType: v } : f)}>
+                      <SelectTrigger data-testid="select-editvendor-service-type"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="fiber">Fiber</SelectItem>
+                        <SelectItem value="wireless">Wireless</SelectItem>
+                        <SelectItem value="cable">Cable</SelectItem>
+                        <SelectItem value="satellite">Satellite</SelectItem>
+                        <SelectItem value="dsl">DSL</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">SLA Level</label>
+                    <Select value={editVendorForm.slaLevel} onValueChange={v => setEditVendorForm(f => f ? { ...f, slaLevel: v } : f)}>
+                      <SelectTrigger data-testid="select-editvendor-sla"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        <SelectItem value="premium">Premium</SelectItem>
+                        <SelectItem value="enterprise">Enterprise</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Contract Start</label>
+                    <Input type="date" value={editVendorForm.contractStartDate} onChange={e => setEditVendorForm(f => f ? { ...f, contractStartDate: e.target.value } : f)} data-testid="input-editvendor-contract-start" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Contract End</label>
+                    <Input type="date" value={editVendorForm.contractEndDate} onChange={e => setEditVendorForm(f => f ? { ...f, contractEndDate: e.target.value } : f)} data-testid="input-editvendor-contract-end" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Status</label>
+                    <Select value={editVendorForm.status} onValueChange={v => setEditVendorForm(f => f ? { ...f, status: v } : f)}>
+                      <SelectTrigger data-testid="select-editvendor-status"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                        <SelectItem value="suspended">Suspended</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">NTN</label>
+                    <Input value={editVendorForm.ntn} onChange={e => setEditVendorForm(f => f ? { ...f, ntn: e.target.value } : f)} data-testid="input-editvendor-ntn" placeholder="Tax number" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Bandwidth (shown for bandwidth vendors) */}
+              {vendorType === "bandwidth" && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Bandwidth Details</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium">Total Bandwidth</label>
+                      <Input value={editVendorForm.totalBandwidth} onChange={e => setEditVendorForm(f => f ? { ...f, totalBandwidth: e.target.value } : f)} data-testid="input-editvendor-total-bw" placeholder="e.g. 100 Mbps" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium">Used Bandwidth</label>
+                      <Input value={editVendorForm.usedBandwidth} onChange={e => setEditVendorForm(f => f ? { ...f, usedBandwidth: e.target.value } : f)} data-testid="input-editvendor-used-bw" placeholder="e.g. 60 Mbps" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium">Monthly Cost (PKR)</label>
+                      <Input type="number" min="0" value={editVendorForm.bandwidthCost} onChange={e => setEditVendorForm(f => f ? { ...f, bandwidthCost: e.target.value } : f)} data-testid="input-editvendor-bw-cost" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Panel Details (shown for panel vendors) */}
+              {vendorType === "panel" && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Panel Details</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium">Panel URL</label>
+                      <Input value={editVendorForm.panelUrl} onChange={e => setEditVendorForm(f => f ? { ...f, panelUrl: e.target.value } : f)} data-testid="input-editvendor-panel-url" placeholder="e.g. panel.vendor.com" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium">Panel Username</label>
+                      <Input value={editVendorForm.panelUsername} onChange={e => setEditVendorForm(f => f ? { ...f, panelUsername: e.target.value } : f)} data-testid="input-editvendor-panel-username" placeholder="Panel login username" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Bank Details */}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Bank Details</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Bank Name</label>
+                    <Input value={editVendorForm.bankName} onChange={e => setEditVendorForm(f => f ? { ...f, bankName: e.target.value } : f)} data-testid="input-editvendor-bank-name" placeholder="Bank name" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Account Title</label>
+                    <Input value={editVendorForm.bankAccountTitle} onChange={e => setEditVendorForm(f => f ? { ...f, bankAccountTitle: e.target.value } : f)} data-testid="input-editvendor-bank-title" placeholder="Account title" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Account Number</label>
+                    <Input value={editVendorForm.bankAccountNumber} onChange={e => setEditVendorForm(f => f ? { ...f, bankAccountNumber: e.target.value } : f)} data-testid="input-editvendor-bank-number" placeholder="Account number" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">Branch Code</label>
+                    <Input value={editVendorForm.bankBranchCode} onChange={e => setEditVendorForm(f => f ? { ...f, bankBranchCode: e.target.value } : f)} data-testid="input-editvendor-bank-branch" placeholder="Branch code" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 justify-end pt-1 border-t">
+                <Button variant="outline" onClick={() => { setEditVendorOpen(false); setEditVendorForm(null); }} data-testid="button-editvendor-cancel">
+                  Cancel
+                </Button>
+                <Button onClick={submitEditVendor} disabled={editVendorSubmitting} data-testid="button-editvendor-submit">
+                  {editVendorSubmitting ? "Saving…" : "Save Changes"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
