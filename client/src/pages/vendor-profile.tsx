@@ -617,9 +617,100 @@ export default function VendorProfilePage() {
                       </div>
                     </div>
                   </div>
+                  {(vendor.contractType || vendor.paymentTerms) && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {vendor.contractType && (
+                        <div className="bg-muted/50 rounded-lg p-3">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Contract Type</p>
+                          <p className="text-sm font-semibold capitalize">{vendor.contractType}</p>
+                        </div>
+                      )}
+                      {vendor.paymentTerms && (
+                        <div className="bg-muted/50 rounded-lg p-3">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Payment Terms</p>
+                          <p className="text-sm font-semibold">{vendor.paymentTerms === "net30" ? "Net 30 Days" : vendor.paymentTerms === "net15" ? "Net 15 Days" : vendor.paymentTerms === "net45" ? "Net 45 Days" : vendor.paymentTerms === "advance" ? "Advance Payment" : vendor.paymentTerms === "on_delivery" ? "On Delivery" : vendor.paymentTerms}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {vendor.autoRenewal && (
+                    <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-2.5">
+                      <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400 shrink-0" />
+                      <p className="text-xs text-green-700 dark:text-green-300 font-medium">Auto-Renewal Enabled</p>
+                    </div>
+                  )}
+                  {vendor.penaltyClause && (
+                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                      <p className="text-[10px] text-amber-700 dark:text-amber-300 uppercase tracking-wider mb-1">Penalty / SLA Notes</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-300">{vendor.penaltyClause}</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
+
+            {vendorType === "bandwidth" && (vendor.networkInterface || vendor.portDetails || vendor.gateway || vendor.dnsServers || vendor.asNumber || vendor.bgpConfig || vendor.routingType) && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-950"><Network className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" /></div>
+                    Network & Infrastructure
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {vendor.serviceType && (
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Provider Type</p>
+                        <p className="text-sm font-semibold capitalize">{vendor.serviceType}</p>
+                      </div>
+                    )}
+                    {vendor.routingType && (
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Routing Type</p>
+                        <p className="text-sm font-semibold capitalize">{vendor.routingType}</p>
+                      </div>
+                    )}
+                    {vendor.networkInterface && (
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Interface</p>
+                        <p className="text-sm font-mono">{vendor.networkInterface}</p>
+                      </div>
+                    )}
+                    {vendor.portDetails && (
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Port / Slot</p>
+                        <p className="text-sm font-mono">{vendor.portDetails}</p>
+                      </div>
+                    )}
+                    {vendor.gateway && (
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Gateway</p>
+                        <p className="text-sm font-mono">{vendor.gateway}</p>
+                      </div>
+                    )}
+                    {vendor.dnsServers && (
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">DNS Servers</p>
+                        <p className="text-sm font-mono">{vendor.dnsServers}</p>
+                      </div>
+                    )}
+                    {vendor.asNumber && (
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">ASN</p>
+                        <p className="text-sm font-mono font-semibold">{vendor.asNumber}</p>
+                      </div>
+                    )}
+                    {vendor.bgpConfig && (
+                      <div className="bg-muted/50 rounded-lg p-3 col-span-2 md:col-span-1">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">BGP Config</p>
+                        <p className="text-xs font-mono break-all">{vendor.bgpConfig}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {(vendor.bankName || vendor.bankAccountNumber || vendor.bankAccountTitle) && (
               <Card>
@@ -701,28 +792,46 @@ export default function VendorProfilePage() {
                           <TableHeader>
                             <TableRow>
                               <TableHead className="text-xs">Link Name</TableHead>
-                              <TableHead className="text-xs">IP Address</TableHead>
-                              <TableHead className="text-xs">VLAN</TableHead>
-                              <TableHead className="text-xs">City</TableHead>
+                              <TableHead className="text-xs">POP / City</TableHead>
+                              <TableHead className="text-xs">IP / VLAN</TableHead>
                               <TableHead className="text-xs">Mbps</TableHead>
-                              <TableHead className="text-xs">Rate/Mbps</TableHead>
                               <TableHead className="text-xs">Monthly Cost</TableHead>
+                              <TableHead className="text-xs">Billing</TableHead>
+                              <TableHead className="text-xs">Start Date</TableHead>
                               <TableHead className="text-xs">Status</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
-                            {bwLinks.map(link => (
+                            {bwLinks.map(link => {
+                              const proRataInfo = link.billingType === "pro_rata" && link.startDate && link.totalMonthlyCost ? (() => {
+                                const start = new Date(link.startDate);
+                                if (isNaN(start.getTime())) return null;
+                                const daysInMonth = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
+                                const remainingDays = daysInMonth - start.getDate() + 1;
+                                return { amount: (Number(link.totalMonthlyCost) / daysInMonth * remainingDays).toFixed(2), remainingDays, daysInMonth };
+                              })() : null;
+                              return (
                               <TableRow key={link.id}>
                                 <TableCell className="text-sm font-medium">{link.linkName}</TableCell>
-                                <TableCell className="font-mono text-xs">{link.ipAddress || "—"}</TableCell>
-                                <TableCell className="text-xs">{link.vlanDetail || "—"}</TableCell>
-                                <TableCell className="text-sm">{link.city || "—"}</TableCell>
-                                <TableCell className="text-sm font-bold text-blue-600 dark:text-blue-400">{link.bandwidthMbps}</TableCell>
-                                <TableCell className="text-sm">{formatPKR(link.bandwidthRate)}</TableCell>
+                                <TableCell className="text-sm">{[link.popLocation, link.city].filter(Boolean).join(" / ") || "—"}</TableCell>
+                                <TableCell className="font-mono text-xs">{[link.ipAddress, link.vlanDetail].filter(Boolean).join(" / ") || "—"}</TableCell>
+                                <TableCell className="text-sm font-bold text-blue-600 dark:text-blue-400">{link.bandwidthMbps} Mbps</TableCell>
                                 <TableCell className="text-sm font-bold">{formatPKR(link.totalMonthlyCost)}</TableCell>
+                                <TableCell>
+                                  {link.billingType === "pro_rata" && proRataInfo ? (
+                                    <div>
+                                      <Badge variant="outline" className="text-[10px] text-orange-600 border-orange-300 no-default-active-elevate">Pro-Rata</Badge>
+                                      <div className="text-[10px] text-orange-600 mt-0.5">{formatPKR(proRataInfo.amount)}</div>
+                                    </div>
+                                  ) : (
+                                    <Badge variant="outline" className="text-[10px] text-green-600 border-green-300 no-default-active-elevate">Full Month</Badge>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-xs">{link.startDate || "—"}</TableCell>
                                 <TableCell><Badge variant={link.status === "active" ? "default" : "secondary"} className="text-[10px] no-default-active-elevate capitalize">{link.status}</Badge></TableCell>
                               </TableRow>
-                            ))}
+                            );})}
+
                             {bwLinks.length > 1 && (
                               <TableRow className="font-bold bg-muted/60">
                                 <TableCell colSpan={4} className="text-xs font-bold">TOTALS</TableCell>

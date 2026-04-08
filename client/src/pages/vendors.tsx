@@ -59,6 +59,11 @@ import {
   CheckCircle2,
   Users,
   SlidersHorizontal,
+  Server,
+  GitBranch,
+  ToggleLeft,
+  Info,
+  Layers,
 } from "lucide-react";
 import { useTab } from "@/hooks/use-tab";
 import { Button } from "@/components/ui/button";
@@ -97,6 +102,7 @@ import {
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import {
   Table,
   TableBody,
@@ -725,6 +731,22 @@ type BandwidthLinkRow = {
   bandwidthRate: string;
   totalMonthlyCost: string;
   notes: string;
+  startDate: string;
+  billingType: string;
+  popLocation: string;
+};
+
+const calcProRata = (totalMonthlyCost: string, startDate: string) => {
+  if (!startDate || !totalMonthlyCost || Number(totalMonthlyCost) <= 0) return null;
+  const start = new Date(startDate);
+  if (isNaN(start.getTime())) return null;
+  const year = start.getFullYear();
+  const month = start.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startDay = start.getDate();
+  const remainingDays = daysInMonth - startDay + 1;
+  const proRata = (Number(totalMonthlyCost) / daysInMonth) * remainingDays;
+  return { proRata: proRata.toFixed(2), remainingDays, daysInMonth };
 };
 
 function AddVendorTab() {
@@ -741,6 +763,7 @@ function AddVendorTab() {
   const [showAddLinkRow, setShowAddLinkRow] = useState(false);
   const [newLink, setNewLink] = useState<BandwidthLinkRow>({
     linkName: "", ipAddress: "", vlanDetail: "", city: "", bandwidthMbps: "", bandwidthRate: "", totalMonthlyCost: "", notes: "",
+    startDate: "", billingType: "full_month", popLocation: "",
   });
 
   const form = useForm<InsertVendor>({
@@ -770,6 +793,17 @@ function AddVendorTab() {
       panelUrl: "",
       panelUsername: "",
       status: "active",
+      contractType: "monthly",
+      paymentTerms: "net30",
+      autoRenewal: false,
+      penaltyClause: "",
+      networkInterface: "",
+      portDetails: "",
+      gateway: "",
+      dnsServers: "",
+      asNumber: "",
+      bgpConfig: "",
+      routingType: "static",
     },
   });
 
@@ -815,6 +849,9 @@ function AddVendorTab() {
               bandwidthRate: link.bandwidthRate || "0",
               totalMonthlyCost: link.totalMonthlyCost || "0",
               notes: link.notes || null,
+              startDate: link.startDate || null,
+              billingType: link.billingType || "full_month",
+              popLocation: link.popLocation || null,
             })
           ));
           queryClient.invalidateQueries({ queryKey: ["/api/vendor-bandwidth-links"] });
@@ -866,7 +903,7 @@ function AddVendorTab() {
     }
     const totalCost = (Number(newLink.bandwidthMbps) * Number(newLink.bandwidthRate)).toFixed(2);
     setBandwidthLinks([...bandwidthLinks, { ...newLink, totalMonthlyCost: totalCost }]);
-    setNewLink({ linkName: "", ipAddress: "", vlanDetail: "", city: "", bandwidthMbps: "", bandwidthRate: "", totalMonthlyCost: "", notes: "" });
+    setNewLink({ linkName: "", ipAddress: "", vlanDetail: "", city: "", bandwidthMbps: "", bandwidthRate: "", totalMonthlyCost: "", notes: "", startDate: "", billingType: "full_month", popLocation: "" });
     setShowAddLinkRow(false);
   };
 
@@ -874,12 +911,21 @@ function AddVendorTab() {
     setBandwidthLinks(bandwidthLinks.filter((_, i) => i !== index));
   };
 
-  const WIZARD_STEPS = [
+  const WIZARD_STEPS_BW = [
     { label: "Vendor Info", icon: User },
-    { label: "Service Details", icon: vendorType === "panel" ? Globe : Network },
+    { label: "Service Detail", icon: Network },
+    { label: "Network & Infrastructure", icon: Server },
     { label: "Business & Contract", icon: Building2 },
     { label: "Banking", icon: CreditCard },
   ];
+  const WIZARD_STEPS_PANEL = [
+    { label: "Vendor Info", icon: User },
+    { label: "Service Detail", icon: Globe },
+    { label: "Business & Contract", icon: Building2 },
+    { label: "Banking", icon: CreditCard },
+  ];
+  const WIZARD_STEPS = vendorType === "bandwidth" ? WIZARD_STEPS_BW : WIZARD_STEPS_PANEL;
+  const contentStep = vendorType === "bandwidth" ? currentStep : currentStep < 3 ? currentStep : currentStep + 1;
 
   return (
     <div className="page-fade-in" data-testid="tab-content-add">
@@ -910,7 +956,7 @@ function AddVendorTab() {
             <form onSubmit={form.handleSubmit((data) => createMutation.mutate(data))} className="space-y-0">
 
               {/* STEP 1: Vendor Info */}
-              {currentStep === 1 && (
+              {contentStep === 1 && (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField control={form.control} name="name" render={({ field }) => (<FormItem><FormLabel>Vendor Name <span className="text-destructive">*</span></FormLabel><FormControl><Input placeholder="Enter vendor name" data-testid="input-vendor-name" {...field} /></FormControl><FormMessage /></FormItem>)} />
@@ -929,8 +975,8 @@ function AddVendorTab() {
                 </div>
               )}
 
-              {/* STEP 2: Service Details */}
-              {currentStep === 2 && (
+              {/* STEP 2: Service Detail */}
+              {contentStep === 2 && (
                 <div className="space-y-5">
                   {vendorType === "bandwidth" && (
                     <>
@@ -950,53 +996,91 @@ function AddVendorTab() {
                         {bandwidthLinks.length > 0 && (
                           <Card><CardContent className="p-0"><div className="overflow-x-auto"><Table><TableHeader><TableRow>
                             <TableHead className="text-xs">Link Name</TableHead>
-                            <TableHead className="text-xs">IP Address</TableHead>
-                            <TableHead className="text-xs">VLAN</TableHead>
-                            <TableHead className="text-xs">City</TableHead>
+                            <TableHead className="text-xs">POP / City</TableHead>
+                            <TableHead className="text-xs">IP / VLAN</TableHead>
                             <TableHead className="text-xs">Mbps</TableHead>
                             <TableHead className="text-xs">Rate/Mbps</TableHead>
                             <TableHead className="text-xs">Monthly Cost</TableHead>
+                            <TableHead className="text-xs">Billing</TableHead>
+                            <TableHead className="text-xs">Start Date</TableHead>
                             <TableHead className="w-10"></TableHead>
                           </TableRow></TableHeader><TableBody>
-                            {bandwidthLinks.map((link, idx) => (
-                              <TableRow key={idx} data-testid={`row-bw-link-${idx}`}>
-                                <TableCell className="text-sm font-medium">{link.linkName}</TableCell>
-                                <TableCell className="text-sm font-mono">{link.ipAddress || "N/A"}</TableCell>
-                                <TableCell className="text-sm">{link.vlanDetail || "N/A"}</TableCell>
-                                <TableCell className="text-sm">{link.city || "N/A"}</TableCell>
-                                <TableCell className="text-sm">{link.bandwidthMbps}</TableCell>
-                                <TableCell className="text-sm">{formatPKR(link.bandwidthRate)}</TableCell>
-                                <TableCell className="text-sm font-semibold text-blue-600 dark:text-blue-400">{formatPKR(link.totalMonthlyCost)}</TableCell>
-                                <TableCell><Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeLinkRow(idx)} data-testid={`button-remove-link-${idx}`}><Trash2 className="h-3.5 w-3.5" /></Button></TableCell>
-                              </TableRow>
-                            ))}
+                            {bandwidthLinks.map((link, idx) => {
+                              const pr = link.billingType === "pro_rata" ? calcProRata(link.totalMonthlyCost, link.startDate) : null;
+                              return (
+                                <TableRow key={idx} data-testid={`row-bw-link-${idx}`}>
+                                  <TableCell className="text-sm font-medium">{link.linkName}</TableCell>
+                                  <TableCell className="text-sm">{[link.popLocation, link.city].filter(Boolean).join(" / ") || "N/A"}</TableCell>
+                                  <TableCell className="text-sm font-mono text-xs">{[link.ipAddress, link.vlanDetail].filter(Boolean).join(" / ") || "N/A"}</TableCell>
+                                  <TableCell className="text-sm">{link.bandwidthMbps} Mbps</TableCell>
+                                  <TableCell className="text-sm">{formatPKR(link.bandwidthRate)}</TableCell>
+                                  <TableCell className="text-sm font-semibold text-blue-600 dark:text-blue-400">{formatPKR(link.totalMonthlyCost)}</TableCell>
+                                  <TableCell>
+                                    {link.billingType === "pro_rata" && pr ? (
+                                      <div>
+                                        <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">Pro-Rata</Badge>
+                                        <div className="text-xs text-orange-600 mt-0.5">{formatPKR(pr.proRata)} <span className="text-muted-foreground">({pr.remainingDays}d)</span></div>
+                                      </div>
+                                    ) : (
+                                      <Badge variant="outline" className="text-xs text-green-600 border-green-300">Full Month</Badge>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-sm">{link.startDate || "N/A"}</TableCell>
+                                  <TableCell><Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeLinkRow(idx)} data-testid={`button-remove-link-${idx}`}><Trash2 className="h-3.5 w-3.5" /></Button></TableCell>
+                                </TableRow>
+                              );
+                            })}
                             {bandwidthLinks.length > 1 && (
                               <TableRow className="font-bold bg-muted/50">
-                                <TableCell colSpan={4} className="text-xs font-bold">TOTALS</TableCell>
+                                <TableCell colSpan={3} className="text-xs font-bold">TOTALS</TableCell>
                                 <TableCell className="text-xs font-bold">{bandwidthLinks.reduce((s, l) => s + Number(l.bandwidthMbps || 0), 0)} Mbps</TableCell>
                                 <TableCell></TableCell>
                                 <TableCell className="text-sm font-bold text-blue-600 dark:text-blue-400">{formatPKR(bandwidthLinks.reduce((s, l) => s + Number(l.totalMonthlyCost || 0), 0))}</TableCell>
-                                <TableCell></TableCell>
+                                <TableCell colSpan={3}></TableCell>
                               </TableRow>
                             )}
                           </TableBody></Table></div></CardContent></Card>
                         )}
                         {showAddLinkRow && (
                           <Card>
-                            <CardHeader className="pb-2"><CardTitle className="text-sm">New Bandwidth Link</CardTitle></CardHeader>
+                            <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Wifi className="h-4 w-4" />New Bandwidth Link</CardTitle></CardHeader>
                             <CardContent className="space-y-3">
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div><Label className="text-xs font-medium">Link Name *</Label><Input placeholder="e.g. Link-1 Fiber" value={newLink.linkName} onChange={(e) => setNewLink({ ...newLink, linkName: e.target.value })} data-testid="input-new-link-name" /></div>
+                                <div><Label className="text-xs font-medium">Link Name *</Label><Input placeholder="e.g. Link-1 Fiber LHR" value={newLink.linkName} onChange={(e) => setNewLink({ ...newLink, linkName: e.target.value })} data-testid="input-new-link-name" /></div>
+                                <div><Label className="text-xs font-medium">City</Label><Input placeholder="Lahore" value={newLink.city} onChange={(e) => setNewLink({ ...newLink, city: e.target.value })} data-testid="input-new-link-city" /></div>
+                                <div><Label className="text-xs font-medium">POP / Location</Label><Input placeholder="e.g. DHA POP-01, Main Hub" value={newLink.popLocation} onChange={(e) => setNewLink({ ...newLink, popLocation: e.target.value })} data-testid="input-new-link-pop" /></div>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 <div><Label className="text-xs font-medium">IP Address</Label><Input placeholder="192.168.1.1" value={newLink.ipAddress} onChange={(e) => setNewLink({ ...newLink, ipAddress: e.target.value })} data-testid="input-new-link-ip" /></div>
                                 <div><Label className="text-xs font-medium">VLAN Detail</Label><Input placeholder="VLAN 100" value={newLink.vlanDetail} onChange={(e) => setNewLink({ ...newLink, vlanDetail: e.target.value })} data-testid="input-new-link-vlan" /></div>
                               </div>
                               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                                <div><Label className="text-xs font-medium">City</Label><Input placeholder="Lahore" value={newLink.city} onChange={(e) => setNewLink({ ...newLink, city: e.target.value })} data-testid="input-new-link-city" /></div>
-                                <div><Label className="text-xs font-medium">Mbps *</Label><Input type="number" placeholder="10" value={newLink.bandwidthMbps} onChange={(e) => { const v = e.target.value; const cost = (Number(v) * Number(newLink.bandwidthRate || 0)).toFixed(2); setNewLink({ ...newLink, bandwidthMbps: v, totalMonthlyCost: cost }); }} data-testid="input-new-link-mbps" /></div>
-                                <div><Label className="text-xs font-medium">Rate/Mbps *</Label><Input type="number" placeholder="1000" value={newLink.bandwidthRate} onChange={(e) => { const v = e.target.value; const cost = (Number(newLink.bandwidthMbps || 0) * Number(v)).toFixed(2); setNewLink({ ...newLink, bandwidthRate: v, totalMonthlyCost: cost }); }} data-testid="input-new-link-rate" /></div>
-                                <div><Label className="text-xs font-medium">Monthly Cost</Label><Input type="number" value={newLink.totalMonthlyCost} onChange={(e) => setNewLink({ ...newLink, totalMonthlyCost: e.target.value })} data-testid="input-new-link-cost" /></div>
+                                <div><Label className="text-xs font-medium">Bandwidth (Mbps) *</Label><Input type="number" placeholder="10" value={newLink.bandwidthMbps} onChange={(e) => { const v = e.target.value; const cost = (Number(v) * Number(newLink.bandwidthRate || 0)).toFixed(2); setNewLink({ ...newLink, bandwidthMbps: v, totalMonthlyCost: cost }); }} data-testid="input-new-link-mbps" /></div>
+                                <div><Label className="text-xs font-medium">Rate/Mbps (PKR) *</Label><Input type="number" placeholder="1000" value={newLink.bandwidthRate} onChange={(e) => { const v = e.target.value; const cost = (Number(newLink.bandwidthMbps || 0) * Number(v)).toFixed(2); setNewLink({ ...newLink, bandwidthRate: v, totalMonthlyCost: cost }); }} data-testid="input-new-link-rate" /></div>
+                                <div><Label className="text-xs font-medium">Monthly Cost (Auto)</Label><Input type="number" value={newLink.totalMonthlyCost} onChange={(e) => setNewLink({ ...newLink, totalMonthlyCost: e.target.value })} data-testid="input-new-link-cost" /></div>
+                                <div><Label className="text-xs font-medium">Billing Start Date</Label><Input type="date" value={newLink.startDate} onChange={(e) => setNewLink({ ...newLink, startDate: e.target.value })} data-testid="input-new-link-start-date" /></div>
                               </div>
-                              <div><Label className="text-xs font-medium">Notes</Label><Input placeholder="Optional notes" value={newLink.notes} onChange={(e) => setNewLink({ ...newLink, notes: e.target.value })} data-testid="input-new-link-notes" /></div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div>
+                                  <Label className="text-xs font-medium">Billing Type</Label>
+                                  <Select value={newLink.billingType} onValueChange={(v) => setNewLink({ ...newLink, billingType: v })}>
+                                    <SelectTrigger data-testid="select-new-link-billing-type"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="full_month">Full Month Billing</SelectItem>
+                                      <SelectItem value="pro_rata">Pro-Rata (Partial Month)</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  {newLink.billingType === "pro_rata" && newLink.startDate && newLink.totalMonthlyCost && (() => {
+                                    const pr = calcProRata(newLink.totalMonthlyCost, newLink.startDate);
+                                    return pr ? (
+                                      <div className="mt-1.5 rounded bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 px-2 py-1.5">
+                                        <p className="text-xs text-orange-700 dark:text-orange-300 font-medium">Pro-Rata: {formatPKR(pr.proRata)} <span className="font-normal text-orange-600/80">({pr.remainingDays} of {pr.daysInMonth} days)</span></p>
+                                      </div>
+                                    ) : null;
+                                  })()}
+                                </div>
+                                <div><Label className="text-xs font-medium">Notes</Label><Input placeholder="Optional notes" value={newLink.notes} onChange={(e) => setNewLink({ ...newLink, notes: e.target.value })} data-testid="input-new-link-notes" /></div>
+                              </div>
                               <div className="flex gap-2 justify-end">
                                 <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddLinkRow(false)}>Cancel</Button>
                                 <Button type="button" size="sm" onClick={addLinkRow} data-testid="button-confirm-add-link"><CheckCircle className="h-3.5 w-3.5 mr-1" />Add Link</Button>
@@ -1005,9 +1089,10 @@ function AddVendorTab() {
                           </Card>
                         )}
                         {bandwidthLinks.length === 0 && !showAddLinkRow && (
-                          <div className="text-center py-4 border rounded-lg text-muted-foreground text-sm">
-                            <Wifi className="h-6 w-6 mx-auto mb-1.5 opacity-30" />
-                            <p className="text-xs">No bandwidth links added yet. Click "Add Link" to add IP/VLAN details.</p>
+                          <div className="text-center py-6 border rounded-lg text-muted-foreground">
+                            <Wifi className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                            <p className="text-sm font-medium">No bandwidth links added yet</p>
+                            <p className="text-xs mt-0.5">Click "Add Link" to configure city, POP, bandwidth and billing details.</p>
                           </div>
                         )}
                       </div>
@@ -1079,18 +1164,143 @@ function AddVendorTab() {
                 </div>
               )}
 
-              {/* STEP 3: Business & Contract */}
-              {currentStep === 3 && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField control={form.control} name="serviceType" render={({ field }) => (<FormItem><FormLabel>Service Type</FormLabel><Select onValueChange={field.onChange} value={field.value || "fiber"}><FormControl><SelectTrigger data-testid="select-vendor-service-type"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="fiber">Fiber</SelectItem><SelectItem value="wireless">Wireless</SelectItem><SelectItem value="cable">Cable</SelectItem><SelectItem value="satellite">Satellite</SelectItem><SelectItem value="maintenance">Maintenance</SelectItem><SelectItem value="equipment">Equipment</SelectItem><SelectItem value="software">Software</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
-                    <FormField control={form.control} name="slaLevel" render={({ field }) => (<FormItem><FormLabel>SLA Level</FormLabel><Select onValueChange={field.onChange} value={field.value || "standard"}><FormControl><SelectTrigger data-testid="select-vendor-sla-level"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="standard">Standard</SelectItem><SelectItem value="premium">Premium</SelectItem><SelectItem value="enterprise">Enterprise</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+              {/* STEP 3: Network & Infrastructure (Bandwidth Only) */}
+              {contentStep === 3 && (
+                <div className="space-y-5">
+                  <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30 p-3">
+                    <p className="text-xs text-blue-700 dark:text-blue-300 flex items-center gap-1.5"><Server className="h-3.5 w-3.5" />Configure technical network details, routing, and infrastructure for this bandwidth vendor.</p>
                   </div>
-                  <FormField control={form.control} name="ntn" render={({ field }) => (<FormItem><FormLabel>NTN (Tax Registration No.)</FormLabel><FormControl><Input placeholder="Tax registration number" data-testid="input-vendor-ntn" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+
+                  <div>
+                    <h3 className="text-sm font-semibold flex items-center gap-1.5 mb-3"><Layers className="h-4 w-4 text-primary" />Provider & Connection</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField control={form.control} name="serviceType" render={({ field }) => (
+                        <FormItem><FormLabel>Provider / Service Type</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || "fiber"}>
+                            <FormControl><SelectTrigger data-testid="select-vendor-service-type"><SelectValue /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              <SelectItem value="fiber">Fiber</SelectItem>
+                              <SelectItem value="wireless">Wireless / Radio</SelectItem>
+                              <SelectItem value="cable">Cable</SelectItem>
+                              <SelectItem value="satellite">Satellite</SelectItem>
+                              <SelectItem value="maintenance">Maintenance</SelectItem>
+                              <SelectItem value="equipment">Equipment</SelectItem>
+                              <SelectItem value="software">Software</SelectItem>
+                            </SelectContent>
+                          </Select><FormMessage />
+                        </FormItem>)} />
+                      <FormField control={form.control} name="networkInterface" render={({ field }) => (
+                        <FormItem><FormLabel>Interface Type</FormLabel>
+                          <FormControl><Input placeholder="e.g. GigabitEthernet0/0, SFP+, GPON" data-testid="input-vendor-interface" {...field} value={field.value || ""} /></FormControl>
+                          <FormMessage />
+                        </FormItem>)} />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      <FormField control={form.control} name="portDetails" render={({ field }) => (
+                        <FormItem><FormLabel>Port / Slot Details</FormLabel>
+                          <FormControl><Input placeholder="e.g. Port 1, Slot 2, VLAN Trunk" data-testid="input-vendor-port" {...field} value={field.value || ""} /></FormControl>
+                          <FormMessage />
+                        </FormItem>)} />
+                      <FormField control={form.control} name="routingType" render={({ field }) => (
+                        <FormItem><FormLabel>Routing Type</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || "static"}>
+                            <FormControl><SelectTrigger data-testid="select-vendor-routing-type"><SelectValue /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              <SelectItem value="static">Static Routing</SelectItem>
+                              <SelectItem value="bgp">BGP (Dynamic)</SelectItem>
+                              <SelectItem value="ospf">OSPF</SelectItem>
+                            </SelectContent>
+                          </Select><FormMessage />
+                        </FormItem>)} />
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <h3 className="text-sm font-semibold flex items-center gap-1.5 mb-3"><Network className="h-4 w-4 text-primary" />IP & DNS Configuration</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField control={form.control} name="gateway" render={({ field }) => (
+                        <FormItem><FormLabel>Gateway IP</FormLabel>
+                          <FormControl><Input placeholder="e.g. 192.168.1.1" data-testid="input-vendor-gateway" {...field} value={field.value || ""} /></FormControl>
+                          <FormMessage />
+                        </FormItem>)} />
+                      <FormField control={form.control} name="dnsServers" render={({ field }) => (
+                        <FormItem><FormLabel>DNS Servers</FormLabel>
+                          <FormControl><Input placeholder="e.g. 8.8.8.8, 1.1.1.1" data-testid="input-vendor-dns" {...field} value={field.value || ""} /></FormControl>
+                          <FormMessage />
+                        </FormItem>)} />
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-4">
+                    <h3 className="text-sm font-semibold flex items-center gap-1.5 mb-3"><GitBranch className="h-4 w-4 text-primary" />BGP / ASN Configuration</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField control={form.control} name="asNumber" render={({ field }) => (
+                        <FormItem><FormLabel>AS Number (ASN)</FormLabel>
+                          <FormControl><Input placeholder="e.g. AS65000" data-testid="input-vendor-asn" {...field} value={field.value || ""} /></FormControl>
+                          <FormMessage />
+                        </FormItem>)} />
+                      <FormField control={form.control} name="bgpConfig" render={({ field }) => (
+                        <FormItem><FormLabel>BGP Configuration / Neighbor</FormLabel>
+                          <FormControl><Input placeholder="e.g. Neighbor 1.2.3.4 remote-as 65001" data-testid="input-vendor-bgp" {...field} value={field.value || ""} /></FormControl>
+                          <FormMessage />
+                        </FormItem>)} />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 4: Business & Contract */}
+              {contentStep === 4 && (
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="slaLevel" render={({ field }) => (<FormItem><FormLabel>SLA Level</FormLabel><Select onValueChange={field.onChange} value={field.value || "standard"}><FormControl><SelectTrigger data-testid="select-vendor-sla-level"><SelectValue /></SelectTrigger></FormControl><SelectContent><SelectItem value="standard">Standard</SelectItem><SelectItem value="premium">Premium</SelectItem><SelectItem value="enterprise">Enterprise</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
+                    <FormField control={form.control} name="ntn" render={({ field }) => (<FormItem><FormLabel>NTN (Tax Registration No.)</FormLabel><FormControl><Input placeholder="Tax registration number" data-testid="input-vendor-ntn" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="contractType" render={({ field }) => (
+                      <FormItem><FormLabel>Contract Type</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || "monthly"}>
+                          <FormControl><SelectTrigger data-testid="select-vendor-contract-type"><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="monthly">Monthly</SelectItem>
+                            <SelectItem value="quarterly">Quarterly</SelectItem>
+                            <SelectItem value="yearly">Yearly</SelectItem>
+                          </SelectContent>
+                        </Select><FormMessage />
+                      </FormItem>)} />
+                    <FormField control={form.control} name="paymentTerms" render={({ field }) => (
+                      <FormItem><FormLabel>Payment Terms</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || "net30"}>
+                          <FormControl><SelectTrigger data-testid="select-vendor-payment-terms"><SelectValue /></SelectTrigger></FormControl>
+                          <SelectContent>
+                            <SelectItem value="advance">Advance Payment</SelectItem>
+                            <SelectItem value="net15">Net 15 Days</SelectItem>
+                            <SelectItem value="net30">Net 30 Days</SelectItem>
+                            <SelectItem value="net45">Net 45 Days</SelectItem>
+                            <SelectItem value="on_delivery">On Delivery</SelectItem>
+                          </SelectContent>
+                        </Select><FormMessage />
+                      </FormItem>)} />
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField control={form.control} name="contractStartDate" render={({ field }) => (<FormItem><FormLabel>Contract Start Date</FormLabel><FormControl><Input type="date" data-testid="input-vendor-contract-start" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
                     <FormField control={form.control} name="contractEndDate" render={({ field }) => (<FormItem><FormLabel>Contract End Date</FormLabel><FormControl><Input type="date" data-testid="input-vendor-contract-end" {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>)} />
                   </div>
+                  <FormField control={form.control} name="autoRenewal" render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center gap-3 rounded-lg border p-3 bg-muted/30">
+                        <Switch id="auto-renewal" checked={!!field.value} onCheckedChange={field.onChange} data-testid="switch-auto-renewal" />
+                        <div>
+                          <label htmlFor="auto-renewal" className="text-sm font-medium cursor-pointer">Auto-Renewal</label>
+                          <p className="text-xs text-muted-foreground">Automatically renew this contract when it expires</p>
+                        </div>
+                      </div>
+                    </FormItem>)} />
+                  <FormField control={form.control} name="penaltyClause" render={({ field }) => (
+                    <FormItem><FormLabel>Penalty Clause / SLA Notes</FormLabel>
+                      <FormControl><Textarea placeholder="Describe any penalty clauses, SLA breach penalties, or important contract notes..." data-testid="input-vendor-penalty" {...field} value={field.value || ""} rows={3} /></FormControl>
+                      <FormMessage />
+                    </FormItem>)} />
                   {/* Contract Document Upload */}
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">Contract Document <span className="text-muted-foreground font-normal">(optional)</span></label>
@@ -1126,8 +1336,8 @@ function AddVendorTab() {
                 </div>
               )}
 
-              {/* STEP 4: Banking */}
-              {currentStep === 4 && (
+              {/* STEP 5: Banking */}
+              {contentStep === 5 && (
                 <div className="space-y-4">
                   <div className="rounded-lg border border-dashed border-muted-foreground/30 p-4 bg-muted/20">
                     <p className="text-xs text-muted-foreground flex items-center gap-1.5"><CreditCard className="h-3.5 w-3.5" />Banking details are used for payment processing and reconciliation.</p>

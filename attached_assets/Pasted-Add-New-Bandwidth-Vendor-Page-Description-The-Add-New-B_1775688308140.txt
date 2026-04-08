@@ -1,0 +1,109 @@
+Add New Bandwidth Vendor – Page Description
+
+The Add New Bandwidth Vendor page is designed to create and manage vendors who provide bandwidth services. This page allows users to store complete vendor information, configure multiple bandwidth links across different locations, define technical network details, manage business contracts, and maintain payment/banking records.
+
+The page is divided into five structured tabs for better usability and organized data entry.
+
+🧑‍💼 1. Vendor Info
+
+This section captures the basic profile and contact details of the vendor.
+
+It includes:
+
+Vendor name and company details
+Contact person information
+Phone, email, and address
+Tax/registration details (NTN, etc.)
+Status (Active/Inactive)
+
+This tab serves as the primary identity record of the vendor within the system.
+
+🌐 2. Service Detail
+
+This section manages the core bandwidth services provided by the vendor.
+
+Key features:
+
+Ability to add multiple bandwidth links under a single vendor
+Each link can be assigned to a different city and location (POP)
+Define:
+Bandwidth capacity (e.g., Mbps/Gbps)
+Monthly cost
+Start date for billing
+Billing type (Full Month or Pro-Rata)
+
+The system automatically:
+
+Calculates pro-rata billing if the service starts mid-month
+Computes total charges across all links
+Prepares data for invoice and wallet updates
+
+This tab is the main operational and billing configuration area.
+
+🛠️ 3. Network & Infrastructure
+
+This section contains technical and network-related configurations required for ISP/network operations.
+
+It includes:
+
+Provider type (Fiber, Wireless, etc.)
+Interface and port details
+VLAN IDs and IP assignments
+Gateway and DNS information
+ASN and BGP configurations
+Routing type (Static/BGP)
+POP/location details
+
+This tab helps the network team manage connectivity and integration with the vendor.
+
+📑 4. Business & Contract
+
+This section defines the commercial agreement and billing terms with the vendor.
+
+It includes:
+
+Contract start and end dates
+Contract type (Monthly/Yearly)
+Payment terms (Net 30, Advance, etc.)
+SLA (Service Level Agreement) details
+Auto-renewal settings
+Penalty clauses and notes
+
+This tab ensures proper contract lifecycle and compliance tracking.
+
+💳 5. Banking
+
+This section stores the vendor’s financial and payment details.
+
+It includes:
+
+Bank name and branch
+Account title and number
+IBAN / SWIFT code
+Payment method preferences
+Opening balance (if any)
+
+This information is used for payment processing and financial reconciliation.
+
+💰 System Behavior (On Save)
+
+When a new bandwidth vendor is created:
+
+All bandwidth links are processed individually
+Billing is calculated (Full or Pro-Rata)
+Total payable amount is generated
+
+👉 The system automatically:
+
+Updates the vendor wallet (payable balance)
+Creates a transaction record
+Prepares data for monthly invoicing
+🎯 Summary
+
+This page provides a complete end-to-end solution for:
+
+Vendor onboarding
+Multi-location bandwidth management
+Automated billing (including pro-rata)
+Network configuration tracking
+Contract and payment management

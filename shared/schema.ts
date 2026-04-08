@@ -251,6 +251,17 @@ export const vendors = pgTable("vendors", {
   payableAmount: decimal("payable_amount", { precision: 12, scale: 2 }).default("0"),
   city: text("city"),
   status: text("status").notNull().default("active"),
+  contractType: text("contract_type").default("monthly"),
+  paymentTerms: text("payment_terms").default("net30"),
+  autoRenewal: boolean("auto_renewal").default(false),
+  penaltyClause: text("penalty_clause"),
+  networkInterface: text("network_interface"),
+  portDetails: text("port_details"),
+  gateway: text("gateway"),
+  dnsServers: text("dns_servers"),
+  asNumber: text("as_number"),
+  bgpConfig: text("bgp_config"),
+  routingType: text("routing_type").default("static"),
 });
 
 export const resellerTypes = pgTable("reseller_types", {
@@ -905,6 +916,9 @@ export const vendorBandwidthLinks = pgTable("vendor_bandwidth_links", {
   totalMonthlyCost: decimal("total_monthly_cost", { precision: 12, scale: 2 }).notNull(),
   status: text("status").notNull().default("active"),
   notes: text("notes"),
+  startDate: text("start_date"),
+  billingType: text("billing_type").default("full_month"),
+  popLocation: text("pop_location"),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
