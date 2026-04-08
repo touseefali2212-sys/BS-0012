@@ -1046,6 +1046,24 @@ export const insertResellerWalletTransactionSchema = createInsertSchema(reseller
 export const insertVendorPackageSchema = createInsertSchema(vendorPackages).omit({ id: true });
 export const insertVendorBandwidthLinkSchema = createInsertSchema(vendorBandwidthLinks).omit({ id: true });
 
+export const vendorPanelLinks = pgTable("vendor_panel_links", {
+  id: serial("id").primaryKey(),
+  vendorId: integer("vendor_id").notNull(),
+  panelName: text("panel_name").notNull(),
+  panelUrl: text("panel_url"),
+  panelUsername: text("panel_username"),
+  city: text("city"),
+  walletBalance: decimal("wallet_balance", { precision: 12, scale: 2 }).default("0"),
+  monthlyFee: decimal("monthly_fee", { precision: 12, scale: 2 }).default("0"),
+  status: text("status").notNull().default("active"),
+  notes: text("notes"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const insertVendorPanelLinkSchema = createInsertSchema(vendorPanelLinks).omit({ id: true });
+export type InsertVendorPanelLink = z.infer<typeof insertVendorPanelLinkSchema>;
+export type VendorPanelLink = typeof vendorPanelLinks.$inferSelect;
+
 export const bandwidthChangeHistory = pgTable("bandwidth_change_history", {
   id: serial("id").primaryKey(),
   vendorId: integer("vendor_id").notNull(),

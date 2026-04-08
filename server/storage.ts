@@ -6,7 +6,7 @@ import {
   assetTypes, assets, assetTransfers, inventoryItems, employees, roles, companySettings,
   notifications, reports, settings, customerConnections,
   notificationTemplates, smtpSettings, smsSettings, notificationDispatches, branches,
-  vendorWalletTransactions, resellerWalletTransactions, resellerMonthlySummaries, vendorPackages, vendorBandwidthLinks, bandwidthChangeHistory, customerQueries, customerQueryLogs, supportCategories, invoiceItems,
+  vendorWalletTransactions, resellerWalletTransactions, resellerMonthlySummaries, vendorPackages, vendorBandwidthLinks, vendorPanelLinks, bandwidthChangeHistory, customerQueries, customerQueryLogs, supportCategories, invoiceItems,
   expenses, attendance, attendanceBreaks, leaves, holidays, auditLogs, taskActivityLogs, creditNotes, bulkMessages, ipAddresses, subnets, vlans, ipamLogs, outages, outageTimeline,
   networkDevices, pppoeUsers, radiusProfiles, radiusNasDevices, radiusAuthLogs, paymentGateways, payments, billingRules, bandwidthUsage, dailyCollections, salaryHistory, advanceLoans, loanInstallments, payroll, salaryPayments, bonusCommissions, commissionTypes, employeeTypes, shifts, shiftAssignments,
   transactionTypes,
@@ -46,6 +46,7 @@ import {
   type ResellerMonthlySummary, type InsertResellerMonthlySummary,
   type VendorPackage, type InsertVendorPackage,
   type VendorBandwidthLink, type InsertVendorBandwidthLink,
+  type VendorPanelLink, type InsertVendorPanelLink,
   type BandwidthChangeHistory, type InsertBandwidthChangeHistory,
   type CustomerQuery, type InsertCustomerQuery,
   type CustomerQueryLog, type InsertCustomerQueryLog,
@@ -351,6 +352,12 @@ export interface IStorage {
   createVendorBandwidthLink(l: InsertVendorBandwidthLink): Promise<VendorBandwidthLink>;
   updateVendorBandwidthLink(id: number, l: Partial<InsertVendorBandwidthLink>): Promise<VendorBandwidthLink | undefined>;
   deleteVendorBandwidthLink(id: number): Promise<void>;
+
+  getVendorPanelLinks(vendorId?: number): Promise<VendorPanelLink[]>;
+  getVendorPanelLink(id: number): Promise<VendorPanelLink | undefined>;
+  createVendorPanelLink(l: InsertVendorPanelLink): Promise<VendorPanelLink>;
+  updateVendorPanelLink(id: number, l: Partial<InsertVendorPanelLink>): Promise<VendorPanelLink | undefined>;
+  deleteVendorPanelLink(id: number): Promise<void>;
 
   getCustomerQueries(): Promise<CustomerQuery[]>;
   getCustomerQuery(id: number): Promise<CustomerQuery | undefined>;
@@ -2103,6 +2110,30 @@ export class DatabaseStorage implements IStorage {
 
   async deleteVendorBandwidthLink(id: number): Promise<void> {
     await db.delete(vendorBandwidthLinks).where(eq(vendorBandwidthLinks.id, id));
+  }
+
+  async getVendorPanelLinks(vendorId?: number): Promise<VendorPanelLink[]> {
+    if (vendorId) return db.select().from(vendorPanelLinks).where(eq(vendorPanelLinks.vendorId, vendorId)).orderBy(desc(vendorPanelLinks.id));
+    return db.select().from(vendorPanelLinks).orderBy(desc(vendorPanelLinks.id));
+  }
+
+  async getVendorPanelLink(id: number): Promise<VendorPanelLink | undefined> {
+    const [link] = await db.select().from(vendorPanelLinks).where(eq(vendorPanelLinks.id, id));
+    return link;
+  }
+
+  async createVendorPanelLink(l: InsertVendorPanelLink): Promise<VendorPanelLink> {
+    const [created] = await db.insert(vendorPanelLinks).values(l).returning();
+    return created;
+  }
+
+  async updateVendorPanelLink(id: number, data: Partial<InsertVendorPanelLink>): Promise<VendorPanelLink | undefined> {
+    const [updated] = await db.update(vendorPanelLinks).set(data).where(eq(vendorPanelLinks.id, id)).returning();
+    return updated;
+  }
+
+  async deleteVendorPanelLink(id: number): Promise<void> {
+    await db.delete(vendorPanelLinks).where(eq(vendorPanelLinks.id, id));
   }
 
   async getBandwidthChangeHistory(vendorId?: number): Promise<BandwidthChangeHistory[]> {

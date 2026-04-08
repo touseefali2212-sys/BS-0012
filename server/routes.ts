@@ -18,7 +18,7 @@ import {
   insertSettingSchema, insertCustomerConnectionSchema,
   insertNotificationTemplateSchema, insertSmtpSettingsSchema, insertSmsSettingsSchema,
   insertNotificationDispatchSchema, insertBranchSchema,
-  insertVendorWalletTransactionSchema, insertResellerWalletTransactionSchema, insertVendorPackageSchema, insertVendorBandwidthLinkSchema, insertBandwidthChangeHistorySchema,
+  insertVendorWalletTransactionSchema, insertResellerWalletTransactionSchema, insertVendorPackageSchema, insertVendorBandwidthLinkSchema, insertVendorPanelLinkSchema, insertBandwidthChangeHistorySchema,
   insertCustomerQuerySchema,
   insertSupportCategorySchema,
   insertInvoiceItemSchema,
@@ -1708,6 +1708,21 @@ export async function registerRoutes(
     try {
       const vendorId = parseInt(req.params.vendorId);
       res.json(await storage.getVendorBandwidthLinks(vendorId));
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
+  crudRoutes(app, "vendor-panel-links", insertVendorPanelLinkSchema,
+    () => storage.getVendorPanelLinks(),
+    (id) => storage.getVendorPanelLink(id),
+    (data) => storage.createVendorPanelLink(data),
+    (id, data) => storage.updateVendorPanelLink(id, data),
+    (id) => storage.deleteVendorPanelLink(id),
+  );
+
+  app.get("/api/vendor-panel-links/by-vendor/:vendorId", requireAuth, async (req, res) => {
+    try {
+      const vendorId = parseInt(req.params.vendorId);
+      res.json(await storage.getVendorPanelLinks(vendorId));
     } catch (error: any) { res.status(500).json({ message: error.message }); }
   });
 

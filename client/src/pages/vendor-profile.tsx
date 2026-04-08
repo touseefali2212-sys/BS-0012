@@ -1,5 +1,5 @@
 import { useParams, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   ArrowLeft,
@@ -30,6 +30,9 @@ import {
   ExternalLink,
   Lock,
   Shield,
+  Plus,
+  Trash2,
+  Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -44,11 +47,30 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type {
   Vendor,
   VendorPackage,
   VendorWalletTransaction,
   VendorBandwidthLink,
+  VendorPanelLink,
+  InsertVendorPanelLink,
 } from "@shared/schema";
 
 const formatPKR = (value: string | number | null | undefined) => {
@@ -61,10 +83,33 @@ const formatPKR = (value: string | number | null | undefined) => {
   }).format(num);
 };
 
+type PanelLinkForm = {
+  panelName: string;
+  panelUrl: string;
+  panelUsername: string;
+  city: string;
+  walletBalance: string;
+  monthlyFee: string;
+  status: string;
+  notes: string;
+};
+
+const emptyPanelLinkForm: PanelLinkForm = {
+  panelName: "", panelUrl: "", panelUsername: "", city: "",
+  walletBalance: "0", monthlyFee: "0", status: "active", notes: "",
+};
+
 export default function VendorProfilePage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [profileTab, setProfileTab] = useState("overview");
+
+  // Panel link dialog state
+  const [plDialogOpen, setPlDialogOpen] = useState(false);
+  const [editingPl, setEditingPl] = useState<VendorPanelLink | null>(null);
+  const [plForm, setPlForm] = useState<PanelLinkForm>(emptyPanelLinkForm);
+  const [plDeleteId, setPlDeleteId] = useState<number | null>(null);
 
   const { data: vendors, isLoading: vendorsLoading } = useQuery<Vendor[]>({
     queryKey: ["/api/vendors"],
@@ -76,6 +121,10 @@ export default function VendorProfilePage() {
 
   const { data: allPackages } = useQuery<VendorPackage[]>({
     queryKey: ["/api/vendor-packages"],
+  });
+
+  const { data: allPanelLinks } = useQuery<VendorPanelLink[]>({
+    queryKey: ["/api/vendor-panel-links"],
   });
 
   const vendor = vendors?.find(v => v.id === Number(id)) ?? null;
@@ -92,7 +141,63 @@ export default function VendorProfilePage() {
     },
   });
 
+  const invalidatePanelLinks = () => queryClient.invalidateQueries({ queryKey: ["/api/vendor-panel-links"] });
+
+  const createPlMutation = useMutation({
+    mutationFn: (data: Omit<InsertVendorPanelLink, "id">) => apiRequest("POST", "/api/vendor-panel-links", data).then(r => r.json()),
+    onSuccess: () => { invalidatePanelLinks(); setPlDialogOpen(false); toast({ title: "Panel link added" }); },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const updatePlMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<InsertVendorPanelLink> }) => apiRequest("PATCH", `/api/vendor-panel-links/${id}`, data).then(r => r.json()),
+    onSuccess: () => { invalidatePanelLinks(); setPlDialogOpen(false); toast({ title: "Panel link updated" }); },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const deletePlMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/vendor-panel-links/${id}`),
+    onSuccess: () => { invalidatePanelLinks(); setPlDeleteId(null); toast({ title: "Panel link deleted" }); },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const openAddPl = () => { setEditingPl(null); setPlForm(emptyPanelLinkForm); setPlDialogOpen(true); };
+  const openEditPl = (pl: VendorPanelLink) => {
+    setEditingPl(pl);
+    setPlForm({
+      panelName: pl.panelName || "",
+      panelUrl: pl.panelUrl || "",
+      panelUsername: pl.panelUsername || "",
+      city: pl.city || "",
+      walletBalance: pl.walletBalance || "0",
+      monthlyFee: pl.monthlyFee || "0",
+      status: pl.status || "active",
+      notes: pl.notes || "",
+    });
+    setPlDialogOpen(true);
+  };
+
+  const submitPlForm = () => {
+    const payload = {
+      vendorId: Number(id),
+      panelName: plForm.panelName,
+      panelUrl: plForm.panelUrl || null,
+      panelUsername: plForm.panelUsername || null,
+      city: plForm.city || null,
+      walletBalance: plForm.walletBalance || "0",
+      monthlyFee: plForm.monthlyFee || "0",
+      status: plForm.status || "active",
+      notes: plForm.notes || null,
+    };
+    if (editingPl) {
+      updatePlMutation.mutate({ id: editingPl.id, data: payload });
+    } else {
+      createPlMutation.mutate(payload as InsertVendorPanelLink);
+    }
+  };
+
   const bwLinks = (allBwLinks || []).filter(l => l.vendorId === Number(id));
+  const panelLinks = (allPanelLinks || []).filter(l => l.vendorId === Number(id));
   const pkgs = (allPackages || []).filter(p => p.vendorId === Number(id));
   const transactions = txns || [];
 
@@ -219,6 +324,12 @@ export default function VendorProfilePage() {
             <p className="text-[10px] uppercase tracking-wider text-white/70">Wallet Balance</p>
             <p className="text-lg font-bold">{formatPKR(walletBalance)}</p>
           </div>
+          {vendorType === "panel" && (
+            <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-white min-w-[100px]">
+              <p className="text-[10px] uppercase tracking-wider text-white/70">Panel Links</p>
+              <p className="text-lg font-bold">{panelLinks.length}</p>
+            </div>
+          )}
           {vendorType === "panel" && (
             <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-white min-w-[100px]">
               <p className="text-[10px] uppercase tracking-wider text-white/70">Packages</p>
@@ -507,78 +618,108 @@ export default function VendorProfilePage() {
               </>
             ) : (
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card className="md:col-span-2">
-                    <CardHeader className="pb-3">
+                {/* Panel Links Table */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
                       <CardTitle className="text-sm flex items-center gap-2">
-                        <div className="p-1.5 rounded-md bg-primary/10"><Globe className="h-3.5 w-3.5 text-primary" /></div>
-                        Panel Access
+                        <Link2 className="h-4 w-4 text-primary" />
+                        Panel Links ({panelLinks.length})
                       </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {vendor.panelUrl ? (
-                        <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-950/40 rounded-lg p-3 border border-blue-100 dark:border-blue-900">
-                          <Globe className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Panel URL</p>
-                            <a href={vendor.panelUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium flex items-center gap-1">
-                              <span className="truncate">{vendor.panelUrl}</span><ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                            </a>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-3 bg-muted/40 rounded-lg p-3">
-                          <Globe className="h-5 w-5 text-muted-foreground" />
-                          <p className="text-sm text-muted-foreground">No panel URL configured</p>
-                        </div>
-                      )}
-                      {vendor.panelUsername ? (
-                        <div className="flex items-center gap-3 bg-muted/40 rounded-lg p-3">
-                          <Lock className="h-5 w-5 text-primary shrink-0" />
-                          <div>
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Panel Username</p>
-                            <p className="text-sm font-mono font-semibold">{vendor.panelUsername}</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-3 bg-muted/40 rounded-lg p-3">
-                          <Lock className="h-5 w-5 text-muted-foreground" />
-                          <p className="text-sm text-muted-foreground">No panel username configured</p>
-                        </div>
-                      )}
-                      {vendor.lastRechargeDate && (
-                        <div className="flex items-center gap-3 bg-muted/40 rounded-lg p-3">
-                          <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Last Recharge</p><p className="text-sm font-medium">{vendor.lastRechargeDate}</p></div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <div className="p-1.5 rounded-md bg-purple-100 dark:bg-purple-950"><Wallet className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" /></div>
-                        Panel Wallet
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-center py-4">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Current Balance</p>
-                        <p className={`text-4xl font-bold ${walletBalance >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>{formatPKR(walletBalance)}</p>
-                        <div className="grid grid-cols-2 gap-2 mt-4 text-xs">
-                          <div className="bg-green-50 dark:bg-green-950/40 rounded p-2">
-                            <p className="text-muted-foreground">Total In</p>
-                            <p className="font-bold text-green-600 dark:text-green-400">{formatPKR(totalRecharged)}</p>
-                          </div>
-                          <div className="bg-red-50 dark:bg-red-950/40 rounded p-2">
-                            <p className="text-muted-foreground">Total Out</p>
-                            <p className="font-bold text-red-600 dark:text-red-400">{formatPKR(totalDebited)}</p>
-                          </div>
-                        </div>
+                      <Button size="sm" className="gap-1.5 h-7 text-xs" onClick={openAddPl} data-testid="button-add-panel-link">
+                        <Plus className="h-3.5 w-3.5" />Add Link
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {panelLinks.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Globe className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                        <p className="text-sm">No panel links added yet</p>
+                        <p className="text-xs mt-1">Add panel links to track multiple panel connections</p>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="text-xs">Panel Name</TableHead>
+                              <TableHead className="text-xs">URL</TableHead>
+                              <TableHead className="text-xs">Username</TableHead>
+                              <TableHead className="text-xs">City</TableHead>
+                              <TableHead className="text-xs">Wallet Balance</TableHead>
+                              <TableHead className="text-xs">Monthly Fee</TableHead>
+                              <TableHead className="text-xs">Status</TableHead>
+                              <TableHead className="w-20"></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {panelLinks.map(pl => (
+                              <TableRow key={pl.id} data-testid={`row-panel-link-${pl.id}`}>
+                                <TableCell className="text-sm font-medium">{pl.panelName}</TableCell>
+                                <TableCell className="text-xs max-w-[160px]">
+                                  {pl.panelUrl ? (
+                                    <a href={pl.panelUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 truncate">
+                                      <span className="truncate">{pl.panelUrl}</span><ExternalLink className="h-3 w-3 shrink-0" />
+                                    </a>
+                                  ) : "—"}
+                                </TableCell>
+                                <TableCell className="font-mono text-xs">{pl.panelUsername || "—"}</TableCell>
+                                <TableCell className="text-xs">{pl.city || "—"}</TableCell>
+                                <TableCell className={`text-sm font-bold ${Number(pl.walletBalance) >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>{formatPKR(pl.walletBalance)}</TableCell>
+                                <TableCell className="text-sm">{formatPKR(pl.monthlyFee)}</TableCell>
+                                <TableCell>
+                                  <Badge variant={pl.status === "active" ? "default" : "secondary"} className="text-[10px] no-default-active-elevate capitalize">{pl.status}</Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex gap-1">
+                                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => openEditPl(pl)} data-testid={`button-edit-panel-link-${pl.id}`}>
+                                      <Edit className="h-3.5 w-3.5" />
+                                    </Button>
+                                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500 hover:text-red-600" onClick={() => setPlDeleteId(pl.id)} data-testid={`button-delete-panel-link-${pl.id}`}>
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+                    {panelLinks.some(pl => pl.notes) && (
+                      <div className="mt-3 space-y-2 pt-2 border-t">
+                        <p className="text-xs font-medium text-muted-foreground">Notes:</p>
+                        {panelLinks.filter(pl => pl.notes).map(pl => (
+                          <div key={pl.id} className="text-xs bg-muted/40 rounded p-2.5">
+                            <span className="font-medium">{pl.panelName}:</span> {pl.notes}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Wallet Summary */}
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Wallet className="h-4 w-4 text-primary" />Wallet Summary</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="text-center bg-purple-50 dark:bg-purple-950/40 rounded-lg p-3">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Vendor Balance</p>
+                        <p className={`text-xl font-bold ${walletBalance >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>{formatPKR(walletBalance)}</p>
+                      </div>
+                      <div className="text-center bg-green-50 dark:bg-green-950/40 rounded-lg p-3">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Total In</p>
+                        <p className="text-xl font-bold text-green-600 dark:text-green-400">{formatPKR(totalRecharged)}</p>
+                      </div>
+                      <div className="text-center bg-red-50 dark:bg-red-950/40 rounded-lg p-3">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Total Out</p>
+                        <p className="text-xl font-bold text-red-600 dark:text-red-400">{formatPKR(totalDebited)}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             )}
           </TabsContent>
@@ -886,6 +1027,141 @@ export default function VendorProfilePage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Add/Edit Panel Link Dialog */}
+      <Dialog open={plDialogOpen} onOpenChange={setPlDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5 text-primary" />
+              {editingPl ? "Edit Panel Link" : "Add Panel Link"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="text-sm font-medium">Panel Name <span className="text-red-500">*</span></label>
+                <Input
+                  placeholder="e.g. Main Panel, City A Panel"
+                  value={plForm.panelName}
+                  onChange={e => setPlForm(p => ({ ...p, panelName: e.target.value }))}
+                  className="mt-1"
+                  data-testid="input-panel-link-name"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="text-sm font-medium">Panel URL</label>
+                <Input
+                  placeholder="https://panel.example.com"
+                  value={plForm.panelUrl}
+                  onChange={e => setPlForm(p => ({ ...p, panelUrl: e.target.value }))}
+                  className="mt-1"
+                  data-testid="input-panel-link-url"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Panel Username</label>
+                <Input
+                  placeholder="admin"
+                  value={plForm.panelUsername}
+                  onChange={e => setPlForm(p => ({ ...p, panelUsername: e.target.value }))}
+                  className="mt-1"
+                  data-testid="input-panel-link-username"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">City</label>
+                <Input
+                  placeholder="Karachi"
+                  value={plForm.city}
+                  onChange={e => setPlForm(p => ({ ...p, city: e.target.value }))}
+                  className="mt-1"
+                  data-testid="input-panel-link-city"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Wallet Balance (PKR)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0"
+                  value={plForm.walletBalance}
+                  onChange={e => setPlForm(p => ({ ...p, walletBalance: e.target.value }))}
+                  className="mt-1"
+                  data-testid="input-panel-link-wallet"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Monthly Fee (PKR)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0"
+                  value={plForm.monthlyFee}
+                  onChange={e => setPlForm(p => ({ ...p, monthlyFee: e.target.value }))}
+                  className="mt-1"
+                  data-testid="input-panel-link-monthly-fee"
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="text-sm font-medium">Status</label>
+                <Select value={plForm.status} onValueChange={v => setPlForm(p => ({ ...p, status: v }))}>
+                  <SelectTrigger className="mt-1" data-testid="select-panel-link-status">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="suspended">Suspended</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2">
+                <label className="text-sm font-medium">Notes</label>
+                <Textarea
+                  placeholder="Optional notes about this panel link..."
+                  value={plForm.notes}
+                  onChange={e => setPlForm(p => ({ ...p, notes: e.target.value }))}
+                  className="mt-1 resize-none"
+                  rows={2}
+                  data-testid="input-panel-link-notes"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <Button variant="outline" onClick={() => setPlDialogOpen(false)} data-testid="button-cancel-panel-link">Cancel</Button>
+              <Button
+                onClick={submitPlForm}
+                disabled={!plForm.panelName.trim() || createPlMutation.isPending || updatePlMutation.isPending}
+                data-testid="button-save-panel-link"
+              >
+                {(createPlMutation.isPending || updatePlMutation.isPending) ? "Saving..." : editingPl ? "Save Changes" : "Add Link"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirm Dialog */}
+      <Dialog open={plDeleteId !== null} onOpenChange={open => { if (!open) setPlDeleteId(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Panel Link</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Are you sure you want to delete this panel link? This action cannot be undone.</p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setPlDeleteId(null)} data-testid="button-cancel-delete-panel-link">Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={() => { if (plDeleteId !== null) deletePlMutation.mutate(plDeleteId); }}
+              disabled={deletePlMutation.isPending}
+              data-testid="button-confirm-delete-panel-link"
+            >
+              {deletePlMutation.isPending ? "Deleting..." : "Delete"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

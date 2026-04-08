@@ -111,6 +111,7 @@ import {
   type VendorBandwidthLink,
   type InsertVendorBandwidthLink,
   type BandwidthChangeHistory,
+  type VendorPanelLink,
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -3277,6 +3278,7 @@ function PanelVendorsTab() {
 
   const { data: vendors, isLoading } = useQuery<Vendor[]>({ queryKey: ["/api/vendors"] });
   const { data: vendorPackages } = useQuery<VendorPackage[]>({ queryKey: ["/api/vendor-packages"] });
+  const { data: allPanelLinks } = useQuery<VendorPanelLink[]>({ queryKey: ["/api/vendor-panel-links"] });
   const { data: allVendorTxns } = useQuery<VendorWalletTransaction[]>({
     queryKey: ["/api/vendor-wallet-transactions/all"],
     queryFn: async () => {
@@ -3627,6 +3629,7 @@ function PanelVendorsTab() {
                     <TableHead className="hidden sm:table-cell w-12">ID</TableHead>
                     <TableHead>Company Name</TableHead>
                     <TableHead className="hidden md:table-cell">Service</TableHead>
+                    <TableHead className="hidden md:table-cell">Panel Links</TableHead>
                     <TableHead className="hidden md:table-cell">Panel Recharge</TableHead>
                     <TableHead className="hidden lg:table-cell">Paid Payment</TableHead>
                     <TableHead className="hidden xl:table-cell">Outstanding B</TableHead>
@@ -3642,6 +3645,7 @@ function PanelVendorsTab() {
                     const vPaid = getVendorPaid(vendor.id);
                     const vOutstanding = getVendorOutstanding(vendor);
                     const vCreditAdv = getVendorCreditAdv(vendor);
+                    const vPanelLinksCount = (allPanelLinks || []).filter(l => l.vendorId === vendor.id).length;
                     return (
                       <TableRow key={vendor.id} data-testid={`row-panel-vendor-${vendor.id}`}>
                         <TableCell className="hidden sm:table-cell cursor-pointer" onClick={() => setLocation(`/vendors/profile/${vendor.id}`)} data-testid={`link-panel-vendor-id-${vendor.id}`}>
@@ -3655,6 +3659,15 @@ function PanelVendorsTab() {
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           <span className="text-xs capitalize">{vendor.serviceType}</span>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell" data-testid={`text-panel-links-count-${vendor.id}`}>
+                          {vPanelLinksCount > 0 ? (
+                            <Badge variant="secondary" className="no-default-active-elevate text-[10px] text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900">
+                              {vPanelLinksCount} link{vPanelLinksCount !== 1 ? "s" : ""}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           <div>
@@ -4909,10 +4922,13 @@ function WalletTab() {
   const [vendorRechargeBankAccountId, setVendorRechargeBankAccountId] = useState("");
   const [vendorRechargeSenderName, setVendorRechargeSenderName] = useState("");
 
+  const [selectedPanelLinkId, setSelectedPanelLinkId] = useState<string>("none");
+
   const { data: vendors, isLoading: vendorsLoading } = useQuery<Vendor[]>({
     queryKey: ["/api/vendors"],
   });
   const { data: allLinks } = useQuery<VendorBandwidthLink[]>({ queryKey: ["/api/vendor-bandwidth-links"] });
+  const { data: allVendorPanelLinks } = useQuery<VendorPanelLink[]>({ queryKey: ["/api/vendor-panel-links"] });
   const { data: companyBankAccounts } = useQuery<CompanyBankAccount[]>({ queryKey: ["/api/company-bank-accounts"] });
   const { data: rechargeVendorTxns } = useQuery<VendorWalletTransaction[]>({
     queryKey: ["/api/vendor-wallet-transactions/dialog", selectedVendorId],
@@ -5164,6 +5180,7 @@ function WalletTab() {
     setVendorRechargePaymentMethod("cash_in_hand");
     setVendorRechargeBankAccountId("");
     setVendorRechargeSenderName("");
+    setSelectedPanelLinkId("none");
     setRechargeDialogOpen(true);
   };
 
@@ -5624,6 +5641,29 @@ function WalletTab() {
                     )}
                   </div>
                 )}
+
+                {/* Panel Link Selector (panel vendors only) */}
+                {!isBandwidthSelected && selectedVendorId && (() => {
+                  const vendorPLinks = (allVendorPanelLinks || []).filter(pl => pl.vendorId === selectedVendorId);
+                  if (vendorPLinks.length === 0) return null;
+                  return (
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Panel Link (optional)</label>
+                      <Select value={selectedPanelLinkId} onValueChange={setSelectedPanelLinkId}>
+                        <SelectTrigger data-testid="select-recharge-panel-link"><SelectValue placeholder="Select panel link..." /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No specific panel</SelectItem>
+                          {vendorPLinks.map(pl => (
+                            <SelectItem key={pl.id} value={String(pl.id)}>
+                              {pl.panelName}{pl.city ? ` — ${pl.city}` : ""}
+                              {pl.walletBalance ? ` (Bal: ${formatPKR(pl.walletBalance)})` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                })()}
 
                 {/* Recharge Amount */}
                 <FormField
