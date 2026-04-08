@@ -1720,7 +1720,7 @@ function VendorProfileDialog({
               </TabsTrigger>
               <TabsTrigger value="accounting" className="text-xs gap-1.5"><BarChart3 className="h-3.5 w-3.5" />Accounting</TabsTrigger>
               <TabsTrigger value="transactions" className="text-xs gap-1.5"><History className="h-3.5 w-3.5" />Transactions</TabsTrigger>
-              <TabsTrigger value="packages" className="text-xs gap-1.5"><Package className="h-3.5 w-3.5" />Packages</TabsTrigger>
+              {vendorType === "panel" && <TabsTrigger value="packages" className="text-xs gap-1.5"><Package className="h-3.5 w-3.5" />Packages</TabsTrigger>}
               <TabsTrigger value="support" className="text-xs gap-1.5"><Headphones className="h-3.5 w-3.5" />Support</TabsTrigger>
             </TabsList>
 
@@ -2202,7 +2202,7 @@ function VendorProfileDialog({
             </TabsContent>
 
             {/* ─ Tab: Packages ─ */}
-            <TabsContent value="packages" className="mt-0">
+            {vendorType === "panel" && <TabsContent value="packages" className="mt-0">
               <Card>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between flex-wrap gap-2">
@@ -2261,7 +2261,7 @@ function VendorProfileDialog({
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
+            </TabsContent>}
 
             {/* ─ Tab: Support ─ */}
             <TabsContent value="support" className="space-y-4 mt-0">
