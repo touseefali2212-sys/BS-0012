@@ -1562,6 +1562,7 @@ function AddVendorTab() {
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
+                        {(() => { const isDplc = bandwidthLinks.find(l => l.linkName === infra.linkName)?.serviceType === "dplc"; return (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div>
                             <Label className="text-xs font-medium">Bandwidth Link</Label>
@@ -1573,54 +1574,94 @@ function AddVendorTab() {
                               </SelectContent>
                             </Select>
                           </div>
-                          <div>
-                            <Label className="text-xs font-medium">Provider / Service Type</Label>
-                            <Select value={infra.serviceType} onValueChange={(v) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, serviceType: v } : n))}>
-                              <SelectTrigger className="h-8 text-xs mt-1" data-testid={`select-network-service-${idx}`}><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="fiber">Fiber</SelectItem>
-                                <SelectItem value="exchange">Exchange</SelectItem>
-                                <SelectItem value="tower">Tower</SelectItem>
-                                <SelectItem value="wireless_p2p">Wireless P2P</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label className="text-xs font-medium">Interface Type</Label>
-                            <Input className="h-8 text-xs mt-1" placeholder="e.g. GigabitEthernet0/0, SFP+" value={infra.networkInterface} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, networkInterface: e.target.value } : n))} data-testid={`input-network-interface-${idx}`} />
-                          </div>
-                          <div>
-                            <Label className="text-xs font-medium">Port / Slot Details</Label>
-                            <Input className="h-8 text-xs mt-1" placeholder="e.g. Port 1, Slot 2" value={infra.portDetails} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, portDetails: e.target.value } : n))} data-testid={`input-network-port-${idx}`} />
-                          </div>
-                          <div>
-                            <Label className="text-xs font-medium">Routing Type</Label>
-                            <Select value={infra.routingType} onValueChange={(v) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, routingType: v } : n))}>
-                              <SelectTrigger className="h-8 text-xs mt-1" data-testid={`select-network-routing-${idx}`}><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="static">Static Routing</SelectItem>
-                                <SelectItem value="bgp">BGP (Dynamic)</SelectItem>
-                                <SelectItem value="ospf">OSPF</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label className="text-xs font-medium">Gateway IP</Label>
-                            <Input className="h-8 text-xs mt-1" placeholder="e.g. 192.168.1.1" value={infra.gateway} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, gateway: e.target.value } : n))} data-testid={`input-network-gateway-${idx}`} />
-                          </div>
-                          <div>
-                            <Label className="text-xs font-medium">DNS Servers</Label>
-                            <Input className="h-8 text-xs mt-1" placeholder="e.g. 8.8.8.8, 1.1.1.1" value={infra.dnsServers} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, dnsServers: e.target.value } : n))} data-testid={`input-network-dns-${idx}`} />
-                          </div>
-                          <div>
-                            <Label className="text-xs font-medium">AS Number (ASN)</Label>
-                            <Input className="h-8 text-xs mt-1" placeholder="e.g. AS65000" value={infra.asNumber} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, asNumber: e.target.value } : n))} data-testid={`input-network-asn-${idx}`} />
-                          </div>
-                          <div className="md:col-span-2">
-                            <Label className="text-xs font-medium">BGP Configuration / Neighbor</Label>
-                            <Input className="h-8 text-xs mt-1" placeholder="e.g. Neighbor 1.2.3.4 remote-as 65001" value={infra.bgpConfig} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, bgpConfig: e.target.value } : n))} data-testid={`input-network-bgp-${idx}`} />
-                          </div>
+                          {!isDplc && (
+                            <div>
+                              <Label className="text-xs font-medium">Provider / Service Type</Label>
+                              <Select value={infra.serviceType} onValueChange={(v) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, serviceType: v } : n))}>
+                                <SelectTrigger className="h-8 text-xs mt-1" data-testid={`select-network-service-${idx}`}><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="fiber">Fiber</SelectItem>
+                                  <SelectItem value="exchange">Exchange</SelectItem>
+                                  <SelectItem value="tower">Tower</SelectItem>
+                                  <SelectItem value="wireless_p2p">Wireless P2P</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                          {isDplc ? (
+                            <>
+                              <div className="md:col-span-2 mt-1">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/30 p-3 space-y-2">
+                                    <p className="text-xs font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
+                                      <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-violet-600 text-white text-[9px] font-bold">A</span>Site A
+                                    </p>
+                                    <div>
+                                      <Label className="text-xs font-medium">Interface Type</Label>
+                                      <Input className="h-8 text-xs mt-1" placeholder="e.g. GigabitEthernet0/0, SFP+" value={infra.networkInterface} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, networkInterface: e.target.value } : n))} data-testid={`input-network-interface-a-${idx}`} />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs font-medium">Port / Slot Details</Label>
+                                      <Input className="h-8 text-xs mt-1" placeholder="e.g. Port 1, Slot 2" value={infra.portDetails} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, portDetails: e.target.value } : n))} data-testid={`input-network-port-a-${idx}`} />
+                                    </div>
+                                  </div>
+                                  <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/30 p-3 space-y-2">
+                                    <p className="text-xs font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
+                                      <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-violet-600 text-white text-[9px] font-bold">B</span>Site B
+                                    </p>
+                                    <div>
+                                      <Label className="text-xs font-medium">Interface Type</Label>
+                                      <Input className="h-8 text-xs mt-1" placeholder="e.g. GigabitEthernet1/0, SFP+" value={infra.gateway} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, gateway: e.target.value } : n))} data-testid={`input-network-interface-b-${idx}`} />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs font-medium">Port / Slot Details</Label>
+                                      <Input className="h-8 text-xs mt-1" placeholder="e.g. Port 2, Slot 1" value={infra.asNumber} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, asNumber: e.target.value } : n))} data-testid={`input-network-port-b-${idx}`} />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div>
+                                <Label className="text-xs font-medium">Interface Type</Label>
+                                <Input className="h-8 text-xs mt-1" placeholder="e.g. GigabitEthernet0/0, SFP+" value={infra.networkInterface} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, networkInterface: e.target.value } : n))} data-testid={`input-network-interface-${idx}`} />
+                              </div>
+                              <div>
+                                <Label className="text-xs font-medium">Port / Slot Details</Label>
+                                <Input className="h-8 text-xs mt-1" placeholder="e.g. Port 1, Slot 2" value={infra.portDetails} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, portDetails: e.target.value } : n))} data-testid={`input-network-port-${idx}`} />
+                              </div>
+                              <div>
+                                <Label className="text-xs font-medium">Routing Type</Label>
+                                <Select value={infra.routingType} onValueChange={(v) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, routingType: v } : n))}>
+                                  <SelectTrigger className="h-8 text-xs mt-1" data-testid={`select-network-routing-${idx}`}><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="static">Static Routing</SelectItem>
+                                    <SelectItem value="bgp">BGP (Dynamic)</SelectItem>
+                                    <SelectItem value="ospf">OSPF</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <Label className="text-xs font-medium">Gateway IP</Label>
+                                <Input className="h-8 text-xs mt-1" placeholder="e.g. 192.168.1.1" value={infra.gateway} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, gateway: e.target.value } : n))} data-testid={`input-network-gateway-${idx}`} />
+                              </div>
+                              <div>
+                                <Label className="text-xs font-medium">DNS Servers</Label>
+                                <Input className="h-8 text-xs mt-1" placeholder="e.g. 8.8.8.8, 1.1.1.1" value={infra.dnsServers} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, dnsServers: e.target.value } : n))} data-testid={`input-network-dns-${idx}`} />
+                              </div>
+                              <div>
+                                <Label className="text-xs font-medium">AS Number (ASN)</Label>
+                                <Input className="h-8 text-xs mt-1" placeholder="e.g. AS65000" value={infra.asNumber} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, asNumber: e.target.value } : n))} data-testid={`input-network-asn-${idx}`} />
+                              </div>
+                              <div className="md:col-span-2">
+                                <Label className="text-xs font-medium">BGP Configuration / Neighbor</Label>
+                                <Input className="h-8 text-xs mt-1" placeholder="e.g. Neighbor 1.2.3.4 remote-as 65001" value={infra.bgpConfig} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, bgpConfig: e.target.value } : n))} data-testid={`input-network-bgp-${idx}`} />
+                              </div>
+                            </>
+                          )}
                         </div>
+                        ); })()}
                       </CardContent>
                     </Card>
                   ))}
@@ -1630,6 +1671,7 @@ function AddVendorTab() {
                     <Card className="border-dashed border-2 border-primary/40">
                       <CardContent className="p-4 space-y-4">
                         <h4 className="text-sm font-semibold flex items-center gap-1.5"><Server className="h-4 w-4 text-primary" />New Network Infrastructure</h4>
+                        {(() => { const isDplcNew = bandwidthLinks.find(l => l.linkName === newNetworkInfra.linkName)?.serviceType === "dplc"; return (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                           <div>
                             <Label className="text-xs font-medium">Bandwidth Link <span className="text-destructive">*</span></Label>
@@ -1641,54 +1683,92 @@ function AddVendorTab() {
                               </SelectContent>
                             </Select>
                           </div>
-                          <div>
-                            <Label className="text-xs font-medium">Provider / Service Type</Label>
-                            <Select value={newNetworkInfra.serviceType} onValueChange={(v) => setNewNetworkInfra({ ...newNetworkInfra, serviceType: v })}>
-                              <SelectTrigger className="h-8 text-xs mt-1" data-testid="select-new-network-service"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="fiber">Fiber</SelectItem>
-                                <SelectItem value="exchange">Exchange</SelectItem>
-                                <SelectItem value="tower">Tower</SelectItem>
-                                <SelectItem value="wireless_p2p">Wireless P2P</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label className="text-xs font-medium">Interface Type</Label>
-                            <Input className="h-8 text-xs mt-1" placeholder="e.g. GigabitEthernet0/0, SFP+" value={newNetworkInfra.networkInterface} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, networkInterface: e.target.value })} data-testid="input-new-network-interface" />
-                          </div>
-                          <div>
-                            <Label className="text-xs font-medium">Port / Slot Details</Label>
-                            <Input className="h-8 text-xs mt-1" placeholder="e.g. Port 1, Slot 2" value={newNetworkInfra.portDetails} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, portDetails: e.target.value })} data-testid="input-new-network-port" />
-                          </div>
-                          <div>
-                            <Label className="text-xs font-medium">Routing Type</Label>
-                            <Select value={newNetworkInfra.routingType} onValueChange={(v) => setNewNetworkInfra({ ...newNetworkInfra, routingType: v })}>
-                              <SelectTrigger className="h-8 text-xs mt-1" data-testid="select-new-network-routing"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="static">Static Routing</SelectItem>
-                                <SelectItem value="bgp">BGP (Dynamic)</SelectItem>
-                                <SelectItem value="ospf">OSPF</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label className="text-xs font-medium">Gateway IP</Label>
-                            <Input className="h-8 text-xs mt-1" placeholder="e.g. 192.168.1.1" value={newNetworkInfra.gateway} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, gateway: e.target.value })} data-testid="input-new-network-gateway" />
-                          </div>
-                          <div>
-                            <Label className="text-xs font-medium">DNS Servers</Label>
-                            <Input className="h-8 text-xs mt-1" placeholder="e.g. 8.8.8.8, 1.1.1.1" value={newNetworkInfra.dnsServers} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, dnsServers: e.target.value })} data-testid="input-new-network-dns" />
-                          </div>
-                          <div>
-                            <Label className="text-xs font-medium">AS Number (ASN)</Label>
-                            <Input className="h-8 text-xs mt-1" placeholder="e.g. AS65000" value={newNetworkInfra.asNumber} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, asNumber: e.target.value })} data-testid="input-new-network-asn" />
-                          </div>
-                          <div className="md:col-span-2">
-                            <Label className="text-xs font-medium">BGP Configuration / Neighbor</Label>
-                            <Input className="h-8 text-xs mt-1" placeholder="e.g. Neighbor 1.2.3.4 remote-as 65001" value={newNetworkInfra.bgpConfig} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, bgpConfig: e.target.value })} data-testid="input-new-network-bgp" />
-                          </div>
+                          {!isDplcNew && (
+                            <div>
+                              <Label className="text-xs font-medium">Provider / Service Type</Label>
+                              <Select value={newNetworkInfra.serviceType} onValueChange={(v) => setNewNetworkInfra({ ...newNetworkInfra, serviceType: v })}>
+                                <SelectTrigger className="h-8 text-xs mt-1" data-testid="select-new-network-service"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="fiber">Fiber</SelectItem>
+                                  <SelectItem value="exchange">Exchange</SelectItem>
+                                  <SelectItem value="tower">Tower</SelectItem>
+                                  <SelectItem value="wireless_p2p">Wireless P2P</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+                          {isDplcNew ? (
+                            <div className="md:col-span-2 mt-1">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/30 p-3 space-y-2">
+                                  <p className="text-xs font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
+                                    <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-violet-600 text-white text-[9px] font-bold">A</span>Site A
+                                  </p>
+                                  <div>
+                                    <Label className="text-xs font-medium">Interface Type</Label>
+                                    <Input className="h-8 text-xs mt-1" placeholder="e.g. GigabitEthernet0/0, SFP+" value={newNetworkInfra.networkInterface} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, networkInterface: e.target.value })} data-testid="input-new-network-interface-a" />
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs font-medium">Port / Slot Details</Label>
+                                    <Input className="h-8 text-xs mt-1" placeholder="e.g. Port 1, Slot 2" value={newNetworkInfra.portDetails} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, portDetails: e.target.value })} data-testid="input-new-network-port-a" />
+                                  </div>
+                                </div>
+                                <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/30 p-3 space-y-2">
+                                  <p className="text-xs font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
+                                    <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-violet-600 text-white text-[9px] font-bold">B</span>Site B
+                                  </p>
+                                  <div>
+                                    <Label className="text-xs font-medium">Interface Type</Label>
+                                    <Input className="h-8 text-xs mt-1" placeholder="e.g. GigabitEthernet1/0, SFP+" value={newNetworkInfra.gateway} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, gateway: e.target.value })} data-testid="input-new-network-interface-b" />
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs font-medium">Port / Slot Details</Label>
+                                    <Input className="h-8 text-xs mt-1" placeholder="e.g. Port 2, Slot 1" value={newNetworkInfra.asNumber} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, asNumber: e.target.value })} data-testid="input-new-network-port-b" />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div>
+                                <Label className="text-xs font-medium">Interface Type</Label>
+                                <Input className="h-8 text-xs mt-1" placeholder="e.g. GigabitEthernet0/0, SFP+" value={newNetworkInfra.networkInterface} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, networkInterface: e.target.value })} data-testid="input-new-network-interface" />
+                              </div>
+                              <div>
+                                <Label className="text-xs font-medium">Port / Slot Details</Label>
+                                <Input className="h-8 text-xs mt-1" placeholder="e.g. Port 1, Slot 2" value={newNetworkInfra.portDetails} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, portDetails: e.target.value })} data-testid="input-new-network-port" />
+                              </div>
+                              <div>
+                                <Label className="text-xs font-medium">Routing Type</Label>
+                                <Select value={newNetworkInfra.routingType} onValueChange={(v) => setNewNetworkInfra({ ...newNetworkInfra, routingType: v })}>
+                                  <SelectTrigger className="h-8 text-xs mt-1" data-testid="select-new-network-routing"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="static">Static Routing</SelectItem>
+                                    <SelectItem value="bgp">BGP (Dynamic)</SelectItem>
+                                    <SelectItem value="ospf">OSPF</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div>
+                                <Label className="text-xs font-medium">Gateway IP</Label>
+                                <Input className="h-8 text-xs mt-1" placeholder="e.g. 192.168.1.1" value={newNetworkInfra.gateway} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, gateway: e.target.value })} data-testid="input-new-network-gateway" />
+                              </div>
+                              <div>
+                                <Label className="text-xs font-medium">DNS Servers</Label>
+                                <Input className="h-8 text-xs mt-1" placeholder="e.g. 8.8.8.8, 1.1.1.1" value={newNetworkInfra.dnsServers} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, dnsServers: e.target.value })} data-testid="input-new-network-dns" />
+                              </div>
+                              <div>
+                                <Label className="text-xs font-medium">AS Number (ASN)</Label>
+                                <Input className="h-8 text-xs mt-1" placeholder="e.g. AS65000" value={newNetworkInfra.asNumber} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, asNumber: e.target.value })} data-testid="input-new-network-asn" />
+                              </div>
+                              <div className="md:col-span-2">
+                                <Label className="text-xs font-medium">BGP Configuration / Neighbor</Label>
+                                <Input className="h-8 text-xs mt-1" placeholder="e.g. Neighbor 1.2.3.4 remote-as 65001" value={newNetworkInfra.bgpConfig} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, bgpConfig: e.target.value })} data-testid="input-new-network-bgp" />
+                              </div>
+                            </>
+                          )}
                         </div>
+                        ); })()}
                         <div className="flex gap-2 justify-end">
                           <Button type="button" variant="ghost" size="sm" onClick={() => setShowAddNetworkRow(false)}>Cancel</Button>
                           <Button type="button" size="sm" onClick={() => { if (!newNetworkInfra.linkName) return; setNetworkInfraList([...networkInfraList, { ...newNetworkInfra }]); setShowAddNetworkRow(false); setNewNetworkInfra({ linkName: "", serviceType: "fiber", networkInterface: "", portDetails: "", routingType: "static", gateway: "", dnsServers: "", asNumber: "", bgpConfig: "" }); }} data-testid="button-confirm-add-network-infra">
