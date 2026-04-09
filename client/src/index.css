@@ -321,34 +321,10 @@
   }
 
   .vendor-page-header {
-    background: linear-gradient(135deg, #0047AB 0%, #007BFF 60%, #00B3FF 100%);
+    background: transparent;
     border-radius: 16px;
     position: relative;
     overflow: hidden;
-  }
-
-  .vendor-page-header::before {
-    content: "";
-    position: absolute;
-    top: -40%;
-    right: -10%;
-    width: 300px;
-    height: 300px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.06);
-    pointer-events: none;
-  }
-
-  .vendor-page-header::after {
-    content: "";
-    position: absolute;
-    bottom: -60%;
-    left: 10%;
-    width: 200px;
-    height: 200px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.04);
-    pointer-events: none;
   }
 
   .vendor-stat-card {

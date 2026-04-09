@@ -1793,40 +1793,40 @@ function VendorProfileDialog({
     <Dialog open={!!vendor} onOpenChange={o => { if (!o) onClose(); }}>
       <DialogContent className="max-w-5xl max-h-[95vh] overflow-y-auto p-0">
         {/* ── Hero Header ── */}
-        <div className="vendor-page-header px-6 py-6 text-white relative rounded-t-lg overflow-hidden">
+        <div className="vendor-page-header px-6 py-6 relative rounded-t-lg overflow-hidden border-b">
           <div className="flex items-start gap-5 relative z-10">
-            <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white font-bold text-3xl shrink-0 shadow-lg">
+            <div className="w-20 h-20 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-3xl shrink-0 shadow-sm">
               {vendor.name.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
               <h2 className="text-2xl font-bold truncate" data-testid="text-profile-vendor-name">{vendor.name}</h2>
               <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/20 text-xs">
+                <Badge variant="secondary" className="text-xs">
                   {vendorType === "bandwidth"
                     ? <><Wifi className="h-3 w-3 mr-1" />Bandwidth Vendor</>
                     : <><Globe className="h-3 w-3 mr-1" />Panel Vendor</>}
                 </Badge>
-                <Badge className={`text-xs border-0 ${vendor.status === "active" ? "bg-emerald-500/80 text-white hover:bg-emerald-500/80" : "bg-red-500/80 text-white hover:bg-red-500/80"}`}>
+                <Badge variant={vendor.status === "active" ? "default" : "destructive"} className="text-xs">
                   {vendor.status === "active" ? <CheckCircle className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
                   <span className="capitalize">{vendor.status}</span>
                 </Badge>
                 {vendor.slaLevel && (
-                  <Badge className="bg-yellow-500/80 text-white border-0 hover:bg-yellow-500/80 text-xs">
+                  <Badge variant="outline" className="text-xs">
                     <Star className="h-3 w-3 mr-1" />{vendor.slaLevel} SLA
                   </Badge>
                 )}
               </div>
-              <div className="flex flex-wrap gap-4 mt-2.5 text-white/80 text-sm">
+              <div className="flex flex-wrap gap-4 mt-2.5 text-muted-foreground text-sm">
                 {vendor.phone && <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" />{vendor.phone}</span>}
                 {vendor.email && <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" />{vendor.email}</span>}
                 {vendor.city && <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{vendor.city}</span>}
               </div>
             </div>
             <div className="flex gap-2 shrink-0">
-              <Button size="sm" variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 hover:text-white no-default-hover-elevate" onClick={onEdit} data-testid="button-profile-edit">
+              <Button size="sm" variant="outline" className="no-default-hover-elevate" onClick={onEdit} data-testid="button-profile-edit">
                 <Edit className="h-3.5 w-3.5 mr-1.5" />Edit
               </Button>
-              <Button size="sm" variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 hover:text-white no-default-hover-elevate" onClick={onClose} data-testid="button-profile-close">
+              <Button size="sm" variant="ghost" className="no-default-hover-elevate" onClick={onClose} data-testid="button-profile-close">
                 <XCircle className="h-3.5 w-3.5" />
               </Button>
             </div>
@@ -1834,27 +1834,27 @@ function VendorProfileDialog({
 
           {/* Quick stats pills */}
           <div className="flex flex-wrap gap-3 mt-5 relative z-10">
-            <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-white min-w-[100px]">
-              <p className="text-[10px] uppercase tracking-wider text-white/70">Wallet Balance</p>
+            <div className="bg-muted rounded-xl px-4 py-2.5 min-w-[100px]">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Wallet Balance</p>
               <p className="text-lg font-bold">{formatPKR(walletBalance)}</p>
             </div>
-            <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-white min-w-[100px]">
-              <p className="text-[10px] uppercase tracking-wider text-white/70">Packages</p>
+            <div className="bg-muted rounded-xl px-4 py-2.5 min-w-[100px]">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Packages</p>
               <p className="text-lg font-bold">{pkgs.length}</p>
             </div>
             {vendorType === "bandwidth" && (
-              <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-white min-w-[100px]">
-                <p className="text-[10px] uppercase tracking-wider text-white/70">Total Bandwidth</p>
+              <div className="bg-muted rounded-xl px-4 py-2.5 min-w-[100px]">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Bandwidth</p>
                 <p className="text-lg font-bold">{totalMbps} <span className="text-sm font-normal">Mbps</span></p>
               </div>
             )}
-            <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-white min-w-[100px]">
-              <p className="text-[10px] uppercase tracking-wider text-white/70">Transactions</p>
+            <div className="bg-muted rounded-xl px-4 py-2.5 min-w-[100px]">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Transactions</p>
               <p className="text-lg font-bold">{txns.length}</p>
             </div>
             {contractDiff !== null && (
-              <div className={`backdrop-blur-sm rounded-xl px-4 py-2.5 text-white min-w-[100px] ${contractDiff < 0 ? "bg-red-500/40" : contractDiff <= 30 ? "bg-amber-500/40" : "bg-white/15"}`}>
-                <p className="text-[10px] uppercase tracking-wider text-white/70">Contract</p>
+              <div className={`rounded-xl px-4 py-2.5 min-w-[100px] ${contractDiff < 0 ? "bg-red-100 dark:bg-red-950/40" : contractDiff <= 30 ? "bg-amber-100 dark:bg-amber-950/40" : "bg-muted"}`}>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Contract</p>
                 <p className="text-lg font-bold">{contractDiff < 0 ? "Expired" : `${contractDiff}d left`}</p>
               </div>
             )}
@@ -3085,22 +3085,22 @@ function BandwidthVendorsTab() {
             <Form {...form}>
               <form onSubmit={form.handleSubmit(data => { if (editingVendor) updateMutation.mutate({ id: editingVendor.id, data }); })} className="flex flex-col h-full">
                 {/* Hero Header */}
-                <div className="vendor-page-header rounded-t-lg px-5 py-4 shrink-0">
+                <div className="vendor-page-header rounded-t-lg px-5 py-4 shrink-0 border-b">
                   <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-xl bg-white/20 flex items-center justify-center text-white text-xl font-bold shrink-0 border-2 border-white/30">
+                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-xl font-bold shrink-0 border-2 border-primary/20">
                       {editingVendor.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h2 className="text-base font-bold text-white truncate">{editingVendor.name}</h2>
-                        <Badge className="bg-blue-400/30 text-white border-blue-300/30 text-[10px] no-default-active-elevate">Bandwidth Vendor</Badge>
-                        <Badge className={`text-[10px] no-default-active-elevate ${editingVendor.status === "active" ? "bg-green-400/30 text-white border-green-300/30" : "bg-red-400/30 text-white border-red-300/30"}`}>{editingVendor.status}</Badge>
+                        <h2 className="text-base font-bold truncate">{editingVendor.name}</h2>
+                        <Badge variant="secondary" className="text-[10px] no-default-active-elevate">Bandwidth Vendor</Badge>
+                        <Badge variant={editingVendor.status === "active" ? "default" : "destructive"} className="text-[10px] no-default-active-elevate capitalize">{editingVendor.status}</Badge>
                       </div>
-                      <p className="text-blue-100 text-xs mt-0.5">Edit vendor profile — fill in details across tabs and save</p>
+                      <p className="text-muted-foreground text-xs mt-0.5">Edit vendor profile — fill in details across tabs and save</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Button type="button" variant="ghost" size="sm" className="text-white hover:bg-white/20 border border-white/30 h-8 px-3 text-xs" onClick={() => setDialogOpen(false)} data-testid="button-bw-edit-cancel">Cancel</Button>
-                      <Button type="submit" size="sm" className="bg-white text-blue-800 hover:bg-blue-50 font-semibold h-8 px-3 text-xs" disabled={updateMutation.isPending} data-testid="button-bw-update-vendor">
+                      <Button type="button" variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => setDialogOpen(false)} data-testid="button-bw-edit-cancel">Cancel</Button>
+                      <Button type="submit" size="sm" className="h-8 px-3 text-xs font-semibold" disabled={updateMutation.isPending} data-testid="button-bw-update-vendor">
                         {updateMutation.isPending ? "Saving..." : "Save Changes"}
                       </Button>
                     </div>
@@ -3426,22 +3426,22 @@ function BandwidthVendorsTab() {
             return (
               <>
                 {/* Header */}
-                <div className="vendor-page-header px-5 py-4 rounded-t-lg shrink-0">
+                <div className="vendor-page-header px-5 py-4 rounded-t-lg shrink-0 border-b">
                   <div className="flex items-center gap-4">
-                    <div className="h-11 w-11 rounded-xl bg-white/20 flex items-center justify-center text-white text-lg font-bold border-2 border-white/30 shrink-0">
+                    <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-lg font-bold border-2 border-primary/20 shrink-0">
                       {bwLinksDetailVendor.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h2 className="text-base font-bold text-white truncate">{bwLinksDetailVendor.name}</h2>
+                      <h2 className="text-base font-bold truncate">{bwLinksDetailVendor.name}</h2>
                       <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                        <span className="text-white/70 text-xs flex items-center gap-1"><Wifi className="h-3 w-3" />Bandwidth Vendor</span>
-                        <span className="text-white/70 text-xs">{links.length} {links.length === 1 ? "Link" : "Links"}</span>
-                        <span className="text-white/70 text-xs">{activeCount} Active</span>
-                        <span className="text-white/70 text-xs">{totalMbps} Mbps Total</span>
+                        <span className="text-muted-foreground text-xs flex items-center gap-1"><Wifi className="h-3 w-3" />Bandwidth Vendor</span>
+                        <span className="text-muted-foreground text-xs">{links.length} {links.length === 1 ? "Link" : "Links"}</span>
+                        <span className="text-muted-foreground text-xs">{activeCount} Active</span>
+                        <span className="text-muted-foreground text-xs">{totalMbps} Mbps Total</span>
                       </div>
                     </div>
                     <div className="flex gap-2 shrink-0">
-                      <Button size="sm" variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 hover:text-white text-xs h-8 no-default-hover-elevate" onClick={() => { setBwLinksDetailVendor(null); setLocation(`/vendors/profile/${bwLinksDetailVendor.id}`); }} data-testid="button-bwlinks-open-profile">
+                      <Button size="sm" variant="outline" className="text-xs h-8 no-default-hover-elevate" onClick={() => { setBwLinksDetailVendor(null); setLocation(`/vendors/profile/${bwLinksDetailVendor.id}`); }} data-testid="button-bwlinks-open-profile">
                         <ExternalLink className="h-3.5 w-3.5 mr-1" />Full Profile
                       </Button>
                     </div>
@@ -5050,16 +5050,16 @@ function VendorPackagesTab() {
 
       {/* Bandwidth Links Management Section */}
       <div className="mt-8 space-y-4">
-        <div className="vendor-page-header px-6 py-5 text-white flex items-center justify-between">
+        <div className="vendor-page-header px-6 py-5 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Wifi className="h-5 w-5" />
               Bandwidth Links & IP/VLAN Management
             </h2>
-            <p className="text-sm text-white/70 mt-1">Manage bandwidth links, IP addresses, and VLAN details for bandwidth vendors</p>
+            <p className="text-sm text-muted-foreground mt-1">Manage bandwidth links, IP addresses, and VLAN details for bandwidth vendors</p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-white/70">{(bwLinks || []).length} links</span>
+            <span className="text-xs text-muted-foreground">{(bwLinks || []).length} links</span>
             <Button className="btn-vendor-primary no-default-hover-elevate no-default-active-elevate" onClick={() => { setBwLinkEditing(null); bwLinkForm.reset({ vendorId: 0, linkName: "", ipAddress: "", vlanDetail: "", city: "", bandwidthMbps: "0", bandwidthRate: "0", totalMonthlyCost: "0", notes: "" }); setBwLinkDialogOpen(true); }} data-testid="button-add-bandwidth-link">
               <Plus className="h-4 w-4 mr-1" />
               Add Link
@@ -8039,11 +8039,11 @@ export default function VendorsPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto page-fade-in">
-      <div className="vendor-page-header px-6 py-5 text-white">
+      <div className="vendor-page-header px-6 py-5">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 relative z-10">
           <div>
             <h1 className="text-2xl font-bold tracking-tight" data-testid="text-vendors-title">Vendor Management</h1>
-            <p className="text-sm text-white/70 mt-0.5">Enterprise vendor operations, billing & package management</p>
+            <p className="text-sm text-muted-foreground mt-0.5">Enterprise vendor operations, billing & package management</p>
           </div>
         </div>
       </div>

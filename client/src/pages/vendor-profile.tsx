@@ -737,30 +737,30 @@ export default function VendorProfilePage() {
       </div>
 
       {/* Hero Header */}
-      <div className="vendor-page-header px-6 py-6 text-white relative overflow-hidden">
+      <div className="vendor-page-header px-6 py-6 relative overflow-hidden border-b">
         <div className="flex items-start gap-5 relative z-10">
-          <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center text-white font-bold text-3xl shrink-0 shadow-lg">
+          <div className="w-20 h-20 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-3xl shrink-0 shadow-sm">
             {vendor.name.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold truncate" data-testid="text-vendor-profile-name">{vendor.name}</h1>
             <div className="flex flex-wrap items-center gap-2 mt-1.5">
-              <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/20 text-xs">
+              <Badge variant="secondary" className="text-xs">
                 {vendorType === "bandwidth"
                   ? <><Wifi className="h-3 w-3 mr-1" />Bandwidth Vendor</>
                   : <><Globe className="h-3 w-3 mr-1" />Panel Vendor</>}
               </Badge>
-              <Badge className={`text-xs border-0 ${vendor.status === "active" ? "bg-emerald-500/80 text-white hover:bg-emerald-500/80" : "bg-red-500/80 text-white hover:bg-red-500/80"}`}>
+              <Badge variant={vendor.status === "active" ? "default" : "destructive"} className="text-xs">
                 {vendor.status === "active" ? <CheckCircle className="h-3 w-3 mr-1" /> : <XCircle className="h-3 w-3 mr-1" />}
                 <span className="capitalize">{vendor.status}</span>
               </Badge>
               {vendor.slaLevel && (
-                <Badge className="bg-yellow-500/80 text-white border-0 hover:bg-yellow-500/80 text-xs">
+                <Badge variant="outline" className="text-xs">
                   <Star className="h-3 w-3 mr-1" />{vendor.slaLevel} SLA
                 </Badge>
               )}
             </div>
-            <div className="flex flex-wrap gap-4 mt-2.5 text-white/80 text-sm">
+            <div className="flex flex-wrap gap-4 mt-2.5 text-muted-foreground text-sm">
               {vendor.phone && <span className="flex items-center gap-1"><Phone className="h-3.5 w-3.5" />{vendor.phone}</span>}
               {vendor.email && <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" />{vendor.email}</span>}
               {vendor.city && <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{vendor.city}</span>}
@@ -770,7 +770,7 @@ export default function VendorProfilePage() {
             <Button
               size="sm"
               variant="outline"
-              className="bg-white/10 border-white/30 text-white hover:bg-white/20 hover:text-white no-default-hover-elevate"
+              className="no-default-hover-elevate"
               onClick={() => setLocation(backUrl)}
               data-testid="button-vendor-profile-back-hero"
             >
@@ -778,7 +778,7 @@ export default function VendorProfilePage() {
             </Button>
             <Button
               size="sm"
-              className="bg-emerald-500/80 hover:bg-emerald-500 border border-white/20 text-white no-default-hover-elevate"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white no-default-hover-elevate"
               onClick={() => setRechargeOpen(true)}
               data-testid="button-vendor-profile-recharge-hero"
             >
@@ -787,7 +787,7 @@ export default function VendorProfilePage() {
             <Button
               size="sm"
               variant="outline"
-              className={`border no-default-hover-elevate ${vendor.status === "active" ? "bg-red-500/20 border-red-400/40 text-red-100 hover:bg-red-500/30" : "bg-emerald-500/20 border-emerald-400/40 text-emerald-100 hover:bg-emerald-500/30"}`}
+              className={`no-default-hover-elevate ${vendor.status === "active" ? "border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950/30" : "border-emerald-300 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-700 dark:text-emerald-400 dark:hover:bg-emerald-950/30"}`}
               onClick={handleToggleStatus}
               disabled={statusToggling}
               data-testid="button-vendor-profile-toggle-status"
@@ -798,7 +798,7 @@ export default function VendorProfilePage() {
             <Button
               size="sm"
               variant="outline"
-              className="bg-white/10 border-white/30 text-white hover:bg-white/20 hover:text-white no-default-hover-elevate"
+              className="no-default-hover-elevate"
               onClick={openEditVendor}
               data-testid="button-vendor-profile-edit-hero"
             >
@@ -809,35 +809,35 @@ export default function VendorProfilePage() {
 
         {/* Quick stats pills */}
         <div className="flex flex-wrap gap-3 mt-5 relative z-10">
-          <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-white min-w-[100px]">
-            <p className="text-[10px] uppercase tracking-wider text-white/70">Wallet Balance</p>
+          <div className="bg-muted rounded-xl px-4 py-2.5 min-w-[100px]">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Wallet Balance</p>
             <p className="text-lg font-bold">{formatPKR(walletBalance)}</p>
           </div>
           {vendorType === "panel" && (
-            <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-white min-w-[100px]">
-              <p className="text-[10px] uppercase tracking-wider text-white/70">Panel Links</p>
+            <div className="bg-muted rounded-xl px-4 py-2.5 min-w-[100px]">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Panel Links</p>
               <p className="text-lg font-bold">{panelLinks.length}</p>
             </div>
           )}
           {vendorType === "panel" && (
-            <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-white min-w-[100px]">
-              <p className="text-[10px] uppercase tracking-wider text-white/70">Packages</p>
+            <div className="bg-muted rounded-xl px-4 py-2.5 min-w-[100px]">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Packages</p>
               <p className="text-lg font-bold">{pkgs.length}</p>
             </div>
           )}
           {vendorType === "bandwidth" && (
-            <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-white min-w-[100px]">
-              <p className="text-[10px] uppercase tracking-wider text-white/70">Total Bandwidth</p>
+            <div className="bg-muted rounded-xl px-4 py-2.5 min-w-[100px]">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Bandwidth</p>
               <p className="text-lg font-bold">{totalMbps} <span className="text-sm font-normal">Mbps</span></p>
             </div>
           )}
-          <div className="bg-white/15 backdrop-blur-sm rounded-xl px-4 py-2.5 text-white min-w-[100px]">
-            <p className="text-[10px] uppercase tracking-wider text-white/70">Transactions</p>
+          <div className="bg-muted rounded-xl px-4 py-2.5 min-w-[100px]">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Transactions</p>
             <p className="text-lg font-bold">{transactions.length}</p>
           </div>
           {contractDiff !== null && (
-            <div className={`backdrop-blur-sm rounded-xl px-4 py-2.5 text-white min-w-[100px] ${contractDiff < 0 ? "bg-red-500/40" : contractDiff <= 30 ? "bg-amber-500/40" : "bg-white/15"}`}>
-              <p className="text-[10px] uppercase tracking-wider text-white/70">Contract</p>
+            <div className={`rounded-xl px-4 py-2.5 min-w-[100px] ${contractDiff < 0 ? "bg-red-100 dark:bg-red-950/40" : contractDiff <= 30 ? "bg-amber-100 dark:bg-amber-950/40" : "bg-muted"}`}>
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Contract</p>
               <p className="text-lg font-bold">{contractDiff < 0 ? "Expired" : `${contractDiff}d left`}</p>
             </div>
           )}
@@ -2334,23 +2334,23 @@ export default function VendorProfilePage() {
         <Dialog open={editVendorOpen} onOpenChange={open => { if (!open) { setEditVendorOpen(false); setEditVendorForm(null); } }}>
           <DialogContent className="max-w-3xl max-h-[92vh] overflow-hidden p-0 gap-0">
             {/* Hero Header */}
-            <div className={`rounded-t-lg px-5 py-4 shrink-0 ${vendorType === "panel" ? "bg-gradient-to-r from-purple-900 via-purple-700 to-violet-700" : "vendor-page-header"}`}>
+            <div className="rounded-t-lg px-5 py-4 shrink-0 border-b">
               <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-xl bg-white/20 flex items-center justify-center text-white text-xl font-bold shrink-0 border-2 border-white/30">
+                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-xl font-bold shrink-0 border-2 border-primary/20">
                   {editVendorForm.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-base font-bold text-white truncate">{editVendorForm.name}</h2>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${vendorType === "panel" ? "bg-purple-400/30 text-white border-purple-300/30" : "bg-blue-400/30 text-white border-blue-300/30"}`}>
+                    <h2 className="text-base font-bold truncate">{editVendorForm.name}</h2>
+                    <Badge variant="secondary" className="text-[10px]">
                       {vendorType === "panel" ? "Panel Vendor" : "Bandwidth Vendor"}
-                    </span>
+                    </Badge>
                   </div>
-                  <p className="text-white/70 text-xs mt-0.5">Edit vendor profile — update details across tabs and save</p>
+                  <p className="text-muted-foreground text-xs mt-0.5">Edit vendor profile — update details across tabs and save</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 border border-white/30 h-8 px-3 text-xs" onClick={() => { setEditVendorOpen(false); setEditVendorForm(null); }} data-testid="button-editvendor-cancel">Cancel</Button>
-                  <Button size="sm" className="bg-white text-blue-800 hover:bg-blue-50 font-semibold h-8 px-3 text-xs" onClick={submitEditVendor} disabled={editVendorSubmitting} data-testid="button-editvendor-submit">
+                  <Button variant="outline" size="sm" className="h-8 px-3 text-xs" onClick={() => { setEditVendorOpen(false); setEditVendorForm(null); }} data-testid="button-editvendor-cancel">Cancel</Button>
+                  <Button size="sm" className="font-semibold h-8 px-3 text-xs" onClick={submitEditVendor} disabled={editVendorSubmitting} data-testid="button-editvendor-submit">
                     {editVendorSubmitting ? "Saving…" : "Save Changes"}
                   </Button>
                 </div>
@@ -2594,14 +2594,14 @@ export default function VendorProfilePage() {
       <Dialog open={bwLinkDialogOpen} onOpenChange={open => { if (!open) { setBwLinkDialogOpen(false); setEditingBwLink(null); } }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden p-0 gap-0">
           {/* Header */}
-          <div className="vendor-page-header px-5 py-4 rounded-t-lg shrink-0">
+          <div className="vendor-page-header px-5 py-4 rounded-t-lg shrink-0 border-b">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-white/20 border-2 border-white/30 flex items-center justify-center shrink-0">
-                {editingBwLink ? <Edit className="h-4.5 w-4.5 text-white" /> : <Plus className="h-5 w-5 text-white" />}
+              <div className="h-10 w-10 rounded-xl bg-primary/10 border-2 border-primary/20 flex items-center justify-center shrink-0">
+                {editingBwLink ? <Edit className="h-4 w-4 text-primary" /> : <Plus className="h-5 w-5 text-primary" />}
               </div>
               <div>
-                <h2 className="text-base font-bold text-white">{editingBwLink ? "Edit Bandwidth Link" : "Add New Bandwidth Link"}</h2>
-                <p className="text-white/70 text-xs">{editingBwLink ? `Editing: ${editingBwLink.linkName}` : "Fill in the link details across tabs"}</p>
+                <h2 className="text-base font-bold">{editingBwLink ? "Edit Bandwidth Link" : "Add New Bandwidth Link"}</h2>
+                <p className="text-muted-foreground text-xs">{editingBwLink ? `Editing: ${editingBwLink.linkName}` : "Fill in the link details across tabs"}</p>
               </div>
             </div>
           </div>
@@ -2829,17 +2829,17 @@ export default function VendorProfilePage() {
             return (
               <>
                 {/* Header */}
-                <div className="vendor-page-header px-5 py-4 rounded-t-lg shrink-0">
+                <div className="vendor-page-header px-5 py-4 rounded-t-lg shrink-0 border-b">
                   <div className="flex items-center gap-4">
-                    <div className="h-11 w-11 rounded-xl bg-white/20 flex items-center justify-center border-2 border-white/30 shrink-0">
-                      <GitBranch className="h-5 w-5 text-white" />
+                    <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center border-2 border-primary/20 shrink-0">
+                      <GitBranch className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h2 className="text-base font-bold text-white truncate">{link.linkName}</h2>
+                      <h2 className="text-base font-bold truncate">{link.linkName}</h2>
                       <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                        <span className="text-white/70 text-xs flex items-center gap-1"><Network className="h-3 w-3" />Bandwidth Link</span>
-                        {link.city && <span className="text-white/70 text-xs flex items-center gap-1"><MapPin className="h-3 w-3" />{link.city}</span>}
-                        {link.popLocation && <span className="text-white/70 text-xs flex items-center gap-1"><Server className="h-3 w-3" />{link.popLocation}</span>}
+                        <span className="text-muted-foreground text-xs flex items-center gap-1"><Network className="h-3 w-3" />Bandwidth Link</span>
+                        {link.city && <span className="text-muted-foreground text-xs flex items-center gap-1"><MapPin className="h-3 w-3" />{link.city}</span>}
+                        {link.popLocation && <span className="text-muted-foreground text-xs flex items-center gap-1"><Server className="h-3 w-3" />{link.popLocation}</span>}
                       </div>
                     </div>
                     <Badge variant="secondary" className={`no-default-active-elevate text-xs font-semibold shrink-0 ${link.status === "active" ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" : link.status === "inactive" ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" : "bg-yellow-100 text-yellow-700"}`}>
