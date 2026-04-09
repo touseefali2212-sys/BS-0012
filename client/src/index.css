@@ -331,8 +331,8 @@
     @apply bg-card rounded-xl border border-card-border;
     box-shadow: var(--shadow-sm);
     transition: all 0.3s ease;
-    position: relative;
     overflow: hidden;
+    display: flex;
   }
 
   .vendor-stat-card:hover {
@@ -340,55 +340,26 @@
     transform: translateY(-2px);
   }
 
-  .vendor-stat-card::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    border-radius: 12px 12px 0 0;
+  .stat-icon-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.5rem;
+    flex-shrink: 0;
+    align-self: stretch;
+    border-radius: 0 12px 12px 0;
   }
 
-  .vendor-stat-card.stat-blue::before {
-    background: linear-gradient(90deg, #0047AB, #007BFF);
-  }
-
-  .vendor-stat-card.stat-green::before {
-    background: linear-gradient(90deg, #059669, #10B981);
-  }
-
-  .vendor-stat-card.stat-purple::before {
-    background: linear-gradient(90deg, #7C3AED, #A78BFA);
-  }
-
-  .vendor-stat-card.stat-amber::before {
-    background: linear-gradient(90deg, #D97706, #F59E0B);
-  }
-
-  .vendor-stat-card.stat-cyan::before {
-    background: linear-gradient(90deg, #0891B2, #22D3EE);
-  }
-
-  .vendor-stat-card.stat-rose::before {
-    background: linear-gradient(90deg, #E11D48, #FB7185);
-  }
-
-  .vendor-stat-card.stat-emerald::before {
-    background: linear-gradient(90deg, #059669, #34D399);
-  }
-
-  .vendor-stat-card.stat-indigo::before {
-    background: linear-gradient(90deg, #4338CA, #818CF8);
-  }
-
-  .vendor-stat-card.stat-red::before {
-    background: linear-gradient(90deg, #DC2626, #F87171);
-  }
-
-  .vendor-stat-card.stat-gray::before {
-    background: linear-gradient(90deg, #475569, #94A3B8);
-  }
+  .vendor-stat-card.stat-blue .stat-icon-box   { background: linear-gradient(135deg, #0047AB, #007BFF); }
+  .vendor-stat-card.stat-green .stat-icon-box  { background: linear-gradient(135deg, #059669, #10B981); }
+  .vendor-stat-card.stat-purple .stat-icon-box { background: linear-gradient(135deg, #6D28D9, #8B5CF6); }
+  .vendor-stat-card.stat-amber .stat-icon-box  { background: linear-gradient(135deg, #D97706, #F59E0B); }
+  .vendor-stat-card.stat-cyan .stat-icon-box   { background: linear-gradient(135deg, #0891B2, #06B6D4); }
+  .vendor-stat-card.stat-rose .stat-icon-box   { background: linear-gradient(135deg, #E11D48, #FB7185); }
+  .vendor-stat-card.stat-emerald .stat-icon-box{ background: linear-gradient(135deg, #059669, #10B981); }
+  .vendor-stat-card.stat-indigo .stat-icon-box { background: linear-gradient(135deg, #4338CA, #6366F1); }
+  .vendor-stat-card.stat-red .stat-icon-box    { background: linear-gradient(135deg, #DC2626, #EF4444); }
+  .vendor-stat-card.stat-gray .stat-icon-box   { background: linear-gradient(135deg, #475569, #64748B); }
 
   .vendor-table-enterprise {
     @apply w-full;

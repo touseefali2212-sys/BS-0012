@@ -313,53 +313,37 @@ function VendorTypesTab() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="vendor-type-stats">
-        <div className="vendor-stat-card stat-blue p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase font-semibold">Bandwidth Vendors</p>
-              <p className="text-2xl font-bold mt-1">{bandwidthVendors.length}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{activeBandwidth} Active</p>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-950 flex items-center justify-center">
-              <Wifi className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            </div>
+        <div className="vendor-stat-card stat-blue">
+          <div className="flex-1 p-4 min-w-0">
+            <p className="text-xs text-muted-foreground uppercase font-semibold">Bandwidth Vendors</p>
+            <p className="text-2xl font-bold mt-1">{bandwidthVendors.length}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{activeBandwidth} Active</p>
           </div>
+          <div className="stat-icon-box"><Wifi className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-green p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase font-semibold">Panel Vendors</p>
-              <p className="text-2xl font-bold mt-1">{panelVendors.length}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{activePanel} Active</p>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-950 flex items-center justify-center">
-              <Wallet className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-            </div>
+        <div className="vendor-stat-card stat-green">
+          <div className="flex-1 p-4 min-w-0">
+            <p className="text-xs text-muted-foreground uppercase font-semibold">Panel Vendors</p>
+            <p className="text-2xl font-bold mt-1">{panelVendors.length}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{activePanel} Active</p>
           </div>
+          <div className="stat-icon-box"><Wallet className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-purple p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase font-semibold">Monthly BW Cost</p>
-              <p className="text-2xl font-bold mt-1">{formatPKR(totalBandwidthCost)}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{bandwidthPackageCount} Packages</p>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-teal-50 dark:bg-teal-950 flex items-center justify-center">
-              <CreditCard className="h-5 w-5 text-teal-600 dark:text-teal-400" />
-            </div>
+        <div className="vendor-stat-card stat-purple">
+          <div className="flex-1 p-4 min-w-0">
+            <p className="text-xs text-muted-foreground uppercase font-semibold">Monthly BW Cost</p>
+            <p className="text-2xl font-bold mt-1">{formatPKR(totalBandwidthCost)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{bandwidthPackageCount} Packages</p>
           </div>
+          <div className="stat-icon-box"><CreditCard className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-amber p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase font-semibold">Total Wallet Balance</p>
-              <p className="text-2xl font-bold mt-1">{formatPKR(totalWalletBalance)}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{panelPackageCount} Packages</p>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-950 flex items-center justify-center">
-              <Wallet className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-            </div>
+        <div className="vendor-stat-card stat-amber">
+          <div className="flex-1 p-4 min-w-0">
+            <p className="text-xs text-muted-foreground uppercase font-semibold">Total Wallet Balance</p>
+            <p className="text-2xl font-bold mt-1">{formatPKR(totalWalletBalance)}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{panelPackageCount} Packages</p>
           </div>
+          <div className="stat-icon-box"><Wallet className="h-5 w-5 text-white" /></div>
         </div>
       </div>
 
@@ -2751,113 +2735,77 @@ function BandwidthVendorsTab() {
   return (
     <div className="space-y-4 page-fade-in" data-testid="tab-content-bandwidth-vendors">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <div className="vendor-stat-card stat-blue p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("total")} data-testid="stat-card-bw-total">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Total BW Vendors</p>
-              <p className="text-2xl font-bold mt-1">{bwVendors.length}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">all bandwidth vendors</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950 flex items-center justify-center shrink-0">
-              <Wifi className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            </div>
+        <div className="vendor-stat-card stat-blue cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("total")} data-testid="stat-card-bw-total">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Total BW Vendors</p>
+            <p className="text-2xl font-bold mt-1">{bwVendors.length}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">all bandwidth vendors</p>
           </div>
+          <div className="stat-icon-box"><Wifi className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-green p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("active")} data-testid="stat-card-bw-active">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Active Vendors</p>
-              <p className="text-2xl font-bold mt-1">{activeCount}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{totalActiveLinks} active links</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-green-50 dark:bg-green-950 flex items-center justify-center shrink-0">
-              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-            </div>
+        <div className="vendor-stat-card stat-green cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("active")} data-testid="stat-card-bw-active">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Active Vendors</p>
+            <p className="text-2xl font-bold mt-1">{activeCount}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{totalActiveLinks} active links</p>
           </div>
+          <div className="stat-icon-box"><CheckCircle className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-cyan p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("mbps")} data-testid="stat-card-bw-mbps">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Active BW Mbps</p>
-              <p className="text-xl font-bold mt-1">{activeMbps.toLocaleString()}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">total contracted Mbps</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-cyan-50 dark:bg-cyan-950 flex items-center justify-center shrink-0">
-              <Activity className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
-            </div>
+        <div className="vendor-stat-card stat-cyan cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("mbps")} data-testid="stat-card-bw-mbps">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Active BW Mbps</p>
+            <p className="text-xl font-bold mt-1">{activeMbps.toLocaleString()}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">total contracted Mbps</p>
           </div>
+          <div className="stat-icon-box"><Activity className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-purple p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("cost")} data-testid="stat-card-bw-cost">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Active BW Cost</p>
-              <p className="text-sm font-bold mt-1 leading-tight">{formatPKR(activeMonthlyCost)}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">active vendors monthly</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-950 flex items-center justify-center shrink-0">
-              <DollarSign className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-            </div>
+        <div className="vendor-stat-card stat-purple cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("cost")} data-testid="stat-card-bw-cost">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Active BW Cost</p>
+            <p className="text-sm font-bold mt-1 leading-tight">{formatPKR(activeMonthlyCost)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">active vendors monthly</p>
           </div>
+          <div className="stat-icon-box"><DollarSign className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-emerald p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("paid")} data-testid="stat-card-bw-paid">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Paid Payment</p>
-              <p className="text-sm font-bold mt-1 leading-tight text-emerald-700 dark:text-emerald-400">{formatPKR(totalPaid)}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">total paid to vendors</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center shrink-0">
-              <BadgeDollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
+        <div className="vendor-stat-card stat-emerald cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("paid")} data-testid="stat-card-bw-paid">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Paid Payment</p>
+            <p className="text-sm font-bold mt-1 leading-tight text-emerald-700 dark:text-emerald-400">{formatPKR(totalPaid)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">total paid to vendors</p>
           </div>
+          <div className="stat-icon-box"><BadgeDollarSign className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-red p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("outstanding")} data-testid="stat-card-bw-outstanding">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Outstanding Balance</p>
-              <p className="text-sm font-bold mt-1 leading-tight text-red-600 dark:text-red-400">{formatPKR(totalOutstanding)}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">unpaid bandwidth bills</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-950 flex items-center justify-center shrink-0">
-              <TrendingUp className="h-4 w-4 text-red-600 dark:text-red-400" />
-            </div>
+        <div className="vendor-stat-card stat-red cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("outstanding")} data-testid="stat-card-bw-outstanding">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Outstanding Balance</p>
+            <p className="text-sm font-bold mt-1 leading-tight text-red-600 dark:text-red-400">{formatPKR(totalOutstanding)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">unpaid bandwidth bills</p>
           </div>
+          <div className="stat-icon-box"><TrendingUp className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-indigo p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("credit")} data-testid="stat-card-bw-credit">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Credit Advance</p>
-              <p className="text-sm font-bold mt-1 leading-tight text-indigo-600 dark:text-indigo-400">{formatPKR(totalCreditAdv)}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">advance paid to vendors</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center shrink-0">
-              <Banknote className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-            </div>
+        <div className="vendor-stat-card stat-indigo cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("credit")} data-testid="stat-card-bw-credit">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Credit Advance</p>
+            <p className="text-sm font-bold mt-1 leading-tight text-indigo-600 dark:text-indigo-400">{formatPKR(totalCreditAdv)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">advance paid to vendors</p>
           </div>
+          <div className="stat-icon-box"><Banknote className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-gray p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("closed")} data-testid="stat-card-bw-closed">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Closed Vendors</p>
-              <p className="text-2xl font-bold mt-1">{closedCount}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">inactive / closed</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
-              <XCircle className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-            </div>
+        <div className="vendor-stat-card stat-gray cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("closed")} data-testid="stat-card-bw-closed">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Closed Vendors</p>
+            <p className="text-2xl font-bold mt-1">{closedCount}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">inactive / closed</p>
           </div>
+          <div className="stat-icon-box"><XCircle className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-amber p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("expiring")} data-testid="stat-card-bw-expiring">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Contract Expiring</p>
-              <p className="text-2xl font-bold mt-1">{expiringCount}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">expiring in 30 days</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-950 flex items-center justify-center shrink-0">
-              <Calendar className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            </div>
+        <div className="vendor-stat-card stat-amber cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("expiring")} data-testid="stat-card-bw-expiring">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Contract Expiring</p>
+            <p className="text-2xl font-bold mt-1">{expiringCount}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">expiring in 30 days</p>
           </div>
+          <div className="stat-icon-box"><Calendar className="h-5 w-5 text-white" /></div>
         </div>
       </div>
 
@@ -3809,113 +3757,77 @@ function PanelVendorsTab() {
   return (
     <div className="space-y-4 page-fade-in" data-testid="tab-content-panel-vendors">
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <div className="vendor-stat-card stat-purple p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("total")} data-testid="stat-card-panel-total">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Total Panel Vendors</p>
-              <p className="text-2xl font-bold mt-1">{panelVendors.length}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">all panel vendors</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-purple-50 dark:bg-purple-950 flex items-center justify-center shrink-0">
-              <Globe className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-            </div>
+        <div className="vendor-stat-card stat-purple cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("total")} data-testid="stat-card-panel-total">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Total Panel Vendors</p>
+            <p className="text-2xl font-bold mt-1">{panelVendors.length}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">all panel vendors</p>
           </div>
+          <div className="stat-icon-box"><Globe className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-green p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("active")} data-testid="stat-card-panel-active">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Active Vendors</p>
-              <p className="text-2xl font-bold mt-1">{activeCount}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">{totalPackages} total packages</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-green-50 dark:bg-green-950 flex items-center justify-center shrink-0">
-              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-            </div>
+        <div className="vendor-stat-card stat-green cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("active")} data-testid="stat-card-panel-active">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Active Vendors</p>
+            <p className="text-2xl font-bold mt-1">{activeCount}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">{totalPackages} total packages</p>
           </div>
+          <div className="stat-icon-box"><CheckCircle className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-blue p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("monthly-recharge")} data-testid="stat-card-panel-monthly-recharge">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Monthly Recharge</p>
-              <p className="text-sm font-bold mt-1 leading-tight">{formatPKR(monthlyRechargeCost)}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">prev month recharge</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-950 flex items-center justify-center shrink-0">
-              <RefreshCw className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            </div>
+        <div className="vendor-stat-card stat-blue cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("monthly-recharge")} data-testid="stat-card-panel-monthly-recharge">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Monthly Recharge</p>
+            <p className="text-sm font-bold mt-1 leading-tight">{formatPKR(monthlyRechargeCost)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">prev month recharge</p>
           </div>
+          <div className="stat-icon-box"><RefreshCw className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-cyan p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("add-recharge")} data-testid="stat-card-panel-add-recharge">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Add Recharge</p>
-              <p className="text-sm font-bold mt-1 leading-tight">{formatPKR(totalAddRecharge)}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">total recharged from vendor</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-cyan-50 dark:bg-cyan-950 flex items-center justify-center shrink-0">
-              <Wallet className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
-            </div>
+        <div className="vendor-stat-card stat-cyan cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("add-recharge")} data-testid="stat-card-panel-add-recharge">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Add Recharge</p>
+            <p className="text-sm font-bold mt-1 leading-tight">{formatPKR(totalAddRecharge)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">total recharged from vendor</p>
           </div>
+          <div className="stat-icon-box"><Wallet className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-emerald p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("paid")} data-testid="stat-card-panel-paid">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Paid Payment</p>
-              <p className="text-sm font-bold mt-1 leading-tight text-emerald-700 dark:text-emerald-400">{formatPKR(totalPaid)}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">paid to panel vendors</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-950 flex items-center justify-center shrink-0">
-              <BadgeDollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            </div>
+        <div className="vendor-stat-card stat-emerald cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("paid")} data-testid="stat-card-panel-paid">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Paid Payment</p>
+            <p className="text-sm font-bold mt-1 leading-tight text-emerald-700 dark:text-emerald-400">{formatPKR(totalPaid)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">paid to panel vendors</p>
           </div>
+          <div className="stat-icon-box"><BadgeDollarSign className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-red p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("outstanding")} data-testid="stat-card-panel-outstanding">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Outstanding Balance</p>
-              <p className="text-sm font-bold mt-1 leading-tight text-red-600 dark:text-red-400">{formatPKR(totalOutstanding)}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">unpaid recharge bills</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-950 flex items-center justify-center shrink-0">
-              <TrendingUp className="h-4 w-4 text-red-600 dark:text-red-400" />
-            </div>
+        <div className="vendor-stat-card stat-red cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("outstanding")} data-testid="stat-card-panel-outstanding">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Outstanding Balance</p>
+            <p className="text-sm font-bold mt-1 leading-tight text-red-600 dark:text-red-400">{formatPKR(totalOutstanding)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">unpaid recharge bills</p>
           </div>
+          <div className="stat-icon-box"><TrendingUp className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-indigo p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("credit")} data-testid="stat-card-panel-credit">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Credit Advance</p>
-              <p className="text-sm font-bold mt-1 leading-tight text-indigo-600 dark:text-indigo-400">{formatPKR(totalCreditAdv)}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">advance with vendors</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-indigo-50 dark:bg-indigo-950 flex items-center justify-center shrink-0">
-              <Banknote className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-            </div>
+        <div className="vendor-stat-card stat-indigo cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("credit")} data-testid="stat-card-panel-credit">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Credit Advance</p>
+            <p className="text-sm font-bold mt-1 leading-tight text-indigo-600 dark:text-indigo-400">{formatPKR(totalCreditAdv)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">advance with vendors</p>
           </div>
+          <div className="stat-icon-box"><Banknote className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-gray p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("closed")} data-testid="stat-card-panel-closed">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Closed Vendors</p>
-              <p className="text-2xl font-bold mt-1">{closedCount}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">inactive / closed</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0">
-              <XCircle className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-            </div>
+        <div className="vendor-stat-card stat-gray cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("closed")} data-testid="stat-card-panel-closed">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Closed Vendors</p>
+            <p className="text-2xl font-bold mt-1">{closedCount}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">inactive / closed</p>
           </div>
+          <div className="stat-icon-box"><XCircle className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-amber p-3 cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("expiring")} data-testid="stat-card-panel-expiring">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Contract Expiring</p>
-              <p className="text-2xl font-bold mt-1">{expiringCount}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">expiring in 30 days</p>
-            </div>
-            <div className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-950 flex items-center justify-center shrink-0">
-              <Calendar className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            </div>
+        <div className="vendor-stat-card stat-amber cursor-pointer hover:shadow-md transition-all" onClick={() => setActiveStatCard("expiring")} data-testid="stat-card-panel-expiring">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide leading-tight">Contract Expiring</p>
+            <p className="text-2xl font-bold mt-1">{expiringCount}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">expiring in 30 days</p>
           </div>
+          <div className="stat-icon-box"><Calendar className="h-5 w-5 text-white" /></div>
         </div>
       </div>
 
@@ -4727,21 +4639,33 @@ function VendorPackagesTab() {
   return (
     <div className="space-y-4 page-fade-in" data-testid="tab-content-packages">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="vendor-stat-card stat-blue p-4">
-          <p className="text-xs text-muted-foreground uppercase font-semibold">Total Packages</p>
-          <p className="text-2xl font-bold mt-1">{(packages || []).length}</p>
+        <div className="vendor-stat-card stat-blue">
+          <div className="flex-1 p-4 min-w-0">
+            <p className="text-xs text-muted-foreground uppercase font-semibold">Total Packages</p>
+            <p className="text-2xl font-bold mt-1">{(packages || []).length}</p>
+          </div>
+          <div className="stat-icon-box"><Package className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-green p-4">
-          <p className="text-xs text-muted-foreground uppercase font-semibold">Active Packages</p>
-          <p className="text-2xl font-bold mt-1">{(packages || []).filter(p => p.isActive).length}</p>
+        <div className="vendor-stat-card stat-green">
+          <div className="flex-1 p-4 min-w-0">
+            <p className="text-xs text-muted-foreground uppercase font-semibold">Active Packages</p>
+            <p className="text-2xl font-bold mt-1">{(packages || []).filter(p => p.isActive).length}</p>
+          </div>
+          <div className="stat-icon-box"><CheckCircle className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-purple p-4">
-          <p className="text-xs text-muted-foreground uppercase font-semibold">Avg ISP Margin</p>
-          <p className="text-2xl font-bold mt-1">{formatPKR((packages || []).length > 0 ? (packages || []).reduce((s, p) => s + (Number(p.ispSellingPrice || 0) - Number(p.vendorPrice || 0)), 0) / (packages || []).length : 0)}</p>
+        <div className="vendor-stat-card stat-purple">
+          <div className="flex-1 p-4 min-w-0">
+            <p className="text-xs text-muted-foreground uppercase font-semibold">Avg ISP Margin</p>
+            <p className="text-2xl font-bold mt-1">{formatPKR((packages || []).length > 0 ? (packages || []).reduce((s, p) => s + (Number(p.ispSellingPrice || 0) - Number(p.vendorPrice || 0)), 0) / (packages || []).length : 0)}</p>
+          </div>
+          <div className="stat-icon-box"><TrendingUp className="h-5 w-5 text-white" /></div>
         </div>
-        <div className="vendor-stat-card stat-amber p-4">
-          <p className="text-xs text-muted-foreground uppercase font-semibold">Total Vendor Cost</p>
-          <p className="text-2xl font-bold mt-1">{formatPKR((packages || []).reduce((s, p) => s + Number(p.vendorPrice || 0), 0))}</p>
+        <div className="vendor-stat-card stat-amber">
+          <div className="flex-1 p-4 min-w-0">
+            <p className="text-xs text-muted-foreground uppercase font-semibold">Total Vendor Cost</p>
+            <p className="text-2xl font-bold mt-1">{formatPKR((packages || []).reduce((s, p) => s + Number(p.vendorPrice || 0), 0))}</p>
+          </div>
+          <div className="stat-icon-box"><DollarSign className="h-5 w-5 text-white" /></div>
         </div>
       </div>
 
@@ -7189,20 +7113,29 @@ function AccountLedgerTab() {
 
       {(selectedVendor || selectedVendorId === "all") && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="vendor-stat-card stat-blue p-4">
-            <p className="text-xs text-muted-foreground uppercase font-semibold">Vendor</p>
-            <p className="text-lg font-bold mt-1">{selectedVendor ? selectedVendor.name : "All Vendors"}</p>
-            <p className="text-xs text-muted-foreground mt-0.5 capitalize">{selectedVendor ? `${selectedVendor.vendorType} vendor` : `${allVendors.length} vendors`}</p>
+          <div className="vendor-stat-card stat-blue">
+            <div className="flex-1 p-4 min-w-0">
+              <p className="text-xs text-muted-foreground uppercase font-semibold">Vendor</p>
+              <p className="text-lg font-bold mt-1">{selectedVendor ? selectedVendor.name : "All Vendors"}</p>
+              <p className="text-xs text-muted-foreground mt-0.5 capitalize">{selectedVendor ? `${selectedVendor.vendorType} vendor` : `${allVendors.length} vendors`}</p>
+            </div>
+            <div className="stat-icon-box"><Building2 className="h-5 w-5 text-white" /></div>
           </div>
-          <div className="vendor-stat-card stat-green p-4">
-            <p className="text-xs text-muted-foreground uppercase font-semibold">Wallet Balance</p>
-            <p className="text-lg font-bold mt-1">{formatPKR(selectedVendor ? selectedVendor.walletBalance : allVendors.reduce((s, v) => s + Number(v.walletBalance || 0), 0))}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Current balance</p>
+          <div className="vendor-stat-card stat-green">
+            <div className="flex-1 p-4 min-w-0">
+              <p className="text-xs text-muted-foreground uppercase font-semibold">Wallet Balance</p>
+              <p className="text-lg font-bold mt-1">{formatPKR(selectedVendor ? selectedVendor.walletBalance : allVendors.reduce((s, v) => s + Number(v.walletBalance || 0), 0))}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Current balance</p>
+            </div>
+            <div className="stat-icon-box"><Wallet className="h-5 w-5 text-white" /></div>
           </div>
-          <div className="vendor-stat-card stat-purple p-4">
-            <p className="text-xs text-muted-foreground uppercase font-semibold">Transactions</p>
-            <p className="text-lg font-bold mt-1">{ledgerEntries.length}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Total entries</p>
+          <div className="vendor-stat-card stat-purple">
+            <div className="flex-1 p-4 min-w-0">
+              <p className="text-xs text-muted-foreground uppercase font-semibold">Transactions</p>
+              <p className="text-lg font-bold mt-1">{ledgerEntries.length}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Total entries</p>
+            </div>
+            <div className="stat-icon-box"><FileText className="h-5 w-5 text-white" /></div>
           </div>
         </div>
       )}
@@ -7571,58 +7504,34 @@ function BandwidthChangesTab() {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-blue-200 dark:border-blue-800">
-          <CardContent className="pt-4 pb-3 px-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950">
-                <Globe className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Active Links</p>
-                <p className="text-xl font-bold" data-testid="text-active-links-count">{(allLinks || []).filter(l => l.status === "active").length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-green-200 dark:border-green-800">
-          <CardContent className="pt-4 pb-3 px-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-green-50 dark:bg-green-950">
-                <ArrowUp className="h-5 w-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Upgrades</p>
-                <p className="text-xl font-bold" data-testid="text-upgrades-count">{totalUpgrades}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-red-200 dark:border-red-800">
-          <CardContent className="pt-4 pb-3 px-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-red-50 dark:bg-red-950">
-                <ArrowDown className="h-5 w-5 text-red-600 dark:text-red-400" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Downgrades</p>
-                <p className="text-xl font-bold" data-testid="text-downgrades-count">{totalDowngrades}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-amber-200 dark:border-amber-800">
-          <CardContent className="pt-4 pb-3 px-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950">
-                <RefreshCw className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Rate Changes</p>
-                <p className="text-xl font-bold" data-testid="text-rate-changes-count">{totalRateChanges}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="vendor-stat-card stat-blue">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide">Active Links</p>
+            <p className="text-xl font-bold mt-1" data-testid="text-active-links-count">{(allLinks || []).filter(l => l.status === "active").length}</p>
+          </div>
+          <div className="stat-icon-box"><Globe className="h-5 w-5 text-white" /></div>
+        </div>
+        <div className="vendor-stat-card stat-green">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide">Upgrades</p>
+            <p className="text-xl font-bold mt-1" data-testid="text-upgrades-count">{totalUpgrades}</p>
+          </div>
+          <div className="stat-icon-box"><ArrowUp className="h-5 w-5 text-white" /></div>
+        </div>
+        <div className="vendor-stat-card stat-red">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide">Downgrades</p>
+            <p className="text-xl font-bold mt-1" data-testid="text-downgrades-count">{totalDowngrades}</p>
+          </div>
+          <div className="stat-icon-box"><ArrowDown className="h-5 w-5 text-white" /></div>
+        </div>
+        <div className="vendor-stat-card stat-amber">
+          <div className="flex-1 p-3 min-w-0">
+            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wide">Rate Changes</p>
+            <p className="text-xl font-bold mt-1" data-testid="text-rate-changes-count">{totalRateChanges}</p>
+          </div>
+          <div className="stat-icon-box"><RefreshCw className="h-5 w-5 text-white" /></div>
+        </div>
       </div>
 
       <Card>
