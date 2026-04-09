@@ -239,6 +239,13 @@ export default function VendorProfilePage() {
   });
   const [rechargeSubmitting, setRechargeSubmitting] = useState(false);
 
+  // Deduct Balance dialog state
+  const [deductOpen, setDeductOpen] = useState(false);
+  const [deductForm, setDeductForm] = useState({
+    amount: "", reference: "", reason: "", performedBy: "", notes: "",
+  });
+  const [deductSubmitting, setDeductSubmitting] = useState(false);
+
   // Delete vendor state
   const [deleteVendorOpen, setDeleteVendorOpen] = useState(false);
   const [deleteVendorSubmitting, setDeleteVendorSubmitting] = useState(false);
@@ -593,6 +600,33 @@ export default function VendorProfilePage() {
     }
   };
 
+  const handleDeductSubmit = async () => {
+    const amt = parseFloat(deductForm.amount);
+    if (!deductForm.amount || isNaN(amt) || amt <= 0) {
+      toast({ title: "Invalid amount", variant: "destructive" }); return;
+    }
+    setDeductSubmitting(true);
+    try {
+      await apiRequest("POST", "/api/vendor-wallet/deduct", {
+        vendorId: Number(id),
+        amount: amt,
+        reference: deductForm.reference || `DED-${Date.now()}`,
+        reason: deductForm.reason || null,
+        performedBy: deductForm.performedBy || "Admin",
+        notes: deductForm.notes || null,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor-wallet-transactions", Number(id)] });
+      setDeductOpen(false);
+      setDeductForm({ amount: "", reference: "", reason: "", performedBy: "", notes: "" });
+      toast({ title: "Balance deducted", description: `${formatPKR(amt)} has been deducted from the wallet.` });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setDeductSubmitting(false);
+    }
+  };
+
   const handleDeleteVendor = async () => {
     if (!vendor) return;
     setDeleteVendorSubmitting(true);
@@ -734,6 +768,15 @@ export default function VendorProfilePage() {
           <Button
             size="sm"
             variant="outline"
+            className="gap-1.5 h-8 text-xs text-orange-600 border-orange-200 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-950/30 no-default-hover-elevate"
+            onClick={() => setDeductOpen(true)}
+            data-testid="button-vendor-profile-deduct"
+          >
+            <ArrowUpRight className="h-3.5 w-3.5" />Deduct
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
             className="gap-1.5 h-8 text-xs"
             onClick={openEditVendor}
             data-testid="button-vendor-profile-edit"
@@ -799,6 +842,15 @@ export default function VendorProfilePage() {
               data-testid="button-vendor-profile-recharge-hero"
             >
               <ArrowDownLeft className="h-3.5 w-3.5 mr-1.5" />{vendorType === "panel" ? "Recharge" : "Send Payment"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="no-default-hover-elevate border-orange-300 text-orange-600 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950/30"
+              onClick={() => setDeductOpen(true)}
+              data-testid="button-vendor-profile-deduct-hero"
+            >
+              <ArrowUpRight className="h-3.5 w-3.5 mr-1.5" />Deduct
             </Button>
             <Button
               size="sm"
@@ -1354,27 +1406,60 @@ export default function VendorProfilePage() {
                 </Card>
 
                 {/* Per-link network detail cards */}
-                {bwLinks.some(l => l.networkInterface || l.gateway || l.asNumber || l.routingType || l.dnsServers) && (
+                {bwLinks.some(l => l.networkInterface || l.portDetails || l.gateway || l.asNumber || l.routingType || l.dnsServers || l.bgpConfig) && (
                   <div>
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2.5">Network Infrastructure Details (per link)</p>
                     <div className="space-y-3">
-                      {bwLinks.filter(l => l.networkInterface || l.gateway || l.asNumber || l.routingType || l.dnsServers).map(link => (
-                        <Card key={link.id} className="border-l-4 border-l-blue-500">
-                          <CardHeader className="pb-2 pt-3">
-                            <CardTitle className="text-sm flex items-center gap-2"><Network className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />{link.linkName}</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                              {link.routingType && <div className="bg-muted/50 rounded-lg p-2.5"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Routing</p><p className="text-xs font-semibold capitalize">{link.routingType}</p></div>}
-                              {link.networkInterface && <div className="bg-muted/50 rounded-lg p-2.5"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Interface</p><p className="text-xs font-mono">{link.networkInterface}</p></div>}
-                              {link.gateway && <div className="bg-muted/50 rounded-lg p-2.5"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Gateway</p><p className="text-xs font-mono">{link.gateway}</p></div>}
-                              {link.dnsServers && <div className="bg-muted/50 rounded-lg p-2.5"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">DNS</p><p className="text-xs font-mono">{link.dnsServers}</p></div>}
-                              {link.asNumber && <div className="bg-muted/50 rounded-lg p-2.5"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">ASN</p><p className="text-xs font-mono font-semibold">{link.asNumber}</p></div>}
-                              {link.bgpConfig && <div className="bg-muted/50 rounded-lg p-2.5 col-span-2"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">BGP Config</p><p className="text-xs font-mono break-all">{link.bgpConfig}</p></div>}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+                      {bwLinks.filter(l => l.networkInterface || l.portDetails || l.gateway || l.asNumber || l.routingType || l.dnsServers || l.bgpConfig).map(link => {
+                        const isDplc = link.serviceType === "dplc";
+                        return (
+                          <Card key={link.id} className={`border-l-4 ${isDplc ? "border-l-violet-500" : "border-l-blue-500"}`}>
+                            <CardHeader className="pb-2 pt-3">
+                              <CardTitle className="text-sm flex items-center gap-2">
+                                <Network className={`h-3.5 w-3.5 ${isDplc ? "text-violet-600 dark:text-violet-400" : "text-blue-600 dark:text-blue-400"}`} />
+                                {link.linkName}
+                                {isDplc && <Badge variant="outline" className="no-default-active-elevate text-[10px] text-violet-600 dark:text-violet-400 border-violet-300 dark:border-violet-700 ml-1">DPLC</Badge>}
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              {isDplc ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {(link.networkInterface || link.portDetails || link.dnsServers) && (
+                                    <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20 p-3">
+                                      <p className="text-[10px] font-semibold text-violet-700 dark:text-violet-300 uppercase tracking-wider mb-2">Site A</p>
+                                      <div className="space-y-2">
+                                        {link.networkInterface && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Interface</p><p className="text-xs font-mono">{link.networkInterface}</p></div>}
+                                        {link.portDetails && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Port / Slot</p><p className="text-xs font-mono">{link.portDetails}</p></div>}
+                                        {link.dnsServers && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Exchange / Tower ID</p><p className="text-xs font-mono">{link.dnsServers}</p></div>}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {(link.gateway || link.asNumber || link.bgpConfig) && (
+                                    <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/20 p-3">
+                                      <p className="text-[10px] font-semibold text-violet-700 dark:text-violet-300 uppercase tracking-wider mb-2">Site B</p>
+                                      <div className="space-y-2">
+                                        {link.gateway && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Interface</p><p className="text-xs font-mono">{link.gateway}</p></div>}
+                                        {link.asNumber && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Port / Slot</p><p className="text-xs font-mono">{link.asNumber}</p></div>}
+                                        {link.bgpConfig && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Exchange / Tower ID</p><p className="text-xs font-mono">{link.bgpConfig}</p></div>}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                  {link.routingType && <div className="bg-muted/50 rounded-lg p-2.5"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Routing</p><p className="text-xs font-semibold capitalize">{link.routingType}</p></div>}
+                                  {link.networkInterface && <div className="bg-muted/50 rounded-lg p-2.5"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Interface</p><p className="text-xs font-mono">{link.networkInterface}</p></div>}
+                                  {link.portDetails && <div className="bg-muted/50 rounded-lg p-2.5"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Port / Slot</p><p className="text-xs font-mono">{link.portDetails}</p></div>}
+                                  {link.gateway && <div className="bg-muted/50 rounded-lg p-2.5"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Gateway</p><p className="text-xs font-mono">{link.gateway}</p></div>}
+                                  {link.dnsServers && <div className="bg-muted/50 rounded-lg p-2.5"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">DNS</p><p className="text-xs font-mono">{link.dnsServers}</p></div>}
+                                  {link.asNumber && <div className="bg-muted/50 rounded-lg p-2.5"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">ASN</p><p className="text-xs font-mono font-semibold">{link.asNumber}</p></div>}
+                                  {link.bgpConfig && <div className="bg-muted/50 rounded-lg p-2.5 col-span-2"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">BGP Config</p><p className="text-xs font-mono break-all">{link.bgpConfig}</p></div>}
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -1935,6 +2020,60 @@ export default function VendorProfilePage() {
             <Button variant="secondary" size="sm" onClick={() => setRechargeOpen(false)}>Cancel</Button>
             <Button size="sm" onClick={handleRechargeSubmit} disabled={rechargeSubmitting} className="bg-emerald-600 hover:bg-emerald-700 text-white" data-testid="button-recharge-submit">
               {rechargeSubmitting ? "Saving..." : vendorType === "panel" ? "Recharge Wallet" : "Record Payment"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Deduct Balance Dialog ─── */}
+      <Dialog open={deductOpen} onOpenChange={open => { if (!open) setDeductOpen(false); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowUpRight className="h-5 w-5 text-orange-600" />
+              Deduct Balance
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="bg-muted/40 rounded-xl p-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Current Balance</p>
+                <p className={`text-xl font-bold ${walletBalance < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>{formatPKR(walletBalance)}</p>
+              </div>
+              {deductForm.amount && !isNaN(parseFloat(deductForm.amount)) && (
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Balance After</p>
+                  <p className={`text-xl font-bold ${walletBalance - parseFloat(deductForm.amount) < 0 ? "text-red-600 dark:text-red-400" : "text-orange-600 dark:text-orange-400"}`}>{formatPKR(walletBalance - parseFloat(deductForm.amount))}</p>
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2 space-y-1.5">
+                <label className="text-sm font-medium">Amount (PKR) <span className="text-red-500">*</span></label>
+                <Input type="number" placeholder="0.00" value={deductForm.amount} onChange={e => setDeductForm(f => ({ ...f, amount: e.target.value }))} data-testid="input-deduct-amount" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Reason</label>
+                <Input placeholder="e.g. Bill payment, adjustment" value={deductForm.reason} onChange={e => setDeductForm(f => ({ ...f, reason: e.target.value }))} data-testid="input-deduct-reason" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Reference No.</label>
+                <Input placeholder="e.g. BILL-001" value={deductForm.reference} onChange={e => setDeductForm(f => ({ ...f, reference: e.target.value }))} data-testid="input-deduct-reference" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Performed By</label>
+                <Input placeholder="Admin" value={deductForm.performedBy} onChange={e => setDeductForm(f => ({ ...f, performedBy: e.target.value }))} data-testid="input-deduct-by" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Notes</label>
+                <Input placeholder="Optional notes" value={deductForm.notes} onChange={e => setDeductForm(f => ({ ...f, notes: e.target.value }))} data-testid="input-deduct-notes" />
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary" size="sm" onClick={() => setDeductOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={handleDeductSubmit} disabled={deductSubmitting} className="bg-orange-600 hover:bg-orange-700 text-white" data-testid="button-deduct-submit">
+              {deductSubmitting ? "Deducting..." : "Deduct Balance"}
             </Button>
           </div>
         </DialogContent>
