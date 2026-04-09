@@ -190,6 +190,21 @@ function bwLinkToForm(l: VendorBandwidthLink): BwLinkForm {
   };
 }
 
+type DplcLinkForm = {
+  linkName: string; siteACity: string; siteBCity: string; startDate: string;
+  billingType: string; status: string; notes: string; vlanDetail: string;
+  bandwidthMbps: string; bandwidthRate: string; tax: string; currency: string; exchangeRate: string; totalMonthlyCost: string;
+  siteAInterface: string; siteAPort: string; siteATowerId: string;
+  siteBInterface: string; siteBPort: string; siteBTowerId: string;
+};
+const emptyDplcForm: DplcLinkForm = {
+  linkName: "", siteACity: "", siteBCity: "", startDate: "",
+  billingType: "full_month", status: "active", notes: "", vlanDetail: "",
+  bandwidthMbps: "", bandwidthRate: "", tax: "19.5", currency: "PKR", exchangeRate: "1", totalMonthlyCost: "",
+  siteAInterface: "", siteAPort: "", siteATowerId: "",
+  siteBInterface: "", siteBPort: "", siteBTowerId: "",
+};
+
 function calcBwLinkCost(mbps: string, rate: string, tax: string, currency: string, exchangeRate: string): string {
   const base = Number(mbps || 0) * Number(rate || 0);
   const basePkr = currency === "USD" ? base * Number(exchangeRate || 1) : base;
@@ -225,6 +240,12 @@ export default function VendorProfilePage() {
   const [bwLinkForm, setBwLinkForm] = useState<BwLinkForm>(emptyBwLinkForm);
   const [bwLinkFormTab, setBwLinkFormTab] = useState("basic");
   const [bwLinkSubmitting, setBwLinkSubmitting] = useState(false);
+
+  // DPLC Link dialog state (separate dedicated dialog)
+  const [dplcDialogOpen, setDplcDialogOpen] = useState(false);
+  const [dplcFormTab, setDplcFormTab] = useState("basic");
+  const [dplcForm, setDplcForm] = useState<DplcLinkForm>(emptyDplcForm);
+  const [dplcSubmitting, setDplcSubmitting] = useState(false);
 
   // Outstanding payment dialog state
   const [outstandingOpen, setOutstandingOpen] = useState(false);
@@ -569,6 +590,50 @@ export default function VendorProfilePage() {
       toast({ title: "Error", description: e.message, variant: "destructive" });
     } finally {
       setBwLinkSubmitting(false);
+    }
+  };
+
+  const handleSubmitDplcLink = async () => {
+    if (!dplcForm.linkName.trim()) { toast({ title: "Link Name is required", variant: "destructive" }); setDplcFormTab("basic"); return; }
+    if (!dplcForm.bandwidthMbps || !dplcForm.bandwidthRate) { toast({ title: "Bandwidth and Rate are required", variant: "destructive" }); setDplcFormTab("bandwidth"); return; }
+    setDplcSubmitting(true);
+    try {
+      const payload: InsertVendorBandwidthLink = {
+        vendorId: Number(id),
+        linkName: dplcForm.linkName,
+        city: dplcForm.siteACity || null,
+        popLocation: dplcForm.siteBCity || null,
+        startDate: dplcForm.startDate || null,
+        billingType: dplcForm.billingType || "full_month",
+        status: dplcForm.status || "active",
+        serviceType: "dplc",
+        bandwidthMbps: dplcForm.bandwidthMbps || "0",
+        bandwidthRate: dplcForm.bandwidthRate || "0",
+        tax: dplcForm.tax || "0",
+        currency: dplcForm.currency || "PKR",
+        exchangeRate: dplcForm.exchangeRate || "1",
+        totalMonthlyCost: dplcForm.totalMonthlyCost || "0",
+        ipAddress: null,
+        vlanDetail: dplcForm.vlanDetail || null,
+        portDetails: dplcForm.siteAPort || null,
+        routingType: "static",
+        networkInterface: dplcForm.siteAInterface || null,
+        gateway: dplcForm.siteBInterface || null,
+        dnsServers: dplcForm.siteATowerId || null,
+        asNumber: dplcForm.siteBPort || null,
+        bgpConfig: dplcForm.siteBTowerId || null,
+        notes: dplcForm.notes || null,
+      };
+      await apiRequest("POST", "/api/vendor-bandwidth-links", payload);
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor-bandwidth-links"] });
+      setDplcDialogOpen(false);
+      setDplcForm(emptyDplcForm);
+      setDplcFormTab("basic");
+      toast({ title: "DPLC link added successfully" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setDplcSubmitting(false);
     }
   };
 
@@ -1306,6 +1371,9 @@ export default function VendorProfilePage() {
                             <FileText className="h-3.5 w-3.5" />Generate Monthly Bill
                           </Button>
                         )}
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-400 dark:hover:bg-violet-950" onClick={() => { setDplcForm(emptyDplcForm); setDplcFormTab("basic"); setDplcDialogOpen(true); }} data-testid="button-add-dplc-link">
+                          <Plus className="h-3.5 w-3.5" />Add DPLC Link
+                        </Button>
                         <Button size="sm" className="h-7 text-xs gap-1.5" onClick={openAddBwLink} data-testid="button-add-bw-link">
                           <Plus className="h-3.5 w-3.5" />Add BW Link
                         </Button>
@@ -3085,6 +3153,256 @@ export default function VendorProfilePage() {
                 ) : (
                   <Button type="button" size="sm" onClick={handleSubmitBwLink} disabled={bwLinkSubmitting} data-testid="button-save-bwlink">
                     {bwLinkSubmitting ? "Saving..." : editingBwLink ? "Update Link" : "Add Link"}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Add DPLC Link Dialog ─── */}
+      <Dialog open={dplcDialogOpen} onOpenChange={open => { if (!open) { setDplcDialogOpen(false); setDplcForm(emptyDplcForm); setDplcFormTab("basic"); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden p-0 gap-0">
+          {/* Header */}
+          <div className="px-5 py-4 rounded-t-lg shrink-0 border-b bg-gradient-to-r from-violet-50 to-violet-100/50 dark:from-violet-950/40 dark:to-violet-900/20">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-violet-600/10 border-2 border-violet-300 dark:border-violet-700 flex items-center justify-center shrink-0">
+                <GitBranch className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold flex items-center gap-2">
+                  Add DPLC Link
+                  <Badge variant="outline" className="no-default-active-elevate text-[10px] text-violet-600 dark:text-violet-400 border-violet-300 dark:border-violet-700">Dedicated Point-to-Point</Badge>
+                </h2>
+                <p className="text-muted-foreground text-xs">Configure the DPLC link details — Site A to Site B</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Wizard Tabs */}
+          <Tabs value={dplcFormTab} onValueChange={setDplcFormTab} className="flex flex-col flex-1 overflow-hidden">
+            <div className="border-b bg-muted/20 shrink-0">
+              <TabsList className="h-auto bg-transparent p-0 w-full justify-start rounded-none">
+                {[
+                  { v: "basic", label: "Basic Info", icon: <Network className="h-3.5 w-3.5" /> },
+                  { v: "bandwidth", label: "Bandwidth & Cost", icon: <Zap className="h-3.5 w-3.5" /> },
+                  { v: "sites", label: "Site Infrastructure", icon: <Server className="h-3.5 w-3.5 text-violet-500" /> },
+                ].map(t => (
+                  <TabsTrigger key={t.v} value={t.v} className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-violet-500 data-[state=active]:bg-transparent py-2.5 gap-1.5 px-4">
+                    {t.icon}{t.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+
+            <div className="overflow-y-auto flex-1">
+              {/* Tab 1 — Basic Info */}
+              <TabsContent value="basic" className="p-5 space-y-4 mt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-sm font-medium">Link Name <span className="text-red-500">*</span></label>
+                    <Input placeholder="e.g. DPLC-LHE-ISB-01" value={dplcForm.linkName} onChange={e => setDplcForm(f => ({ ...f, linkName: e.target.value }))} data-testid="input-dplc-name" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-violet-700 dark:text-violet-400">From City / Location <span className="text-[10px] font-normal text-muted-foreground">(Site A)</span></label>
+                    <Input placeholder="e.g. Lahore – Corporate HQ" value={dplcForm.siteACity} onChange={e => setDplcForm(f => ({ ...f, siteACity: e.target.value }))} className="border-violet-200 dark:border-violet-800 focus-visible:ring-violet-400" data-testid="input-dplc-site-a-city" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium text-violet-700 dark:text-violet-400">To City / Location <span className="text-[10px] font-normal text-muted-foreground">(Site B)</span></label>
+                    <Input placeholder="e.g. Islamabad – Branch Office" value={dplcForm.siteBCity} onChange={e => setDplcForm(f => ({ ...f, siteBCity: e.target.value }))} className="border-violet-200 dark:border-violet-800 focus-visible:ring-violet-400" data-testid="input-dplc-site-b-city" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Start Date</label>
+                    <Input type="date" value={dplcForm.startDate} onChange={e => setDplcForm(f => ({ ...f, startDate: e.target.value }))} data-testid="input-dplc-start-date" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">VLAN Detail</label>
+                    <Input placeholder="e.g. VLAN 200" value={dplcForm.vlanDetail} onChange={e => setDplcForm(f => ({ ...f, vlanDetail: e.target.value }))} data-testid="input-dplc-vlan" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Billing Type</label>
+                    <Select value={dplcForm.billingType} onValueChange={v => setDplcForm(f => ({ ...f, billingType: v }))}>
+                      <SelectTrigger data-testid="select-dplc-billing"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="full_month">Full Month</SelectItem>
+                        <SelectItem value="pro_rata">Pro-Rata (Partial 1st Month)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Status</label>
+                    <Select value={dplcForm.status} onValueChange={v => setDplcForm(f => ({ ...f, status: v }))}>
+                      <SelectTrigger data-testid="select-dplc-status"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                        <SelectItem value="suspended">Suspended</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-sm font-medium">Notes</label>
+                    <Input placeholder="Optional notes about this DPLC link" value={dplcForm.notes} onChange={e => setDplcForm(f => ({ ...f, notes: e.target.value }))} data-testid="input-dplc-notes" />
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Tab 2 — Bandwidth & Cost */}
+              <TabsContent value="bandwidth" className="p-5 space-y-4 mt-0">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Link Type</label>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-md border bg-violet-50 dark:bg-violet-950/30 text-sm">
+                      <GitBranch className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400 shrink-0" />
+                      <span className="font-semibold text-violet-700 dark:text-violet-300">DPLC</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5 md:col-span-2">
+                    <label className="text-sm font-medium">Bandwidth (Mbps) <span className="text-red-500">*</span></label>
+                    <Input type="number" placeholder="0" value={dplcForm.bandwidthMbps} onChange={e => {
+                      const mbps = e.target.value;
+                      setDplcForm(f => ({ ...f, bandwidthMbps: mbps, totalMonthlyCost: calcBwLinkCost(mbps, f.bandwidthRate, f.tax, f.currency, f.exchangeRate) }));
+                    }} data-testid="input-dplc-mbps" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Rate / Mbps <span className="text-red-500">*</span></label>
+                    <div className="flex gap-1.5">
+                      <Input type="number" placeholder={dplcForm.currency === "USD" ? "5" : "1000"} value={dplcForm.bandwidthRate} onChange={e => {
+                        const rate = e.target.value;
+                        setDplcForm(f => ({ ...f, bandwidthRate: rate, totalMonthlyCost: calcBwLinkCost(f.bandwidthMbps, rate, f.tax, f.currency, f.exchangeRate) }));
+                      }} data-testid="input-dplc-rate" className="flex-1 min-w-0" />
+                      <Select value={dplcForm.currency} onValueChange={v => setDplcForm(f => ({ ...f, currency: v, exchangeRate: v === "USD" ? (defaultUsdRate || f.exchangeRate || "") : "1", totalMonthlyCost: calcBwLinkCost(f.bandwidthMbps, f.bandwidthRate, f.tax, v, v === "USD" ? (defaultUsdRate || f.exchangeRate || "1") : "1") }))}>
+                        <SelectTrigger className="w-20 shrink-0" data-testid="select-dplc-currency"><SelectValue /></SelectTrigger>
+                        <SelectContent><SelectItem value="PKR">PKR</SelectItem><SelectItem value="USD">USD</SelectItem></SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Tax %</label>
+                    <Input type="number" placeholder="19.5" step="0.1" value={dplcForm.tax} onChange={e => {
+                      const tax = e.target.value;
+                      setDplcForm(f => ({ ...f, tax, totalMonthlyCost: calcBwLinkCost(f.bandwidthMbps, f.bandwidthRate, tax, f.currency, f.exchangeRate) }));
+                    }} data-testid="input-dplc-tax" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Total Monthly Cost (PKR)</label>
+                    <Input type="number" value={dplcForm.totalMonthlyCost} readOnly className="bg-muted/50 font-semibold text-primary" data-testid="input-dplc-total" />
+                  </div>
+                </div>
+                {dplcForm.currency === "USD" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-amber-800 dark:text-amber-300">USD → PKR Exchange Rate <span className="text-red-500">*</span></label>
+                      <Input type="number" placeholder="e.g. 280" value={dplcForm.exchangeRate} onChange={e => {
+                        const v = e.target.value;
+                        setDplcForm(f => ({ ...f, exchangeRate: v, totalMonthlyCost: calcBwLinkCost(f.bandwidthMbps, f.bandwidthRate, f.tax, f.currency, v) }));
+                      }} data-testid="input-dplc-exchange-rate" className="border-amber-300 dark:border-amber-700" />
+                      {defaultUsdRate && <p className="text-[10px] text-amber-700 dark:text-amber-400">Stored rate: 1 USD = {defaultUsdRate} PKR</p>}
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">USD Equivalent</p>
+                      <p className="text-xl font-bold text-amber-700 dark:text-amber-300">$ {dplcForm.bandwidthMbps && dplcForm.bandwidthRate ? (Number(dplcForm.bandwidthMbps) * Number(dplcForm.bandwidthRate)).toFixed(2) : "0.00"}</p>
+                      {dplcForm.exchangeRate && <p className="text-xs text-amber-600 dark:text-amber-400">1 USD = {dplcForm.exchangeRate} PKR</p>}
+                    </div>
+                  </div>
+                )}
+                {dplcForm.bandwidthMbps && dplcForm.bandwidthRate && (
+                  <div className="bg-violet-50 dark:bg-violet-950/40 border border-violet-100 dark:border-violet-900 rounded-xl p-4">
+                    <p className="text-xs text-violet-700 dark:text-violet-300 font-medium mb-2">DPLC Cost Breakdown</p>
+                    <div className="grid grid-cols-4 gap-3 text-center">
+                      {dplcForm.currency === "USD" ? (
+                        <>
+                          <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">USD Base</p><p className="text-base font-bold text-violet-600 dark:text-violet-400">$ {(Number(dplcForm.bandwidthMbps) * Number(dplcForm.bandwidthRate)).toFixed(2)}</p></div>
+                          <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">PKR Base</p><p className="text-base font-bold">{formatPKR(((Number(dplcForm.bandwidthMbps) * Number(dplcForm.bandwidthRate)) * Number(dplcForm.exchangeRate || 1)).toFixed(2))}</p></div>
+                          <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tax ({dplcForm.tax || 0}%)</p><p className="text-base font-bold text-amber-600 dark:text-amber-400">+{formatPKR(((Number(dplcForm.bandwidthMbps) * Number(dplcForm.bandwidthRate) * Number(dplcForm.exchangeRate || 1)) * (Number(dplcForm.tax || 0) / 100)).toFixed(2))}</p></div>
+                        </>
+                      ) : (
+                        <>
+                          <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Mbps × Rate</p><p className="text-base font-bold text-violet-600 dark:text-violet-400">{formatPKR((Number(dplcForm.bandwidthMbps) * Number(dplcForm.bandwidthRate)).toFixed(2))}</p></div>
+                          <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tax ({dplcForm.tax || 0}%)</p><p className="text-base font-bold text-amber-600 dark:text-amber-400">+{formatPKR(((Number(dplcForm.bandwidthMbps) * Number(dplcForm.bandwidthRate)) * (Number(dplcForm.tax || 0) / 100)).toFixed(2))}</p></div>
+                        </>
+                      )}
+                      <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Monthly Total (PKR)</p><p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{formatPKR(dplcForm.totalMonthlyCost)}</p></div>
+                      <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Type</p><p className="text-base font-bold text-violet-600 dark:text-violet-400">DPLC</p></div>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* Tab 3 — Site Infrastructure */}
+              <TabsContent value="sites" className="p-5 mt-0">
+                <div className="mb-4 flex items-center gap-2 p-3 rounded-lg bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800">
+                  <GitBranch className="h-4 w-4 text-violet-600 dark:text-violet-400 shrink-0" />
+                  <p className="text-xs text-violet-700 dark:text-violet-300">Fill in the physical endpoint details for both sites. These are used for tracking physical infrastructure of the DPLC circuit.</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Site A */}
+                  <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/30 p-4 space-y-3">
+                    <p className="text-sm font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
+                      <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-violet-600 text-white text-[10px] font-bold">A</span>
+                      Site A {dplcForm.siteACity && <span className="text-xs font-normal text-muted-foreground">— {dplcForm.siteACity}</span>}
+                    </p>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Interface Type</label>
+                      <Input placeholder="e.g. GigabitEthernet0/0, SFP+" value={dplcForm.siteAInterface} onChange={e => setDplcForm(f => ({ ...f, siteAInterface: e.target.value }))} data-testid="input-dplc-site-a-interface" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Port / Slot Details</label>
+                      <Input placeholder="e.g. Port 1, Slot 2" value={dplcForm.siteAPort} onChange={e => setDplcForm(f => ({ ...f, siteAPort: e.target.value }))} data-testid="input-dplc-site-a-port" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Exchange / Tower ID</label>
+                      <Input placeholder="e.g. EX-LHE-001, TWR-A" value={dplcForm.siteATowerId} onChange={e => setDplcForm(f => ({ ...f, siteATowerId: e.target.value }))} data-testid="input-dplc-site-a-tower" />
+                    </div>
+                  </div>
+                  {/* Site B */}
+                  <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/30 p-4 space-y-3">
+                    <p className="text-sm font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
+                      <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-violet-600 text-white text-[10px] font-bold">B</span>
+                      Site B {dplcForm.siteBCity && <span className="text-xs font-normal text-muted-foreground">— {dplcForm.siteBCity}</span>}
+                    </p>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Interface Type</label>
+                      <Input placeholder="e.g. GigabitEthernet1/0, SFP+" value={dplcForm.siteBInterface} onChange={e => setDplcForm(f => ({ ...f, siteBInterface: e.target.value }))} data-testid="input-dplc-site-b-interface" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Port / Slot Details</label>
+                      <Input placeholder="e.g. Port 2, Slot 1" value={dplcForm.siteBPort} onChange={e => setDplcForm(f => ({ ...f, siteBPort: e.target.value }))} data-testid="input-dplc-site-b-port" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Exchange / Tower ID</label>
+                      <Input placeholder="e.g. EX-ISB-002, TWR-B" value={dplcForm.siteBTowerId} onChange={e => setDplcForm(f => ({ ...f, siteBTowerId: e.target.value }))} data-testid="input-dplc-site-b-tower" />
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t px-5 py-3 flex items-center justify-between bg-muted/20 shrink-0">
+              <div>
+                {dplcFormTab !== "basic" && (
+                  <Button type="button" variant="outline" size="sm" onClick={() => {
+                    const tabs = ["basic", "bandwidth", "sites"];
+                    const idx = tabs.indexOf(dplcFormTab);
+                    if (idx > 0) setDplcFormTab(tabs[idx - 1]);
+                  }}>← Back</Button>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="secondary" size="sm" onClick={() => { setDplcDialogOpen(false); setDplcForm(emptyDplcForm); setDplcFormTab("basic"); }}>Cancel</Button>
+                {dplcFormTab !== "sites" ? (
+                  <Button type="button" size="sm" className="bg-violet-600 hover:bg-violet-700 text-white" onClick={() => {
+                    const tabs = ["basic", "bandwidth", "sites"];
+                    const idx = tabs.indexOf(dplcFormTab);
+                    setDplcFormTab(tabs[idx + 1]);
+                  }}>Next →</Button>
+                ) : (
+                  <Button type="button" size="sm" className="bg-violet-600 hover:bg-violet-700 text-white" onClick={handleSubmitDplcLink} disabled={dplcSubmitting} data-testid="button-save-dplc-link">
+                    {dplcSubmitting ? "Saving..." : "Add DPLC Link"}
                   </Button>
                 )}
               </div>
