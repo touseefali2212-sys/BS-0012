@@ -37,6 +37,9 @@ import {
   FileWarning,
   FileText,
   CreditCard,
+  Server,
+  Layers,
+  GitBranch,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -178,6 +181,7 @@ export default function VendorProfilePage() {
 
   // Outstanding payment dialog state
   const [outstandingOpen, setOutstandingOpen] = useState(false);
+  const [selectedBwLink, setSelectedBwLink] = useState<VendorBandwidthLink | null>(null);
   const [outstandingForm, setOutstandingForm] = useState({ amount: "", bwLinkName: "", period: "", notes: "" });
 
   const { data: vendors, isLoading: vendorsLoading } = useQuery<Vendor[]>({
@@ -991,8 +995,8 @@ export default function VendorProfilePage() {
                                 return { amount: (Number(link.totalMonthlyCost) / daysInMonth * remainingDays).toFixed(2), remainingDays, daysInMonth };
                               })() : null;
                               return (
-                                <TableRow key={link.id}>
-                                  <TableCell className="text-sm font-medium">{link.linkName}</TableCell>
+                                <TableRow key={link.id} className="cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => setSelectedBwLink(link)} data-testid={`row-bwlink-${link.id}`}>
+                                  <TableCell className="text-sm font-medium text-primary hover:underline">{link.linkName}</TableCell>
                                   <TableCell className="text-sm">{[link.popLocation, link.city].filter(Boolean).join(" / ") || "—"}</TableCell>
                                   <TableCell className="font-mono text-xs">{[link.ipAddress, link.vlanDetail].filter(Boolean).join(" / ") || "—"}</TableCell>
                                   <TableCell className="text-sm font-bold text-blue-600 dark:text-blue-400">{link.bandwidthMbps} Mbps</TableCell>
@@ -2151,6 +2155,120 @@ export default function VendorProfilePage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* BW Link Detail Dialog */}
+      <Dialog open={!!selectedBwLink} onOpenChange={open => { if (!open) setSelectedBwLink(null); }}>
+        <DialogContent className="max-w-2xl max-h-[88vh] overflow-hidden p-0 gap-0">
+          {selectedBwLink && (() => {
+            const link = selectedBwLink;
+            const hasNetwork = link.networkInterface || link.gateway || link.dnsServers || link.asNumber || link.bgpConfig || (link.routingType && link.routingType !== "static");
+            const proRataInfo = link.billingType === "pro_rata" && link.startDate && link.totalMonthlyCost ? (() => {
+              const start = new Date(link.startDate);
+              if (isNaN(start.getTime())) return null;
+              const daysInMonth = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
+              const remainingDays = daysInMonth - start.getDate() + 1;
+              return { amount: (Number(link.totalMonthlyCost) / daysInMonth * remainingDays).toFixed(2), remainingDays, daysInMonth };
+            })() : null;
+            return (
+              <>
+                {/* Header */}
+                <div className="vendor-page-header px-5 py-4 rounded-t-lg shrink-0">
+                  <div className="flex items-center gap-4">
+                    <div className="h-11 w-11 rounded-xl bg-white/20 flex items-center justify-center border-2 border-white/30 shrink-0">
+                      <GitBranch className="h-5 w-5 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-base font-bold text-white truncate">{link.linkName}</h2>
+                      <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                        <span className="text-white/70 text-xs flex items-center gap-1"><Network className="h-3 w-3" />Bandwidth Link</span>
+                        {link.city && <span className="text-white/70 text-xs flex items-center gap-1"><MapPin className="h-3 w-3" />{link.city}</span>}
+                        {link.popLocation && <span className="text-white/70 text-xs flex items-center gap-1"><Server className="h-3 w-3" />{link.popLocation}</span>}
+                      </div>
+                    </div>
+                    <Badge variant="secondary" className={`no-default-active-elevate text-xs font-semibold shrink-0 ${link.status === "active" ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" : link.status === "inactive" ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" : "bg-yellow-100 text-yellow-700"}`}>
+                      {link.status === "active" ? <CheckCircle className="h-3 w-3 mr-0.5" /> : <XCircle className="h-3 w-3 mr-0.5" />}
+                      <span className="capitalize">{link.status}</span>
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="overflow-y-auto px-5 py-5 space-y-4">
+                  {/* Key Metrics */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900 p-3 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Bandwidth</p>
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{link.bandwidthMbps || "—"}</p>
+                      <p className="text-[10px] text-muted-foreground">Mbps</p>
+                    </div>
+                    <div className="rounded-xl bg-muted/50 p-3 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Rate / Mbps</p>
+                      <p className="text-lg font-bold mt-0.5">{formatPKR(link.bandwidthRate)}</p>
+                      <p className="text-[10px] text-muted-foreground">per Mbps</p>
+                    </div>
+                    <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900 p-3 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Monthly Cost</p>
+                      <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{formatPKR(link.totalMonthlyCost)}</p>
+                      <p className="text-[10px] text-muted-foreground">/month</p>
+                    </div>
+                    <div className="rounded-xl bg-muted/50 p-3 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Billing</p>
+                      <p className="text-sm font-bold mt-1 capitalize">{link.billingType === "pro_rata" ? "Pro-Rata" : "Full Month"}</p>
+                      {link.billingType === "pro_rata" && proRataInfo && (
+                        <p className="text-[10px] text-orange-600 dark:text-orange-400">{formatPKR(proRataInfo.amount)} 1st month</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Location & Connectivity */}
+                  <Card>
+                    <CardHeader className="pb-2 pt-3">
+                      <CardTitle className="text-sm flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-primary" />Location & Connectivity</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {link.city && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">City</p><p className="text-sm font-medium">{link.city}</p></div>}
+                        {link.popLocation && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">POP Location</p><p className="text-sm font-medium">{link.popLocation}</p></div>}
+                        {link.ipAddress && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">IP Address</p><p className="text-sm font-mono font-medium">{link.ipAddress}</p></div>}
+                        {link.vlanDetail && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">VLAN</p><p className="text-sm font-mono font-medium flex items-center gap-1"><Layers className="h-3.5 w-3.5 text-muted-foreground" />{link.vlanDetail}</p></div>}
+                        {link.portDetails && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Port / Slot</p><p className="text-sm font-mono font-medium">{link.portDetails}</p></div>}
+                        {link.startDate && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Start Date</p><p className="text-sm font-medium">{link.startDate}</p></div>}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Network Infrastructure */}
+                  {hasNetwork && (
+                    <Card>
+                      <CardHeader className="pb-2 pt-3">
+                        <CardTitle className="text-sm flex items-center gap-2"><Network className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />Network Infrastructure</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {link.routingType && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Routing Type</p><p className="text-sm font-semibold capitalize">{link.routingType}</p></div>}
+                          {link.networkInterface && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Interface</p><p className="text-sm font-mono">{link.networkInterface}</p></div>}
+                          {link.gateway && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Gateway</p><p className="text-sm font-mono">{link.gateway}</p></div>}
+                          {link.dnsServers && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">DNS Servers</p><p className="text-sm font-mono">{link.dnsServers}</p></div>}
+                          {link.asNumber && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">AS Number</p><p className="text-sm font-mono font-bold">{link.asNumber}</p></div>}
+                          {link.bgpConfig && <div className="bg-muted/50 rounded-lg p-3 col-span-2"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">BGP Config / Neighbor</p><p className="text-sm font-mono break-all">{link.bgpConfig}</p></div>}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Notes */}
+                  {link.notes && (
+                    <Card>
+                      <CardHeader className="pb-2 pt-3"><CardTitle className="text-sm flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-muted-foreground" />Notes</CardTitle></CardHeader>
+                      <CardContent><p className="text-sm text-muted-foreground">{link.notes}</p></CardContent>
+                    </Card>
+                  )}
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       {/* Outstanding Payment Dialog */}
       <Dialog open={outstandingOpen} onOpenChange={open => { if (!open) setOutstandingOpen(false); }}>
