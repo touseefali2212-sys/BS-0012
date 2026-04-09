@@ -727,6 +727,8 @@ type BandwidthLinkRow = {
   ipAddress: string;
   vlanDetail: string;
   city: string;
+  fromCity: string;
+  toCity: string;
   bandwidthMbps: string;
   bandwidthRate: string;
   tax: string;
@@ -788,7 +790,7 @@ function AddVendorTab() {
     routingType: "static", gateway: "", dnsServers: "", asNumber: "", bgpConfig: "",
   });
   const [newLink, setNewLink] = useState<BandwidthLinkRow>({
-    linkName: "", ipAddress: "", vlanDetail: "", city: "", bandwidthMbps: "", bandwidthRate: "", tax: "19.5", totalMonthlyCost: "", notes: "",
+    linkName: "", ipAddress: "", vlanDetail: "", city: "", fromCity: "", toCity: "", bandwidthMbps: "", bandwidthRate: "", tax: "19.5", totalMonthlyCost: "", notes: "",
     startDate: "", billingType: "full_month", popLocation: "", serviceType: "fiber",
   });
 
@@ -975,8 +977,11 @@ function AddVendorTab() {
     const baseCost = Number(newLink.bandwidthMbps) * Number(newLink.bandwidthRate);
     const taxAmt = baseCost * (Number(newLink.tax || 0) / 100);
     const totalCost = (baseCost + taxAmt).toFixed(2);
-    setBandwidthLinks([...bandwidthLinks, { ...newLink, totalMonthlyCost: totalCost }]);
-    setNewLink({ linkName: "", ipAddress: "", vlanDetail: "", city: "", bandwidthMbps: "", bandwidthRate: "", tax: "19.5", totalMonthlyCost: "", notes: "", startDate: "", billingType: "full_month", popLocation: "", serviceType: "fiber" });
+    const linkToAdd = newLink.serviceType === "dplc"
+      ? { ...newLink, city: newLink.fromCity, popLocation: newLink.toCity, ipAddress: "", totalMonthlyCost: totalCost }
+      : { ...newLink, totalMonthlyCost: totalCost };
+    setBandwidthLinks([...bandwidthLinks, linkToAdd]);
+    setNewLink({ linkName: "", ipAddress: "", vlanDetail: "", city: "", fromCity: "", toCity: "", bandwidthMbps: "", bandwidthRate: "", tax: "19.5", totalMonthlyCost: "", notes: "", startDate: "", billingType: "full_month", popLocation: "", serviceType: "fiber" });
     setShowAddLinkRow(false);
   };
 
@@ -1061,8 +1066,8 @@ function AddVendorTab() {
                             <p className="text-xs text-muted-foreground mt-0.5">Add Fiber or DPLC links with IP/VLAN details and tax-inclusive cost</p>
                           </div>
                           <div className="flex gap-2">
-                            <Button type="button" size="sm" variant="outline" onClick={() => { setNewLink(l => ({ ...l, serviceType: "fiber" })); setShowAddLinkRow(true); }} data-testid="button-add-bw-link"><Plus className="h-3.5 w-3.5 mr-1" />Add Link</Button>
-                            <Button type="button" size="sm" variant="outline" className="border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-400" onClick={() => { setNewLink(l => ({ ...l, serviceType: "dplc" })); setShowAddLinkRow(true); }} data-testid="button-add-dplc-link"><Plus className="h-3.5 w-3.5 mr-1" />Add DPLC</Button>
+                            <Button type="button" size="sm" variant="outline" onClick={() => { setNewLink({ linkName: "", ipAddress: "", vlanDetail: "", city: "", fromCity: "", toCity: "", bandwidthMbps: "", bandwidthRate: "", tax: "19.5", totalMonthlyCost: "", notes: "", startDate: "", billingType: "full_month", popLocation: "", serviceType: "fiber" }); setShowAddLinkRow(true); }} data-testid="button-add-bw-link"><Plus className="h-3.5 w-3.5 mr-1" />Add Link</Button>
+                            <Button type="button" size="sm" variant="outline" className="border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-400" onClick={() => { setNewLink({ linkName: "", ipAddress: "", vlanDetail: "", city: "", fromCity: "", toCity: "", bandwidthMbps: "", bandwidthRate: "", tax: "19.5", totalMonthlyCost: "", notes: "", startDate: "", billingType: "full_month", popLocation: "", serviceType: "dplc" }); setShowAddLinkRow(true); }} data-testid="button-add-dplc-link"><Plus className="h-3.5 w-3.5 mr-1" />Add DPLC</Button>
                           </div>
                         </div>
                         {bandwidthLinks.length > 0 && (
@@ -1084,9 +1089,13 @@ function AddVendorTab() {
                               return (
                                 <TableRow key={idx} data-testid={`row-bw-link-${idx}`}>
                                   <TableCell className="text-sm font-medium">{link.linkName}</TableCell>
-                                  <TableCell><Badge variant="outline" className={`text-xs ${link.serviceType === "dplc" ? "text-violet-600 border-violet-300" : "text-blue-600 border-blue-300"}`}>{link.serviceType === "dplc" ? "DPLC" : "Fiber"}</Badge></TableCell>
-                                  <TableCell className="text-sm">{[link.popLocation, link.city].filter(Boolean).join(" / ") || "N/A"}</TableCell>
-                                  <TableCell className="text-sm font-mono text-xs">{[link.ipAddress, link.vlanDetail].filter(Boolean).join(" / ") || "N/A"}</TableCell>
+                                  <TableCell><Badge variant="outline" className={`text-xs ${link.serviceType === "dplc" ? "text-violet-600 border-violet-300" : link.serviceType === "wireless" ? "text-cyan-600 border-cyan-300" : "text-blue-600 border-blue-300"}`}>{link.serviceType === "dplc" ? "DPLC" : link.serviceType === "wireless" ? "Wireless" : "Fiber"}</Badge></TableCell>
+                                  <TableCell className="text-sm">
+                                    {link.serviceType === "dplc"
+                                      ? (link.city && link.popLocation ? <span className="flex items-center gap-1">{link.city}<span className="text-muted-foreground">→</span>{link.popLocation}</span> : link.city || link.popLocation || "N/A")
+                                      : ([link.popLocation, link.city].filter(Boolean).join(" / ") || "N/A")}
+                                  </TableCell>
+                                  <TableCell className="text-sm font-mono text-xs">{link.serviceType === "dplc" ? (link.vlanDetail || "N/A") : ([link.ipAddress, link.vlanDetail].filter(Boolean).join(" / ") || "N/A")}</TableCell>
                                   <TableCell className="text-sm">{link.bandwidthMbps} Mbps</TableCell>
                                   <TableCell className="text-sm">{formatPKR(link.bandwidthRate)}</TableCell>
                                   <TableCell className="text-sm">{link.tax || "0"}%</TableCell>
@@ -1121,21 +1130,34 @@ function AddVendorTab() {
                           <Card>
                             <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2">{newLink.serviceType === "dplc" ? <><span className="inline-flex items-center gap-1 text-violet-700 dark:text-violet-400"><Network className="h-4 w-4" />New DPLC Link</span></> : <><Wifi className="h-4 w-4" />New Bandwidth Link</>}</CardTitle></CardHeader>
                             <CardContent className="space-y-3">
-                              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                                <div><Label className="text-xs font-medium">Link Name *</Label><Input placeholder="e.g. Link-1 Fiber LHR" value={newLink.linkName} onChange={(e) => setNewLink({ ...newLink, linkName: e.target.value })} data-testid="input-new-link-name" /></div>
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div><Label className="text-xs font-medium">Link Name *</Label><Input placeholder={newLink.serviceType === "dplc" ? "e.g. DPLC-LHR-ISB-01" : "e.g. Link-1 Fiber LHR"} value={newLink.linkName} onChange={(e) => setNewLink({ ...newLink, linkName: e.target.value })} data-testid="input-new-link-name" /></div>
                                 <div><Label className="text-xs font-medium">Link Type</Label>
                                   <Select value={newLink.serviceType} onValueChange={(v) => setNewLink({ ...newLink, serviceType: v })}>
                                     <SelectTrigger data-testid="select-new-link-type"><SelectValue /></SelectTrigger>
                                     <SelectContent><SelectItem value="fiber">Fiber</SelectItem><SelectItem value="dplc">DPLC</SelectItem><SelectItem value="wireless">Wireless</SelectItem></SelectContent>
                                   </Select>
                                 </div>
-                                <div><Label className="text-xs font-medium">City</Label><Input placeholder="Lahore" value={newLink.city} onChange={(e) => setNewLink({ ...newLink, city: e.target.value })} data-testid="input-new-link-city" /></div>
-                                <div><Label className="text-xs font-medium">POP / Location</Label><Input placeholder="e.g. DHA POP-01, Main Hub" value={newLink.popLocation} onChange={(e) => setNewLink({ ...newLink, popLocation: e.target.value })} data-testid="input-new-link-pop" /></div>
-                              </div>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div><Label className="text-xs font-medium">IP Address</Label><Input placeholder="192.168.1.1" value={newLink.ipAddress} onChange={(e) => setNewLink({ ...newLink, ipAddress: e.target.value })} data-testid="input-new-link-ip" /></div>
                                 <div><Label className="text-xs font-medium">VLAN Detail</Label><Input placeholder="VLAN 100" value={newLink.vlanDetail} onChange={(e) => setNewLink({ ...newLink, vlanDetail: e.target.value })} data-testid="input-new-link-vlan" /></div>
                               </div>
+                              {newLink.serviceType === "dplc" ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  <div className="space-y-1.5">
+                                    <Label className="text-xs font-medium text-violet-700 dark:text-violet-400">From City / Location (Site A)</Label>
+                                    <Input placeholder="e.g. Lahore – Corporate HQ" value={newLink.fromCity} onChange={(e) => setNewLink({ ...newLink, fromCity: e.target.value })} data-testid="input-new-link-from-city" className="border-violet-200 dark:border-violet-800 focus-visible:ring-violet-400" />
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    <Label className="text-xs font-medium text-violet-700 dark:text-violet-400">To City / Location (Site B)</Label>
+                                    <Input placeholder="e.g. Islamabad – Branch Office" value={newLink.toCity} onChange={(e) => setNewLink({ ...newLink, toCity: e.target.value })} data-testid="input-new-link-to-city" className="border-violet-200 dark:border-violet-800 focus-visible:ring-violet-400" />
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                  <div><Label className="text-xs font-medium">City</Label><Input placeholder="Lahore" value={newLink.city} onChange={(e) => setNewLink({ ...newLink, city: e.target.value })} data-testid="input-new-link-city" /></div>
+                                  <div><Label className="text-xs font-medium">POP / Location</Label><Input placeholder="e.g. DHA POP-01, Main Hub" value={newLink.popLocation} onChange={(e) => setNewLink({ ...newLink, popLocation: e.target.value })} data-testid="input-new-link-pop" /></div>
+                                  <div><Label className="text-xs font-medium">IP Address</Label><Input placeholder="192.168.1.1" value={newLink.ipAddress} onChange={(e) => setNewLink({ ...newLink, ipAddress: e.target.value })} data-testid="input-new-link-ip" /></div>
+                                </div>
+                              )}
                               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                                 <div><Label className="text-xs font-medium">Bandwidth (Mbps) *</Label><Input type="number" placeholder="10" value={newLink.bandwidthMbps} onChange={(e) => { const v = e.target.value; const base = Number(v) * Number(newLink.bandwidthRate || 0); const cost = (base + base * (Number(newLink.tax || 0) / 100)).toFixed(2); setNewLink({ ...newLink, bandwidthMbps: v, totalMonthlyCost: cost }); }} data-testid="input-new-link-mbps" /></div>
                                 <div><Label className="text-xs font-medium">Rate/Mbps (PKR) *</Label><Input type="number" placeholder="1000" value={newLink.bandwidthRate} onChange={(e) => { const v = e.target.value; const base = Number(newLink.bandwidthMbps || 0) * Number(v); const cost = (base + base * (Number(newLink.tax || 0) / 100)).toFixed(2); setNewLink({ ...newLink, bandwidthRate: v, totalMonthlyCost: cost }); }} data-testid="input-new-link-rate" /></div>

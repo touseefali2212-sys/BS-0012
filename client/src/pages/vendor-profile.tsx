@@ -1282,8 +1282,12 @@ export default function VendorProfilePage() {
                                 <TableRow key={link.id} className="cursor-pointer hover:bg-primary/5 transition-colors" onClick={() => setSelectedBwLink(link)} data-testid={`row-bwlink-${link.id}`}>
                                   <TableCell className="text-sm font-medium text-primary hover:underline">{link.linkName}</TableCell>
                                   <TableCell><Badge variant="outline" className={`text-[10px] no-default-active-elevate ${link.serviceType === "dplc" ? "text-violet-600 border-violet-300" : link.serviceType === "wireless" ? "text-cyan-600 border-cyan-300" : "text-blue-600 border-blue-300"}`}>{link.serviceType === "dplc" ? "DPLC" : link.serviceType === "wireless" ? "Wireless" : "Fiber"}</Badge></TableCell>
-                                  <TableCell className="text-sm">{[link.popLocation, link.city].filter(Boolean).join(" / ") || "—"}</TableCell>
-                                  <TableCell className="font-mono text-xs">{[link.ipAddress, link.vlanDetail].filter(Boolean).join(" / ") || "—"}</TableCell>
+                                  <TableCell className="text-sm">
+                                    {link.serviceType === "dplc"
+                                      ? (link.city && link.popLocation ? <span className="flex items-center gap-1">{link.city}<span className="text-muted-foreground">→</span>{link.popLocation}</span> : link.city || link.popLocation || "—")
+                                      : ([link.popLocation, link.city].filter(Boolean).join(" / ") || "—")}
+                                  </TableCell>
+                                  <TableCell className="font-mono text-xs">{link.serviceType === "dplc" ? (link.vlanDetail || "—") : ([link.ipAddress, link.vlanDetail].filter(Boolean).join(" / ") || "—")}</TableCell>
                                   <TableCell className="text-sm font-bold text-blue-600 dark:text-blue-400">{link.bandwidthMbps} Mbps</TableCell>
                                   <TableCell className="text-sm font-bold">{formatPKR(link.totalMonthlyCost)}</TableCell>
                                   <TableCell>
@@ -2639,14 +2643,29 @@ export default function VendorProfilePage() {
                     <label className="text-sm font-medium">Start Date</label>
                     <Input type="date" value={bwLinkForm.startDate} onChange={e => setBwLinkForm(f => ({ ...f, startDate: e.target.value }))} data-testid="input-bwlink-start-date" />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">City</label>
-                    <Input placeholder="e.g. Lahore" value={bwLinkForm.city} onChange={e => setBwLinkForm(f => ({ ...f, city: e.target.value }))} data-testid="input-bwlink-city" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">POP Location</label>
-                    <Input placeholder="e.g. Exchange Road POP" value={bwLinkForm.popLocation} onChange={e => setBwLinkForm(f => ({ ...f, popLocation: e.target.value }))} data-testid="input-bwlink-pop" />
-                  </div>
+                  {bwLinkForm.serviceType === "dplc" ? (
+                    <>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-violet-700 dark:text-violet-400">From City / Location (Site A)</label>
+                        <Input placeholder="e.g. Lahore – Corporate HQ" value={bwLinkForm.city} onChange={e => setBwLinkForm(f => ({ ...f, city: e.target.value }))} data-testid="input-bwlink-from-city" className="border-violet-200 dark:border-violet-800 focus-visible:ring-violet-400" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium text-violet-700 dark:text-violet-400">To City / Location (Site B)</label>
+                        <Input placeholder="e.g. Islamabad – Branch Office" value={bwLinkForm.popLocation} onChange={e => setBwLinkForm(f => ({ ...f, popLocation: e.target.value }))} data-testid="input-bwlink-to-city" className="border-violet-200 dark:border-violet-800 focus-visible:ring-violet-400" />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">City</label>
+                        <Input placeholder="e.g. Lahore" value={bwLinkForm.city} onChange={e => setBwLinkForm(f => ({ ...f, city: e.target.value }))} data-testid="input-bwlink-city" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">POP Location</label>
+                        <Input placeholder="e.g. Exchange Road POP" value={bwLinkForm.popLocation} onChange={e => setBwLinkForm(f => ({ ...f, popLocation: e.target.value }))} data-testid="input-bwlink-pop" />
+                      </div>
+                    </>
+                  )}
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">Billing Type</label>
                     <Select value={bwLinkForm.billingType} onValueChange={v => setBwLinkForm(f => ({ ...f, billingType: v }))}>
@@ -2752,10 +2771,12 @@ export default function VendorProfilePage() {
               {/* Connectivity */}
               <TabsContent value="connectivity" className="p-5 space-y-4 mt-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">IP Address / Subnet</label>
-                    <Input placeholder="e.g. 192.168.1.1/30" value={bwLinkForm.ipAddress} onChange={e => setBwLinkForm(f => ({ ...f, ipAddress: e.target.value }))} data-testid="input-bwlink-ip" />
-                  </div>
+                  {bwLinkForm.serviceType !== "dplc" && (
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">IP Address / Subnet</label>
+                      <Input placeholder="e.g. 192.168.1.1/30" value={bwLinkForm.ipAddress} onChange={e => setBwLinkForm(f => ({ ...f, ipAddress: e.target.value }))} data-testid="input-bwlink-ip" />
+                    </div>
+                  )}
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">VLAN Detail</label>
                     <Input placeholder="e.g. VLAN 100" value={bwLinkForm.vlanDetail} onChange={e => setBwLinkForm(f => ({ ...f, vlanDetail: e.target.value }))} data-testid="input-bwlink-vlan" />
