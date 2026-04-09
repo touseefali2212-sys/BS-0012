@@ -1713,19 +1713,63 @@ export async function registerRoutes(
     } catch (error: any) { res.status(500).json({ message: error.message }); }
   });
 
-  crudRoutes(app, "vendor-bandwidth-links", insertVendorBandwidthLinkSchema,
-    () => storage.getVendorBandwidthLinks(),
-    (id) => storage.getVendorBandwidthLink(id),
-    (data) => storage.createVendorBandwidthLink(data),
-    (id, data) => storage.updateVendorBandwidthLink(id, data),
-    (id) => storage.deleteVendorBandwidthLink(id),
-  );
-
+  // vendor-bandwidth-links — custom POST to auto-record outstanding bill on link creation
+  app.get("/api/vendor-bandwidth-links", requireAuth, async (_req, res) => {
+    try { res.json(await storage.getVendorBandwidthLinks()); }
+    catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+  // by-vendor must come BEFORE /:id to avoid being caught as id="by-vendor"
   app.get("/api/vendor-bandwidth-links/by-vendor/:vendorId", requireAuth, async (req, res) => {
     try {
       const vendorId = parseInt(req.params.vendorId);
       res.json(await storage.getVendorBandwidthLinks(vendorId));
-    } catch (error: any) { res.status(500).json({ message: error.message }); }
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+  app.get("/api/vendor-bandwidth-links/:id", requireAuth, async (req, res) => {
+    try {
+      const item = await storage.getVendorBandwidthLink(parseInt(req.params.id));
+      if (!item) return res.status(404).json({ message: "Not found" });
+      res.json(item);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+  app.post("/api/vendor-bandwidth-links", requireAuth, async (req, res) => {
+    try {
+      const parsed = insertVendorBandwidthLinkSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+      const link = await storage.createVendorBandwidthLink(parsed.data);
+      // Auto-record outstanding bill for the current month when a BW link is added
+      const monthlyCost = parseFloat(link.totalMonthlyCost || "0");
+      if (monthlyCost > 0) {
+        const now = new Date();
+        const period = now.toLocaleString("en-US", { month: "long", year: "numeric" });
+        try {
+          await storage.recordVendorOutstanding(
+            link.vendorId,
+            monthlyCost,
+            period,
+            link.linkName,
+            `Auto-generated monthly bill for BW link "${link.linkName}"`,
+          );
+        } catch (_) { /* non-critical — link is already saved */ }
+      }
+      res.status(201).json(link);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+  app.patch("/api/vendor-bandwidth-links/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const partial = insertVendorBandwidthLinkSchema.partial().safeParse(req.body);
+      if (!partial.success) return res.status(400).json({ message: "Invalid data", errors: partial.error.flatten() });
+      const updated = await storage.updateVendorBandwidthLink(id, partial.data);
+      if (!updated) return res.status(404).json({ message: "Not found" });
+      res.json(updated);
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
+  });
+  app.delete("/api/vendor-bandwidth-links/:id", requireAuth, async (req, res) => {
+    try {
+      await storage.deleteVendorBandwidthLink(parseInt(req.params.id));
+      res.status(204).send();
+    } catch (e: any) { res.status(500).json({ message: e.message }); }
   });
 
   crudRoutes(app, "vendor-panel-links", insertVendorPanelLinkSchema,
