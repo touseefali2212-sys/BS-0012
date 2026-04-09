@@ -1604,6 +1604,10 @@ function AddVendorTab() {
                                       <Label className="text-xs font-medium">Port / Slot Details</Label>
                                       <Input className="h-8 text-xs mt-1" placeholder="e.g. Port 1, Slot 2" value={infra.portDetails} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, portDetails: e.target.value } : n))} data-testid={`input-network-port-a-${idx}`} />
                                     </div>
+                                    <div>
+                                      <Label className="text-xs font-medium">Exchange / Tower ID</Label>
+                                      <Input className="h-8 text-xs mt-1" placeholder="e.g. EX-001, TWR-A" value={infra.dnsServers} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, dnsServers: e.target.value } : n))} data-testid={`input-network-tower-a-${idx}`} />
+                                    </div>
                                   </div>
                                   <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/30 p-3 space-y-2">
                                     <p className="text-xs font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
@@ -1616,6 +1620,10 @@ function AddVendorTab() {
                                     <div>
                                       <Label className="text-xs font-medium">Port / Slot Details</Label>
                                       <Input className="h-8 text-xs mt-1" placeholder="e.g. Port 2, Slot 1" value={infra.asNumber} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, asNumber: e.target.value } : n))} data-testid={`input-network-port-b-${idx}`} />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs font-medium">Exchange / Tower ID</Label>
+                                      <Input className="h-8 text-xs mt-1" placeholder="e.g. EX-002, TWR-B" value={infra.bgpConfig} onChange={(e) => setNetworkInfraList(networkInfraList.map((n, i) => i === idx ? { ...n, bgpConfig: e.target.value } : n))} data-testid={`input-network-tower-b-${idx}`} />
                                     </div>
                                   </div>
                                 </div>
@@ -1712,6 +1720,10 @@ function AddVendorTab() {
                                     <Label className="text-xs font-medium">Port / Slot Details</Label>
                                     <Input className="h-8 text-xs mt-1" placeholder="e.g. Port 1, Slot 2" value={newNetworkInfra.portDetails} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, portDetails: e.target.value })} data-testid="input-new-network-port-a" />
                                   </div>
+                                  <div>
+                                    <Label className="text-xs font-medium">Exchange / Tower ID</Label>
+                                    <Input className="h-8 text-xs mt-1" placeholder="e.g. EX-001, TWR-A" value={newNetworkInfra.dnsServers} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, dnsServers: e.target.value })} data-testid="input-new-network-tower-a" />
+                                  </div>
                                 </div>
                                 <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/30 p-3 space-y-2">
                                   <p className="text-xs font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
@@ -1724,6 +1736,10 @@ function AddVendorTab() {
                                   <div>
                                     <Label className="text-xs font-medium">Port / Slot Details</Label>
                                     <Input className="h-8 text-xs mt-1" placeholder="e.g. Port 2, Slot 1" value={newNetworkInfra.asNumber} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, asNumber: e.target.value })} data-testid="input-new-network-port-b" />
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs font-medium">Exchange / Tower ID</Label>
+                                    <Input className="h-8 text-xs mt-1" placeholder="e.g. EX-002, TWR-B" value={newNetworkInfra.bgpConfig} onChange={(e) => setNewNetworkInfra({ ...newNetworkInfra, bgpConfig: e.target.value })} data-testid="input-new-network-tower-b" />
                                   </div>
                                 </div>
                               </div>
