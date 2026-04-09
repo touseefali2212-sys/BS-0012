@@ -79,6 +79,7 @@ import type {
   VendorBandwidthLink,
   VendorPanelLink,
   InsertVendorPanelLink,
+  InsertVendorBandwidthLink,
   InsertVendor,
 } from "@shared/schema";
 
@@ -157,6 +158,36 @@ function vendorToEditForm(v: Vendor): EditVendorForm {
   };
 }
 
+type BwLinkForm = {
+  linkName: string; city: string; popLocation: string; startDate: string;
+  billingType: string; status: string;
+  bandwidthMbps: string; bandwidthRate: string; totalMonthlyCost: string;
+  ipAddress: string; vlanDetail: string; portDetails: string;
+  routingType: string; networkInterface: string; gateway: string;
+  dnsServers: string; asNumber: string; bgpConfig: string;
+  notes: string;
+};
+const emptyBwLinkForm: BwLinkForm = {
+  linkName: "", city: "", popLocation: "", startDate: "",
+  billingType: "full_month", status: "active",
+  bandwidthMbps: "", bandwidthRate: "", totalMonthlyCost: "",
+  ipAddress: "", vlanDetail: "", portDetails: "",
+  routingType: "static", networkInterface: "", gateway: "",
+  dnsServers: "", asNumber: "", bgpConfig: "",
+  notes: "",
+};
+function bwLinkToForm(l: VendorBandwidthLink): BwLinkForm {
+  return {
+    linkName: l.linkName || "", city: l.city || "", popLocation: l.popLocation || "", startDate: l.startDate || "",
+    billingType: l.billingType || "full_month", status: l.status || "active",
+    bandwidthMbps: l.bandwidthMbps || "", bandwidthRate: l.bandwidthRate || "", totalMonthlyCost: l.totalMonthlyCost || "",
+    ipAddress: l.ipAddress || "", vlanDetail: l.vlanDetail || "", portDetails: l.portDetails || "",
+    routingType: l.routingType || "static", networkInterface: l.networkInterface || "", gateway: l.gateway || "",
+    dnsServers: l.dnsServers || "", asNumber: l.asNumber || "", bgpConfig: l.bgpConfig || "",
+    notes: l.notes || "",
+  };
+}
+
 export default function VendorProfilePage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
@@ -178,6 +209,13 @@ export default function VendorProfilePage() {
   const [editVendorOpen, setEditVendorOpen] = useState(false);
   const [editVendorForm, setEditVendorForm] = useState<EditVendorForm | null>(null);
   const [editVendorSubmitting, setEditVendorSubmitting] = useState(false);
+
+  // Add/Edit BW link dialog state
+  const [bwLinkDialogOpen, setBwLinkDialogOpen] = useState(false);
+  const [editingBwLink, setEditingBwLink] = useState<VendorBandwidthLink | null>(null);
+  const [bwLinkForm, setBwLinkForm] = useState<BwLinkForm>(emptyBwLinkForm);
+  const [bwLinkFormTab, setBwLinkFormTab] = useState("basic");
+  const [bwLinkSubmitting, setBwLinkSubmitting] = useState(false);
 
   // Outstanding payment dialog state
   const [outstandingOpen, setOutstandingOpen] = useState(false);
@@ -397,6 +435,63 @@ export default function VendorProfilePage() {
       updatePlMutation.mutate({ id: editingPl.id, data: payload });
     } else {
       createPlMutation.mutate(payload as InsertVendorPanelLink);
+    }
+  };
+
+  const openAddBwLink = () => {
+    setEditingBwLink(null);
+    setBwLinkForm(emptyBwLinkForm);
+    setBwLinkFormTab("basic");
+    setBwLinkDialogOpen(true);
+  };
+  const openEditBwLink = (link: VendorBandwidthLink) => {
+    setEditingBwLink(link);
+    setBwLinkForm(bwLinkToForm(link));
+    setBwLinkFormTab("basic");
+    setBwLinkDialogOpen(true);
+  };
+  const handleSubmitBwLink = async () => {
+    if (!bwLinkForm.linkName.trim()) { toast({ title: "Link Name is required", variant: "destructive" }); setBwLinkFormTab("basic"); return; }
+    if (!bwLinkForm.bandwidthMbps || !bwLinkForm.bandwidthRate) { toast({ title: "Bandwidth and Rate are required", variant: "destructive" }); setBwLinkFormTab("bandwidth"); return; }
+    setBwLinkSubmitting(true);
+    try {
+      const payload: InsertVendorBandwidthLink = {
+        vendorId: Number(id),
+        linkName: bwLinkForm.linkName,
+        city: bwLinkForm.city || null,
+        popLocation: bwLinkForm.popLocation || null,
+        startDate: bwLinkForm.startDate || null,
+        billingType: bwLinkForm.billingType || "full_month",
+        status: bwLinkForm.status || "active",
+        bandwidthMbps: bwLinkForm.bandwidthMbps || "0",
+        bandwidthRate: bwLinkForm.bandwidthRate || "0",
+        totalMonthlyCost: bwLinkForm.totalMonthlyCost || "0",
+        ipAddress: bwLinkForm.ipAddress || null,
+        vlanDetail: bwLinkForm.vlanDetail || null,
+        portDetails: bwLinkForm.portDetails || null,
+        routingType: bwLinkForm.routingType || "static",
+        networkInterface: bwLinkForm.networkInterface || null,
+        gateway: bwLinkForm.gateway || null,
+        dnsServers: bwLinkForm.dnsServers || null,
+        asNumber: bwLinkForm.asNumber || null,
+        bgpConfig: bwLinkForm.bgpConfig || null,
+        notes: bwLinkForm.notes || null,
+      };
+      if (editingBwLink) {
+        await apiRequest("PATCH", `/api/vendor-bandwidth-links/${editingBwLink.id}`, payload);
+        toast({ title: "Bandwidth link updated" });
+      } else {
+        await apiRequest("POST", "/api/vendor-bandwidth-links", payload);
+        toast({ title: "Bandwidth link added" });
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor-bandwidth-links"] });
+      setBwLinkDialogOpen(false);
+      setEditingBwLink(null);
+      setBwLinkForm(emptyBwLinkForm);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setBwLinkSubmitting(false);
     }
   };
 
@@ -959,9 +1054,14 @@ export default function VendorProfilePage() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <CardTitle className="text-sm flex items-center gap-2"><Network className="h-4 w-4 text-primary" />Bandwidth Links ({bwLinks.length})</CardTitle>
-                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950" onClick={() => { setOutstandingForm({ amount: "", bwLinkName: "", period: "", notes: "" }); setOutstandingOpen(true); }} data-testid="button-add-outstanding">
-                        <AlertCircle className="h-3.5 w-3.5" />Add Old Outstanding
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950" onClick={() => { setOutstandingForm({ amount: "", bwLinkName: "", period: "", notes: "" }); setOutstandingOpen(true); }} data-testid="button-add-outstanding">
+                          <AlertCircle className="h-3.5 w-3.5" />Add Old Outstanding
+                        </Button>
+                        <Button size="sm" className="h-7 text-xs gap-1.5" onClick={openAddBwLink} data-testid="button-add-bw-link">
+                          <Plus className="h-3.5 w-3.5" />Add BW Link
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -983,6 +1083,7 @@ export default function VendorProfilePage() {
                               <TableHead className="text-xs">Billing</TableHead>
                               <TableHead className="text-xs">Start Date</TableHead>
                               <TableHead className="text-xs">Status</TableHead>
+                              <TableHead className="w-16"></TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1013,6 +1114,12 @@ export default function VendorProfilePage() {
                                   </TableCell>
                                   <TableCell className="text-xs">{link.startDate || "—"}</TableCell>
                                   <TableCell><Badge variant={link.status === "active" ? "default" : "secondary"} className="text-[10px] no-default-active-elevate capitalize">{link.status}</Badge></TableCell>
+                                  <TableCell onClick={e => e.stopPropagation()}>
+                                    <div className="flex gap-1">
+                                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => openEditBwLink(link)} data-testid={`button-edit-bwlink-${link.id}`}><Edit className="h-3.5 w-3.5" /></Button>
+                                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500 hover:text-red-600" onClick={async () => { if (confirm(`Delete link "${link.linkName}"?`)) { await apiRequest("DELETE", `/api/vendor-bandwidth-links/${link.id}`); queryClient.invalidateQueries({ queryKey: ["/api/vendor-bandwidth-links"] }); toast({ title: "Link deleted" }); } }} data-testid={`button-delete-bwlink-${link.id}`}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                    </div>
+                                  </TableCell>
                                 </TableRow>
                               );
                             })}
@@ -1021,7 +1128,7 @@ export default function VendorProfilePage() {
                                 <TableCell colSpan={3} className="text-xs font-bold">TOTALS</TableCell>
                                 <TableCell className="text-sm font-bold text-blue-600 dark:text-blue-400">{totalMbps} Mbps</TableCell>
                                 <TableCell className="text-sm font-bold text-blue-600 dark:text-blue-400">{formatPKR(totalMonthlyCost)}</TableCell>
-                                <TableCell /><TableCell /><TableCell />
+                                <TableCell /><TableCell /><TableCell /><TableCell />
                               </TableRow>
                             )}
                           </TableBody>
@@ -2155,6 +2262,229 @@ export default function VendorProfilePage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Add / Edit BW Link Dialog */}
+      <Dialog open={bwLinkDialogOpen} onOpenChange={open => { if (!open) { setBwLinkDialogOpen(false); setEditingBwLink(null); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden p-0 gap-0">
+          {/* Header */}
+          <div className="vendor-page-header px-5 py-4 rounded-t-lg shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-white/20 border-2 border-white/30 flex items-center justify-center shrink-0">
+                {editingBwLink ? <Edit className="h-4.5 w-4.5 text-white" /> : <Plus className="h-5 w-5 text-white" />}
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-white">{editingBwLink ? "Edit Bandwidth Link" : "Add New Bandwidth Link"}</h2>
+                <p className="text-white/70 text-xs">{editingBwLink ? `Editing: ${editingBwLink.linkName}` : "Fill in the link details across tabs"}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Wizard tabs */}
+          <Tabs value={bwLinkFormTab} onValueChange={setBwLinkFormTab} className="flex flex-col flex-1 overflow-hidden">
+            <div className="border-b bg-muted/20 shrink-0">
+              <TabsList className="h-auto bg-transparent p-0 w-full justify-start rounded-none">
+                {[
+                  { v: "basic", label: "Basic Info", icon: <Network className="h-3.5 w-3.5" /> },
+                  { v: "bandwidth", label: "Bandwidth & Cost", icon: <Zap className="h-3.5 w-3.5" /> },
+                  { v: "connectivity", label: "Connectivity", icon: <Globe className="h-3.5 w-3.5" /> },
+                  { v: "network", label: "Network & Infrastructure", icon: <Server className="h-3.5 w-3.5" /> },
+                ].map(t => (
+                  <TabsTrigger key={t.v} value={t.v} className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-4">
+                    {t.icon}{t.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </div>
+
+            <div className="overflow-y-auto flex-1">
+              {/* Basic Info */}
+              <TabsContent value="basic" className="p-5 space-y-4 mt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Link Name <span className="text-red-500">*</span></label>
+                    <Input placeholder="e.g. Link-1 Fiber, Main-Lahore" value={bwLinkForm.linkName} onChange={e => setBwLinkForm(f => ({ ...f, linkName: e.target.value }))} data-testid="input-bwlink-name" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Start Date</label>
+                    <Input type="date" value={bwLinkForm.startDate} onChange={e => setBwLinkForm(f => ({ ...f, startDate: e.target.value }))} data-testid="input-bwlink-start-date" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">City</label>
+                    <Input placeholder="e.g. Lahore" value={bwLinkForm.city} onChange={e => setBwLinkForm(f => ({ ...f, city: e.target.value }))} data-testid="input-bwlink-city" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">POP Location</label>
+                    <Input placeholder="e.g. Exchange Road POP" value={bwLinkForm.popLocation} onChange={e => setBwLinkForm(f => ({ ...f, popLocation: e.target.value }))} data-testid="input-bwlink-pop" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Billing Type</label>
+                    <Select value={bwLinkForm.billingType} onValueChange={v => setBwLinkForm(f => ({ ...f, billingType: v }))}>
+                      <SelectTrigger data-testid="select-bwlink-billing"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="full_month">Full Month</SelectItem>
+                        <SelectItem value="pro_rata">Pro-Rata (Partial 1st Month)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Status</label>
+                    <Select value={bwLinkForm.status} onValueChange={v => setBwLinkForm(f => ({ ...f, status: v }))}>
+                      <SelectTrigger data-testid="select-bwlink-status"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                        <SelectItem value="suspended">Suspended</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Notes</label>
+                  <Input placeholder="Optional notes about this link" value={bwLinkForm.notes} onChange={e => setBwLinkForm(f => ({ ...f, notes: e.target.value }))} data-testid="input-bwlink-notes" />
+                </div>
+              </TabsContent>
+
+              {/* Bandwidth & Cost */}
+              <TabsContent value="bandwidth" className="p-5 space-y-4 mt-0">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Bandwidth (Mbps) <span className="text-red-500">*</span></label>
+                    <Input type="number" placeholder="0" value={bwLinkForm.bandwidthMbps} onChange={e => {
+                      const mbps = e.target.value;
+                      const cost = (Number(mbps) * Number(bwLinkForm.bandwidthRate || 0)).toFixed(2);
+                      setBwLinkForm(f => ({ ...f, bandwidthMbps: mbps, totalMonthlyCost: cost }));
+                    }} data-testid="input-bwlink-mbps" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Rate per Mbps (PKR) <span className="text-red-500">*</span></label>
+                    <Input type="number" placeholder="0" value={bwLinkForm.bandwidthRate} onChange={e => {
+                      const rate = e.target.value;
+                      const cost = (Number(bwLinkForm.bandwidthMbps || 0) * Number(rate)).toFixed(2);
+                      setBwLinkForm(f => ({ ...f, bandwidthRate: rate, totalMonthlyCost: cost }));
+                    }} data-testid="input-bwlink-rate" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Total Monthly Cost (PKR)</label>
+                    <Input type="number" value={bwLinkForm.totalMonthlyCost} readOnly className="bg-muted/50 font-semibold text-primary" data-testid="input-bwlink-total" onChange={e => setBwLinkForm(f => ({ ...f, totalMonthlyCost: e.target.value }))} />
+                  </div>
+                </div>
+                {bwLinkForm.bandwidthMbps && bwLinkForm.bandwidthRate && (
+                  <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900 rounded-xl p-4">
+                    <p className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-2">Cost Breakdown</p>
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Bandwidth</p><p className="text-lg font-bold text-blue-600 dark:text-blue-400">{bwLinkForm.bandwidthMbps} Mbps</p></div>
+                      <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Rate</p><p className="text-lg font-bold">{formatPKR(bwLinkForm.bandwidthRate)}/Mbps</p></div>
+                      <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Monthly Total</p><p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{formatPKR(bwLinkForm.totalMonthlyCost)}</p></div>
+                    </div>
+                    {bwLinkForm.billingType === "pro_rata" && bwLinkForm.startDate && (() => {
+                      const start = new Date(bwLinkForm.startDate);
+                      if (isNaN(start.getTime())) return null;
+                      const daysInMonth = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate();
+                      const remainingDays = daysInMonth - start.getDate() + 1;
+                      const proRata = (Number(bwLinkForm.totalMonthlyCost) / daysInMonth * remainingDays).toFixed(2);
+                      return (
+                        <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-800 text-center">
+                          <p className="text-[10px] text-orange-600 dark:text-orange-400 uppercase tracking-wider">First Month Pro-Rata ({remainingDays}/{daysInMonth} days)</p>
+                          <p className="text-base font-bold text-orange-600 dark:text-orange-400">{formatPKR(proRata)}</p>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* Connectivity */}
+              <TabsContent value="connectivity" className="p-5 space-y-4 mt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">IP Address / Subnet</label>
+                    <Input placeholder="e.g. 192.168.1.1/30" value={bwLinkForm.ipAddress} onChange={e => setBwLinkForm(f => ({ ...f, ipAddress: e.target.value }))} data-testid="input-bwlink-ip" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">VLAN Detail</label>
+                    <Input placeholder="e.g. VLAN 100" value={bwLinkForm.vlanDetail} onChange={e => setBwLinkForm(f => ({ ...f, vlanDetail: e.target.value }))} data-testid="input-bwlink-vlan" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Port / Slot Details</label>
+                    <Input placeholder="e.g. Gi0/0/1, Port 4" value={bwLinkForm.portDetails} onChange={e => setBwLinkForm(f => ({ ...f, portDetails: e.target.value }))} data-testid="input-bwlink-port" />
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Network & Infrastructure */}
+              <TabsContent value="network" className="p-5 space-y-4 mt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Routing Type</label>
+                    <Select value={bwLinkForm.routingType} onValueChange={v => setBwLinkForm(f => ({ ...f, routingType: v }))}>
+                      <SelectTrigger data-testid="select-bwlink-routing"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="static">Static</SelectItem>
+                        <SelectItem value="bgp">BGP</SelectItem>
+                        <SelectItem value="ospf">OSPF</SelectItem>
+                        <SelectItem value="rip">RIP</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Network Interface</label>
+                    <Input placeholder="e.g. GigabitEthernet0/0/1" value={bwLinkForm.networkInterface} onChange={e => setBwLinkForm(f => ({ ...f, networkInterface: e.target.value }))} data-testid="input-bwlink-interface" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Gateway</label>
+                    <Input placeholder="e.g. 192.168.1.1" value={bwLinkForm.gateway} onChange={e => setBwLinkForm(f => ({ ...f, gateway: e.target.value }))} data-testid="input-bwlink-gateway" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">DNS Servers</label>
+                    <Input placeholder="e.g. 8.8.8.8, 8.8.4.4" value={bwLinkForm.dnsServers} onChange={e => setBwLinkForm(f => ({ ...f, dnsServers: e.target.value }))} data-testid="input-bwlink-dns" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">AS Number (BGP)</label>
+                    <Input placeholder="e.g. AS65000" value={bwLinkForm.asNumber} onChange={e => setBwLinkForm(f => ({ ...f, asNumber: e.target.value }))} data-testid="input-bwlink-asn" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">BGP Config / Neighbor IP</label>
+                    <Input placeholder="e.g. 10.0.0.1" value={bwLinkForm.bgpConfig} onChange={e => setBwLinkForm(f => ({ ...f, bgpConfig: e.target.value }))} data-testid="input-bwlink-bgp" />
+                  </div>
+                </div>
+                {bwLinkForm.routingType === "bgp" && (
+                  <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900 rounded-xl p-4">
+                    <p className="text-xs text-blue-700 dark:text-blue-300 font-medium flex items-center gap-1.5 mb-1"><Network className="h-3.5 w-3.5" />BGP Routing Selected</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400">Make sure to fill in the AS Number and BGP Neighbor IP for proper routing configuration.</p>
+                  </div>
+                )}
+              </TabsContent>
+            </div>
+
+            {/* Footer */}
+            <div className="border-t px-5 py-3 flex items-center justify-between bg-muted/20 shrink-0">
+              <div className="flex gap-2">
+                {bwLinkFormTab !== "basic" && (
+                  <Button type="button" variant="outline" size="sm" onClick={() => {
+                    const tabs = ["basic", "bandwidth", "connectivity", "network"];
+                    const idx = tabs.indexOf(bwLinkFormTab);
+                    if (idx > 0) setBwLinkFormTab(tabs[idx - 1]);
+                  }}>← Back</Button>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" variant="secondary" size="sm" onClick={() => setBwLinkDialogOpen(false)}>Cancel</Button>
+                {bwLinkFormTab !== "network" ? (
+                  <Button type="button" size="sm" onClick={() => {
+                    const tabs = ["basic", "bandwidth", "connectivity", "network"];
+                    const idx = tabs.indexOf(bwLinkFormTab);
+                    setBwLinkFormTab(tabs[idx + 1]);
+                  }}>Next →</Button>
+                ) : (
+                  <Button type="button" size="sm" onClick={handleSubmitBwLink} disabled={bwLinkSubmitting} data-testid="button-save-bwlink">
+                    {bwLinkSubmitting ? "Saving..." : editingBwLink ? "Update Link" : "Add Link"}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </Tabs>
+        </DialogContent>
+      </Dialog>
 
       {/* BW Link Detail Dialog */}
       <Dialog open={!!selectedBwLink} onOpenChange={open => { if (!open) setSelectedBwLink(null); }}>
