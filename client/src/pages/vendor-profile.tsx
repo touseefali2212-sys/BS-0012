@@ -2827,54 +2827,99 @@ export default function VendorProfilePage() {
                     <label className="text-sm font-medium">VLAN Detail</label>
                     <Input placeholder="e.g. VLAN 100" value={bwLinkForm.vlanDetail} onChange={e => setBwLinkForm(f => ({ ...f, vlanDetail: e.target.value }))} data-testid="input-bwlink-vlan" />
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Port / Slot Details</label>
-                    <Input placeholder="e.g. Gi0/0/1, Port 4" value={bwLinkForm.portDetails} onChange={e => setBwLinkForm(f => ({ ...f, portDetails: e.target.value }))} data-testid="input-bwlink-port" />
-                  </div>
+                  {bwLinkForm.serviceType !== "dplc" && (
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Port / Slot Details</label>
+                      <Input placeholder="e.g. Gi0/0/1, Port 4" value={bwLinkForm.portDetails} onChange={e => setBwLinkForm(f => ({ ...f, portDetails: e.target.value }))} data-testid="input-bwlink-port" />
+                    </div>
+                  )}
                 </div>
               </TabsContent>
 
               {/* Network & Infrastructure */}
               <TabsContent value="network" className="p-5 space-y-4 mt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Routing Type</label>
-                    <Select value={bwLinkForm.routingType} onValueChange={v => setBwLinkForm(f => ({ ...f, routingType: v }))}>
-                      <SelectTrigger data-testid="select-bwlink-routing"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="static">Static</SelectItem>
-                        <SelectItem value="bgp">BGP</SelectItem>
-                        <SelectItem value="ospf">OSPF</SelectItem>
-                        <SelectItem value="rip">RIP</SelectItem>
-                      </SelectContent>
-                    </Select>
+                {bwLinkForm.serviceType === "dplc" ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Site A */}
+                    <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/30 p-4 space-y-3">
+                      <p className="text-sm font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
+                        <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-violet-600 text-white text-[10px] font-bold">A</span>Site A
+                      </p>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Interface Type</label>
+                        <Input placeholder="e.g. GigabitEthernet0/0, SFP+" value={bwLinkForm.networkInterface} onChange={e => setBwLinkForm(f => ({ ...f, networkInterface: e.target.value }))} data-testid="input-bwlink-interface-a" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Port / Slot Details</label>
+                        <Input placeholder="e.g. Port 1, Slot 2" value={bwLinkForm.portDetails} onChange={e => setBwLinkForm(f => ({ ...f, portDetails: e.target.value }))} data-testid="input-bwlink-port-a" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Exchange / Tower ID</label>
+                        <Input placeholder="e.g. EX-001, TWR-A" value={bwLinkForm.dnsServers} onChange={e => setBwLinkForm(f => ({ ...f, dnsServers: e.target.value }))} data-testid="input-bwlink-tower-a" />
+                      </div>
+                    </div>
+                    {/* Site B */}
+                    <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/30 p-4 space-y-3">
+                      <p className="text-sm font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
+                        <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-violet-600 text-white text-[10px] font-bold">B</span>Site B
+                      </p>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Interface Type</label>
+                        <Input placeholder="e.g. GigabitEthernet1/0, SFP+" value={bwLinkForm.gateway} onChange={e => setBwLinkForm(f => ({ ...f, gateway: e.target.value }))} data-testid="input-bwlink-interface-b" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Port / Slot Details</label>
+                        <Input placeholder="e.g. Port 2, Slot 1" value={bwLinkForm.asNumber} onChange={e => setBwLinkForm(f => ({ ...f, asNumber: e.target.value }))} data-testid="input-bwlink-port-b" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Exchange / Tower ID</label>
+                        <Input placeholder="e.g. EX-002, TWR-B" value={bwLinkForm.bgpConfig} onChange={e => setBwLinkForm(f => ({ ...f, bgpConfig: e.target.value }))} data-testid="input-bwlink-tower-b" />
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Network Interface</label>
-                    <Input placeholder="e.g. GigabitEthernet0/0/1" value={bwLinkForm.networkInterface} onChange={e => setBwLinkForm(f => ({ ...f, networkInterface: e.target.value }))} data-testid="input-bwlink-interface" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Gateway</label>
-                    <Input placeholder="e.g. 192.168.1.1" value={bwLinkForm.gateway} onChange={e => setBwLinkForm(f => ({ ...f, gateway: e.target.value }))} data-testid="input-bwlink-gateway" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">DNS Servers</label>
-                    <Input placeholder="e.g. 8.8.8.8, 8.8.4.4" value={bwLinkForm.dnsServers} onChange={e => setBwLinkForm(f => ({ ...f, dnsServers: e.target.value }))} data-testid="input-bwlink-dns" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">AS Number (BGP)</label>
-                    <Input placeholder="e.g. AS65000" value={bwLinkForm.asNumber} onChange={e => setBwLinkForm(f => ({ ...f, asNumber: e.target.value }))} data-testid="input-bwlink-asn" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-medium">BGP Config / Neighbor IP</label>
-                    <Input placeholder="e.g. 10.0.0.1" value={bwLinkForm.bgpConfig} onChange={e => setBwLinkForm(f => ({ ...f, bgpConfig: e.target.value }))} data-testid="input-bwlink-bgp" />
-                  </div>
-                </div>
-                {bwLinkForm.routingType === "bgp" && (
-                  <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900 rounded-xl p-4">
-                    <p className="text-xs text-blue-700 dark:text-blue-300 font-medium flex items-center gap-1.5 mb-1"><Network className="h-3.5 w-3.5" />BGP Routing Selected</p>
-                    <p className="text-xs text-blue-600 dark:text-blue-400">Make sure to fill in the AS Number and BGP Neighbor IP for proper routing configuration.</p>
-                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Routing Type</label>
+                        <Select value={bwLinkForm.routingType} onValueChange={v => setBwLinkForm(f => ({ ...f, routingType: v }))}>
+                          <SelectTrigger data-testid="select-bwlink-routing"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="static">Static</SelectItem>
+                            <SelectItem value="bgp">BGP</SelectItem>
+                            <SelectItem value="ospf">OSPF</SelectItem>
+                            <SelectItem value="rip">RIP</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Network Interface</label>
+                        <Input placeholder="e.g. GigabitEthernet0/0/1" value={bwLinkForm.networkInterface} onChange={e => setBwLinkForm(f => ({ ...f, networkInterface: e.target.value }))} data-testid="input-bwlink-interface" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Gateway</label>
+                        <Input placeholder="e.g. 192.168.1.1" value={bwLinkForm.gateway} onChange={e => setBwLinkForm(f => ({ ...f, gateway: e.target.value }))} data-testid="input-bwlink-gateway" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">DNS Servers</label>
+                        <Input placeholder="e.g. 8.8.8.8, 8.8.4.4" value={bwLinkForm.dnsServers} onChange={e => setBwLinkForm(f => ({ ...f, dnsServers: e.target.value }))} data-testid="input-bwlink-dns" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">AS Number (BGP)</label>
+                        <Input placeholder="e.g. AS65000" value={bwLinkForm.asNumber} onChange={e => setBwLinkForm(f => ({ ...f, asNumber: e.target.value }))} data-testid="input-bwlink-asn" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">BGP Config / Neighbor IP</label>
+                        <Input placeholder="e.g. 10.0.0.1" value={bwLinkForm.bgpConfig} onChange={e => setBwLinkForm(f => ({ ...f, bgpConfig: e.target.value }))} data-testid="input-bwlink-bgp" />
+                      </div>
+                    </div>
+                    {bwLinkForm.routingType === "bgp" && (
+                      <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900 rounded-xl p-4">
+                        <p className="text-xs text-blue-700 dark:text-blue-300 font-medium flex items-center gap-1.5 mb-1"><Network className="h-3.5 w-3.5" />BGP Routing Selected</p>
+                        <p className="text-xs text-blue-600 dark:text-blue-400">Make sure to fill in the AS Number and BGP Neighbor IP for proper routing configuration.</p>
+                      </div>
+                    )}
+                  </>
                 )}
               </TabsContent>
             </div>
@@ -2914,7 +2959,10 @@ export default function VendorProfilePage() {
         <DialogContent className="max-w-2xl max-h-[88vh] overflow-hidden p-0 gap-0">
           {selectedBwLink && (() => {
             const link = selectedBwLink;
-            const hasNetwork = link.networkInterface || link.gateway || link.dnsServers || link.asNumber || link.bgpConfig || (link.routingType && link.routingType !== "static");
+            const isDplcLink = link.serviceType === "dplc";
+            const hasNetwork = isDplcLink
+              ? (link.networkInterface || link.portDetails || link.gateway || link.asNumber || link.dnsServers || link.bgpConfig)
+              : (link.networkInterface || link.gateway || link.dnsServers || link.asNumber || link.bgpConfig || (link.routingType && link.routingType !== "static"));
             const proRataInfo = link.billingType === "pro_rata" && link.startDate && link.totalMonthlyCost ? (() => {
               const start = new Date(link.startDate);
               if (isNaN(start.getTime())) return null;
@@ -2980,11 +3028,20 @@ export default function VendorProfilePage() {
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {link.city && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">City</p><p className="text-sm font-medium">{link.city}</p></div>}
-                        {link.popLocation && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">POP Location</p><p className="text-sm font-medium">{link.popLocation}</p></div>}
+                        {isDplcLink ? (
+                          <>
+                            {link.city && <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900 rounded-lg p-3"><p className="text-[10px] text-violet-600 dark:text-violet-400 uppercase tracking-wider mb-0.5 font-semibold">Site A City</p><p className="text-sm font-medium">{link.city}</p></div>}
+                            {link.popLocation && <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900 rounded-lg p-3"><p className="text-[10px] text-violet-600 dark:text-violet-400 uppercase tracking-wider mb-0.5 font-semibold">Site B City</p><p className="text-sm font-medium">{link.popLocation}</p></div>}
+                          </>
+                        ) : (
+                          <>
+                            {link.city && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">City</p><p className="text-sm font-medium">{link.city}</p></div>}
+                            {link.popLocation && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">POP Location</p><p className="text-sm font-medium">{link.popLocation}</p></div>}
+                          </>
+                        )}
                         {link.ipAddress && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">IP Address</p><p className="text-sm font-mono font-medium">{link.ipAddress}</p></div>}
                         {link.vlanDetail && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">VLAN</p><p className="text-sm font-mono font-medium flex items-center gap-1"><Layers className="h-3.5 w-3.5 text-muted-foreground" />{link.vlanDetail}</p></div>}
-                        {link.portDetails && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Port / Slot</p><p className="text-sm font-mono font-medium">{link.portDetails}</p></div>}
+                        {!isDplcLink && link.portDetails && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Port / Slot</p><p className="text-sm font-mono font-medium">{link.portDetails}</p></div>}
                         {link.startDate && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Start Date</p><p className="text-sm font-medium">{link.startDate}</p></div>}
                       </div>
                     </CardContent>
@@ -2994,17 +3051,41 @@ export default function VendorProfilePage() {
                   {hasNetwork && (
                     <Card>
                       <CardHeader className="pb-2 pt-3">
-                        <CardTitle className="text-sm flex items-center gap-2"><Network className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />Network Infrastructure</CardTitle>
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Network className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                          {isDplcLink ? "Site Infrastructure" : "Network Infrastructure"}
+                        </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                          {link.routingType && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Routing Type</p><p className="text-sm font-semibold capitalize">{link.routingType}</p></div>}
-                          {link.networkInterface && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Interface</p><p className="text-sm font-mono">{link.networkInterface}</p></div>}
-                          {link.gateway && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Gateway</p><p className="text-sm font-mono">{link.gateway}</p></div>}
-                          {link.dnsServers && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">DNS Servers</p><p className="text-sm font-mono">{link.dnsServers}</p></div>}
-                          {link.asNumber && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">AS Number</p><p className="text-sm font-mono font-bold">{link.asNumber}</p></div>}
-                          {link.bgpConfig && <div className="bg-muted/50 rounded-lg p-3 col-span-2"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">BGP Config / Neighbor</p><p className="text-sm font-mono break-all">{link.bgpConfig}</p></div>}
-                        </div>
+                        {isDplcLink ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/30 p-3 space-y-2">
+                              <p className="text-xs font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
+                                <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-violet-600 text-white text-[9px] font-bold">A</span>Site A
+                              </p>
+                              {link.networkInterface && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Interface Type</p><p className="text-sm font-mono font-medium mt-0.5">{link.networkInterface}</p></div>}
+                              {link.portDetails && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Port / Slot</p><p className="text-sm font-mono font-medium mt-0.5">{link.portDetails}</p></div>}
+                              {link.dnsServers && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Exchange / Tower ID</p><p className="text-sm font-mono font-medium mt-0.5">{link.dnsServers}</p></div>}
+                            </div>
+                            <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/30 p-3 space-y-2">
+                              <p className="text-xs font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
+                                <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-violet-600 text-white text-[9px] font-bold">B</span>Site B
+                              </p>
+                              {link.gateway && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Interface Type</p><p className="text-sm font-mono font-medium mt-0.5">{link.gateway}</p></div>}
+                              {link.asNumber && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Port / Slot</p><p className="text-sm font-mono font-medium mt-0.5">{link.asNumber}</p></div>}
+                              {link.bgpConfig && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Exchange / Tower ID</p><p className="text-sm font-mono font-medium mt-0.5">{link.bgpConfig}</p></div>}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {link.routingType && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Routing Type</p><p className="text-sm font-semibold capitalize">{link.routingType}</p></div>}
+                            {link.networkInterface && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Interface</p><p className="text-sm font-mono">{link.networkInterface}</p></div>}
+                            {link.gateway && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Gateway</p><p className="text-sm font-mono">{link.gateway}</p></div>}
+                            {link.dnsServers && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">DNS Servers</p><p className="text-sm font-mono">{link.dnsServers}</p></div>}
+                            {link.asNumber && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">AS Number</p><p className="text-sm font-mono font-bold">{link.asNumber}</p></div>}
+                            {link.bgpConfig && <div className="bg-muted/50 rounded-lg p-3 col-span-2"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">BGP Config / Neighbor</p><p className="text-sm font-mono break-all">{link.bgpConfig}</p></div>}
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   )}
