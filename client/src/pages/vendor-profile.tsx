@@ -33,6 +33,8 @@ import {
   Plus,
   Trash2,
   Link2,
+  AlertCircle,
+  FileWarning,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -172,6 +174,10 @@ export default function VendorProfilePage() {
   const [editVendorForm, setEditVendorForm] = useState<EditVendorForm | null>(null);
   const [editVendorSubmitting, setEditVendorSubmitting] = useState(false);
 
+  // Outstanding payment dialog state
+  const [outstandingOpen, setOutstandingOpen] = useState(false);
+  const [outstandingForm, setOutstandingForm] = useState({ amount: "", bwLinkName: "", period: "", notes: "" });
+
   const { data: vendors, isLoading: vendorsLoading } = useQuery<Vendor[]>({
     queryKey: ["/api/vendors"],
   });
@@ -221,6 +227,38 @@ export default function VendorProfilePage() {
     onSuccess: () => { invalidatePanelLinks(); setPlDeleteId(null); toast({ title: "Panel link deleted" }); },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
+
+  const outstandingMutation = useMutation({
+    mutationFn: (data: { vendorId: number; amount: number; period: string; bwLinkName?: string; notes?: string; performedBy?: string }) =>
+      apiRequest("POST", "/api/vendor-wallet/outstanding", data).then(r => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor-wallet-transactions", vendor?.id] });
+      setOutstandingOpen(false);
+      setOutstandingForm({ amount: "", bwLinkName: "", period: "", notes: "" });
+      toast({ title: "Outstanding payment recorded", description: "The old pending payment has been added to the wallet ledger." });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const submitOutstanding = () => {
+    if (!vendor) return;
+    const amt = parseFloat(outstandingForm.amount);
+    if (!outstandingForm.amount || isNaN(amt) || amt <= 0) {
+      toast({ title: "Invalid amount", description: "Please enter a valid positive amount.", variant: "destructive" }); return;
+    }
+    if (!outstandingForm.period.trim()) {
+      toast({ title: "Period is required", description: "Please specify the billing period (e.g. March 2025).", variant: "destructive" }); return;
+    }
+    outstandingMutation.mutate({
+      vendorId: vendor.id,
+      amount: amt,
+      period: outstandingForm.period.trim(),
+      bwLinkName: outstandingForm.bwLinkName || undefined,
+      notes: outstandingForm.notes || undefined,
+      performedBy: "Admin",
+    });
+  };
 
   const openEditVendor = () => {
     if (!vendor) return;
@@ -371,7 +409,10 @@ export default function VendorProfilePage() {
     .filter(t => t.type === "recharge" || t.type === "credit")
     .reduce((s, t) => s + Number(t.amount || 0), 0);
   const totalDebited = transactions
-    .filter(t => t.type === "debit" || t.type === "deduct")
+    .filter(t => t.type === "debit" || t.type === "deduct" || t.type === "outstanding")
+    .reduce((s, t) => s + Number(t.amount || 0), 0);
+  const totalOutstanding = transactions
+    .filter(t => t.type === "outstanding")
     .reduce((s, t) => s + Number(t.amount || 0), 0);
 
   const backUrl = `/vendors?tab=${vendorType === "panel" ? "panel-vendors" : "bandwidth-vendors"}`;
@@ -802,7 +843,18 @@ export default function VendorProfilePage() {
                 </div>
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2"><Network className="h-4 w-4 text-primary" />Bandwidth Links ({bwLinks.length})</CardTitle>
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <CardTitle className="text-sm flex items-center gap-2"><Network className="h-4 w-4 text-primary" />Bandwidth Links ({bwLinks.length})</CardTitle>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs gap-1.5 border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950"
+                        onClick={() => { setOutstandingForm({ amount: "", bwLinkName: "", period: "", notes: "" }); setOutstandingOpen(true); }}
+                        data-testid="button-add-outstanding"
+                      >
+                        <AlertCircle className="h-3.5 w-3.5" />Add Old Outstanding
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     {bwLinks.length === 0 ? (
@@ -1092,18 +1144,25 @@ export default function VendorProfilePage() {
             <Card>
               <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><History className="h-4 w-4 text-primary" />Transaction Summary</CardTitle></CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="bg-muted/50 rounded-lg p-3 text-center">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Total Transactions</p>
                     <p className="text-2xl font-bold">{transactions.length}</p>
                   </div>
                   <div className="bg-green-50 dark:bg-green-950/40 rounded-lg p-3 text-center">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Recharges</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Payments In</p>
                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">{transactions.filter(t => t.type === "recharge" || t.type === "credit").length}</p>
+                    <p className="text-[10px] text-green-600 dark:text-green-400">{formatPKR(totalRecharged)}</p>
                   </div>
                   <div className="bg-red-50 dark:bg-red-950/40 rounded-lg p-3 text-center">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Deductions</p>
                     <p className="text-2xl font-bold text-red-600 dark:text-red-400">{transactions.filter(t => t.type === "debit" || t.type === "deduct").length}</p>
+                    <p className="text-[10px] text-red-600 dark:text-red-400">{formatPKR(totalDebited - totalOutstanding)}</p>
+                  </div>
+                  <div className="bg-orange-50 dark:bg-orange-950/40 rounded-lg p-3 text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Outstanding</p>
+                    <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{transactions.filter(t => t.type === "outstanding").length}</p>
+                    <p className="text-[10px] text-orange-600 dark:text-orange-400">{formatPKR(totalOutstanding)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -1146,18 +1205,19 @@ export default function VendorProfilePage() {
                       <TableBody>
                         {transactions.map(txn => {
                           const isIn = txn.type === "recharge" || txn.type === "credit";
+                          const isOutstanding = txn.type === "outstanding";
                           return (
-                            <TableRow key={txn.id} className={isIn ? "bg-green-50/30 dark:bg-green-950/10" : "bg-red-50/30 dark:bg-red-950/10"}>
+                            <TableRow key={txn.id} className={isIn ? "bg-green-50/30 dark:bg-green-950/10" : isOutstanding ? "bg-orange-50/40 dark:bg-orange-950/10" : "bg-red-50/30 dark:bg-red-950/10"}>
                               <TableCell className="text-xs whitespace-nowrap">{txn.createdAt ? new Date(txn.createdAt).toLocaleString() : "—"}</TableCell>
                               <TableCell>
-                                <Badge variant="secondary" className={`no-default-active-elevate text-[10px] ${isIn ? "text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-950" : "text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-950"}`}>
-                                  {isIn ? <ArrowDownLeft className="h-3 w-3 mr-0.5 inline" /> : <ArrowUpRight className="h-3 w-3 mr-0.5 inline" />}
-                                  {txn.type}
+                                <Badge variant="secondary" className={`no-default-active-elevate text-[10px] ${isIn ? "text-green-700 dark:text-green-300 bg-green-100 dark:bg-green-950" : isOutstanding ? "text-orange-700 dark:text-orange-300 bg-orange-100 dark:bg-orange-950" : "text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-950"}`}>
+                                  {isIn ? <ArrowDownLeft className="h-3 w-3 mr-0.5 inline" /> : isOutstanding ? <FileWarning className="h-3 w-3 mr-0.5 inline" /> : <ArrowUpRight className="h-3 w-3 mr-0.5 inline" />}
+                                  {isOutstanding ? "Outstanding" : txn.type}
                                 </Badge>
                               </TableCell>
-                              <TableCell className={`text-sm font-bold ${isIn ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{isIn ? "+" : "-"}{formatPKR(txn.amount)}</TableCell>
+                              <TableCell className={`text-sm font-bold ${isIn ? "text-green-600 dark:text-green-400" : isOutstanding ? "text-orange-600 dark:text-orange-400" : "text-red-600 dark:text-red-400"}`}>{isIn ? "+" : "-"}{formatPKR(txn.amount)}</TableCell>
                               <TableCell className="text-sm">{formatPKR(txn.balanceAfter)}</TableCell>
-                              <TableCell className="text-xs capitalize">{txn.paymentMethod?.replace(/_/g, " ") || "—"}</TableCell>
+                              <TableCell className="text-xs capitalize">{txn.paymentMethod?.replace(/_/g, " ") || txn.reason || "—"}</TableCell>
                               <TableCell className="text-xs font-mono">{txn.reference || "—"}</TableCell>
                               <TableCell className="text-xs">{txn.performedBy || "—"}</TableCell>
                               <TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">{txn.description || txn.notes || "—"}</TableCell>
@@ -1956,6 +2016,92 @@ export default function VendorProfilePage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Outstanding Payment Dialog */}
+      <Dialog open={outstandingOpen} onOpenChange={open => { if (!open) setOutstandingOpen(false); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
+              <FileWarning className="h-5 w-5" />Add Old Pending Outstanding Payment
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1.5 mb-3 rounded-lg border border-orange-200 bg-orange-50/60 dark:border-orange-800 dark:bg-orange-950/30 p-3">
+            <p className="text-xs text-orange-700 dark:text-orange-400 flex items-start gap-1.5">
+              <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              This records a historical outstanding amount owed to this vendor for bandwidth services not yet entered in the system. The wallet balance will go negative by this amount.
+            </p>
+          </div>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Amount Owed (PKR) <span className="text-red-500">*</span></label>
+              <Input
+                type="number"
+                min="1"
+                placeholder="e.g. 150000"
+                value={outstandingForm.amount}
+                onChange={e => setOutstandingForm(f => ({ ...f, amount: e.target.value }))}
+                data-testid="input-outstanding-amount"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Billing Period <span className="text-red-500">*</span></label>
+              <Input
+                placeholder="e.g. March 2025 or Q1 2025"
+                value={outstandingForm.period}
+                onChange={e => setOutstandingForm(f => ({ ...f, period: e.target.value }))}
+                data-testid="input-outstanding-period"
+              />
+              <p className="text-[10px] text-muted-foreground">The month/period this payment was due for</p>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Bandwidth Link (optional)</label>
+              {bwLinks.length > 0 ? (
+                <Select value={outstandingForm.bwLinkName} onValueChange={v => setOutstandingForm(f => ({ ...f, bwLinkName: v === "__none__" ? "" : v }))}>
+                  <SelectTrigger data-testid="select-outstanding-link">
+                    <SelectValue placeholder="Select a link (or leave blank for all)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">— All Links / General —</SelectItem>
+                    {bwLinks.map(l => (
+                      <SelectItem key={l.id} value={l.linkName}>{l.linkName} {l.city ? `(${l.city})` : ""}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  placeholder="Link name (optional)"
+                  value={outstandingForm.bwLinkName}
+                  onChange={e => setOutstandingForm(f => ({ ...f, bwLinkName: e.target.value }))}
+                  data-testid="input-outstanding-link-name"
+                />
+              )}
+              <p className="text-[10px] text-muted-foreground">Specify which link this outstanding is for (optional)</p>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Notes (optional)</label>
+              <Textarea
+                placeholder="Any additional context about this outstanding payment..."
+                rows={2}
+                className="resize-none"
+                value={outstandingForm.notes}
+                onChange={e => setOutstandingForm(f => ({ ...f, notes: e.target.value }))}
+                data-testid="input-outstanding-notes"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-2">
+            <Button variant="outline" onClick={() => setOutstandingOpen(false)} data-testid="button-outstanding-cancel">Cancel</Button>
+            <Button
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+              onClick={submitOutstanding}
+              disabled={outstandingMutation.isPending || !outstandingForm.amount || !outstandingForm.period.trim()}
+              data-testid="button-outstanding-submit"
+            >
+              {outstandingMutation.isPending ? "Recording..." : "Record Outstanding"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

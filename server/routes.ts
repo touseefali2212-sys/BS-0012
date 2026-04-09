@@ -1230,6 +1230,23 @@ export async function registerRoutes(
     } catch (error: any) { res.status(400).json({ message: error.message }); }
   });
 
+  app.post("/api/vendor-wallet/outstanding", requireAuth, async (req, res) => {
+    try {
+      const schema = z.object({
+        vendorId: z.number().int().positive(),
+        amount: z.union([z.number(), z.string()]).transform(v => parseFloat(String(v))).refine(v => v > 0, "Amount must be positive"),
+        period: z.string().min(1, "Period is required"),
+        bwLinkName: z.string().optional(),
+        notes: z.string().optional(),
+        performedBy: z.string().optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+      const updated = await storage.recordVendorOutstanding(parsed.data.vendorId, parsed.data.amount, parsed.data.period, parsed.data.bwLinkName, parsed.data.notes, parsed.data.performedBy);
+      res.json(updated);
+    } catch (error: any) { res.status(400).json({ message: error.message }); }
+  });
+
   app.get("/api/reseller-monthly-summaries/:resellerId", requireAuth, async (req, res) => {
     try {
       const resellerId = parseInt(req.params.resellerId);

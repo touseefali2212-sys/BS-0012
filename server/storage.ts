@@ -294,6 +294,7 @@ export interface IStorage {
   updateVendorWalletTransactionWithAmount(id: number, newAmount: number, data: Partial<InsertVendorWalletTransaction>): Promise<VendorWalletTransaction | undefined>;
   rechargeVendorWallet(vendorId: number, amount: number, reference?: string, paymentMethod?: string, performedBy?: string, approvedBy?: string, notes?: string, paymentStatus?: string, paidAmount?: number, senderName?: string, bankAccountId?: number): Promise<Vendor>;
   deductVendorWallet(vendorId: number, amount: number, reference?: string, customerId?: number, resellerId?: number, reason?: string, performedBy?: string, approvedBy?: string, notes?: string): Promise<Vendor>;
+  recordVendorOutstanding(vendorId: number, amount: number, period: string, bwLinkName?: string, notes?: string, performedBy?: string): Promise<Vendor>;
 
   getResellerWalletTransactions(resellerId: number): Promise<ResellerWalletTransaction[]>;
   getAllResellerWalletTransactions(): Promise<ResellerWalletTransaction[]>;
@@ -1513,6 +1514,32 @@ export class DatabaseStorage implements IStorage {
       notes: notes || null,
       customerId,
       resellerId,
+      createdAt: now,
+    });
+    const [updated] = await db.update(vendors).set({ walletBalance: newBalance.toString() }).where(eq(vendors.id, vendorId)).returning();
+    return updated;
+  }
+
+  async recordVendorOutstanding(vendorId: number, amount: number, period: string, bwLinkName?: string, notes?: string, performedBy?: string): Promise<Vendor> {
+    const vendor = await this.getVendor(vendorId);
+    if (!vendor) throw new Error("Vendor not found");
+    const currentBalance = parseFloat(vendor.walletBalance || "0");
+    const newBalance = currentBalance - amount;
+    const now = new Date().toISOString();
+    const linkPart = bwLinkName ? ` [Link: ${bwLinkName}]` : "";
+    await this.createVendorWalletTransaction({
+      vendorId,
+      type: "outstanding",
+      amount: amount.toString(),
+      balanceAfter: newBalance.toString(),
+      reference: `OUTSTANDING-${Date.now()}`,
+      description: `Old pending outstanding${linkPart} – Period: ${period}`,
+      reason: period,
+      performedBy: performedBy || null,
+      approvedBy: null,
+      notes: notes || null,
+      customerId: undefined,
+      resellerId: undefined,
       createdAt: now,
     });
     const [updated] = await db.update(vendors).set({ walletBalance: newBalance.toString() }).where(eq(vendors.id, vendorId)).returning();
