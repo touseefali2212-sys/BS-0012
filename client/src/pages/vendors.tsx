@@ -732,6 +732,8 @@ type BandwidthLinkRow = {
   bandwidthMbps: string;
   bandwidthRate: string;
   tax: string;
+  currency: string;
+  exchangeRate: string;
   totalMonthlyCost: string;
   notes: string;
   startDate: string;
@@ -768,6 +770,8 @@ const calcProRata = (totalMonthlyCost: string, startDate: string) => {
 function AddVendorTab() {
   const { toast } = useToast();
   const [, changeTab] = useTab("bandwidth-vendors");
+  const { data: settingsData } = useQuery<{ key: string; value: string }[]>({ queryKey: ["/api/settings"] });
+  const defaultUsdRate = settingsData?.find(s => s.key === "general.usd_to_pkr_rate")?.value || "";
   const [currentStep, setCurrentStep] = useState(1);
   const [contractFile, setContractFile] = useState<File | null>(null);
   const [panelPackages, setPanelPackages] = useState<PanelPackageRow[]>([]);
@@ -790,7 +794,7 @@ function AddVendorTab() {
     routingType: "static", gateway: "", dnsServers: "", asNumber: "", bgpConfig: "",
   });
   const [newLink, setNewLink] = useState<BandwidthLinkRow>({
-    linkName: "", ipAddress: "", vlanDetail: "", city: "", fromCity: "", toCity: "", bandwidthMbps: "", bandwidthRate: "", tax: "19.5", totalMonthlyCost: "", notes: "",
+    linkName: "", ipAddress: "", vlanDetail: "", city: "", fromCity: "", toCity: "", bandwidthMbps: "", bandwidthRate: "", tax: "19.5", currency: "PKR", exchangeRate: "1", totalMonthlyCost: "", notes: "",
     startDate: "", billingType: "full_month", popLocation: "", serviceType: "fiber",
   });
 
@@ -905,6 +909,8 @@ function AddVendorTab() {
               bandwidthMbps: link.bandwidthMbps || "0",
               bandwidthRate: link.bandwidthRate || "0",
               tax: link.tax || "0",
+              currency: link.currency || "PKR",
+              exchangeRate: link.exchangeRate || "1",
               totalMonthlyCost: link.totalMonthlyCost || "0",
               notes: link.notes || null,
               startDate: link.startDate || null,
@@ -965,6 +971,13 @@ function AddVendorTab() {
     setPanelPackages(panelPackages.filter((_, i) => i !== index));
   };
 
+  const calcLinkCost = (mbps: string, rate: string, tax: string, currency: string, exchangeRate: string) => {
+    const base = Number(mbps || 0) * Number(rate || 0);
+    const basePkr = currency === "USD" ? base * Number(exchangeRate || 1) : base;
+    const taxAmt = basePkr * (Number(tax || 0) / 100);
+    return (basePkr + taxAmt).toFixed(2);
+  };
+
   const addLinkRow = () => {
     if (!newLink.linkName.trim()) {
       toast({ title: "Link name is required", variant: "destructive" });
@@ -974,14 +987,16 @@ function AddVendorTab() {
       toast({ title: "Bandwidth Mbps and Rate are required", variant: "destructive" });
       return;
     }
-    const baseCost = Number(newLink.bandwidthMbps) * Number(newLink.bandwidthRate);
-    const taxAmt = baseCost * (Number(newLink.tax || 0) / 100);
-    const totalCost = (baseCost + taxAmt).toFixed(2);
+    if (newLink.currency === "USD" && !Number(newLink.exchangeRate)) {
+      toast({ title: "Exchange rate (PKR) is required when using USD", variant: "destructive" });
+      return;
+    }
+    const totalCost = calcLinkCost(newLink.bandwidthMbps, newLink.bandwidthRate, newLink.tax, newLink.currency, newLink.exchangeRate);
     const linkToAdd = newLink.serviceType === "dplc"
       ? { ...newLink, city: newLink.fromCity, popLocation: newLink.toCity, ipAddress: "", totalMonthlyCost: totalCost }
       : { ...newLink, totalMonthlyCost: totalCost };
     setBandwidthLinks([...bandwidthLinks, linkToAdd]);
-    setNewLink({ linkName: "", ipAddress: "", vlanDetail: "", city: "", fromCity: "", toCity: "", bandwidthMbps: "", bandwidthRate: "", tax: "19.5", totalMonthlyCost: "", notes: "", startDate: "", billingType: "full_month", popLocation: "", serviceType: "fiber" });
+    setNewLink({ linkName: "", ipAddress: "", vlanDetail: "", city: "", fromCity: "", toCity: "", bandwidthMbps: "", bandwidthRate: "", tax: "19.5", currency: "PKR", exchangeRate: "1", totalMonthlyCost: "", notes: "", startDate: "", billingType: "full_month", popLocation: "", serviceType: "fiber" });
     setShowAddLinkRow(false);
   };
 
@@ -1066,8 +1081,8 @@ function AddVendorTab() {
                             <p className="text-xs text-muted-foreground mt-0.5">Add Fiber or DPLC links with IP/VLAN details and tax-inclusive cost</p>
                           </div>
                           <div className="flex gap-2">
-                            <Button type="button" size="sm" variant="outline" onClick={() => { setNewLink({ linkName: "", ipAddress: "", vlanDetail: "", city: "", fromCity: "", toCity: "", bandwidthMbps: "", bandwidthRate: "", tax: "19.5", totalMonthlyCost: "", notes: "", startDate: "", billingType: "full_month", popLocation: "", serviceType: "fiber" }); setShowAddLinkRow(true); }} data-testid="button-add-bw-link"><Plus className="h-3.5 w-3.5 mr-1" />Add Link</Button>
-                            <Button type="button" size="sm" variant="outline" className="border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-400" onClick={() => { setNewLink({ linkName: "", ipAddress: "", vlanDetail: "", city: "", fromCity: "", toCity: "", bandwidthMbps: "", bandwidthRate: "", tax: "19.5", totalMonthlyCost: "", notes: "", startDate: "", billingType: "full_month", popLocation: "", serviceType: "dplc" }); setShowAddLinkRow(true); }} data-testid="button-add-dplc-link"><Plus className="h-3.5 w-3.5 mr-1" />Add DPLC</Button>
+                            <Button type="button" size="sm" variant="outline" onClick={() => { setNewLink({ linkName: "", ipAddress: "", vlanDetail: "", city: "", fromCity: "", toCity: "", bandwidthMbps: "", bandwidthRate: "", tax: "19.5", currency: "PKR", exchangeRate: "1", totalMonthlyCost: "", notes: "", startDate: "", billingType: "full_month", popLocation: "", serviceType: "fiber" }); setShowAddLinkRow(true); }} data-testid="button-add-bw-link"><Plus className="h-3.5 w-3.5 mr-1" />Add Link</Button>
+                            <Button type="button" size="sm" variant="outline" className="border-violet-300 text-violet-700 hover:bg-violet-50 dark:border-violet-700 dark:text-violet-400" onClick={() => { setNewLink({ linkName: "", ipAddress: "", vlanDetail: "", city: "", fromCity: "", toCity: "", bandwidthMbps: "", bandwidthRate: "", tax: "19.5", currency: "PKR", exchangeRate: "1", totalMonthlyCost: "", notes: "", startDate: "", billingType: "full_month", popLocation: "", serviceType: "dplc" }); setShowAddLinkRow(true); }} data-testid="button-add-dplc-link"><Plus className="h-3.5 w-3.5 mr-1" />Add DPLC</Button>
                           </div>
                         </div>
                         {bandwidthLinks.length > 0 && (
@@ -1097,9 +1112,14 @@ function AddVendorTab() {
                                   </TableCell>
                                   <TableCell className="text-sm font-mono text-xs">{link.serviceType === "dplc" ? (link.vlanDetail || "N/A") : ([link.ipAddress, link.vlanDetail].filter(Boolean).join(" / ") || "N/A")}</TableCell>
                                   <TableCell className="text-sm">{link.bandwidthMbps} Mbps</TableCell>
-                                  <TableCell className="text-sm">{formatPKR(link.bandwidthRate)}</TableCell>
+                                  <TableCell className="text-sm">
+                                    {link.currency === "USD" ? <><span className="font-mono">$ {link.bandwidthRate}</span><span className="text-muted-foreground text-xs ml-1">×{link.exchangeRate}</span></> : formatPKR(link.bandwidthRate)}
+                                  </TableCell>
                                   <TableCell className="text-sm">{link.tax || "0"}%</TableCell>
-                                  <TableCell className="text-sm font-semibold text-blue-600 dark:text-blue-400">{formatPKR(link.totalMonthlyCost)}</TableCell>
+                                  <TableCell className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                                    {formatPKR(link.totalMonthlyCost)}
+                                    {link.currency === "USD" && <span className="block text-[10px] text-amber-600 font-normal">USD rate</span>}
+                                  </TableCell>
                                   <TableCell>
                                     {link.billingType === "pro_rata" && pr ? (
                                       <div>
@@ -1159,16 +1179,49 @@ function AddVendorTab() {
                                 </div>
                               )}
                               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                                <div><Label className="text-xs font-medium">Bandwidth (Mbps) *</Label><Input type="number" placeholder="10" value={newLink.bandwidthMbps} onChange={(e) => { const v = e.target.value; const base = Number(v) * Number(newLink.bandwidthRate || 0); const cost = (base + base * (Number(newLink.tax || 0) / 100)).toFixed(2); setNewLink({ ...newLink, bandwidthMbps: v, totalMonthlyCost: cost }); }} data-testid="input-new-link-mbps" /></div>
-                                <div><Label className="text-xs font-medium">Rate/Mbps (PKR) *</Label><Input type="number" placeholder="1000" value={newLink.bandwidthRate} onChange={(e) => { const v = e.target.value; const base = Number(newLink.bandwidthMbps || 0) * Number(v); const cost = (base + base * (Number(newLink.tax || 0) / 100)).toFixed(2); setNewLink({ ...newLink, bandwidthRate: v, totalMonthlyCost: cost }); }} data-testid="input-new-link-rate" /></div>
-                                <div><Label className="text-xs font-medium">Tax %</Label><Input type="number" placeholder="19.5" step="0.1" value={newLink.tax} onChange={(e) => { const v = e.target.value; const base = Number(newLink.bandwidthMbps || 0) * Number(newLink.bandwidthRate || 0); const cost = (base + base * (Number(v || 0) / 100)).toFixed(2); setNewLink({ ...newLink, tax: v, totalMonthlyCost: cost }); }} data-testid="input-new-link-tax" /></div>
-                                <div><Label className="text-xs font-medium">Monthly Cost (Auto)</Label><Input type="number" readOnly className="bg-muted/50 font-semibold" value={newLink.totalMonthlyCost} data-testid="input-new-link-cost" /></div>
+                                <div><Label className="text-xs font-medium">Bandwidth (Mbps) *</Label><Input type="number" placeholder="10" value={newLink.bandwidthMbps} onChange={(e) => { const v = e.target.value; setNewLink(l => ({ ...l, bandwidthMbps: v, totalMonthlyCost: calcLinkCost(v, l.bandwidthRate, l.tax, l.currency, l.exchangeRate) })); }} data-testid="input-new-link-mbps" /></div>
+                                <div>
+                                  <Label className="text-xs font-medium">Rate / Mbps *</Label>
+                                  <div className="flex gap-1.5">
+                                    <Input type="number" placeholder={newLink.currency === "USD" ? "5" : "1000"} value={newLink.bandwidthRate} onChange={(e) => { const v = e.target.value; setNewLink(l => ({ ...l, bandwidthRate: v, totalMonthlyCost: calcLinkCost(l.bandwidthMbps, v, l.tax, l.currency, l.exchangeRate) })); }} data-testid="input-new-link-rate" className="flex-1 min-w-0" />
+                                    <Select value={newLink.currency} onValueChange={(v) => { setNewLink(l => ({ ...l, currency: v, exchangeRate: v === "USD" ? (defaultUsdRate || l.exchangeRate || "") : "1", totalMonthlyCost: calcLinkCost(l.bandwidthMbps, l.bandwidthRate, l.tax, v, v === "USD" ? (defaultUsdRate || l.exchangeRate || "1") : "1") })); }}>
+                                      <SelectTrigger className="w-20 shrink-0" data-testid="select-new-link-currency"><SelectValue /></SelectTrigger>
+                                      <SelectContent><SelectItem value="PKR">PKR</SelectItem><SelectItem value="USD">USD</SelectItem></SelectContent>
+                                    </Select>
+                                  </div>
+                                </div>
+                                <div><Label className="text-xs font-medium">Tax %</Label><Input type="number" placeholder="19.5" step="0.1" value={newLink.tax} onChange={(e) => { const v = e.target.value; setNewLink(l => ({ ...l, tax: v, totalMonthlyCost: calcLinkCost(l.bandwidthMbps, l.bandwidthRate, v, l.currency, l.exchangeRate) })); }} data-testid="input-new-link-tax" /></div>
+                                <div><Label className="text-xs font-medium">Monthly Cost (PKR)</Label><Input type="number" readOnly className="bg-muted/50 font-semibold" value={newLink.totalMonthlyCost} data-testid="input-new-link-cost" /></div>
                               </div>
+                              {newLink.currency === "USD" && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                                  <div>
+                                    <Label className="text-xs font-medium text-amber-800 dark:text-amber-300">USD → PKR Exchange Rate *</Label>
+                                    <Input type="number" placeholder="e.g. 280" value={newLink.exchangeRate} onChange={(e) => { const v = e.target.value; setNewLink(l => ({ ...l, exchangeRate: v, totalMonthlyCost: calcLinkCost(l.bandwidthMbps, l.bandwidthRate, l.tax, l.currency, v) })); }} data-testid="input-new-link-exchange-rate" className="mt-1 border-amber-300 dark:border-amber-700" />
+                                    {defaultUsdRate && <p className="text-[10px] text-amber-700 dark:text-amber-400 mt-1">Stored rate: 1 USD = {defaultUsdRate} PKR</p>}
+                                  </div>
+                                  <div className="flex flex-col justify-center">
+                                    <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">USD Equivalent</p>
+                                    <p className="text-lg font-bold text-amber-700 dark:text-amber-300">$ {newLink.bandwidthMbps && newLink.bandwidthRate ? (Number(newLink.bandwidthMbps) * Number(newLink.bandwidthRate)).toFixed(2) : "0.00"}</p>
+                                    {newLink.exchangeRate && <p className="text-[11px] text-amber-600 dark:text-amber-400">1 USD = {newLink.exchangeRate} PKR</p>}
+                                  </div>
+                                </div>
+                              )}
                               {newLink.bandwidthMbps && newLink.bandwidthRate && (
                                 <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900 rounded-lg px-4 py-2.5 grid grid-cols-4 gap-3 text-center text-xs">
-                                  <div><p className="text-muted-foreground uppercase tracking-wider">Mbps × Rate</p><p className="font-bold text-sm mt-0.5">{formatPKR((Number(newLink.bandwidthMbps) * Number(newLink.bandwidthRate)).toFixed(2))}</p></div>
-                                  <div><p className="text-muted-foreground uppercase tracking-wider">Tax ({newLink.tax || 0}%)</p><p className="font-bold text-sm mt-0.5 text-amber-600 dark:text-amber-400">+{formatPKR(((Number(newLink.bandwidthMbps) * Number(newLink.bandwidthRate)) * (Number(newLink.tax || 0) / 100)).toFixed(2))}</p></div>
-                                  <div><p className="text-muted-foreground uppercase tracking-wider">Monthly Total</p><p className="font-bold text-sm mt-0.5 text-emerald-600 dark:text-emerald-400">{formatPKR(newLink.totalMonthlyCost)}</p></div>
+                                  {newLink.currency === "USD" ? (
+                                    <>
+                                      <div><p className="text-muted-foreground uppercase tracking-wider">USD Base</p><p className="font-bold text-sm mt-0.5">$ {(Number(newLink.bandwidthMbps) * Number(newLink.bandwidthRate)).toFixed(2)}</p></div>
+                                      <div><p className="text-muted-foreground uppercase tracking-wider">PKR Base</p><p className="font-bold text-sm mt-0.5">{formatPKR(((Number(newLink.bandwidthMbps) * Number(newLink.bandwidthRate)) * Number(newLink.exchangeRate || 1)).toFixed(2))}</p></div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div><p className="text-muted-foreground uppercase tracking-wider">Mbps × Rate</p><p className="font-bold text-sm mt-0.5">{formatPKR((Number(newLink.bandwidthMbps) * Number(newLink.bandwidthRate)).toFixed(2))}</p></div>
+                                      <div><p className="text-muted-foreground uppercase tracking-wider">Tax ({newLink.tax || 0}%)</p><p className="font-bold text-sm mt-0.5 text-amber-600 dark:text-amber-400">+{formatPKR(((Number(newLink.bandwidthMbps) * Number(newLink.bandwidthRate)) * (Number(newLink.tax || 0) / 100)).toFixed(2))}</p></div>
+                                    </>
+                                  )}
+                                  {newLink.currency === "USD" && <div><p className="text-muted-foreground uppercase tracking-wider">Tax ({newLink.tax || 0}%)</p><p className="font-bold text-sm mt-0.5 text-amber-600 dark:text-amber-400">+{formatPKR(((Number(newLink.bandwidthMbps) * Number(newLink.bandwidthRate) * Number(newLink.exchangeRate || 1)) * (Number(newLink.tax || 0) / 100)).toFixed(2))}</p></div>}
+                                  <div><p className="text-muted-foreground uppercase tracking-wider">Total (PKR)</p><p className="font-bold text-sm mt-0.5 text-emerald-600 dark:text-emerald-400">{formatPKR(newLink.totalMonthlyCost)}</p></div>
                                   <div><Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Start Date</Label><Input type="date" value={newLink.startDate} onChange={(e) => setNewLink({ ...newLink, startDate: e.target.value })} data-testid="input-new-link-start-date" className="mt-1 h-7 text-xs" /></div>
                                 </div>
                               )}

@@ -161,7 +161,7 @@ function vendorToEditForm(v: Vendor): EditVendorForm {
 type BwLinkForm = {
   linkName: string; city: string; popLocation: string; startDate: string;
   billingType: string; status: string; serviceType: string;
-  bandwidthMbps: string; bandwidthRate: string; tax: string; totalMonthlyCost: string;
+  bandwidthMbps: string; bandwidthRate: string; tax: string; currency: string; exchangeRate: string; totalMonthlyCost: string;
   ipAddress: string; vlanDetail: string; portDetails: string;
   routingType: string; networkInterface: string; gateway: string;
   dnsServers: string; asNumber: string; bgpConfig: string;
@@ -170,7 +170,7 @@ type BwLinkForm = {
 const emptyBwLinkForm: BwLinkForm = {
   linkName: "", city: "", popLocation: "", startDate: "",
   billingType: "full_month", status: "active", serviceType: "fiber",
-  bandwidthMbps: "", bandwidthRate: "", tax: "19.5", totalMonthlyCost: "",
+  bandwidthMbps: "", bandwidthRate: "", tax: "19.5", currency: "PKR", exchangeRate: "1", totalMonthlyCost: "",
   ipAddress: "", vlanDetail: "", portDetails: "",
   routingType: "static", networkInterface: "", gateway: "",
   dnsServers: "", asNumber: "", bgpConfig: "",
@@ -180,12 +180,21 @@ function bwLinkToForm(l: VendorBandwidthLink): BwLinkForm {
   return {
     linkName: l.linkName || "", city: l.city || "", popLocation: l.popLocation || "", startDate: l.startDate || "",
     billingType: l.billingType || "full_month", status: l.status || "active", serviceType: l.serviceType || "fiber",
-    bandwidthMbps: l.bandwidthMbps || "", bandwidthRate: l.bandwidthRate || "", tax: (l as any).tax || "19.5", totalMonthlyCost: l.totalMonthlyCost || "",
+    bandwidthMbps: l.bandwidthMbps || "", bandwidthRate: l.bandwidthRate || "", tax: (l as any).tax || "19.5",
+    currency: (l as any).currency || "PKR", exchangeRate: (l as any).exchangeRate || "1",
+    totalMonthlyCost: l.totalMonthlyCost || "",
     ipAddress: l.ipAddress || "", vlanDetail: l.vlanDetail || "", portDetails: l.portDetails || "",
     routingType: l.routingType || "static", networkInterface: l.networkInterface || "", gateway: l.gateway || "",
     dnsServers: l.dnsServers || "", asNumber: l.asNumber || "", bgpConfig: l.bgpConfig || "",
     notes: l.notes || "",
   };
+}
+
+function calcBwLinkCost(mbps: string, rate: string, tax: string, currency: string, exchangeRate: string): string {
+  const base = Number(mbps || 0) * Number(rate || 0);
+  const basePkr = currency === "USD" ? base * Number(exchangeRate || 1) : base;
+  const taxAmt = basePkr * (Number(tax || 0) / 100);
+  return (basePkr + taxAmt).toFixed(2);
 }
 
 export default function VendorProfilePage() {
@@ -243,6 +252,9 @@ export default function VendorProfilePage() {
 
   // Package edit/delete state
   const [editingPkg, setEditingPkg] = useState<VendorPackage | null>(null);
+
+  const { data: settingsData } = useQuery<{ key: string; value: string }[]>({ queryKey: ["/api/settings"] });
+  const defaultUsdRate = settingsData?.find(s => s.key === "general.usd_to_pkr_rate")?.value || "";
 
   const { data: vendors, isLoading: vendorsLoading } = useQuery<Vendor[]>({
     queryKey: ["/api/vendors"],
@@ -521,6 +533,8 @@ export default function VendorProfilePage() {
         bandwidthMbps: bwLinkForm.bandwidthMbps || "0",
         bandwidthRate: bwLinkForm.bandwidthRate || "0",
         tax: bwLinkForm.tax || "0",
+        currency: bwLinkForm.currency || "PKR",
+        exchangeRate: bwLinkForm.exchangeRate || "1",
         totalMonthlyCost: bwLinkForm.totalMonthlyCost || "0",
         ipAddress: bwLinkForm.ipAddress || null,
         vlanDetail: bwLinkForm.vlanDetail || null,
@@ -1289,7 +1303,12 @@ export default function VendorProfilePage() {
                                   </TableCell>
                                   <TableCell className="font-mono text-xs">{link.serviceType === "dplc" ? (link.vlanDetail || "—") : ([link.ipAddress, link.vlanDetail].filter(Boolean).join(" / ") || "—")}</TableCell>
                                   <TableCell className="text-sm font-bold text-blue-600 dark:text-blue-400">{link.bandwidthMbps} Mbps</TableCell>
-                                  <TableCell className="text-sm font-bold">{formatPKR(link.totalMonthlyCost)}</TableCell>
+                                  <TableCell className="text-sm font-bold">
+                                    {formatPKR(link.totalMonthlyCost)}
+                                    {(link as any).currency === "USD" && (
+                                      <span className="block text-[10px] text-amber-600 font-normal">$ {link.bandwidthRate}/Mbps × {(link as any).exchangeRate}</span>
+                                    )}
+                                  </TableCell>
                                   <TableCell>
                                     {link.billingType === "pro_rata" && proRataInfo ? (
                                       <div>
@@ -2696,7 +2715,7 @@ export default function VendorProfilePage() {
 
               {/* Bandwidth & Cost */}
               <TabsContent value="bandwidth" className="p-5 space-y-4 mt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">Link Type</label>
                     <Select value={bwLinkForm.serviceType} onValueChange={v => setBwLinkForm(f => ({ ...f, serviceType: v }))}>
@@ -2708,33 +2727,33 @@ export default function VendorProfilePage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 md:col-span-2">
                     <label className="text-sm font-medium">Bandwidth (Mbps) <span className="text-red-500">*</span></label>
                     <Input type="number" placeholder="0" value={bwLinkForm.bandwidthMbps} onChange={e => {
                       const mbps = e.target.value;
-                      const base = Number(mbps) * Number(bwLinkForm.bandwidthRate || 0);
-                      const cost = (base + base * (Number(bwLinkForm.tax || 0) / 100)).toFixed(2);
-                      setBwLinkForm(f => ({ ...f, bandwidthMbps: mbps, totalMonthlyCost: cost }));
+                      setBwLinkForm(f => ({ ...f, bandwidthMbps: mbps, totalMonthlyCost: calcBwLinkCost(mbps, f.bandwidthRate, f.tax, f.currency, f.exchangeRate) }));
                     }} data-testid="input-bwlink-mbps" />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-sm font-medium">Rate per Mbps (PKR) <span className="text-red-500">*</span></label>
-                    <Input type="number" placeholder="0" value={bwLinkForm.bandwidthRate} onChange={e => {
-                      const rate = e.target.value;
-                      const base = Number(bwLinkForm.bandwidthMbps || 0) * Number(rate);
-                      const cost = (base + base * (Number(bwLinkForm.tax || 0) / 100)).toFixed(2);
-                      setBwLinkForm(f => ({ ...f, bandwidthRate: rate, totalMonthlyCost: cost }));
-                    }} data-testid="input-bwlink-rate" />
+                    <label className="text-sm font-medium">Rate / Mbps <span className="text-red-500">*</span></label>
+                    <div className="flex gap-1.5">
+                      <Input type="number" placeholder={bwLinkForm.currency === "USD" ? "5" : "1000"} value={bwLinkForm.bandwidthRate} onChange={e => {
+                        const rate = e.target.value;
+                        setBwLinkForm(f => ({ ...f, bandwidthRate: rate, totalMonthlyCost: calcBwLinkCost(f.bandwidthMbps, rate, f.tax, f.currency, f.exchangeRate) }));
+                      }} data-testid="input-bwlink-rate" className="flex-1 min-w-0" />
+                      <Select value={bwLinkForm.currency} onValueChange={v => setBwLinkForm(f => ({ ...f, currency: v, exchangeRate: v === "USD" ? (defaultUsdRate || f.exchangeRate || "") : "1", totalMonthlyCost: calcBwLinkCost(f.bandwidthMbps, f.bandwidthRate, f.tax, v, v === "USD" ? (defaultUsdRate || f.exchangeRate || "1") : "1") }))}>
+                        <SelectTrigger className="w-20 shrink-0" data-testid="select-bwlink-currency"><SelectValue /></SelectTrigger>
+                        <SelectContent><SelectItem value="PKR">PKR</SelectItem><SelectItem value="USD">USD</SelectItem></SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">Tax %</label>
                     <Input type="number" placeholder="19.5" step="0.1" value={bwLinkForm.tax} onChange={e => {
                       const tax = e.target.value;
-                      const base = Number(bwLinkForm.bandwidthMbps || 0) * Number(bwLinkForm.bandwidthRate || 0);
-                      const cost = (base + base * (Number(tax || 0) / 100)).toFixed(2);
-                      setBwLinkForm(f => ({ ...f, tax, totalMonthlyCost: cost }));
+                      setBwLinkForm(f => ({ ...f, tax, totalMonthlyCost: calcBwLinkCost(f.bandwidthMbps, f.bandwidthRate, tax, f.currency, f.exchangeRate) }));
                     }} data-testid="input-bwlink-tax" />
                   </div>
                   <div className="space-y-1.5">
@@ -2742,13 +2761,40 @@ export default function VendorProfilePage() {
                     <Input type="number" value={bwLinkForm.totalMonthlyCost} readOnly className="bg-muted/50 font-semibold text-primary" data-testid="input-bwlink-total" />
                   </div>
                 </div>
+                {bwLinkForm.currency === "USD" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium text-amber-800 dark:text-amber-300">USD → PKR Exchange Rate <span className="text-red-500">*</span></label>
+                      <Input type="number" placeholder="e.g. 280" value={bwLinkForm.exchangeRate} onChange={e => {
+                        const v = e.target.value;
+                        setBwLinkForm(f => ({ ...f, exchangeRate: v, totalMonthlyCost: calcBwLinkCost(f.bandwidthMbps, f.bandwidthRate, f.tax, f.currency, v) }));
+                      }} data-testid="input-bwlink-exchange-rate" className="border-amber-300 dark:border-amber-700" />
+                      {defaultUsdRate && <p className="text-[10px] text-amber-700 dark:text-amber-400">Stored rate: 1 USD = {defaultUsdRate} PKR</p>}
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">USD Equivalent</p>
+                      <p className="text-xl font-bold text-amber-700 dark:text-amber-300">$ {bwLinkForm.bandwidthMbps && bwLinkForm.bandwidthRate ? (Number(bwLinkForm.bandwidthMbps) * Number(bwLinkForm.bandwidthRate)).toFixed(2) : "0.00"}</p>
+                      {bwLinkForm.exchangeRate && <p className="text-xs text-amber-600 dark:text-amber-400">1 USD = {bwLinkForm.exchangeRate} PKR</p>}
+                    </div>
+                  </div>
+                )}
                 {bwLinkForm.bandwidthMbps && bwLinkForm.bandwidthRate && (
                   <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900 rounded-xl p-4">
                     <p className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-2">Cost Breakdown</p>
                     <div className="grid grid-cols-4 gap-3 text-center">
-                      <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Mbps × Rate</p><p className="text-base font-bold text-blue-600 dark:text-blue-400">{formatPKR((Number(bwLinkForm.bandwidthMbps) * Number(bwLinkForm.bandwidthRate)).toFixed(2))}</p></div>
-                      <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tax ({bwLinkForm.tax || 0}%)</p><p className="text-base font-bold text-amber-600 dark:text-amber-400">+{formatPKR(((Number(bwLinkForm.bandwidthMbps) * Number(bwLinkForm.bandwidthRate)) * (Number(bwLinkForm.tax || 0) / 100)).toFixed(2))}</p></div>
-                      <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Monthly Total</p><p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{formatPKR(bwLinkForm.totalMonthlyCost)}</p></div>
+                      {bwLinkForm.currency === "USD" ? (
+                        <>
+                          <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">USD Base</p><p className="text-base font-bold text-blue-600 dark:text-blue-400">$ {(Number(bwLinkForm.bandwidthMbps) * Number(bwLinkForm.bandwidthRate)).toFixed(2)}</p></div>
+                          <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">PKR Base</p><p className="text-base font-bold">{formatPKR(((Number(bwLinkForm.bandwidthMbps) * Number(bwLinkForm.bandwidthRate)) * Number(bwLinkForm.exchangeRate || 1)).toFixed(2))}</p></div>
+                        </>
+                      ) : (
+                        <>
+                          <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Mbps × Rate</p><p className="text-base font-bold text-blue-600 dark:text-blue-400">{formatPKR((Number(bwLinkForm.bandwidthMbps) * Number(bwLinkForm.bandwidthRate)).toFixed(2))}</p></div>
+                          <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tax ({bwLinkForm.tax || 0}%)</p><p className="text-base font-bold text-amber-600 dark:text-amber-400">+{formatPKR(((Number(bwLinkForm.bandwidthMbps) * Number(bwLinkForm.bandwidthRate)) * (Number(bwLinkForm.tax || 0) / 100)).toFixed(2))}</p></div>
+                        </>
+                      )}
+                      {bwLinkForm.currency === "USD" && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tax ({bwLinkForm.tax || 0}%)</p><p className="text-base font-bold text-amber-600 dark:text-amber-400">+{formatPKR(((Number(bwLinkForm.bandwidthMbps) * Number(bwLinkForm.bandwidthRate) * Number(bwLinkForm.exchangeRate || 1)) * (Number(bwLinkForm.tax || 0) / 100)).toFixed(2))}</p></div>}
+                      <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Monthly Total (PKR)</p><p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{formatPKR(bwLinkForm.totalMonthlyCost)}</p></div>
                       <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Type</p><p className="text-base font-bold capitalize">{bwLinkForm.serviceType === "dplc" ? "DPLC" : bwLinkForm.serviceType || "Fiber"}</p></div>
                     </div>
                     {bwLinkForm.billingType === "pro_rata" && bwLinkForm.startDate && (() => {
