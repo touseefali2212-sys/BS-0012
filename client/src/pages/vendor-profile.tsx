@@ -35,6 +35,7 @@ import {
   Link2,
   AlertCircle,
   FileWarning,
+  FileText,
   CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
