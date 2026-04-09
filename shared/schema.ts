@@ -913,6 +913,7 @@ export const vendorBandwidthLinks = pgTable("vendor_bandwidth_links", {
   city: text("city"),
   bandwidthMbps: decimal("bandwidth_mbps", { precision: 10, scale: 2 }).notNull(),
   bandwidthRate: decimal("bandwidth_rate", { precision: 10, scale: 2 }).notNull(),
+  tax: decimal("tax", { precision: 5, scale: 2 }).default("0"),
   totalMonthlyCost: decimal("total_monthly_cost", { precision: 12, scale: 2 }).notNull(),
   status: text("status").notNull().default("active"),
   notes: text("notes"),
