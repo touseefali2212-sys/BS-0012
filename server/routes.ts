@@ -1187,6 +1187,13 @@ export async function registerRoutes(
     } catch (error: any) { res.status(500).json({ message: error.message }); }
   });
 
+  app.delete("/api/vendor-wallet-transactions/:id", requireAuth, async (req, res) => {
+    try {
+      await storage.deleteVendorWalletTransaction(parseInt(req.params.id));
+      res.status(204).send();
+    } catch (error: any) { res.status(500).json({ message: error.message }); }
+  });
+
   app.patch("/api/vendor-wallet-transactions/:id", requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);

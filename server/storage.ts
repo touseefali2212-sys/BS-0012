@@ -291,6 +291,7 @@ export interface IStorage {
   getAllVendorWalletTransactions(): Promise<VendorWalletTransaction[]>;
   createVendorWalletTransaction(t: InsertVendorWalletTransaction): Promise<VendorWalletTransaction>;
   updateVendorWalletTransaction(id: number, data: Partial<InsertVendorWalletTransaction>): Promise<VendorWalletTransaction | undefined>;
+  deleteVendorWalletTransaction(id: number): Promise<void>;
   updateVendorWalletTransactionWithAmount(id: number, newAmount: number, data: Partial<InsertVendorWalletTransaction>): Promise<VendorWalletTransaction | undefined>;
   rechargeVendorWallet(vendorId: number, amount: number, reference?: string, paymentMethod?: string, performedBy?: string, approvedBy?: string, notes?: string, paymentStatus?: string, paidAmount?: number, senderName?: string, bankAccountId?: number): Promise<Vendor>;
   deductVendorWallet(vendorId: number, amount: number, reference?: string, customerId?: number, resellerId?: number, reason?: string, performedBy?: string, approvedBy?: string, notes?: string): Promise<Vendor>;
@@ -1443,6 +1444,22 @@ export class DatabaseStorage implements IStorage {
   async updateVendorWalletTransaction(id: number, data: Partial<InsertVendorWalletTransaction>): Promise<VendorWalletTransaction | undefined> {
     const [updated] = await db.update(vendorWalletTransactions).set(data).where(eq(vendorWalletTransactions.id, id)).returning();
     return updated;
+  }
+
+  async deleteVendorWalletTransaction(id: number): Promise<void> {
+    const [txn] = await db.select().from(vendorWalletTransactions).where(eq(vendorWalletTransactions.id, id));
+    if (!txn) return;
+    // Reverse the balance impact on the vendor
+    const vendor = await this.getVendor(txn.vendorId);
+    if (vendor) {
+      const currentBalance = parseFloat(vendor.walletBalance || "0");
+      const amount = parseFloat(txn.amount || "0");
+      const isCredit = txn.type === "credit" || txn.type === "recharge";
+      // Reverse: if it was a credit, subtract it; if it was a debit/outstanding, add it back
+      const newBalance = isCredit ? currentBalance - amount : currentBalance + amount;
+      await db.update(vendors).set({ walletBalance: newBalance.toString() }).where(eq(vendors.id, txn.vendorId));
+    }
+    await db.delete(vendorWalletTransactions).where(eq(vendorWalletTransactions.id, id));
   }
 
   async updateVendorWalletTransactionWithAmount(id: number, newAmount: number, data: Partial<InsertVendorWalletTransaction>): Promise<VendorWalletTransaction | undefined> {

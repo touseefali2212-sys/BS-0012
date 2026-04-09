@@ -222,6 +222,28 @@ export default function VendorProfilePage() {
   const [selectedBwLink, setSelectedBwLink] = useState<VendorBandwidthLink | null>(null);
   const [outstandingForm, setOutstandingForm] = useState({ amount: "", bwLinkName: "", period: "", notes: "" });
 
+  // Inline Payment/Recharge dialog state
+  const [rechargeOpen, setRechargeOpen] = useState(false);
+  const [rechargeForm, setRechargeForm] = useState({
+    amount: "", reference: "", paymentMethod: "bank_transfer",
+    performedBy: "", notes: "", paymentStatus: "paid",
+  });
+  const [rechargeSubmitting, setRechargeSubmitting] = useState(false);
+
+  // Delete vendor state
+  const [deleteVendorOpen, setDeleteVendorOpen] = useState(false);
+  const [deleteVendorSubmitting, setDeleteVendorSubmitting] = useState(false);
+
+  // Status toggle state
+  const [statusToggling, setStatusToggling] = useState(false);
+
+  // Generate monthly bill state
+  const [generateBillOpen, setGenerateBillOpen] = useState(false);
+  const [generateBillForm, setGenerateBillForm] = useState({ period: "", notes: "" });
+
+  // Package edit/delete state
+  const [editingPkg, setEditingPkg] = useState<VendorPackage | null>(null);
+
   const { data: vendors, isLoading: vendorsLoading } = useQuery<Vendor[]>({
     queryKey: ["/api/vendors"],
   });
@@ -358,7 +380,32 @@ export default function VendorProfilePage() {
     }
   };
 
-  const openAddPkg = () => { setAddPkgForm(emptyAddPkgForm); setAddPkgOpen(true); };
+  const openAddPkg = () => { setEditingPkg(null); setAddPkgForm(emptyAddPkgForm); setAddPkgOpen(true); };
+  const openEditPkg = (pkg: VendorPackage) => {
+    setEditingPkg(pkg);
+    setAddPkgForm({
+      panelLinkId: pkg.panelLinkId ? String(pkg.panelLinkId) : "",
+      packageName: pkg.packageName || "",
+      speed: pkg.speed || "",
+      vendorPrice: pkg.vendorPrice || "0",
+      ispSellingPrice: pkg.ispSellingPrice || "0",
+      resellerPrice: pkg.resellerPrice || "",
+      dataLimit: pkg.dataLimit || "",
+      validity: pkg.validity || "30 days",
+      isActive: pkg.isActive !== false,
+    });
+    setAddPkgOpen(true);
+  };
+  const handleDeletePkg = async (pkgId: number, pkgName: string) => {
+    if (!confirm(`Delete package "${pkgName}"?`)) return;
+    try {
+      await apiRequest("DELETE", `/api/vendor-packages/${pkgId}`);
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor-packages"] });
+      toast({ title: "Package deleted" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
 
   const submitAddPkg = async () => {
     if (!addPkgForm.packageName.trim()) {
@@ -368,25 +415,32 @@ export default function VendorProfilePage() {
       toast({ title: "Vendor price and ISP price are required", variant: "destructive" }); return;
     }
     setAddPkgSubmitting(true);
+    const payload = {
+      vendorId: Number(id),
+      panelLinkId: addPkgForm.panelLinkId ? Number(addPkgForm.panelLinkId) : null,
+      packageName: addPkgForm.packageName.trim(),
+      speed: addPkgForm.speed.trim() || null,
+      vendorPrice: addPkgForm.vendorPrice,
+      ispSellingPrice: addPkgForm.ispSellingPrice,
+      resellerPrice: addPkgForm.resellerPrice || null,
+      dataLimit: addPkgForm.dataLimit.trim() || null,
+      validity: addPkgForm.validity.trim() || "30 days",
+      isActive: addPkgForm.isActive,
+    };
     try {
-      await apiRequest("POST", "/api/vendor-packages", {
-        vendorId: Number(id),
-        panelLinkId: addPkgForm.panelLinkId ? Number(addPkgForm.panelLinkId) : null,
-        packageName: addPkgForm.packageName.trim(),
-        speed: addPkgForm.speed.trim() || null,
-        vendorPrice: addPkgForm.vendorPrice,
-        ispSellingPrice: addPkgForm.ispSellingPrice,
-        resellerPrice: addPkgForm.resellerPrice || null,
-        dataLimit: addPkgForm.dataLimit.trim() || null,
-        validity: addPkgForm.validity.trim() || "30 days",
-        isActive: addPkgForm.isActive,
-      });
+      if (editingPkg) {
+        await apiRequest("PATCH", `/api/vendor-packages/${editingPkg.id}`, payload);
+        toast({ title: "Package updated successfully" });
+      } else {
+        await apiRequest("POST", "/api/vendor-packages", payload);
+        toast({ title: "Package added successfully" });
+      }
       queryClient.invalidateQueries({ queryKey: ["/api/vendor-packages"] });
       setAddPkgOpen(false);
       setAddPkgForm(emptyAddPkgForm);
-      toast({ title: "Package added successfully" });
+      setEditingPkg(null);
     } catch (e: unknown) {
-      toast({ title: "Error", description: e instanceof Error ? e.message : "Failed to add package", variant: "destructive" });
+      toast({ title: "Error", description: e instanceof Error ? e.message : "Failed to save package", variant: "destructive" });
     } finally {
       setAddPkgSubmitting(false);
     }
@@ -495,6 +549,103 @@ export default function VendorProfilePage() {
     }
   };
 
+  const handleRechargeSubmit = async () => {
+    const amt = parseFloat(rechargeForm.amount);
+    if (!rechargeForm.amount || isNaN(amt) || amt <= 0) {
+      toast({ title: "Invalid amount", variant: "destructive" }); return;
+    }
+    setRechargeSubmitting(true);
+    try {
+      await apiRequest("POST", "/api/vendor-wallet/recharge", {
+        vendorId: Number(id),
+        amount: amt,
+        reference: rechargeForm.reference || `PAY-${Date.now()}`,
+        paymentMethod: rechargeForm.paymentMethod,
+        performedBy: rechargeForm.performedBy || "Admin",
+        notes: rechargeForm.notes || null,
+        paymentStatus: rechargeForm.paymentStatus,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor-wallet-transactions", Number(id)] });
+      setRechargeOpen(false);
+      setRechargeForm({ amount: "", reference: "", paymentMethod: "bank_transfer", performedBy: "", notes: "", paymentStatus: "paid" });
+      toast({ title: "Payment recorded", description: `${formatPKR(amt)} payment has been added to the wallet ledger.` });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setRechargeSubmitting(false);
+    }
+  };
+
+  const handleDeleteVendor = async () => {
+    if (!vendor) return;
+    setDeleteVendorSubmitting(true);
+    try {
+      await apiRequest("DELETE", `/api/vendors/${vendor.id}`);
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      toast({ title: "Vendor deleted", description: `${vendor.name} has been removed.` });
+      setLocation("/vendors");
+    } catch (e: any) {
+      toast({ title: "Cannot delete", description: e.message, variant: "destructive" });
+    } finally {
+      setDeleteVendorSubmitting(false);
+      setDeleteVendorOpen(false);
+    }
+  };
+
+  const handleToggleStatus = async () => {
+    if (!vendor) return;
+    const newStatus = vendor.status === "active" ? "inactive" : "active";
+    setStatusToggling(true);
+    try {
+      await apiRequest("PATCH", `/api/vendors/${vendor.id}`, { status: newStatus });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      toast({ title: `Vendor ${newStatus === "active" ? "activated" : "deactivated"}` });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    } finally {
+      setStatusToggling(false);
+    }
+  };
+
+  const handleGenerateBill = async () => {
+    if (!vendor || bwLinks.length === 0) return;
+    const period = generateBillForm.period.trim();
+    if (!period) { toast({ title: "Period is required", variant: "destructive" }); return; }
+    const totalCost = bwLinks.filter(l => l.status === "active").reduce((s, l) => s + Number(l.totalMonthlyCost || 0), 0);
+    if (totalCost <= 0) { toast({ title: "No active BW links with cost", variant: "destructive" }); return; }
+    try {
+      for (const link of bwLinks.filter(l => l.status === "active" && Number(l.totalMonthlyCost || 0) > 0)) {
+        await apiRequest("POST", "/api/vendor-wallet/outstanding", {
+          vendorId: vendor.id,
+          amount: Number(link.totalMonthlyCost),
+          period,
+          bwLinkName: link.linkName,
+          notes: generateBillForm.notes || `Monthly bill – ${period}`,
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor-wallet-transactions", vendor.id] });
+      setGenerateBillOpen(false);
+      setGenerateBillForm({ period: "", notes: "" });
+      toast({ title: "Monthly bill generated", description: `${formatPKR(totalCost)} outstanding added for ${period}.` });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleDeleteTransaction = async (txnId: number) => {
+    if (!confirm("Delete this transaction? The wallet balance will be recalculated.")) return;
+    try {
+      await apiRequest("DELETE", `/api/vendor-wallet-transactions/${txnId}`);
+      queryClient.invalidateQueries({ queryKey: ["/api/vendor-wallet-transactions", Number(id)] });
+      queryClient.invalidateQueries({ queryKey: ["/api/vendors"] });
+      toast({ title: "Transaction deleted" });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
+
   const bwLinks = (allBwLinks || []).filter(l => l.vendorId === Number(id));
   const panelLinks = (allPanelLinks || []).filter(l => l.vendorId === Number(id));
   const pkgs = (allPackages || []).filter(p => p.vendorId === Number(id));
@@ -559,7 +710,7 @@ export default function VendorProfilePage() {
           <Button
             size="sm"
             className="gap-1.5 h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-0 no-default-hover-elevate"
-            onClick={() => setLocation(`/vendors?tab=wallet&recharge=${vendor.id}`)}
+            onClick={() => setRechargeOpen(true)}
             data-testid="button-vendor-profile-recharge"
           >
             <ArrowDownLeft className="h-3.5 w-3.5" />{vendorType === "panel" ? "Recharge" : "Send Payment"}
@@ -572,6 +723,15 @@ export default function VendorProfilePage() {
             data-testid="button-vendor-profile-edit"
           >
             <Edit className="h-3.5 w-3.5" />Edit Profile
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5 h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+            onClick={() => setDeleteVendorOpen(true)}
+            data-testid="button-vendor-profile-delete"
+          >
+            <Trash2 className="h-3.5 w-3.5" />Delete
           </Button>
         </div>
       </div>
@@ -619,10 +779,21 @@ export default function VendorProfilePage() {
             <Button
               size="sm"
               className="bg-emerald-500/80 hover:bg-emerald-500 border border-white/20 text-white no-default-hover-elevate"
-              onClick={() => setLocation(`/vendors?tab=wallet&recharge=${vendor.id}`)}
+              onClick={() => setRechargeOpen(true)}
               data-testid="button-vendor-profile-recharge-hero"
             >
               <ArrowDownLeft className="h-3.5 w-3.5 mr-1.5" />{vendorType === "panel" ? "Recharge" : "Send Payment"}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className={`border no-default-hover-elevate ${vendor.status === "active" ? "bg-red-500/20 border-red-400/40 text-red-100 hover:bg-red-500/30" : "bg-emerald-500/20 border-emerald-400/40 text-emerald-100 hover:bg-emerald-500/30"}`}
+              onClick={handleToggleStatus}
+              disabled={statusToggling}
+              data-testid="button-vendor-profile-toggle-status"
+            >
+              {vendor.status === "active" ? <XCircle className="h-3.5 w-3.5 mr-1.5" /> : <CheckCircle className="h-3.5 w-3.5 mr-1.5" />}
+              {statusToggling ? "..." : vendor.status === "active" ? "Deactivate" : "Activate"}
             </Button>
             <Button
               size="sm"
@@ -1058,6 +1229,15 @@ export default function VendorProfilePage() {
                         <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950" onClick={() => { setOutstandingForm({ amount: "", bwLinkName: "", period: "", notes: "" }); setOutstandingOpen(true); }} data-testid="button-add-outstanding">
                           <AlertCircle className="h-3.5 w-3.5" />Add Old Outstanding
                         </Button>
+                        {bwLinks.length > 0 && (
+                          <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 border-blue-300 text-blue-700 hover:bg-blue-50 dark:border-blue-700 dark:text-blue-400 dark:hover:bg-blue-950" onClick={() => {
+                            const now = new Date();
+                            setGenerateBillForm({ period: now.toLocaleString("en-US", { month: "long", year: "numeric" }), notes: "" });
+                            setGenerateBillOpen(true);
+                          }} data-testid="button-generate-monthly-bill">
+                            <FileText className="h-3.5 w-3.5" />Generate Monthly Bill
+                          </Button>
+                        )}
                         <Button size="sm" className="h-7 text-xs gap-1.5" onClick={openAddBwLink} data-testid="button-add-bw-link">
                           <Plus className="h-3.5 w-3.5" />Add BW Link
                         </Button>
@@ -1326,6 +1506,7 @@ export default function VendorProfilePage() {
                             <TableHead className="text-xs">Validity</TableHead>
                             <TableHead className="text-xs">Margin</TableHead>
                             <TableHead className="text-xs">Status</TableHead>
+                            <TableHead className="w-16"></TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -1333,7 +1514,7 @@ export default function VendorProfilePage() {
                             const margin = Number(pkg.ispSellingPrice || 0) - Number(pkg.vendorPrice || 0);
                             const linkedPanel = pkg.panelLinkId ? panelLinks.find(pl => pl.id === pkg.panelLinkId) : null;
                             return (
-                              <TableRow key={pkg.id}>
+                              <TableRow key={pkg.id} data-testid={`row-pkg-${pkg.id}`}>
                                 <TableCell className="text-sm font-medium">{pkg.packageName}</TableCell>
                                 <TableCell className="text-sm">
                                   {linkedPanel ? (
@@ -1348,6 +1529,12 @@ export default function VendorProfilePage() {
                                 <TableCell className="text-sm">{pkg.validity || "—"}</TableCell>
                                 <TableCell className={`text-sm font-semibold ${margin >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{formatPKR(margin)}</TableCell>
                                 <TableCell><Badge variant={pkg.isActive !== false ? "default" : "secondary"} className="text-[10px] no-default-active-elevate capitalize">{pkg.isActive !== false ? "Active" : "Inactive"}</Badge></TableCell>
+                                <TableCell>
+                                  <div className="flex gap-1">
+                                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => openEditPkg(pkg)} data-testid={`button-edit-pkg-${pkg.id}`}><Edit className="h-3.5 w-3.5" /></Button>
+                                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500 hover:text-red-600" onClick={() => handleDeletePkg(pkg.id, pkg.packageName)} data-testid={`button-delete-pkg-${pkg.id}`}><Trash2 className="h-3.5 w-3.5" /></Button>
+                                  </div>
+                                </TableCell>
                               </TableRow>
                             );
                           })}
@@ -1615,6 +1802,7 @@ export default function VendorProfilePage() {
                           <TableHead className="text-xs">Reference</TableHead>
                           <TableHead className="text-xs">By</TableHead>
                           <TableHead className="text-xs">Notes</TableHead>
+                          <TableHead className="w-10"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -1636,6 +1824,9 @@ export default function VendorProfilePage() {
                               <TableCell className="text-xs font-mono">{txn.reference || "—"}</TableCell>
                               <TableCell className="text-xs">{txn.performedBy || "—"}</TableCell>
                               <TableCell className="text-xs text-muted-foreground max-w-[150px] truncate">{txn.description || txn.notes || "—"}</TableCell>
+                              <TableCell>
+                                <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-400 hover:text-red-600" onClick={() => handleDeleteTransaction(txn.id)} data-testid={`button-delete-txn-${txn.id}`}><Trash2 className="h-3.5 w-3.5" /></Button>
+                              </TableCell>
                             </TableRow>
                           );
                         })}
@@ -1648,6 +1839,142 @@ export default function VendorProfilePage() {
           </TabsContent>
         </div>
       </Tabs>
+
+      {/* ─── Inline Send Payment / Recharge Dialog ─── */}
+      <Dialog open={rechargeOpen} onOpenChange={open => { if (!open) setRechargeOpen(false); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowDownLeft className="h-5 w-5 text-emerald-600" />
+              {vendorType === "panel" ? "Recharge Wallet" : "Record Payment"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="bg-muted/40 rounded-xl p-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">Current Balance</p>
+                <p className={`text-xl font-bold ${walletBalance < 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>{formatPKR(walletBalance)}</p>
+              </div>
+              {rechargeForm.amount && !isNaN(parseFloat(rechargeForm.amount)) && (
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Balance After</p>
+                  <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{formatPKR(walletBalance + parseFloat(rechargeForm.amount))}</p>
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2 space-y-1.5">
+                <label className="text-sm font-medium">Amount (PKR) <span className="text-red-500">*</span></label>
+                <Input type="number" placeholder="0.00" value={rechargeForm.amount} onChange={e => setRechargeForm(f => ({ ...f, amount: e.target.value }))} data-testid="input-recharge-amount" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Payment Method</label>
+                <Select value={rechargeForm.paymentMethod} onValueChange={v => setRechargeForm(f => ({ ...f, paymentMethod: v }))}>
+                  <SelectTrigger data-testid="select-recharge-method"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="cheque">Cheque</SelectItem>
+                    <SelectItem value="online">Online</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Status</label>
+                <Select value={rechargeForm.paymentStatus} onValueChange={v => setRechargeForm(f => ({ ...f, paymentStatus: v }))}>
+                  <SelectTrigger data-testid="select-recharge-status"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="credit_balance">Credit Balance</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Reference / Voucher No.</label>
+                <Input placeholder="e.g. TXN-12345" value={rechargeForm.reference} onChange={e => setRechargeForm(f => ({ ...f, reference: e.target.value }))} data-testid="input-recharge-reference" />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Performed By</label>
+                <Input placeholder="Admin" value={rechargeForm.performedBy} onChange={e => setRechargeForm(f => ({ ...f, performedBy: e.target.value }))} data-testid="input-recharge-by" />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <label className="text-sm font-medium">Notes</label>
+                <Input placeholder="Optional payment notes" value={rechargeForm.notes} onChange={e => setRechargeForm(f => ({ ...f, notes: e.target.value }))} data-testid="input-recharge-notes" />
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary" size="sm" onClick={() => setRechargeOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={handleRechargeSubmit} disabled={rechargeSubmitting} className="bg-emerald-600 hover:bg-emerald-700 text-white" data-testid="button-recharge-submit">
+              {rechargeSubmitting ? "Saving..." : vendorType === "panel" ? "Recharge Wallet" : "Record Payment"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Delete Vendor Confirmation Dialog ─── */}
+      <Dialog open={deleteVendorOpen} onOpenChange={setDeleteVendorOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="h-5 w-5" />Delete Vendor
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-3 space-y-3">
+            <p className="text-sm text-muted-foreground">You are about to permanently delete <span className="font-semibold text-foreground">{vendor?.name}</span> and all associated data (links, packages, transactions). This cannot be undone.</p>
+            <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 rounded-lg p-3 text-xs text-red-700 dark:text-red-400">
+              All BW links, panel links, packages, and wallet transactions for this vendor will be deleted.
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setDeleteVendorOpen(false)}>Cancel</Button>
+            <Button variant="destructive" size="sm" onClick={handleDeleteVendor} disabled={deleteVendorSubmitting} data-testid="button-confirm-delete-vendor">
+              {deleteVendorSubmitting ? "Deleting..." : "Yes, Delete Vendor"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Generate Monthly Bill Dialog ─── */}
+      <Dialog open={generateBillOpen} onOpenChange={setGenerateBillOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-blue-600" />Generate Monthly Bill
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900 rounded-xl p-4">
+              <p className="text-xs text-blue-700 dark:text-blue-300 font-medium mb-2">Active BW Links</p>
+              {bwLinks.filter(l => l.status === "active").map(l => (
+                <div key={l.id} className="flex justify-between items-center text-xs text-blue-600 dark:text-blue-400 py-0.5">
+                  <span>{l.linkName}</span>
+                  <span className="font-bold">{formatPKR(l.totalMonthlyCost)}</span>
+                </div>
+              ))}
+              <div className="border-t border-blue-200 dark:border-blue-800 mt-2 pt-2 flex justify-between font-bold text-sm text-blue-700 dark:text-blue-300">
+                <span>Total Outstanding</span>
+                <span>{formatPKR(bwLinks.filter(l => l.status === "active").reduce((s, l) => s + Number(l.totalMonthlyCost || 0), 0))}</span>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Billing Period <span className="text-red-500">*</span></label>
+              <Input placeholder="e.g. April 2026" value={generateBillForm.period} onChange={e => setGenerateBillForm(f => ({ ...f, period: e.target.value }))} data-testid="input-generate-bill-period" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Notes (optional)</label>
+              <Input placeholder="e.g. Monthly bill for April 2026" value={generateBillForm.notes} onChange={e => setGenerateBillForm(f => ({ ...f, notes: e.target.value }))} data-testid="input-generate-bill-notes" />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary" size="sm" onClick={() => setGenerateBillOpen(false)}>Cancel</Button>
+            <Button size="sm" onClick={handleGenerateBill} data-testid="button-confirm-generate-bill" className="bg-blue-600 hover:bg-blue-700 text-white">
+              Generate Bills
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Add/Edit Panel Link Dialog */}
       <Dialog open={plDialogOpen} onOpenChange={setPlDialogOpen}>
@@ -1834,12 +2161,12 @@ export default function VendorProfilePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Package Dialog */}
-      <Dialog open={addPkgOpen} onOpenChange={open => { if (!open) { setAddPkgOpen(false); setAddPkgForm(emptyAddPkgForm); } }}>
+      {/* Add/Edit Package Dialog */}
+      <Dialog open={addPkgOpen} onOpenChange={open => { if (!open) { setAddPkgOpen(false); setAddPkgForm(emptyAddPkgForm); setEditingPkg(null); } }}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Package className="h-4 w-4 text-primary" />Add Package
+              <Package className="h-4 w-4 text-primary" />{editingPkg ? "Edit Package" : "Add Package"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 pt-1">
@@ -1995,7 +2322,7 @@ export default function VendorProfilePage() {
                 Cancel
               </Button>
               <Button onClick={submitAddPkg} disabled={addPkgSubmitting} data-testid="button-addpkg-submit">
-                {addPkgSubmitting ? "Saving…" : "Add Package"}
+                {addPkgSubmitting ? "Saving…" : editingPkg ? "Update Package" : "Add Package"}
               </Button>
             </div>
           </div>
