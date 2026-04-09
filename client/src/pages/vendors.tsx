@@ -2538,6 +2538,7 @@ function BandwidthVendorsTab() {
   const [editBwLinkTarget, setEditBwLinkTarget] = useState<number | null>(null);
   const [editBwLinkItem, setEditBwLinkItem] = useState<VendorBandwidthLink | null>(null);
   const [activeStatCard, setActiveStatCard] = useState<string | null>(null);
+  const [bwLinksDetailVendor, setBwLinksDetailVendor] = useState<Vendor | null>(null);
 
   const { data: vendors, isLoading } = useQuery<Vendor[]>({ queryKey: ["/api/vendors"] });
   const { data: vendorPackages } = useQuery<VendorPackage[]>({ queryKey: ["/api/vendor-packages"] });
@@ -2996,7 +2997,14 @@ function BandwidthVendorsTab() {
                         </TableCell>
                         <TableCell className="hidden lg:table-cell">
                           <div className="flex items-center gap-1.5">
-                            <Badge variant="secondary" className="no-default-active-elevate text-[10px]"><Globe className="h-3 w-3 mr-0.5" />{bwLinks.length}</Badge>
+                            <Badge
+                              variant="secondary"
+                              className={`no-default-active-elevate text-[10px] ${bwLinks.length > 0 ? "cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors" : ""}`}
+                              onClick={(e) => { e.stopPropagation(); if (bwLinks.length > 0) setBwLinksDetailVendor(vendor); }}
+                              data-testid={`badge-bw-links-${vendor.id}`}
+                            >
+                              <Globe className="h-3 w-3 mr-0.5" />{bwLinks.length} {bwLinks.length === 1 ? "Link" : "Links"}
+                            </Badge>
                             {activeLinks > 0 && <span className="text-[10px] text-green-600 dark:text-green-400">{activeLinks} active</span>}
                           </div>
                         </TableCell>
@@ -3402,6 +3410,202 @@ function BandwidthVendorsTab() {
                   <Button variant="outline" onClick={() => setActiveStatCard(null)} data-testid="button-close-bw-stat-detail">Close</Button>
                 </DialogFooter>
               </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* BW Links Detail Dialog */}
+      <Dialog open={!!bwLinksDetailVendor} onOpenChange={open => { if (!open) setBwLinksDetailVendor(null); }}>
+        <DialogContent className="max-w-4xl max-h-[88vh] overflow-hidden p-0 gap-0">
+          {bwLinksDetailVendor && (() => {
+            const links = getVendorBwLinks(bwLinksDetailVendor.id);
+            const totalMbps = links.reduce((s, l) => s + Number(l.bandwidthMbps || 0), 0);
+            const totalCost = links.reduce((s, l) => s + Number(l.totalMonthlyCost || 0), 0);
+            const activeCount = links.filter(l => l.status === "active").length;
+            return (
+              <>
+                {/* Header */}
+                <div className="vendor-page-header px-5 py-4 rounded-t-lg shrink-0">
+                  <div className="flex items-center gap-4">
+                    <div className="h-11 w-11 rounded-xl bg-white/20 flex items-center justify-center text-white text-lg font-bold border-2 border-white/30 shrink-0">
+                      {bwLinksDetailVendor.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h2 className="text-base font-bold text-white truncate">{bwLinksDetailVendor.name}</h2>
+                      <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                        <span className="text-white/70 text-xs flex items-center gap-1"><Wifi className="h-3 w-3" />Bandwidth Vendor</span>
+                        <span className="text-white/70 text-xs">{links.length} {links.length === 1 ? "Link" : "Links"}</span>
+                        <span className="text-white/70 text-xs">{activeCount} Active</span>
+                        <span className="text-white/70 text-xs">{totalMbps} Mbps Total</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <Button size="sm" variant="outline" className="bg-white/10 border-white/30 text-white hover:bg-white/20 hover:text-white text-xs h-8 no-default-hover-elevate" onClick={() => { setBwLinksDetailVendor(null); setLocation(`/vendors/profile/${bwLinksDetailVendor.id}`); }} data-testid="button-bwlinks-open-profile">
+                        <ExternalLink className="h-3.5 w-3.5 mr-1" />Full Profile
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Summary Cards */}
+                <div className="grid grid-cols-3 gap-3 px-5 pt-4 shrink-0">
+                  <div className="rounded-lg border bg-card p-3 text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Links</p>
+                    <p className="text-2xl font-bold text-primary mt-0.5">{links.length}</p>
+                    <p className="text-[10px] text-muted-foreground">{activeCount} active</p>
+                  </div>
+                  <div className="rounded-lg border bg-card p-3 text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Capacity</p>
+                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-0.5">{totalMbps}</p>
+                    <p className="text-[10px] text-muted-foreground">Mbps</p>
+                  </div>
+                  <div className="rounded-lg border bg-card p-3 text-center">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Monthly Cost</p>
+                    <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{formatPKR(totalCost)}</p>
+                    <p className="text-[10px] text-muted-foreground">/month</p>
+                  </div>
+                </div>
+
+                {/* Links Table */}
+                <div className="flex-1 overflow-y-auto px-5 pb-5 pt-4">
+                  {links.length === 0 ? (
+                    <div className="text-center py-10 text-muted-foreground">
+                      <Globe className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                      <p className="text-sm">No bandwidth links found</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {links.map((link, idx) => {
+                        const hasNetwork = link.networkInterface || link.gateway || link.routingType !== "static" || link.dnsServers || link.asNumber || link.bgpConfig;
+                        return (
+                          <Card key={link.id} className={`border-l-4 ${link.status === "active" ? "border-l-green-500" : link.status === "inactive" ? "border-l-red-400" : "border-l-yellow-400"}`}>
+                            <CardContent className="p-4">
+                              {/* Row 1: Link header */}
+                              <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                    <GitBranch className="h-4 w-4 text-primary" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-semibold" data-testid={`text-bwlink-name-${link.id}`}>{link.linkName}</p>
+                                    <p className="text-[10px] text-muted-foreground">Link #{idx + 1}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <Badge variant="secondary" className={`no-default-active-elevate text-[10px] font-bold ${link.status === "active" ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" : link.status === "inactive" ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300"}`}>
+                                    {link.status === "active" ? <CheckCircle className="h-3 w-3 mr-0.5" /> : <XCircle className="h-3 w-3 mr-0.5" />}
+                                    <span className="capitalize">{link.status}</span>
+                                  </Badge>
+                                  {link.billingType && <Badge variant="outline" className="no-default-active-elevate text-[10px] capitalize">{link.billingType === "pro_rata" ? "Pro-Rata" : "Full Month"}</Badge>}
+                                </div>
+                              </div>
+
+                              {/* Row 2: Key metrics */}
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                                <div className="rounded-lg bg-muted/40 p-2.5">
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Bandwidth</p>
+                                  <p className="text-sm font-bold text-blue-600 dark:text-blue-400 mt-0.5">{link.bandwidthMbps || "—"} Mbps</p>
+                                </div>
+                                <div className="rounded-lg bg-muted/40 p-2.5">
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Rate / Mbps</p>
+                                  <p className="text-sm font-bold mt-0.5">{formatPKR(link.bandwidthRate)}</p>
+                                </div>
+                                <div className="rounded-lg bg-muted/40 p-2.5">
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Monthly Cost</p>
+                                  <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{formatPKR(link.totalMonthlyCost)}</p>
+                                </div>
+                                <div className="rounded-lg bg-muted/40 p-2.5">
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Start Date</p>
+                                  <p className="text-sm font-medium mt-0.5">{link.startDate || "—"}</p>
+                                </div>
+                              </div>
+
+                              {/* Row 3: Location + Connectivity */}
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                                {link.city && (
+                                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                                    <MapPin className="h-3.5 w-3.5 shrink-0" />
+                                    <span>{link.city}</span>
+                                  </div>
+                                )}
+                                {link.popLocation && (
+                                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                                    <Server className="h-3.5 w-3.5 shrink-0" />
+                                    <span>{link.popLocation}</span>
+                                  </div>
+                                )}
+                                {link.ipAddress && (
+                                  <div className="flex items-center gap-1.5 text-muted-foreground font-mono">
+                                    <Globe className="h-3.5 w-3.5 shrink-0" />
+                                    <span>{link.ipAddress}</span>
+                                  </div>
+                                )}
+                                {link.vlanDetail && (
+                                  <div className="flex items-center gap-1.5 text-muted-foreground font-mono">
+                                    <Layers className="h-3.5 w-3.5 shrink-0" />
+                                    <span>VLAN: {link.vlanDetail}</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Row 4: Network Infrastructure (if any) */}
+                              {hasNetwork && (
+                                <div className="mt-3 pt-3 border-t grid grid-cols-2 md:grid-cols-3 gap-2">
+                                  {link.networkInterface && (
+                                    <div>
+                                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Interface</p>
+                                      <p className="text-xs font-mono font-medium mt-0.5">{link.networkInterface}</p>
+                                    </div>
+                                  )}
+                                  {link.routingType && link.routingType !== "static" && (
+                                    <div>
+                                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Routing</p>
+                                      <p className="text-xs font-medium capitalize mt-0.5">{link.routingType}</p>
+                                    </div>
+                                  )}
+                                  {link.gateway && (
+                                    <div>
+                                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Gateway</p>
+                                      <p className="text-xs font-mono mt-0.5">{link.gateway}</p>
+                                    </div>
+                                  )}
+                                  {link.dnsServers && (
+                                    <div>
+                                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">DNS</p>
+                                      <p className="text-xs font-mono mt-0.5">{link.dnsServers}</p>
+                                    </div>
+                                  )}
+                                  {link.asNumber && (
+                                    <div>
+                                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">ASN</p>
+                                      <p className="text-xs font-mono font-bold mt-0.5">{link.asNumber}</p>
+                                    </div>
+                                  )}
+                                  {link.bgpConfig && (
+                                    <div className="md:col-span-2">
+                                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">BGP Neighbor</p>
+                                      <p className="text-xs font-mono mt-0.5 break-all">{link.bgpConfig}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Notes */}
+                              {link.notes && (
+                                <div className="mt-2.5 pt-2.5 border-t">
+                                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Notes</p>
+                                  <p className="text-xs text-muted-foreground">{link.notes}</p>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </>
             );
           })()}
         </DialogContent>
