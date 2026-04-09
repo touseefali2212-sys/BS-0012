@@ -574,21 +574,222 @@ export default function VendorProfilePage() {
       </div>
 
       {/* Tabbed Content */}
-      <div className="p-5">
-        <Tabs value={profileTab} onValueChange={setProfileTab}>
-          <TabsList className="mb-5 flex-wrap h-auto gap-1 bg-muted/60">
-            <TabsTrigger value="overview" className="text-xs gap-1.5"><User className="h-3.5 w-3.5" />Overview</TabsTrigger>
-            <TabsTrigger value="connectivity" className="text-xs gap-1.5">
-              {vendorType === "bandwidth" ? <><Network className="h-3.5 w-3.5" />Bandwidth Links</> : <><Globe className="h-3.5 w-3.5" />Panel Info</>}
-            </TabsTrigger>
-            <TabsTrigger value="accounting" className="text-xs gap-1.5"><BarChart3 className="h-3.5 w-3.5" />Accounting</TabsTrigger>
-            <TabsTrigger value="transactions" className="text-xs gap-1.5"><History className="h-3.5 w-3.5" />Transactions</TabsTrigger>
-            {vendorType === "panel" && <TabsTrigger value="packages" className="text-xs gap-1.5"><Package className="h-3.5 w-3.5" />Packages</TabsTrigger>}
-            <TabsTrigger value="support" className="text-xs gap-1.5"><Headphones className="h-3.5 w-3.5" />Support</TabsTrigger>
+      <Tabs value={profileTab} onValueChange={setProfileTab}>
+        {/* Sticky Tab Bar */}
+        <div className="border-b bg-background sticky top-[53px] z-20 px-5">
+          <TabsList className="h-auto p-0 bg-transparent rounded-none gap-0 w-full justify-start flex-wrap">
+            <TabsTrigger value="overview" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-4"><BarChart3 className="h-3.5 w-3.5" />Overview</TabsTrigger>
+            <TabsTrigger value="info" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-4"><User className="h-3.5 w-3.5" />Basic Info</TabsTrigger>
+            {vendorType === "bandwidth"
+              ? <TabsTrigger value="links" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-4"><Network className="h-3.5 w-3.5" />BW Links{bwLinks.length > 0 && <Badge variant="secondary" className="ml-1 no-default-active-elevate text-[10px] px-1.5 py-0">{bwLinks.length}</Badge>}</TabsTrigger>
+              : <TabsTrigger value="links" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-4"><Globe className="h-3.5 w-3.5" />Panel Links{panelLinks.length > 0 && <Badge variant="secondary" className="ml-1 no-default-active-elevate text-[10px] px-1.5 py-0">{panelLinks.length}</Badge>}</TabsTrigger>}
+            {vendorType === "panel" && <TabsTrigger value="packages" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-4"><Package className="h-3.5 w-3.5" />Packages{pkgs.length > 0 && <Badge variant="secondary" className="ml-1 no-default-active-elevate text-[10px] px-1.5 py-0">{pkgs.length}</Badge>}</TabsTrigger>}
+            <TabsTrigger value="financial" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-4"><DollarSign className="h-3.5 w-3.5" />Financial</TabsTrigger>
+            <TabsTrigger value="banking" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-4"><Landmark className="h-3.5 w-3.5" />Banking</TabsTrigger>
+            <TabsTrigger value="transactions" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent py-2.5 gap-1.5 px-4"><History className="h-3.5 w-3.5" />Transactions{transactions.length > 0 && <Badge variant="secondary" className="ml-1 no-default-active-elevate text-[10px] px-1.5 py-0">{transactions.length}</Badge>}</TabsTrigger>
           </TabsList>
+        </div>
 
-          {/* ─ Overview ─ */}
-          <TabsContent value="overview" className="space-y-4 mt-0">
+        {/* Tab Content */}
+        <div className="p-5">
+
+          {/* ─── OVERVIEW ─── */}
+          <TabsContent value="overview" className="space-y-5 mt-0">
+            {/* KPI Stat Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <Card>
+                <CardContent className="pt-4 pb-3 px-4">
+                  <div className="flex items-center gap-2 mb-1.5"><div className="p-1.5 rounded-md bg-purple-100 dark:bg-purple-950"><Wallet className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" /></div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Wallet</p></div>
+                  <p className={`text-xl font-bold leading-tight ${walletBalance >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>{formatPKR(walletBalance)}</p>
+                </CardContent>
+              </Card>
+              {vendorType === "bandwidth" && (
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <div className="flex items-center gap-2 mb-1.5"><div className="p-1.5 rounded-md bg-indigo-100 dark:bg-indigo-950"><DollarSign className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" /></div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Monthly Cost</p></div>
+                    <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400 leading-tight">{formatPKR(totalMonthlyCost)}</p>
+                  </CardContent>
+                </Card>
+              )}
+              <Card>
+                <CardContent className="pt-4 pb-3 px-4">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className={`p-1.5 rounded-md ${vendorType === "bandwidth" ? "bg-blue-100 dark:bg-blue-950" : "bg-cyan-100 dark:bg-cyan-950"}`}>
+                      {vendorType === "bandwidth" ? <Network className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" /> : <Globe className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{vendorType === "bandwidth" ? "BW Links" : "Panel Links"}</p>
+                  </div>
+                  <p className="text-xl font-bold leading-tight">{vendorType === "bandwidth" ? bwLinks.length : panelLinks.length}</p>
+                </CardContent>
+              </Card>
+              {vendorType === "bandwidth" && (
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <div className="flex items-center gap-2 mb-1.5"><div className="p-1.5 rounded-md bg-cyan-100 dark:bg-cyan-950"><Zap className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" /></div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Mbps</p></div>
+                    <p className="text-xl font-bold text-cyan-600 dark:text-cyan-400 leading-tight">{totalMbps}</p>
+                  </CardContent>
+                </Card>
+              )}
+              {vendorType === "panel" && (
+                <Card>
+                  <CardContent className="pt-4 pb-3 px-4">
+                    <div className="flex items-center gap-2 mb-1.5"><div className="p-1.5 rounded-md bg-emerald-100 dark:bg-emerald-950"><Package className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /></div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Packages</p></div>
+                    <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400 leading-tight">{pkgs.length}</p>
+                  </CardContent>
+                </Card>
+              )}
+              <Card>
+                <CardContent className="pt-4 pb-3 px-4">
+                  <div className="flex items-center gap-2 mb-1.5"><div className="p-1.5 rounded-md bg-green-100 dark:bg-green-950"><ArrowDownLeft className="h-3.5 w-3.5 text-green-600 dark:text-green-400" /></div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Paid</p></div>
+                  <p className="text-xl font-bold text-green-600 dark:text-green-400 leading-tight">{formatPKR(totalRecharged)}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 pb-3 px-4">
+                  <div className="flex items-center gap-2 mb-1.5"><div className="p-1.5 rounded-md bg-orange-100 dark:bg-orange-950"><AlertCircle className="h-3.5 w-3.5 text-orange-600 dark:text-orange-400" /></div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Outstanding</p></div>
+                  <p className="text-xl font-bold text-orange-600 dark:text-orange-400 leading-tight">{formatPKR(totalOutstanding)}</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Two-column: Vendor Identity + Contract Status */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <div className="p-1.5 rounded-md bg-primary/10"><Building2 className="h-3.5 w-3.5 text-primary" /></div>
+                    Vendor Identity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="col-span-2 bg-muted/40 rounded-xl p-3 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center font-bold text-primary text-lg shrink-0">{vendor.name.charAt(0).toUpperCase()}</div>
+                      <div><p className="font-semibold text-sm">{vendor.name}</p><p className="text-xs text-muted-foreground capitalize">{vendor.serviceType || vendorType} vendor</p></div>
+                    </div>
+                    {vendor.contactPerson && (
+                      <div className="bg-muted/50 rounded-lg p-2.5">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Contact Person</p>
+                        <p className="text-xs font-medium">{vendor.contactPerson}</p>
+                      </div>
+                    )}
+                    <div className="bg-muted/50 rounded-lg p-2.5">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Status</p>
+                      <p className={`text-xs font-semibold capitalize ${vendor.status === "active" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{vendor.status}</p>
+                    </div>
+                    {vendor.phone && (
+                      <div className="bg-green-50 dark:bg-green-950/40 rounded-lg p-2.5 flex items-center gap-2">
+                        <Phone className="h-3.5 w-3.5 text-green-600 dark:text-green-400 shrink-0" />
+                        <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Phone</p><p className="text-xs font-medium">{vendor.phone}</p></div>
+                      </div>
+                    )}
+                    {vendor.email && (
+                      <div className="bg-blue-50 dark:bg-blue-950/40 rounded-lg p-2.5 flex items-center gap-2">
+                        <Mail className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                        <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Email</p><p className="text-xs font-medium truncate">{vendor.email}</p></div>
+                      </div>
+                    )}
+                    {vendor.city && (
+                      <div className="bg-amber-50 dark:bg-amber-950/40 rounded-lg p-2.5 flex items-center gap-2">
+                        <MapPin className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">City</p><p className="text-xs font-medium">{vendor.city}</p></div>
+                      </div>
+                    )}
+                    {vendor.ntn && (
+                      <div className="bg-muted/50 rounded-lg p-2.5">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">NTN / Tax ID</p>
+                        <p className="text-xs font-mono font-semibold">{vendor.ntn}</p>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <div className="p-1.5 rounded-md bg-yellow-100 dark:bg-yellow-950"><FileText className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" /></div>
+                    Contract & Service Level
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-muted/50 rounded-lg p-2.5">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">SLA Level</p>
+                      <p className={`text-xs font-semibold capitalize ${vendor.slaLevel === "enterprise" ? "text-purple-600 dark:text-purple-400" : vendor.slaLevel === "premium" ? "text-blue-600 dark:text-blue-400" : ""}`}>{vendor.slaLevel || "Standard"}</p>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-2.5">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Contract Type</p>
+                      <p className="text-xs font-semibold capitalize">{vendor.contractType || "—"}</p>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-2.5">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Start Date</p>
+                      <p className="text-xs font-medium">{vendor.contractStartDate || "—"}</p>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-2.5">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">End Date</p>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <p className="text-xs font-medium">{vendor.contractEndDate || "—"}</p>
+                        {contractDiff !== null && (
+                          contractDiff < 0
+                            ? <Badge variant="secondary" className="no-default-active-elevate text-[10px] text-red-600 bg-red-50 dark:text-red-300 dark:bg-red-950 px-1 py-0">Expired</Badge>
+                            : contractDiff <= 30
+                              ? <Badge variant="secondary" className="no-default-active-elevate text-[10px] text-amber-600 bg-amber-50 dark:text-amber-300 dark:bg-amber-950 px-1 py-0">{contractDiff}d</Badge>
+                              : <Badge variant="secondary" className="no-default-active-elevate text-[10px] text-green-600 bg-green-50 dark:text-green-300 dark:bg-green-950 px-1 py-0">{contractDiff}d</Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-2.5">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Payment Terms</p>
+                      <p className="text-xs font-semibold">{vendor.paymentTerms === "net30" ? "Net 30" : vendor.paymentTerms === "net15" ? "Net 15" : vendor.paymentTerms === "net45" ? "Net 45" : vendor.paymentTerms === "advance" ? "Advance" : vendor.paymentTerms === "on_delivery" ? "On Delivery" : vendor.paymentTerms || "—"}</p>
+                    </div>
+                    <div className="bg-muted/50 rounded-lg p-2.5">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Payable Amount</p>
+                      <p className="text-xs font-bold text-amber-600 dark:text-amber-400">{formatPKR(vendor.payableAmount)}</p>
+                    </div>
+                  </div>
+                  {vendor.autoRenewal && (
+                    <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-2.5">
+                      <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400 shrink-0" />
+                      <p className="text-xs text-green-700 dark:text-green-300 font-medium">Auto-Renewal Enabled</p>
+                    </div>
+                  )}
+                  {vendor.penaltyClause && (
+                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-2.5">
+                      <p className="text-[10px] text-amber-700 dark:text-amber-300 uppercase tracking-wider mb-1">Penalty / SLA Notes</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-300">{vendor.penaltyClause}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Quick Navigation */}
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2.5">Quick Navigation</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+                <button className="group flex items-center gap-3 p-3 rounded-xl border bg-card hover:border-primary/50 hover:bg-primary/5 transition-colors text-left w-full" onClick={() => setProfileTab("info")}>
+                  <div className="p-2 rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors shrink-0"><User className="h-4 w-4 text-primary" /></div>
+                  <div><p className="text-xs font-semibold">Basic Info</p><p className="text-[10px] text-muted-foreground">Contact & business</p></div>
+                </button>
+                <button className="group flex items-center gap-3 p-3 rounded-xl border bg-card hover:border-blue-500/50 hover:bg-blue-500/5 transition-colors text-left w-full" onClick={() => setProfileTab("links")}>
+                  <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-950 group-hover:bg-blue-200 dark:group-hover:bg-blue-900 transition-colors shrink-0">{vendorType === "bandwidth" ? <Network className="h-4 w-4 text-blue-600 dark:text-blue-400" /> : <Globe className="h-4 w-4 text-blue-600 dark:text-blue-400" />}</div>
+                  <div><p className="text-xs font-semibold">{vendorType === "bandwidth" ? "BW Links" : "Panel Links"}</p><p className="text-[10px] text-muted-foreground">{vendorType === "bandwidth" ? `${bwLinks.length} links · ${totalMbps} Mbps` : `${panelLinks.length} links`}</p></div>
+                </button>
+                <button className="group flex items-center gap-3 p-3 rounded-xl border bg-card hover:border-green-500/50 hover:bg-green-500/5 transition-colors text-left w-full" onClick={() => setProfileTab("financial")}>
+                  <div className="p-2 rounded-lg bg-green-100 dark:bg-green-950 group-hover:bg-green-200 dark:group-hover:bg-green-900 transition-colors shrink-0"><DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" /></div>
+                  <div><p className="text-xs font-semibold">Financial</p><p className="text-[10px] text-muted-foreground">Contract & billing</p></div>
+                </button>
+                <button className="group flex items-center gap-3 p-3 rounded-xl border bg-card hover:border-purple-500/50 hover:bg-purple-500/5 transition-colors text-left w-full" onClick={() => setProfileTab("transactions")}>
+                  <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-950 group-hover:bg-purple-200 dark:group-hover:bg-purple-900 transition-colors shrink-0"><History className="h-4 w-4 text-purple-600 dark:text-purple-400" /></div>
+                  <div><p className="text-xs font-semibold">Transactions</p><p className="text-[10px] text-muted-foreground">{transactions.length} records</p></div>
+                </button>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ─── BASIC INFO ─── */}
+          <TabsContent value="info" className="space-y-4 mt-0">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
                 <CardHeader className="pb-3">
@@ -632,15 +833,15 @@ export default function VendorProfilePage() {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <div className="p-1.5 rounded-md bg-primary/10"><Building2 className="h-3.5 w-3.5 text-primary" /></div>
+                    <div className="p-1.5 rounded-md bg-indigo-100 dark:bg-indigo-950"><Building2 className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" /></div>
                     Business Details
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                <CardContent className="space-y-2.5">
                   <div className="grid grid-cols-2 gap-2">
                     <div className="bg-muted/50 rounded-lg p-3">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Service Type</p>
-                      <p className="text-sm font-semibold capitalize">{vendor.serviceType}</p>
+                      <p className="text-sm font-semibold capitalize">{vendor.serviceType || "—"}</p>
                     </div>
                     <div className="bg-muted/50 rounded-lg p-3">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">SLA Level</p>
@@ -661,183 +862,90 @@ export default function VendorProfilePage() {
                       <p className="text-sm font-mono font-semibold">{vendor.ntn}</p>
                     </div>
                   )}
-                  <div className="border rounded-lg p-3">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1"><Calendar className="h-3 w-3" />Contract Period</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Start Date</p>
-                        <p className="text-sm font-medium">{vendor.contractStartDate || "—"}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">End Date</p>
-                        <div className="flex items-center gap-1 flex-wrap">
-                          <p className="text-sm font-medium">{vendor.contractEndDate || "—"}</p>
-                          {contractDiff !== null && (
-                            contractDiff < 0
-                              ? <Badge variant="secondary" className="no-default-active-elevate text-[10px] text-red-600 bg-red-50 dark:text-red-300 dark:bg-red-950">Expired</Badge>
-                              : contractDiff <= 30
-                                ? <Badge variant="secondary" className="no-default-active-elevate text-[10px] text-amber-600 bg-amber-50 dark:text-amber-300 dark:bg-amber-950">{contractDiff}d left</Badge>
-                                : <Badge variant="secondary" className="no-default-active-elevate text-[10px] text-green-600 bg-green-50 dark:text-green-300 dark:bg-green-950">{contractDiff}d left</Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {(vendor.contractType || vendor.paymentTerms) && (
-                    <div className="grid grid-cols-2 gap-2">
-                      {vendor.contractType && (
-                        <div className="bg-muted/50 rounded-lg p-3">
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Contract Type</p>
-                          <p className="text-sm font-semibold capitalize">{vendor.contractType}</p>
-                        </div>
-                      )}
-                      {vendor.paymentTerms && (
-                        <div className="bg-muted/50 rounded-lg p-3">
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Payment Terms</p>
-                          <p className="text-sm font-semibold">{vendor.paymentTerms === "net30" ? "Net 30 Days" : vendor.paymentTerms === "net15" ? "Net 15 Days" : vendor.paymentTerms === "net45" ? "Net 45 Days" : vendor.paymentTerms === "advance" ? "Advance Payment" : vendor.paymentTerms === "on_delivery" ? "On Delivery" : vendor.paymentTerms}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {vendor.autoRenewal && (
-                    <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-2.5">
-                      <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400 shrink-0" />
-                      <p className="text-xs text-green-700 dark:text-green-300 font-medium">Auto-Renewal Enabled</p>
-                    </div>
-                  )}
-                  {vendor.penaltyClause && (
-                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-                      <p className="text-[10px] text-amber-700 dark:text-amber-300 uppercase tracking-wider mb-1">Penalty / SLA Notes</p>
-                      <p className="text-xs text-amber-700 dark:text-amber-300">{vendor.penaltyClause}</p>
+                  {vendor.address && (
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Address</p>
+                      <p className="text-xs">{vendor.address}</p>
                     </div>
                   )}
                 </CardContent>
               </Card>
             </div>
 
+            {/* Network Infrastructure (BW only) */}
             {vendorType === "bandwidth" && (vendor.networkInterface || vendor.portDetails || vendor.gateway || vendor.dnsServers || vendor.asNumber || vendor.bgpConfig || vendor.routingType) && (
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <div className="p-1.5 rounded-md bg-blue-50 dark:bg-blue-950"><Network className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" /></div>
+                    <div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-950"><Network className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" /></div>
                     Network & Infrastructure
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {vendor.serviceType && (
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Provider Type</p>
-                        <p className="text-sm font-semibold capitalize">{vendor.serviceType}</p>
-                      </div>
-                    )}
-                    {vendor.routingType && (
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Routing Type</p>
-                        <p className="text-sm font-semibold capitalize">{vendor.routingType}</p>
-                      </div>
-                    )}
-                    {vendor.networkInterface && (
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Interface</p>
-                        <p className="text-sm font-mono">{vendor.networkInterface}</p>
-                      </div>
-                    )}
-                    {vendor.portDetails && (
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Port / Slot</p>
-                        <p className="text-sm font-mono">{vendor.portDetails}</p>
-                      </div>
-                    )}
-                    {vendor.gateway && (
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Gateway</p>
-                        <p className="text-sm font-mono">{vendor.gateway}</p>
-                      </div>
-                    )}
-                    {vendor.dnsServers && (
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">DNS Servers</p>
-                        <p className="text-sm font-mono">{vendor.dnsServers}</p>
-                      </div>
-                    )}
-                    {vendor.asNumber && (
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">ASN</p>
-                        <p className="text-sm font-mono font-semibold">{vendor.asNumber}</p>
-                      </div>
-                    )}
-                    {vendor.bgpConfig && (
-                      <div className="bg-muted/50 rounded-lg p-3 col-span-2 md:col-span-1">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">BGP Config</p>
-                        <p className="text-xs font-mono break-all">{vendor.bgpConfig}</p>
-                      </div>
-                    )}
+                    {vendor.routingType && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Routing Type</p><p className="text-sm font-semibold capitalize">{vendor.routingType}</p></div>}
+                    {vendor.networkInterface && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Interface</p><p className="text-sm font-mono">{vendor.networkInterface}</p></div>}
+                    {vendor.portDetails && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Port / Slot</p><p className="text-sm font-mono">{vendor.portDetails}</p></div>}
+                    {vendor.gateway && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Gateway</p><p className="text-sm font-mono">{vendor.gateway}</p></div>}
+                    {vendor.dnsServers && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">DNS Servers</p><p className="text-sm font-mono">{vendor.dnsServers}</p></div>}
+                    {vendor.asNumber && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">AS Number</p><p className="text-sm font-mono font-semibold">{vendor.asNumber}</p></div>}
+                    {vendor.bgpConfig && <div className="bg-muted/50 rounded-lg p-3 col-span-2"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">BGP Config</p><p className="text-xs font-mono break-all">{vendor.bgpConfig}</p></div>}
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {(vendor.bankName || vendor.bankAccountNumber || vendor.bankAccountTitle) && (
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <div className="p-1.5 rounded-md bg-primary/10"><Landmark className="h-3.5 w-3.5 text-primary" /></div>
-                    Banking Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {vendor.bankName && (
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Bank Name</p>
-                        <p className="text-sm font-semibold">{vendor.bankName}</p>
-                      </div>
-                    )}
-                    {vendor.bankAccountTitle && (
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Account Title</p>
-                        <p className="text-sm font-semibold">{vendor.bankAccountTitle}</p>
-                      </div>
-                    )}
-                    {vendor.bankAccountNumber && (
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Account No.</p>
-                        <p className="text-sm font-mono font-semibold">{vendor.bankAccountNumber}</p>
-                      </div>
-                    )}
-                    {vendor.bankBranchCode && (
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Branch Code</p>
-                        <p className="text-sm font-mono font-semibold">{vendor.bankBranchCode}</p>
-                      </div>
-                    )}
+            {/* Support & SLA */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <div className="p-1.5 rounded-md bg-yellow-100 dark:bg-yellow-950"><Shield className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" /></div>
+                  Support & SLA
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className={`rounded-xl p-4 text-center ${vendor.slaLevel === "enterprise" ? "bg-purple-50 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-900" : vendor.slaLevel === "premium" ? "bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900" : "bg-muted/50"}`}>
+                    <Star className={`h-7 w-7 mx-auto mb-1.5 ${vendor.slaLevel === "enterprise" ? "text-purple-600 dark:text-purple-400" : vendor.slaLevel === "premium" ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} />
+                    <p className={`text-base font-bold capitalize ${vendor.slaLevel === "enterprise" ? "text-purple-700 dark:text-purple-300" : vendor.slaLevel === "premium" ? "text-blue-700 dark:text-blue-300" : ""}`}>{vendor.slaLevel || "Standard"} SLA</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{vendor.slaLevel === "enterprise" ? "Dedicated account manager" : vendor.slaLevel === "premium" ? "Enhanced support" : "Standard response times"}</p>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+                  <div className="bg-muted/50 rounded-xl p-4 text-center">
+                    <Headphones className="h-7 w-7 mx-auto mb-1.5 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">Response Time</p>
+                    <p className="text-base font-bold mt-0.5">{vendor.slaLevel === "enterprise" ? "1 hour" : vendor.slaLevel === "premium" ? "4 hours" : "24 hours"}</p>
+                  </div>
+                  <div className="bg-muted/50 rounded-xl p-4 text-center">
+                    <CheckCircle className="h-7 w-7 mx-auto mb-1.5 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">Resolution Time</p>
+                    <p className="text-base font-bold mt-0.5">{vendor.slaLevel === "enterprise" ? "4 hours" : vendor.slaLevel === "premium" ? "24 hours" : "72 hours"}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
-          {/* ─ Connectivity / Panel Info ─ */}
-          <TabsContent value="connectivity" className="space-y-4 mt-0">
+          {/* ─── BW LINKS / PANEL LINKS ─── */}
+          <TabsContent value="links" className="space-y-4 mt-0">
             {vendorType === "bandwidth" ? (
               <>
                 <div className="grid grid-cols-3 gap-3">
                   <Card>
                     <CardContent className="pt-4 pb-3 px-4">
-                      <div className="flex items-center gap-2 mb-1"><div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-950"><Network className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" /></div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Links</p></div>
+                      <div className="flex items-center gap-2 mb-1.5"><div className="p-1.5 rounded-md bg-blue-100 dark:bg-blue-950"><Network className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" /></div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Links</p></div>
                       <p className="text-2xl font-bold">{bwLinks.length}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{bwLinks.filter(l => l.status === "active").length} active</p>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-4 pb-3 px-4">
-                      <div className="flex items-center gap-2 mb-1"><div className="p-1.5 rounded-md bg-cyan-100 dark:bg-cyan-950"><Zap className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" /></div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Bandwidth</p></div>
+                      <div className="flex items-center gap-2 mb-1.5"><div className="p-1.5 rounded-md bg-cyan-100 dark:bg-cyan-950"><Zap className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" /></div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Bandwidth</p></div>
                       <p className="text-2xl font-bold">{totalMbps} <span className="text-sm font-normal text-muted-foreground">Mbps</span></p>
                     </CardContent>
                   </Card>
                   <Card>
                     <CardContent className="pt-4 pb-3 px-4">
-                      <div className="flex items-center gap-2 mb-1"><div className="p-1.5 rounded-md bg-indigo-100 dark:bg-indigo-950"><DollarSign className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" /></div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Monthly Cost</p></div>
+                      <div className="flex items-center gap-2 mb-1.5"><div className="p-1.5 rounded-md bg-indigo-100 dark:bg-indigo-950"><DollarSign className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" /></div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Monthly Cost</p></div>
                       <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{formatPKR(totalMonthlyCost)}</p>
                     </CardContent>
                   </Card>
@@ -846,13 +954,7 @@ export default function VendorProfilePage() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <CardTitle className="text-sm flex items-center gap-2"><Network className="h-4 w-4 text-primary" />Bandwidth Links ({bwLinks.length})</CardTitle>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs gap-1.5 border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950"
-                        onClick={() => { setOutstandingForm({ amount: "", bwLinkName: "", period: "", notes: "" }); setOutstandingOpen(true); }}
-                        data-testid="button-add-outstanding"
-                      >
+                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-400 dark:hover:bg-orange-950" onClick={() => { setOutstandingForm({ amount: "", bwLinkName: "", period: "", notes: "" }); setOutstandingOpen(true); }} data-testid="button-add-outstanding">
                         <AlertCircle className="h-3.5 w-3.5" />Add Old Outstanding
                       </Button>
                     </div>
@@ -888,35 +990,33 @@ export default function VendorProfilePage() {
                                 return { amount: (Number(link.totalMonthlyCost) / daysInMonth * remainingDays).toFixed(2), remainingDays, daysInMonth };
                               })() : null;
                               return (
-                              <TableRow key={link.id}>
-                                <TableCell className="text-sm font-medium">{link.linkName}</TableCell>
-                                <TableCell className="text-sm">{[link.popLocation, link.city].filter(Boolean).join(" / ") || "—"}</TableCell>
-                                <TableCell className="font-mono text-xs">{[link.ipAddress, link.vlanDetail].filter(Boolean).join(" / ") || "—"}</TableCell>
-                                <TableCell className="text-sm font-bold text-blue-600 dark:text-blue-400">{link.bandwidthMbps} Mbps</TableCell>
-                                <TableCell className="text-sm font-bold">{formatPKR(link.totalMonthlyCost)}</TableCell>
-                                <TableCell>
-                                  {link.billingType === "pro_rata" && proRataInfo ? (
-                                    <div>
-                                      <Badge variant="outline" className="text-[10px] text-orange-600 border-orange-300 no-default-active-elevate">Pro-Rata</Badge>
-                                      <div className="text-[10px] text-orange-600 mt-0.5">{formatPKR(proRataInfo.amount)}</div>
-                                    </div>
-                                  ) : (
-                                    <Badge variant="outline" className="text-[10px] text-green-600 border-green-300 no-default-active-elevate">Full Month</Badge>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-xs">{link.startDate || "—"}</TableCell>
-                                <TableCell><Badge variant={link.status === "active" ? "default" : "secondary"} className="text-[10px] no-default-active-elevate capitalize">{link.status}</Badge></TableCell>
-                              </TableRow>
-                            );})}
-
+                                <TableRow key={link.id}>
+                                  <TableCell className="text-sm font-medium">{link.linkName}</TableCell>
+                                  <TableCell className="text-sm">{[link.popLocation, link.city].filter(Boolean).join(" / ") || "—"}</TableCell>
+                                  <TableCell className="font-mono text-xs">{[link.ipAddress, link.vlanDetail].filter(Boolean).join(" / ") || "—"}</TableCell>
+                                  <TableCell className="text-sm font-bold text-blue-600 dark:text-blue-400">{link.bandwidthMbps} Mbps</TableCell>
+                                  <TableCell className="text-sm font-bold">{formatPKR(link.totalMonthlyCost)}</TableCell>
+                                  <TableCell>
+                                    {link.billingType === "pro_rata" && proRataInfo ? (
+                                      <div>
+                                        <Badge variant="outline" className="text-[10px] text-orange-600 border-orange-300 no-default-active-elevate">Pro-Rata</Badge>
+                                        <div className="text-[10px] text-orange-600 mt-0.5">{formatPKR(proRataInfo.amount)}</div>
+                                      </div>
+                                    ) : (
+                                      <Badge variant="outline" className="text-[10px] text-green-600 border-green-300 no-default-active-elevate">Full Month</Badge>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="text-xs">{link.startDate || "—"}</TableCell>
+                                  <TableCell><Badge variant={link.status === "active" ? "default" : "secondary"} className="text-[10px] no-default-active-elevate capitalize">{link.status}</Badge></TableCell>
+                                </TableRow>
+                              );
+                            })}
                             {bwLinks.length > 1 && (
                               <TableRow className="font-bold bg-muted/60">
                                 <TableCell colSpan={3} className="text-xs font-bold">TOTALS</TableCell>
                                 <TableCell className="text-sm font-bold text-blue-600 dark:text-blue-400">{totalMbps} Mbps</TableCell>
                                 <TableCell className="text-sm font-bold text-blue-600 dark:text-blue-400">{formatPKR(totalMonthlyCost)}</TableCell>
-                                <TableCell />
-                                <TableCell />
-                                <TableCell />
+                                <TableCell /><TableCell /><TableCell />
                               </TableRow>
                             )}
                           </TableBody>
@@ -927,47 +1027,78 @@ export default function VendorProfilePage() {
                       <div className="mt-3 space-y-2 pt-2 border-t">
                         <p className="text-xs font-medium text-muted-foreground">Notes:</p>
                         {bwLinks.filter(l => l.notes).map(link => (
-                          <div key={link.id} className="text-xs bg-muted/40 rounded p-2.5">
-                            <span className="font-medium">{link.linkName}:</span> {link.notes}
-                          </div>
+                          <div key={link.id} className="text-xs bg-muted/40 rounded p-2.5"><span className="font-medium">{link.linkName}:</span> {link.notes}</div>
                         ))}
                       </div>
                     )}
                   </CardContent>
                 </Card>
+
+                {/* Per-link network detail cards */}
+                {bwLinks.some(l => l.networkInterface || l.gateway || l.asNumber || l.routingType || l.dnsServers) && (
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2.5">Network Infrastructure Details (per link)</p>
+                    <div className="space-y-3">
+                      {bwLinks.filter(l => l.networkInterface || l.gateway || l.asNumber || l.routingType || l.dnsServers).map(link => (
+                        <Card key={link.id} className="border-l-4 border-l-blue-500">
+                          <CardHeader className="pb-2 pt-3">
+                            <CardTitle className="text-sm flex items-center gap-2"><Network className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />{link.linkName}</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                              {link.routingType && <div className="bg-muted/50 rounded-lg p-2.5"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Routing</p><p className="text-xs font-semibold capitalize">{link.routingType}</p></div>}
+                              {link.networkInterface && <div className="bg-muted/50 rounded-lg p-2.5"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Interface</p><p className="text-xs font-mono">{link.networkInterface}</p></div>}
+                              {link.gateway && <div className="bg-muted/50 rounded-lg p-2.5"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Gateway</p><p className="text-xs font-mono">{link.gateway}</p></div>}
+                              {link.dnsServers && <div className="bg-muted/50 rounded-lg p-2.5"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">DNS</p><p className="text-xs font-mono">{link.dnsServers}</p></div>}
+                              {link.asNumber && <div className="bg-muted/50 rounded-lg p-2.5"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">ASN</p><p className="text-xs font-mono font-semibold">{link.asNumber}</p></div>}
+                              {link.bgpConfig && <div className="bg-muted/50 rounded-lg p-2.5 col-span-2"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">BGP Config</p><p className="text-xs font-mono break-all">{link.bgpConfig}</p></div>}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <Card>
                   <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Wifi className="h-4 w-4 text-primary" />Service Summary</CardTitle></CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-3 gap-3">
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Contracted Bandwidth</p>
-                        <p className="text-sm font-semibold">{vendor.totalBandwidth || "—"}</p>
-                      </div>
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Used Bandwidth</p>
-                        <p className="text-sm font-semibold">{vendor.usedBandwidth || "—"}</p>
-                      </div>
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Billing Cost</p>
-                        <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">{formatPKR(vendor.bandwidthCost)}</p>
-                      </div>
+                      <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Contracted BW</p><p className="text-sm font-semibold">{vendor.totalBandwidth || `${totalMbps} Mbps`}</p></div>
+                      <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Used Bandwidth</p><p className="text-sm font-semibold">{vendor.usedBandwidth || "—"}</p></div>
+                      <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Billing Cost</p><p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">{formatPKR(vendor.bandwidthCost)}</p></div>
                     </div>
                   </CardContent>
                 </Card>
               </>
             ) : (
-              <div className="space-y-4">
-                {/* Panel Links Table */}
+              <>
+                <div className="grid grid-cols-3 gap-3">
+                  <Card>
+                    <CardContent className="pt-4 pb-3 px-4">
+                      <div className="flex items-center gap-2 mb-1.5"><div className="p-1.5 rounded-md bg-cyan-100 dark:bg-cyan-950"><Globe className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" /></div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Links</p></div>
+                      <p className="text-2xl font-bold">{panelLinks.length}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">{panelLinks.filter(l => l.status === "active").length} active</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-4 pb-3 px-4">
+                      <div className="flex items-center gap-2 mb-1.5"><div className="p-1.5 rounded-md bg-purple-100 dark:bg-purple-950"><Wallet className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" /></div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Panel Balance</p></div>
+                      <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{formatPKR(panelLinks.reduce((s, pl) => s + Number(pl.walletBalance || 0), 0))}</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="pt-4 pb-3 px-4">
+                      <div className="flex items-center gap-2 mb-1.5"><div className="p-1.5 rounded-md bg-indigo-100 dark:bg-indigo-950"><DollarSign className="h-3.5 w-3.5 text-indigo-600 dark:text-indigo-400" /></div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Monthly Fees</p></div>
+                      <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">{formatPKR(panelLinks.reduce((s, pl) => s + Number(pl.monthlyFee || 0), 0))}</p>
+                    </CardContent>
+                  </Card>
+                </div>
                 <Card>
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <Link2 className="h-4 w-4 text-primary" />
-                        Panel Links ({panelLinks.length})
-                      </CardTitle>
-                      <Button size="sm" className="gap-1.5 h-7 text-xs" onClick={openAddPl} data-testid="button-add-panel-link">
-                        <Plus className="h-3.5 w-3.5" />Add Link
-                      </Button>
+                      <CardTitle className="text-sm flex items-center gap-2"><Link2 className="h-4 w-4 text-primary" />Panel Links ({panelLinks.length})</CardTitle>
+                      <Button size="sm" className="gap-1.5 h-7 text-xs" onClick={openAddPl} data-testid="button-add-panel-link"><Plus className="h-3.5 w-3.5" />Add Link</Button>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -1007,17 +1138,11 @@ export default function VendorProfilePage() {
                                 <TableCell className="text-xs">{pl.city || "—"}</TableCell>
                                 <TableCell className={`text-sm font-bold ${Number(pl.walletBalance) >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>{formatPKR(pl.walletBalance)}</TableCell>
                                 <TableCell className="text-sm">{formatPKR(pl.monthlyFee)}</TableCell>
-                                <TableCell>
-                                  <Badge variant={pl.status === "active" ? "default" : "secondary"} className="text-[10px] no-default-active-elevate capitalize">{pl.status}</Badge>
-                                </TableCell>
+                                <TableCell><Badge variant={pl.status === "active" ? "default" : "secondary"} className="text-[10px] no-default-active-elevate capitalize">{pl.status}</Badge></TableCell>
                                 <TableCell>
                                   <div className="flex gap-1">
-                                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => openEditPl(pl)} data-testid={`button-edit-panel-link-${pl.id}`}>
-                                      <Edit className="h-3.5 w-3.5" />
-                                    </Button>
-                                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500 hover:text-red-600" onClick={() => setPlDeleteId(pl.id)} data-testid={`button-delete-panel-link-${pl.id}`}>
-                                      <Trash2 className="h-3.5 w-3.5" />
-                                    </Button>
+                                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => openEditPl(pl)} data-testid={`button-edit-panel-link-${pl.id}`}><Edit className="h-3.5 w-3.5" /></Button>
+                                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500 hover:text-red-600" onClick={() => setPlDeleteId(pl.id)} data-testid={`button-delete-panel-link-${pl.id}`}><Trash2 className="h-3.5 w-3.5" /></Button>
                                   </div>
                                 </TableCell>
                               </TableRow>
@@ -1030,46 +1155,106 @@ export default function VendorProfilePage() {
                       <div className="mt-3 space-y-2 pt-2 border-t">
                         <p className="text-xs font-medium text-muted-foreground">Notes:</p>
                         {panelLinks.filter(pl => pl.notes).map(pl => (
-                          <div key={pl.id} className="text-xs bg-muted/40 rounded p-2.5">
-                            <span className="font-medium">{pl.panelName}:</span> {pl.notes}
-                          </div>
+                          <div key={pl.id} className="text-xs bg-muted/40 rounded p-2.5"><span className="font-medium">{pl.panelName}:</span> {pl.notes}</div>
                         ))}
                       </div>
                     )}
                   </CardContent>
                 </Card>
-
-                {/* Wallet Summary */}
                 <Card>
-                  <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Wallet className="h-4 w-4 text-primary" />Wallet Summary</CardTitle></CardHeader>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><Wallet className="h-4 w-4 text-primary" />Vendor Wallet Summary</CardTitle></CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-3 gap-3">
-                      <div className="text-center bg-purple-50 dark:bg-purple-950/40 rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Vendor Balance</p>
-                        <p className={`text-xl font-bold ${walletBalance >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>{formatPKR(walletBalance)}</p>
-                      </div>
-                      <div className="text-center bg-green-50 dark:bg-green-950/40 rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Total In</p>
-                        <p className="text-xl font-bold text-green-600 dark:text-green-400">{formatPKR(totalRecharged)}</p>
-                      </div>
-                      <div className="text-center bg-red-50 dark:bg-red-950/40 rounded-lg p-3">
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Total Out</p>
-                        <p className="text-xl font-bold text-red-600 dark:text-red-400">{formatPKR(totalDebited)}</p>
-                      </div>
+                      <div className="text-center bg-purple-50 dark:bg-purple-950/40 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Vendor Balance</p><p className={`text-xl font-bold ${walletBalance >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>{formatPKR(walletBalance)}</p></div>
+                      <div className="text-center bg-green-50 dark:bg-green-950/40 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Total In</p><p className="text-xl font-bold text-green-600 dark:text-green-400">{formatPKR(totalRecharged)}</p></div>
+                      <div className="text-center bg-red-50 dark:bg-red-950/40 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Total Out</p><p className="text-xl font-bold text-red-600 dark:text-red-400">{formatPKR(totalDebited)}</p></div>
                     </div>
                   </CardContent>
                 </Card>
-              </div>
+              </>
             )}
           </TabsContent>
 
-          {/* ─ Accounting ─ */}
-          <TabsContent value="accounting" className="space-y-4 mt-0">
+          {/* ─── PACKAGES (panel only) ─── */}
+          {vendorType === "panel" && (
+            <TabsContent value="packages" className="mt-0">
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <CardTitle className="text-sm flex items-center gap-2"><Package className="h-4 w-4 text-primary" />Packages ({pkgs.length})</CardTitle>
+                    <div className="flex items-center gap-2">
+                      {pkgs.length > 0 && (
+                        <Badge variant="secondary" className="no-default-active-elevate text-xs text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950">
+                          Avg Margin: {formatPKR(pkgs.reduce((s, p) => s + Number(p.ispSellingPrice || 0) - Number(p.vendorPrice || 0), 0) / pkgs.length)}
+                        </Badge>
+                      )}
+                      <Button size="sm" className="gap-1.5 h-7 text-xs" onClick={openAddPkg} data-testid="button-profile-add-package"><Plus className="h-3.5 w-3.5" />Add Package</Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {pkgs.length === 0 ? (
+                    <div className="text-center py-10 text-muted-foreground">
+                      <Package className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                      <p className="text-sm">No packages assigned to this vendor</p>
+                      <Button size="sm" variant="outline" className="mt-3 gap-1.5" onClick={openAddPkg} data-testid="button-profile-add-first-package"><Plus className="h-3.5 w-3.5" />Add First Package</Button>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs">Package Name</TableHead>
+                            <TableHead className="text-xs">Panel Link</TableHead>
+                            <TableHead className="text-xs">Speed</TableHead>
+                            <TableHead className="text-xs">Vendor Price</TableHead>
+                            <TableHead className="text-xs">ISP Price</TableHead>
+                            <TableHead className="text-xs">Reseller Price</TableHead>
+                            <TableHead className="text-xs">Data Limit</TableHead>
+                            <TableHead className="text-xs">Validity</TableHead>
+                            <TableHead className="text-xs">Margin</TableHead>
+                            <TableHead className="text-xs">Status</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {pkgs.map(pkg => {
+                            const margin = Number(pkg.ispSellingPrice || 0) - Number(pkg.vendorPrice || 0);
+                            const linkedPanel = pkg.panelLinkId ? panelLinks.find(pl => pl.id === pkg.panelLinkId) : null;
+                            return (
+                              <TableRow key={pkg.id}>
+                                <TableCell className="text-sm font-medium">{pkg.packageName}</TableCell>
+                                <TableCell className="text-sm">
+                                  {linkedPanel ? (
+                                    <div className="flex flex-col"><span className="font-medium text-xs">{linkedPanel.panelName}</span>{linkedPanel.city && <span className="text-[10px] text-muted-foreground">{linkedPanel.city}</span>}</div>
+                                  ) : <span className="text-muted-foreground">—</span>}
+                                </TableCell>
+                                <TableCell className="text-sm">{pkg.speed || "—"}</TableCell>
+                                <TableCell className="text-sm">{formatPKR(pkg.vendorPrice)}</TableCell>
+                                <TableCell className="text-sm">{formatPKR(pkg.ispSellingPrice)}</TableCell>
+                                <TableCell className="text-sm">{pkg.resellerPrice ? formatPKR(pkg.resellerPrice) : "—"}</TableCell>
+                                <TableCell className="text-sm">{pkg.dataLimit || "Unlimited"}</TableCell>
+                                <TableCell className="text-sm">{pkg.validity || "—"}</TableCell>
+                                <TableCell className={`text-sm font-semibold ${margin >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{formatPKR(margin)}</TableCell>
+                                <TableCell><Badge variant={pkg.isActive !== false ? "default" : "secondary"} className="text-[10px] no-default-active-elevate capitalize">{pkg.isActive !== false ? "Active" : "Inactive"}</Badge></TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {/* ─── FINANCIAL ─── */}
+          <TabsContent value="financial" className="space-y-4 mt-0">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Card>
                 <CardContent className="pt-4 pb-3 px-4">
-                  <div className="flex items-center gap-2 mb-2"><div className="p-1.5 rounded-md bg-green-100 dark:bg-green-950"><Wallet className="h-3.5 w-3.5 text-green-600 dark:text-green-400" /></div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Wallet Balance</p></div>
-                  <p className={`text-xl font-bold ${walletBalance >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{formatPKR(walletBalance)}</p>
+                  <div className="flex items-center gap-2 mb-2"><div className="p-1.5 rounded-md bg-purple-100 dark:bg-purple-950"><Wallet className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" /></div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Wallet Balance</p></div>
+                  <p className={`text-xl font-bold ${walletBalance >= 0 ? "text-purple-600 dark:text-purple-400" : "text-red-600 dark:text-red-400"}`}>{formatPKR(walletBalance)}</p>
                 </CardContent>
               </Card>
               <Card>
@@ -1092,9 +1277,88 @@ export default function VendorProfilePage() {
               </Card>
             </div>
 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <div className="p-1.5 rounded-md bg-yellow-100 dark:bg-yellow-950"><FileText className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" /></div>
+                    Contract Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Contract Type</p><p className="text-sm font-semibold capitalize">{vendor.contractType || "—"}</p></div>
+                    <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">SLA Level</p><p className={`text-sm font-semibold capitalize ${vendor.slaLevel === "enterprise" ? "text-purple-600 dark:text-purple-400" : vendor.slaLevel === "premium" ? "text-blue-600 dark:text-blue-400" : ""}`}>{vendor.slaLevel || "Standard"}</p></div>
+                    <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Start Date</p><p className="text-sm font-medium">{vendor.contractStartDate || "—"}</p></div>
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">End Date</p>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        <p className="text-sm font-medium">{vendor.contractEndDate || "—"}</p>
+                        {contractDiff !== null && (
+                          contractDiff < 0
+                            ? <Badge variant="secondary" className="no-default-active-elevate text-[10px] text-red-600 bg-red-50 dark:text-red-300 dark:bg-red-950">Expired</Badge>
+                            : contractDiff <= 30
+                              ? <Badge variant="secondary" className="no-default-active-elevate text-[10px] text-amber-600 bg-amber-50 dark:text-amber-300 dark:bg-amber-950">{contractDiff}d left</Badge>
+                              : <Badge variant="secondary" className="no-default-active-elevate text-[10px] text-green-600 bg-green-50 dark:text-green-300 dark:bg-green-950">{contractDiff}d left</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Payment Terms</p><p className="text-sm font-semibold">{vendor.paymentTerms === "net30" ? "Net 30 Days" : vendor.paymentTerms === "net15" ? "Net 15 Days" : vendor.paymentTerms === "net45" ? "Net 45 Days" : vendor.paymentTerms === "advance" ? "Advance Payment" : vendor.paymentTerms === "on_delivery" ? "On Delivery" : vendor.paymentTerms || "—"}</p></div>
+                  {vendor.autoRenewal && (
+                    <div className="flex items-center gap-2 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-2.5">
+                      <CheckCircle className="h-3.5 w-3.5 text-green-600 dark:text-green-400 shrink-0" />
+                      <p className="text-xs text-green-700 dark:text-green-300 font-medium">Auto-Renewal Enabled</p>
+                    </div>
+                  )}
+                  {vendor.penaltyClause && (
+                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                      <p className="text-[10px] text-amber-700 dark:text-amber-300 uppercase tracking-wider mb-1">Penalty / SLA Notes</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-300">{vendor.penaltyClause}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <div className="p-1.5 rounded-md bg-primary/10"><History className="h-3.5 w-3.5 text-primary" /></div>
+                    Transaction Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div className="bg-muted/50 rounded-lg p-3 text-center"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Total Transactions</p><p className="text-2xl font-bold">{transactions.length}</p></div>
+                    <div className="bg-green-50 dark:bg-green-950/40 rounded-lg p-3 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Payments In</p>
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">{transactions.filter(t => t.type === "recharge" || t.type === "credit").length}</p>
+                      <p className="text-[10px] text-green-600 dark:text-green-400">{formatPKR(totalRecharged)}</p>
+                    </div>
+                    <div className="bg-red-50 dark:bg-red-950/40 rounded-lg p-3 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Deductions</p>
+                      <p className="text-2xl font-bold text-red-600 dark:text-red-400">{transactions.filter(t => t.type === "debit" || t.type === "deduct").length}</p>
+                      <p className="text-[10px] text-red-600 dark:text-red-400">{formatPKR(totalDebited - totalOutstanding)}</p>
+                    </div>
+                    <div className="bg-orange-50 dark:bg-orange-950/40 rounded-lg p-3 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Outstanding</p>
+                      <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{transactions.filter(t => t.type === "outstanding").length}</p>
+                      <p className="text-[10px] text-orange-600 dark:text-orange-400">{formatPKR(totalOutstanding)}</p>
+                    </div>
+                  </div>
+                  {vendorType === "bandwidth" && (
+                    <div className="bg-indigo-50 dark:bg-indigo-950/40 rounded-lg p-3 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Monthly Cost (All Links)</p>
+                      <p className="text-xl font-bold text-indigo-600 dark:text-indigo-400">{formatPKR(totalMonthlyCost)}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
             {vendorType === "bandwidth" && bwLinks.length > 0 && (
               <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><BarChart3 className="h-4 w-4 text-primary" />Monthly Cost Breakdown</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><BarChart3 className="h-4 w-4 text-primary" />Monthly Cost Breakdown by Link</CardTitle></CardHeader>
                 <CardContent>
                   <div className="overflow-x-auto">
                     <Table>
@@ -1141,36 +1405,74 @@ export default function VendorProfilePage() {
                 </CardContent>
               </Card>
             )}
-
-            <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><History className="h-4 w-4 text-primary" />Transaction Summary</CardTitle></CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  <div className="bg-muted/50 rounded-lg p-3 text-center">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Total Transactions</p>
-                    <p className="text-2xl font-bold">{transactions.length}</p>
-                  </div>
-                  <div className="bg-green-50 dark:bg-green-950/40 rounded-lg p-3 text-center">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Payments In</p>
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">{transactions.filter(t => t.type === "recharge" || t.type === "credit").length}</p>
-                    <p className="text-[10px] text-green-600 dark:text-green-400">{formatPKR(totalRecharged)}</p>
-                  </div>
-                  <div className="bg-red-50 dark:bg-red-950/40 rounded-lg p-3 text-center">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Deductions</p>
-                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">{transactions.filter(t => t.type === "debit" || t.type === "deduct").length}</p>
-                    <p className="text-[10px] text-red-600 dark:text-red-400">{formatPKR(totalDebited - totalOutstanding)}</p>
-                  </div>
-                  <div className="bg-orange-50 dark:bg-orange-950/40 rounded-lg p-3 text-center">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Outstanding</p>
-                    <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{transactions.filter(t => t.type === "outstanding").length}</p>
-                    <p className="text-[10px] text-orange-600 dark:text-orange-400">{formatPKR(totalOutstanding)}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
-          {/* ─ Transactions ─ */}
+          {/* ─── BANKING ─── */}
+          <TabsContent value="banking" className="space-y-4 mt-0">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <div className="p-1.5 rounded-md bg-primary/10"><Landmark className="h-3.5 w-3.5 text-primary" /></div>
+                  Bank Account Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!(vendor.bankName || vendor.bankAccountNumber || vendor.bankAccountTitle) ? (
+                  <div className="text-center py-10 text-muted-foreground">
+                    <Landmark className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                    <p className="text-sm">No banking details on file</p>
+                    <Button size="sm" variant="outline" className="mt-3 gap-1.5" onClick={openEditVendor} data-testid="button-add-banking-details"><Edit className="h-3.5 w-3.5" />Add Banking Details</Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      {vendor.bankName && (
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900">
+                          <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900 flex items-center justify-center shrink-0"><Landmark className="h-5 w-5 text-blue-600 dark:text-blue-400" /></div>
+                          <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Bank Name</p><p className="text-sm font-bold">{vendor.bankName}</p></div>
+                        </div>
+                      )}
+                      {vendor.bankAccountTitle && (
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/40">
+                          <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0"><User className="h-5 w-5 text-muted-foreground" /></div>
+                          <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Account Title</p><p className="text-sm font-bold">{vendor.bankAccountTitle}</p></div>
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-3">
+                      {vendor.bankAccountNumber && (
+                        <div className="bg-muted/50 rounded-lg p-3">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Account Number</p>
+                          <p className="text-base font-mono font-bold tracking-wider">{vendor.bankAccountNumber}</p>
+                        </div>
+                      )}
+                      {vendor.bankBranchCode && (
+                        <div className="bg-muted/50 rounded-lg p-3">
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Branch Code</p>
+                          <p className="text-base font-mono font-bold">{vendor.bankBranchCode}</p>
+                        </div>
+                      )}
+                      {vendor.ntn && (
+                        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-100 dark:border-amber-900 rounded-lg p-3">
+                          <p className="text-[10px] text-amber-700 dark:text-amber-300 uppercase tracking-wider mb-1">NTN / Tax ID</p>
+                          <p className="text-base font-mono font-bold text-amber-700 dark:text-amber-300">{vendor.ntn}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+            <div className="bg-muted/30 rounded-xl p-4 border border-muted flex items-start gap-3">
+              <Shield className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-medium">Sensitive Information</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Banking details are stored securely. To update banking information, use the Edit Profile action.</p>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ─── TRANSACTIONS ─── */}
           <TabsContent value="transactions" className="mt-0">
             <Card>
               <CardHeader className="pb-3">
@@ -1232,177 +1534,8 @@ export default function VendorProfilePage() {
               </CardContent>
             </Card>
           </TabsContent>
-
-          {/* ─ Packages (Panel only) ─ */}
-          {vendorType === "panel" && (
-            <TabsContent value="packages" className="mt-0">
-              <Card>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <CardTitle className="text-sm flex items-center gap-2"><Package className="h-4 w-4 text-primary" />Packages ({pkgs.length})</CardTitle>
-                    <div className="flex items-center gap-2">
-                      {pkgs.length > 0 && (
-                        <Badge variant="secondary" className="no-default-active-elevate text-xs text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950">
-                          Avg Margin: {formatPKR(pkgs.reduce((s, p) => s + Number(p.ispSellingPrice || 0) - Number(p.vendorPrice || 0), 0) / pkgs.length)}
-                        </Badge>
-                      )}
-                      <Button
-                        size="sm"
-                        className="gap-1.5 h-7 text-xs"
-                        onClick={openAddPkg}
-                        data-testid="button-profile-add-package"
-                      >
-                        <Plus className="h-3.5 w-3.5" />Add Package
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {pkgs.length === 0 ? (
-                    <div className="text-center py-10 text-muted-foreground">
-                      <Package className="h-10 w-10 mx-auto mb-3 opacity-20" />
-                      <p className="text-sm">No packages assigned to this vendor</p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="mt-3 gap-1.5"
-                        onClick={openAddPkg}
-                        data-testid="button-profile-add-first-package"
-                      >
-                        <Plus className="h-3.5 w-3.5" />Add First Package
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="text-xs">Package Name</TableHead>
-                            <TableHead className="text-xs">Panel Link</TableHead>
-                            <TableHead className="text-xs">Speed</TableHead>
-                            <TableHead className="text-xs">Vendor Price</TableHead>
-                            <TableHead className="text-xs">ISP Price</TableHead>
-                            <TableHead className="text-xs">Reseller Price</TableHead>
-                            <TableHead className="text-xs">Data Limit</TableHead>
-                            <TableHead className="text-xs">Validity</TableHead>
-                            <TableHead className="text-xs">Margin</TableHead>
-                            <TableHead className="text-xs">Status</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {pkgs.map(pkg => {
-                            const margin = Number(pkg.ispSellingPrice || 0) - Number(pkg.vendorPrice || 0);
-                            const linkedPanel = pkg.panelLinkId ? panelLinks.find(pl => pl.id === pkg.panelLinkId) : null;
-                            return (
-                              <TableRow key={pkg.id}>
-                                <TableCell className="text-sm font-medium">{pkg.packageName}</TableCell>
-                                <TableCell className="text-sm">
-                                  {linkedPanel ? (
-                                    <div className="flex flex-col">
-                                      <span className="font-medium text-xs">{linkedPanel.panelName}</span>
-                                      {linkedPanel.city && <span className="text-[10px] text-muted-foreground">{linkedPanel.city}</span>}
-                                    </div>
-                                  ) : <span className="text-muted-foreground">—</span>}
-                                </TableCell>
-                                <TableCell className="text-sm">{pkg.speed || "—"}</TableCell>
-                                <TableCell className="text-sm">{formatPKR(pkg.vendorPrice)}</TableCell>
-                                <TableCell className="text-sm">{formatPKR(pkg.ispSellingPrice)}</TableCell>
-                                <TableCell className="text-sm">{pkg.resellerPrice ? formatPKR(pkg.resellerPrice) : "—"}</TableCell>
-                                <TableCell className="text-sm">{pkg.dataLimit || "Unlimited"}</TableCell>
-                                <TableCell className="text-sm">{pkg.validity || "—"}</TableCell>
-                                <TableCell className={`text-sm font-semibold ${margin >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{formatPKR(margin)}</TableCell>
-                                <TableCell><Badge variant={pkg.isActive !== false ? "default" : "secondary"} className="text-[10px] no-default-active-elevate capitalize">{pkg.isActive !== false ? "Active" : "Inactive"}</Badge></TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
-
-          {/* ─ Support ─ */}
-          <TabsContent value="support" className="space-y-4 mt-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <div className="p-1.5 rounded-md bg-primary/10"><Headphones className="h-3.5 w-3.5 text-primary" /></div>
-                    Support Contact
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2.5">
-                  {vendor.contactPerson && (
-                    <div className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/40">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0"><User className="h-3.5 w-3.5 text-primary" /></div>
-                      <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Primary Contact</p><p className="text-sm font-medium">{vendor.contactPerson}</p></div>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-3 p-2.5 rounded-lg bg-green-50 dark:bg-green-950/40">
-                    <div className="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center shrink-0"><Phone className="h-3.5 w-3.5 text-green-600 dark:text-green-400" /></div>
-                    <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Phone</p><p className="text-sm font-medium">{vendor.phone}</p></div>
-                  </div>
-                  {vendor.email && (
-                    <div className="flex items-center gap-3 p-2.5 rounded-lg bg-blue-50 dark:bg-blue-950/40">
-                      <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center shrink-0"><Mail className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" /></div>
-                      <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Email</p><p className="text-sm font-medium">{vendor.email}</p></div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <div className="p-1.5 rounded-md bg-yellow-100 dark:bg-yellow-950"><Shield className="h-3.5 w-3.5 text-yellow-600 dark:text-yellow-400" /></div>
-                    SLA & Service Level
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className={`rounded-xl p-4 text-center ${vendor.slaLevel === "enterprise" ? "bg-purple-50 dark:bg-purple-950/40 border border-purple-100 dark:border-purple-900" : vendor.slaLevel === "premium" ? "bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900" : "bg-muted/50"}`}>
-                    <Star className={`h-8 w-8 mx-auto mb-2 ${vendor.slaLevel === "enterprise" ? "text-purple-600 dark:text-purple-400" : vendor.slaLevel === "premium" ? "text-blue-600 dark:text-blue-400" : "text-muted-foreground"}`} />
-                    <p className={`text-lg font-bold capitalize ${vendor.slaLevel === "enterprise" ? "text-purple-700 dark:text-purple-300" : vendor.slaLevel === "premium" ? "text-blue-700 dark:text-blue-300" : "text-foreground"}`}>{vendor.slaLevel || "Standard"} SLA</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {vendor.slaLevel === "enterprise" ? "Priority support with dedicated account manager" : vendor.slaLevel === "premium" ? "Enhanced support with faster response times" : "Standard support with regular response times"}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-center text-xs">
-                    <div className="bg-muted/50 rounded-lg p-2.5">
-                      <p className="text-muted-foreground">Response Time</p>
-                      <p className="font-bold mt-0.5">{vendor.slaLevel === "enterprise" ? "1 hour" : vendor.slaLevel === "premium" ? "4 hours" : "24 hours"}</p>
-                    </div>
-                    <div className="bg-muted/50 rounded-lg p-2.5">
-                      <p className="text-muted-foreground">Resolution Time</p>
-                      <p className="font-bold mt-0.5">{vendor.slaLevel === "enterprise" ? "4 hours" : vendor.slaLevel === "premium" ? "24 hours" : "72 hours"}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <div className="p-1.5 rounded-md bg-primary/10"><Headphones className="h-3.5 w-3.5 text-primary" /></div>
-                  Escalation Path
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col sm:flex-row gap-3 text-center text-xs">
-                  {["Level 1 — Contact Person", "Level 2 — Technical Team", "Level 3 — Management"].map((level, i) => (
-                    <div key={i} className="flex-1 bg-muted/50 rounded-lg p-3">
-                      <div className={`w-7 h-7 rounded-full flex items-center justify-center mx-auto mb-2 text-white text-[11px] font-bold ${i === 0 ? "bg-green-500" : i === 1 ? "bg-blue-500" : "bg-purple-500"}`}>{i + 1}</div>
-                      <p className="font-medium">{level.split("—")[0].trim()}</p>
-                      <p className="text-muted-foreground mt-0.5">{level.split("—")[1]?.trim()}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+        </div>
+      </Tabs>
 
       {/* Add/Edit Panel Link Dialog */}
       <Dialog open={plDialogOpen} onOpenChange={setPlDialogOpen}>
