@@ -821,43 +821,6 @@ export default function VendorProfilePage() {
         </Button>
         <span className="text-muted-foreground text-xs hidden sm:block">/ Vendor Profile</span>
         <span className="text-xs font-medium hidden sm:block truncate">{vendor.name}</span>
-        <div className="ml-auto flex items-center gap-2">
-          <Button
-            size="sm"
-            className="gap-1.5 h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white border-0 no-default-hover-elevate"
-            onClick={() => setRechargeOpen(true)}
-            data-testid="button-vendor-profile-recharge"
-          >
-            <ArrowDownLeft className="h-3.5 w-3.5" />{vendorType === "panel" ? "Recharge" : "Send Payment"}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5 h-8 text-xs text-orange-600 border-orange-200 hover:bg-orange-50 dark:border-orange-800 dark:text-orange-400 dark:hover:bg-orange-950/30 no-default-hover-elevate"
-            onClick={() => setDeductOpen(true)}
-            data-testid="button-vendor-profile-deduct"
-          >
-            <ArrowUpRight className="h-3.5 w-3.5" />Deduct
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5 h-8 text-xs"
-            onClick={openEditVendor}
-            data-testid="button-vendor-profile-edit"
-          >
-            <Edit className="h-3.5 w-3.5" />Edit Profile
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="gap-1.5 h-8 text-xs text-red-600 border-red-200 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
-            onClick={() => setDeleteVendorOpen(true)}
-            data-testid="button-vendor-profile-delete"
-          >
-            <Trash2 className="h-3.5 w-3.5" />Delete
-          </Button>
-        </div>
       </div>
 
       {/* Hero Header */}
@@ -936,6 +899,15 @@ export default function VendorProfilePage() {
               data-testid="button-vendor-profile-edit-hero"
             >
               <Edit className="h-3.5 w-3.5 mr-1.5" />Edit Profile
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="no-default-hover-elevate border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950/30"
+              onClick={() => setDeleteVendorOpen(true)}
+              data-testid="button-vendor-profile-delete-hero"
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1.5" />Delete
             </Button>
           </div>
         </div>
