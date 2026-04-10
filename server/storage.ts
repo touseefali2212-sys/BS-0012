@@ -1515,7 +1515,6 @@ export class DatabaseStorage implements IStorage {
     const vendor = await this.getVendor(vendorId);
     if (!vendor) throw new Error("Vendor not found");
     const currentBalance = parseFloat(vendor.walletBalance || "0");
-    if (currentBalance < amount) throw new Error("Insufficient vendor wallet balance");
     const newBalance = currentBalance - amount;
     const now = new Date().toISOString();
     await this.createVendorWalletTransaction({
