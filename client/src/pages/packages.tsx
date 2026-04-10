@@ -37,6 +37,7 @@ import {
   CalendarRange,
   Clock,
   Infinity,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -244,6 +255,7 @@ function TaxExtraFeeTab() {
     },
   });
 
+  const [deletingFeeId, setDeletingFeeId] = useState<number | null>(null);
   const [editFeeType, setEditFeeType] = useState("tax_rate");
   const [editApplyTo, setEditApplyTo] = useState("all");
 
@@ -390,7 +402,7 @@ function TaxExtraFeeTab() {
                           <Button variant="ghost" size="icon" onClick={() => openEditFee(setting)} data-testid={`button-edit-fee-${setting.id}`}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" onClick={() => deleteMutation.mutate(setting.id)} data-testid={`button-delete-fee-${setting.id}`}>
+                          <Button variant="ghost" size="icon" onClick={() => setDeletingFeeId(setting.id)} data-testid={`button-delete-fee-${setting.id}`}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </div>
@@ -403,6 +415,35 @@ function TaxExtraFeeTab() {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={deletingFeeId !== null} onOpenChange={(open) => !open && setDeletingFeeId(null)}>
+        <AlertDialogContent data-testid="dialog-delete-fee">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Delete Tax / Fee
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this tax or fee? This action cannot be undone and may affect billing calculations.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-fee">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete-fee"
+              onClick={() => {
+                if (deletingFeeId !== null) {
+                  deleteMutation.mutate(deletingFeeId);
+                  setDeletingFeeId(null);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-md">
@@ -806,6 +847,7 @@ export default function PackagesPage() {
   const [editingPkg, setEditingPkg] = useState<PkgType | null>(null);
   const [sortField, setSortField] = useState<"name" | "price" | "serviceType">("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [deletingPkgId, setDeletingPkgId] = useState<number | null>(null);
 
   const { data: packages, isLoading } = useQuery<PkgType[]>({ queryKey: ["/api/packages"] });
   const { data: vendors } = useQuery<Vendor[]>({ queryKey: ["/api/vendors"] });
@@ -1133,6 +1175,51 @@ export default function PackagesPage() {
         </div>
       </div>
 
+      <div className="flex items-center gap-1 border-b border-border/60" data-testid="tab-navigation">
+        <button
+          onClick={() => changeTab("list")}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            tab === "list"
+              ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
+              : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+          }`}
+          data-testid="tab-button-list"
+        >
+          <div className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            Packages List
+          </div>
+        </button>
+        <button
+          onClick={() => changeTab("tax")}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            tab === "tax"
+              ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
+              : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+          }`}
+          data-testid="tab-button-tax"
+        >
+          <div className="flex items-center gap-2">
+            <Receipt className="h-4 w-4" />
+            Tax & Extra Fee
+          </div>
+        </button>
+        <button
+          onClick={() => changeTab("reseller")}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            tab === "reseller"
+              ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
+              : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+          }`}
+          data-testid="tab-button-reseller"
+        >
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Reseller Packages
+          </div>
+        </button>
+      </div>
+
       {tab === "list" && (
         <div className="space-y-5" data-testid="tab-content-list">
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
@@ -1379,7 +1466,7 @@ export default function PackagesPage() {
                               )}
                               {canDelete("packages") && (
                                 <button
-                                  onClick={() => deleteMutation.mutate(pkg.id)}
+                                  onClick={() => setDeletingPkgId(pkg.id)}
                                   className="flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors"
                                   data-testid={`button-delete-pkg-${pkg.id}`}
                                 >
@@ -1410,6 +1497,35 @@ export default function PackagesPage() {
           <ResellerPackagesTab packages={mergedPackages} isLoading={isLoading} customers={allCustomers} />
         </div>
       )}
+
+      <AlertDialog open={deletingPkgId !== null} onOpenChange={(open) => !open && setDeletingPkgId(null)}>
+        <AlertDialogContent data-testid="dialog-delete-package">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Delete Package
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this package? This action cannot be undone. Any customers currently assigned to this package may be affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-pkg">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-confirm-delete-pkg"
+              onClick={() => {
+                if (deletingPkgId !== null) {
+                  deleteMutation.mutate(deletingPkgId);
+                  setDeletingPkgId(null);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
