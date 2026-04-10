@@ -40,6 +40,7 @@ import {
   Server,
   Layers,
   GitBranch,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -1415,6 +1416,7 @@ export default function VendorProfilePage() {
                                   <TableCell><Badge variant={link.status === "active" ? "default" : "secondary"} className="text-[10px] no-default-active-elevate capitalize">{link.status}</Badge></TableCell>
                                   <TableCell onClick={e => e.stopPropagation()}>
                                     <div className="flex gap-1">
+                                      <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 dark:text-blue-400" onClick={() => setSelectedBwLink(link)} data-testid={`button-view-bwlink-${link.id}`} title="View Link Detail"><Eye className="h-3.5 w-3.5" /></Button>
                                       <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => openEditBwLink(link)} data-testid={`button-edit-bwlink-${link.id}`}><Edit className="h-3.5 w-3.5" /></Button>
                                       <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500 hover:text-red-600" onClick={async () => { if (confirm(`Delete link "${link.linkName}"?`)) { await apiRequest("DELETE", `/api/vendor-bandwidth-links/${link.id}`); queryClient.invalidateQueries({ queryKey: ["/api/vendor-bandwidth-links"] }); toast({ title: "Link deleted" }); } }} data-testid={`button-delete-bwlink-${link.id}`}><Trash2 className="h-3.5 w-3.5" /></Button>
                                     </div>
@@ -3383,15 +3385,12 @@ export default function VendorProfilePage() {
         </DialogContent>
       </Dialog>
 
-      {/* BW Link Detail Dialog */}
+      {/* BW Link Detail Dialog — shows ALL fields */}
       <Dialog open={!!selectedBwLink} onOpenChange={open => { if (!open) setSelectedBwLink(null); }}>
         <DialogContent className="max-w-2xl max-h-[88vh] overflow-hidden p-0 gap-0">
           {selectedBwLink && (() => {
             const link = selectedBwLink;
             const isDplcLink = link.serviceType === "dplc";
-            const hasNetwork = isDplcLink
-              ? (link.networkInterface || link.portDetails || link.gateway || link.asNumber || link.dnsServers || link.bgpConfig)
-              : (link.networkInterface || link.gateway || link.dnsServers || link.asNumber || link.bgpConfig || (link.routingType && link.routingType !== "static"));
             const proRataInfo = link.billingType === "pro_rata" && link.startDate && link.totalMonthlyCost ? (() => {
               const start = new Date(link.startDate);
               if (isNaN(start.getTime())) return null;
@@ -3399,58 +3398,103 @@ export default function VendorProfilePage() {
               const remainingDays = daysInMonth - start.getDate() + 1;
               return { amount: (Number(link.totalMonthlyCost) / daysInMonth * remainingDays).toFixed(2), remainingDays, daysInMonth };
             })() : null;
+            const DetailField = ({ label, value, mono, accent }: { label: string; value: string | number | null | undefined; mono?: boolean; accent?: string }) => (
+              <div className={`rounded-lg p-3 ${accent || "bg-muted/50"}`}>
+                <p className={`text-[10px] uppercase tracking-wider mb-0.5 ${accent ? "font-semibold" : "text-muted-foreground"}`}>{label}</p>
+                <p className={`text-sm ${mono ? "font-mono" : ""} ${value ? "font-medium" : "text-muted-foreground italic"}`}>{value || "—"}</p>
+              </div>
+            );
             return (
               <>
                 {/* Header */}
-                <div className="vendor-page-header px-5 py-4 rounded-t-lg shrink-0 border-b">
+                <div className={`px-5 py-4 rounded-t-lg shrink-0 border-b ${isDplcLink ? "bg-gradient-to-r from-violet-50 to-violet-100/50 dark:from-violet-950/40 dark:to-violet-900/20" : "vendor-page-header"}`}>
                   <div className="flex items-center gap-4">
-                    <div className="h-11 w-11 rounded-xl bg-primary/10 flex items-center justify-center border-2 border-primary/20 shrink-0">
-                      <GitBranch className="h-5 w-5 text-primary" />
+                    <div className={`h-11 w-11 rounded-xl flex items-center justify-center border-2 shrink-0 ${isDplcLink ? "bg-violet-600/10 border-violet-300 dark:border-violet-700" : "bg-primary/10 border-primary/20"}`}>
+                      <GitBranch className={`h-5 w-5 ${isDplcLink ? "text-violet-600 dark:text-violet-400" : "text-primary"}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h2 className="text-base font-bold truncate">{link.linkName}</h2>
+                      <h2 className="text-base font-bold truncate flex items-center gap-2" data-testid="text-bwlink-detail-name">
+                        {link.linkName}
+                        {isDplcLink && <Badge variant="outline" className="no-default-active-elevate text-[10px] text-violet-600 dark:text-violet-400 border-violet-300 dark:border-violet-700">DPLC</Badge>}
+                      </h2>
                       <div className="flex items-center gap-3 mt-0.5 flex-wrap">
-                        <span className="text-muted-foreground text-xs flex items-center gap-1"><Network className="h-3 w-3" />Bandwidth Link</span>
-                        {link.city && <span className="text-muted-foreground text-xs flex items-center gap-1"><MapPin className="h-3 w-3" />{link.city}</span>}
-                        {link.popLocation && <span className="text-muted-foreground text-xs flex items-center gap-1"><Server className="h-3 w-3" />{link.popLocation}</span>}
+                        <span className="text-muted-foreground text-xs flex items-center gap-1">
+                          <Network className="h-3 w-3" />
+                          {isDplcLink ? "Dedicated Point-to-Point Link" : "Bandwidth Link"}
+                        </span>
+                        {isDplcLink && link.city && link.popLocation && (
+                          <span className="text-violet-600 dark:text-violet-400 text-xs flex items-center gap-1 font-medium">
+                            <MapPin className="h-3 w-3" />{link.city} → {link.popLocation}
+                          </span>
+                        )}
                       </div>
                     </div>
-                    <Badge variant="secondary" className={`no-default-active-elevate text-xs font-semibold shrink-0 ${link.status === "active" ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" : link.status === "inactive" ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" : "bg-yellow-100 text-yellow-700"}`}>
-                      {link.status === "active" ? <CheckCircle className="h-3 w-3 mr-0.5" /> : <XCircle className="h-3 w-3 mr-0.5" />}
-                      <span className="capitalize">{link.status}</span>
-                    </Badge>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant="secondary" className={`no-default-active-elevate text-xs font-semibold ${link.status === "active" ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" : link.status === "inactive" ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" : "bg-yellow-100 text-yellow-700"}`}>
+                        {link.status === "active" ? <CheckCircle className="h-3 w-3 mr-0.5" /> : <XCircle className="h-3 w-3 mr-0.5" />}
+                        <span className="capitalize">{link.status}</span>
+                      </Badge>
+                      <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { setSelectedBwLink(null); openEditBwLink(link); }} data-testid="button-edit-from-detail">
+                        <Edit className="h-3 w-3" />Edit
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
-                {/* Content */}
+                {/* Content — all fields shown */}
                 <div className="overflow-y-auto px-5 py-5 space-y-4">
                   {/* Key Metrics */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    <div className="rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900 p-3 text-center">
+                    <div className={`rounded-xl p-3 text-center border ${isDplcLink ? "bg-violet-50 dark:bg-violet-950/40 border-violet-100 dark:border-violet-900" : "bg-blue-50 dark:bg-blue-950/40 border-blue-100 dark:border-blue-900"}`}>
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Bandwidth</p>
-                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{link.bandwidthMbps || "—"}</p>
+                      <p className={`text-2xl font-bold ${isDplcLink ? "text-violet-600 dark:text-violet-400" : "text-blue-600 dark:text-blue-400"}`}>{link.bandwidthMbps || "—"}</p>
                       <p className="text-[10px] text-muted-foreground">Mbps</p>
                     </div>
                     <div className="rounded-xl bg-muted/50 p-3 text-center">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Rate / Mbps</p>
-                      <p className="text-lg font-bold mt-0.5">{formatPKR(link.bandwidthRate)}</p>
-                      <p className="text-[10px] text-muted-foreground">per Mbps</p>
+                      <p className="text-lg font-bold mt-0.5">{link.currency === "USD" ? `$ ${link.bandwidthRate}` : formatPKR(link.bandwidthRate)}</p>
+                      <p className="text-[10px] text-muted-foreground">per Mbps ({link.currency || "PKR"})</p>
                     </div>
                     <div className="rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900 p-3 text-center">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Monthly Cost</p>
                       <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{formatPKR(link.totalMonthlyCost)}</p>
-                      <p className="text-[10px] text-muted-foreground">/month</p>
+                      <p className="text-[10px] text-muted-foreground">/month (PKR)</p>
                     </div>
                     <div className="rounded-xl bg-muted/50 p-3 text-center">
                       <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Billing</p>
                       <p className="text-sm font-bold mt-1 capitalize">{link.billingType === "pro_rata" ? "Pro-Rata" : "Full Month"}</p>
                       {link.billingType === "pro_rata" && proRataInfo && (
-                        <p className="text-[10px] text-orange-600 dark:text-orange-400">{formatPKR(proRataInfo.amount)} 1st month</p>
+                        <p className="text-[10px] text-orange-600 dark:text-orange-400">{formatPKR(proRataInfo.amount)} ({proRataInfo.remainingDays}/{proRataInfo.daysInMonth} days)</p>
                       )}
                     </div>
                   </div>
 
-                  {/* Location & Connectivity */}
+                  {/* Currency & Exchange (always shown) */}
+                  <Card>
+                    <CardHeader className="pb-2 pt-3">
+                      <CardTitle className="text-sm flex items-center gap-2"><DollarSign className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />Currency & Cost Breakdown</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <DetailField label="Currency" value={link.currency || "PKR"} />
+                        <DetailField label="Exchange Rate" value={link.currency === "USD" ? `1 USD = ${link.exchangeRate} PKR` : "N/A (PKR)"} />
+                        <DetailField label="Tax %" value={link.tax ? `${link.tax}%` : "0%"} />
+                        <DetailField label="Service Type" value={isDplcLink ? "DPLC" : link.serviceType ? link.serviceType.charAt(0).toUpperCase() + link.serviceType.slice(1) : "Standard"} />
+                      </div>
+                      {link.currency === "USD" && link.bandwidthMbps && link.bandwidthRate && (
+                        <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                          <div className="grid grid-cols-4 gap-3 text-center">
+                            <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">USD Base</p><p className="text-base font-bold text-amber-700 dark:text-amber-400">$ {(Number(link.bandwidthMbps) * Number(link.bandwidthRate)).toFixed(2)}</p></div>
+                            <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">× Rate</p><p className="text-base font-bold">{link.exchangeRate}</p></div>
+                            <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">PKR Base</p><p className="text-base font-bold">{formatPKR((Number(link.bandwidthMbps) * Number(link.bandwidthRate) * Number(link.exchangeRate || 1)).toFixed(2))}</p></div>
+                            <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">+ Tax ({link.tax || 0}%)</p><p className="text-base font-bold text-emerald-600 dark:text-emerald-400">{formatPKR(link.totalMonthlyCost)}</p></div>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Location & Connectivity — ALL fields */}
                   <Card>
                     <CardHeader className="pb-2 pt-3">
                       <CardTitle className="text-sm flex items-center gap-2"><MapPin className="h-3.5 w-3.5 text-primary" />Location & Connectivity</CardTitle>
@@ -3459,73 +3503,72 @@ export default function VendorProfilePage() {
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                         {isDplcLink ? (
                           <>
-                            {link.city && <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900 rounded-lg p-3"><p className="text-[10px] text-violet-600 dark:text-violet-400 uppercase tracking-wider mb-0.5 font-semibold">Site A City</p><p className="text-sm font-medium">{link.city}</p></div>}
-                            {link.popLocation && <div className="bg-violet-50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900 rounded-lg p-3"><p className="text-[10px] text-violet-600 dark:text-violet-400 uppercase tracking-wider mb-0.5 font-semibold">Site B City</p><p className="text-sm font-medium">{link.popLocation}</p></div>}
+                            <DetailField label="Site A City" value={link.city} accent="bg-violet-50 dark:bg-violet-950/30 text-violet-600 dark:text-violet-400" />
+                            <DetailField label="Site B City" value={link.popLocation} accent="bg-violet-50 dark:bg-violet-950/30 text-violet-600 dark:text-violet-400" />
                           </>
                         ) : (
                           <>
-                            {link.city && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">City</p><p className="text-sm font-medium">{link.city}</p></div>}
-                            {link.popLocation && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">POP Location</p><p className="text-sm font-medium">{link.popLocation}</p></div>}
+                            <DetailField label="City" value={link.city} />
+                            <DetailField label="POP Location" value={link.popLocation} />
                           </>
                         )}
-                        {link.ipAddress && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">IP Address</p><p className="text-sm font-mono font-medium">{link.ipAddress}</p></div>}
-                        {link.vlanDetail && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">VLAN</p><p className="text-sm font-mono font-medium flex items-center gap-1"><Layers className="h-3.5 w-3.5 text-muted-foreground" />{link.vlanDetail}</p></div>}
-                        {!isDplcLink && link.portDetails && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Port / Slot</p><p className="text-sm font-mono font-medium">{link.portDetails}</p></div>}
-                        {link.startDate && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Start Date</p><p className="text-sm font-medium">{link.startDate}</p></div>}
+                        <DetailField label="IP Address" value={link.ipAddress} mono />
+                        <DetailField label="VLAN Detail" value={link.vlanDetail} mono />
+                        <DetailField label="Start Date" value={link.startDate} />
+                        <DetailField label="Created At" value={link.createdAt ? new Date(link.createdAt).toLocaleString() : null} />
                       </div>
                     </CardContent>
                   </Card>
 
-                  {/* Network Infrastructure */}
-                  {hasNetwork && (
-                    <Card>
-                      <CardHeader className="pb-2 pt-3">
-                        <CardTitle className="text-sm flex items-center gap-2">
-                          <Network className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                          {isDplcLink ? "Site Infrastructure" : "Network Infrastructure"}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {isDplcLink ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/30 p-3 space-y-2">
-                              <p className="text-xs font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
-                                <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-violet-600 text-white text-[9px] font-bold">A</span>Site A
-                              </p>
-                              {link.networkInterface && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Interface Type</p><p className="text-sm font-mono font-medium mt-0.5">{link.networkInterface}</p></div>}
-                              {link.portDetails && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Port / Slot</p><p className="text-sm font-mono font-medium mt-0.5">{link.portDetails}</p></div>}
-                              {link.dnsServers && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Exchange / Tower ID</p><p className="text-sm font-mono font-medium mt-0.5">{link.dnsServers}</p></div>}
-                            </div>
-                            <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/30 p-3 space-y-2">
-                              <p className="text-xs font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
-                                <span className="inline-flex items-center justify-center h-4 w-4 rounded-full bg-violet-600 text-white text-[9px] font-bold">B</span>Site B
-                              </p>
-                              {link.gateway && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Interface Type</p><p className="text-sm font-mono font-medium mt-0.5">{link.gateway}</p></div>}
-                              {link.asNumber && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Port / Slot</p><p className="text-sm font-mono font-medium mt-0.5">{link.asNumber}</p></div>}
-                              {link.bgpConfig && <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Exchange / Tower ID</p><p className="text-sm font-mono font-medium mt-0.5">{link.bgpConfig}</p></div>}
-                            </div>
+                  {/* Network / Site Infrastructure — ALL fields, always shown */}
+                  <Card>
+                    <CardHeader className="pb-2 pt-3">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Network className={`h-3.5 w-3.5 ${isDplcLink ? "text-violet-600 dark:text-violet-400" : "text-blue-600 dark:text-blue-400"}`} />
+                        {isDplcLink ? "Site Infrastructure (A ↔ B)" : "Network Infrastructure"}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {isDplcLink ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/30 p-4 space-y-3">
+                            <p className="text-xs font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
+                              <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-violet-600 text-white text-[10px] font-bold">A</span>
+                              Site A {link.city && <span className="text-[10px] font-normal text-muted-foreground ml-1">— {link.city}</span>}
+                            </p>
+                            <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Interface Type</p><p className={`text-sm font-mono mt-0.5 ${link.networkInterface ? "font-medium" : "text-muted-foreground italic"}`}>{link.networkInterface || "—"}</p></div>
+                            <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Port / Slot</p><p className={`text-sm font-mono mt-0.5 ${link.portDetails ? "font-medium" : "text-muted-foreground italic"}`}>{link.portDetails || "—"}</p></div>
+                            <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Exchange / Tower ID</p><p className={`text-sm font-mono mt-0.5 ${link.dnsServers ? "font-medium" : "text-muted-foreground italic"}`}>{link.dnsServers || "—"}</p></div>
                           </div>
-                        ) : (
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            {link.routingType && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Routing Type</p><p className="text-sm font-semibold capitalize">{link.routingType}</p></div>}
-                            {link.networkInterface && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Interface</p><p className="text-sm font-mono">{link.networkInterface}</p></div>}
-                            {link.gateway && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Gateway</p><p className="text-sm font-mono">{link.gateway}</p></div>}
-                            {link.dnsServers && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">DNS Servers</p><p className="text-sm font-mono">{link.dnsServers}</p></div>}
-                            {link.asNumber && <div className="bg-muted/50 rounded-lg p-3"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">AS Number</p><p className="text-sm font-mono font-bold">{link.asNumber}</p></div>}
-                            {link.bgpConfig && <div className="bg-muted/50 rounded-lg p-3 col-span-2"><p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">BGP Config / Neighbor</p><p className="text-sm font-mono break-all">{link.bgpConfig}</p></div>}
+                          <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/60 dark:bg-violet-950/30 p-4 space-y-3">
+                            <p className="text-xs font-semibold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
+                              <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-violet-600 text-white text-[10px] font-bold">B</span>
+                              Site B {link.popLocation && <span className="text-[10px] font-normal text-muted-foreground ml-1">— {link.popLocation}</span>}
+                            </p>
+                            <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Interface Type</p><p className={`text-sm font-mono mt-0.5 ${link.gateway ? "font-medium" : "text-muted-foreground italic"}`}>{link.gateway || "—"}</p></div>
+                            <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Port / Slot</p><p className={`text-sm font-mono mt-0.5 ${link.asNumber ? "font-medium" : "text-muted-foreground italic"}`}>{link.asNumber || "—"}</p></div>
+                            <div><p className="text-[10px] text-muted-foreground uppercase tracking-wider">Exchange / Tower ID</p><p className={`text-sm font-mono mt-0.5 ${link.bgpConfig ? "font-medium" : "text-muted-foreground italic"}`}>{link.bgpConfig || "—"}</p></div>
                           </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  )}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          <DetailField label="Routing Type" value={link.routingType ? link.routingType.charAt(0).toUpperCase() + link.routingType.slice(1) : "Static"} />
+                          <DetailField label="Network Interface" value={link.networkInterface} mono />
+                          <DetailField label="Port / Slot" value={link.portDetails} mono />
+                          <DetailField label="Gateway" value={link.gateway} mono />
+                          <DetailField label="DNS Servers" value={link.dnsServers} mono />
+                          <DetailField label="AS Number" value={link.asNumber} mono />
+                          <div className="md:col-span-3"><DetailField label="BGP Config / Neighbor" value={link.bgpConfig} mono /></div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
 
-                  {/* Notes */}
-                  {link.notes && (
-                    <Card>
-                      <CardHeader className="pb-2 pt-3"><CardTitle className="text-sm flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-muted-foreground" />Notes</CardTitle></CardHeader>
-                      <CardContent><p className="text-sm text-muted-foreground">{link.notes}</p></CardContent>
-                    </Card>
-                  )}
+                  {/* Notes — always shown */}
+                  <Card>
+                    <CardHeader className="pb-2 pt-3"><CardTitle className="text-sm flex items-center gap-2"><FileText className="h-3.5 w-3.5 text-muted-foreground" />Notes</CardTitle></CardHeader>
+                    <CardContent><p className={`text-sm ${link.notes ? "" : "text-muted-foreground italic"}`}>{link.notes || "No notes added."}</p></CardContent>
+                  </Card>
                 </div>
               </>
             );
