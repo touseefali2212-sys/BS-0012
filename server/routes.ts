@@ -3099,7 +3099,17 @@ export async function registerRoutes(
 
   app.post("/api/company", requireAuth, async (req, res) => {
     try {
-      const parsed = insertCompanySettingsSchema.safeParse(req.body);
+      const companySchema = insertCompanySettingsSchema.extend({
+        companyName: z.string().min(1, "Company name is required"),
+        email: z.string().email("Invalid email address").or(z.literal("")).optional().nullable(),
+        website: z.string().url("Invalid website URL").or(z.literal("")).optional().nullable(),
+        taxRate: z.union([z.string(), z.number()])
+          .transform(v => String(v))
+          .refine(v => !v || (!isNaN(parseFloat(v)) && parseFloat(v) >= 0 && parseFloat(v) <= 100), {
+            message: "Tax rate must be a number between 0 and 100",
+          }).optional().nullable(),
+      });
+      const parsed = companySchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
       const result = await storage.upsertCompanySettings(parsed.data);
       res.json(result);

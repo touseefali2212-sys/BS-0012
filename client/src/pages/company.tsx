@@ -24,6 +24,7 @@ import {
   ToggleLeft,
   CheckCircle,
   ChevronRight,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,6 +69,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -80,6 +91,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const companyFormSchema = insertCompanySettingsSchema.extend({
   companyName: z.string().min(1, "Company name is required"),
+  email: z.string().email("Please enter a valid email address").or(z.literal("")).optional().nullable(),
+  website: z.string().url("Please enter a valid URL (e.g. https://...)").or(z.literal("")).optional().nullable(),
+  taxRate: z.string().refine((val) => !val || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0 && parseFloat(val) <= 100), {
+    message: "Tax rate must be a number between 0 and 100",
+  }).optional().nullable(),
 });
 
 const branchFormSchema = insertBranchSchema.extend({
@@ -381,6 +397,37 @@ export default function CompanyPage() {
         </div>
       </div>
 
+      <div className="flex items-center gap-1 border-b border-border/60" data-testid="tab-navigation">
+        <button
+          onClick={() => changeTab("profile")}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            tab === "profile"
+              ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
+              : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+          }`}
+          data-testid="tab-button-profile"
+        >
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4" />
+            Company Profile
+          </div>
+        </button>
+        <button
+          onClick={() => changeTab("branches")}
+          className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            tab === "branches"
+              ? "border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400"
+              : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+          }`}
+          data-testid="tab-button-branches"
+        >
+          <div className="flex items-center gap-2">
+            <GitBranch className="h-4 w-4" />
+            Branches & Departments
+          </div>
+        </button>
+      </div>
+
       {tab === "profile" && (
         <div className="mt-5" data-testid="tab-content-profile">
           {isLoading ? (
@@ -490,6 +537,30 @@ export default function CompanyPage() {
                                   placeholder="Area, neighborhood"
                                   className="pl-10 h-10"
                                   data-testid="input-address2"
+                                  {...field}
+                                  value={field.value || ""}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="city"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              City
+                            </FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/60" />
+                                <Input
+                                  placeholder="e.g. Lahore"
+                                  className="pl-10 h-10"
+                                  data-testid="input-city"
                                   {...field}
                                   value={field.value || ""}
                                 />
@@ -1005,27 +1076,6 @@ export default function CompanyPage() {
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="city"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                              City
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="e.g. Lahore"
-                                className="h-10"
-                                data-testid="input-city"
-                                {...field}
-                                value={field.value || ""}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
                     </FieldGroup>
                   </CardContent>
                 </Card>
@@ -1070,6 +1120,7 @@ function BranchesTab() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
+  const [deletingBranch, setDeletingBranch] = useState<Branch | null>(null);
 
   const { data: branches = [], isLoading } = useQuery<Branch[]>({
     queryKey: ["/api/branches"],
@@ -1280,7 +1331,7 @@ function BranchesTab() {
                           size="icon"
                           variant="ghost"
                           className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-                          onClick={() => deleteMutation.mutate(branch.id)}
+                          onClick={() => setDeletingBranch(branch)}
                           data-testid={`button-delete-branch-${branch.id}`}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -1478,6 +1529,35 @@ function BranchesTab() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deletingBranch} onOpenChange={(open) => !open && setDeletingBranch(null)}>
+        <AlertDialogContent data-testid="dialog-delete-branch">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Delete Branch
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete branch <strong>"{deletingBranch?.name}"</strong> ({deletingBranch?.code})? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-delete-branch">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deletingBranch) {
+                  deleteMutation.mutate(deletingBranch.id);
+                  setDeletingBranch(null);
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              data-testid="button-confirm-delete-branch"
+            >
+              Delete Branch
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
