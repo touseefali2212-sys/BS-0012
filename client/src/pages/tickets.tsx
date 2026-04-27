@@ -26,6 +26,9 @@ import {
   Monitor,
   Users,
   Info,
+  UserCheck,
+  Wifi,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1737,7 +1740,7 @@ function SupportCategoriesView() {
   const [currentPage, setCurrentPage] = useState(1);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<SupportCategory | null>(null);
-  const [activeGroup, setActiveGroup] = useState("clients");
+  const [activeGroup, setActiveGroup] = useState("customers");
 
   const { data: categories, isLoading } = useQuery<SupportCategory[]>({
     queryKey: ["/api/support-categories"],
@@ -1750,7 +1753,7 @@ function SupportCategoriesView() {
       department: "",
       categoryType: "for_everyone",
       details: "",
-      targetGroup: "clients",
+      targetGroup: "customers",
     },
   });
 
@@ -1827,7 +1830,7 @@ function SupportCategoriesView() {
   };
 
   const allCategories = categories || [];
-  const groupFiltered = allCategories.filter(c => (c.targetGroup || "clients") === activeGroup);
+  const groupFiltered = allCategories.filter(c => (c.targetGroup || "customers") === activeGroup);
   const filtered = groupFiltered.filter(c => {
     if (!search) return true;
     const s = search.toLowerCase();
@@ -1838,27 +1841,31 @@ function SupportCategoriesView() {
   const paginated = filtered.slice((currentPage - 1) * entriesCount, currentPage * entriesCount);
 
   const groupButtons = [
-    { key: "clients", label: "Client's" },
-    { key: "pops", label: "POP's" },
-    { key: "bandwidth", label: "Bandwidth POP's" },
+    { key: "customers", label: "Customers", icon: Users },
+    { key: "resellers", label: "Resellers", icon: UserCheck },
+    { key: "pops", label: "POP's", icon: Wifi },
+    { key: "vendors", label: "Vendors", icon: Building2 },
   ];
 
   return (
     <div className="mt-5 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {groupButtons.map(g => (
-            <Button
-              key={g.key}
-              size="sm"
-              variant={activeGroup === g.key ? "default" : "outline"}
-              className={`text-xs gap-1.5 ${activeGroup === g.key ? "bg-[#1a3a5c]" : ""}`}
-              onClick={() => { setActiveGroup(g.key); setCurrentPage(1); }}
-              data-testid={`button-group-${g.key}`}
-            >
-              <LifeBuoy className="h-3.5 w-3.5" /> {g.label}
-            </Button>
-          ))}
+          {groupButtons.map(g => {
+            const Icon = g.icon;
+            return (
+              <Button
+                key={g.key}
+                size="sm"
+                variant={activeGroup === g.key ? "default" : "outline"}
+                className={`text-xs gap-1.5 ${activeGroup === g.key ? "bg-[#1a3a5c] hover:bg-[#1a3a5c]/90" : ""}`}
+                onClick={() => { setActiveGroup(g.key); setCurrentPage(1); }}
+                data-testid={`button-group-${g.key}`}
+              >
+                <Icon className="h-3.5 w-3.5" /> {g.label}
+              </Button>
+            );
+          })}
         </div>
         <Button size="sm" className="text-xs gap-1.5 bg-[#0057FF]" onClick={openCreate} data-testid="button-add-support-category">
           <Plus className="h-3.5 w-3.5" /> Support Category
@@ -2033,12 +2040,13 @@ function SupportCategoriesView() {
               )} />
               <FormField control={form.control} name="targetGroup" render={({ field }) => (
                 <FormItem><FormLabel>Target Group</FormLabel><FormControl>
-                  <Select onValueChange={field.onChange} value={field.value || "clients"}>
+                  <Select onValueChange={field.onChange} value={field.value || "customers"}>
                     <SelectTrigger data-testid="select-target-group"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="clients">Client's</SelectItem>
+                      <SelectItem value="customers">Customers</SelectItem>
+                      <SelectItem value="resellers">Resellers</SelectItem>
                       <SelectItem value="pops">POP's</SelectItem>
-                      <SelectItem value="bandwidth">Bandwidth POP's</SelectItem>
+                      <SelectItem value="vendors">Vendors</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormControl><FormMessage /></FormItem>
