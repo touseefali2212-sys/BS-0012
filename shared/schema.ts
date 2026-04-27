@@ -204,6 +204,7 @@ export const tickets = pgTable("tickets", {
   entityId: integer("entity_id"),
   entityName: text("entity_name"),
   customerSubType: text("customer_sub_type"),
+  createdBy: text("created_by"),
 });
 
 export const activityLogs = pgTable("activity_logs", {

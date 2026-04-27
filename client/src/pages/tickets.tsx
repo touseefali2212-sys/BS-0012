@@ -83,6 +83,7 @@ export default function TicketsPage() {
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
+  const [viewingTicket, setViewingTicket] = useState<TicketWithCustomer | null>(null);
   const [activeTab, setActiveTab] = useTab("list");
 
   const { data: tickets, isLoading } = useQuery<TicketWithCustomer[]>({
@@ -107,6 +108,10 @@ export default function TicketsPage() {
 
   const { data: networkTowers } = useQuery<NetworkTower[]>({
     queryKey: ["/api/network-towers"],
+  });
+
+  const { data: currentUser } = useQuery<{ id: number; username: string; fullName?: string; role?: string }>({
+    queryKey: ["/api/auth/me"],
   });
 
   const form = useForm<InsertTicket>({
@@ -238,9 +243,23 @@ export default function TicketsPage() {
           resellers={resellers || []}
           vendors={vendors || []}
           networkTowers={networkTowers || []}
+          createdBy={currentUser?.fullName || currentUser?.username || ""}
           onSubmit={(data) => createMutation.mutate(data)}
           isPending={createMutation.isPending}
           onCancel={() => setActiveTab("list")}
+        />
+      )}
+
+      {activeTab === "view" && viewingTicket && (
+        <ViewTicketView
+          ticket={viewingTicket}
+          customers={customers || []}
+          resellers={resellers || []}
+          vendors={vendors || []}
+          networkTowers={networkTowers || []}
+          supportCategories={supportCategories || []}
+          onBack={() => setActiveTab("list")}
+          onEdit={() => { openEdit(viewingTicket); setActiveTab("list"); }}
         />
       )}
 
@@ -251,6 +270,7 @@ export default function TicketsPage() {
           supportCategories={supportCategories || []}
           onEdit={openEdit}
           onDelete={(id) => deleteMutation.mutate(id)}
+          onView={(ticket) => { setViewingTicket(ticket); setActiveTab("view"); }}
         />
       )}
 
@@ -448,6 +468,7 @@ function NewTicketView({
   resellers,
   vendors,
   networkTowers,
+  createdBy,
   onSubmit,
   isPending,
   onCancel,
@@ -457,6 +478,7 @@ function NewTicketView({
   resellers: Reseller[];
   vendors: Vendor[];
   networkTowers: NetworkTower[];
+  createdBy?: string;
   onSubmit: (data: InsertTicket) => void;
   isPending: boolean;
   onCancel: () => void;
@@ -584,6 +606,7 @@ function NewTicketView({
       entityId: isCustomerGroup ? null : selectedEntityId,
       entityName: isCustomerGroup ? null : selectedEntityName,
       customerSubType: isCustomerGroup ? customerSubType : null,
+      createdBy: createdBy || undefined,
     } as InsertTicket;
     onSubmit(ticketData);
   };
@@ -1025,18 +1048,400 @@ function NewTicketView({
   );
 }
 
+function ViewTicketView({
+  ticket,
+  customers,
+  resellers,
+  vendors,
+  networkTowers,
+  supportCategories,
+  onBack,
+  onEdit,
+}: {
+  ticket: TicketWithCustomer;
+  customers: Customer[];
+  resellers: Reseller[];
+  vendors: Vendor[];
+  networkTowers: NetworkTower[];
+  supportCategories: SupportCategory[];
+  onBack: () => void;
+  onEdit: () => void;
+}) {
+  const sg = (ticket as any).supportGroup || "customers";
+  const entityId = (ticket as any).entityId as number | null;
+  const entityName = (ticket as any).entityName as string | null;
+  const customerSubType = (ticket as any).customerSubType as string | null;
+  const createdBy = (ticket as any).createdBy as string | null;
+
+  const customer = customers.find(c => c.id === ticket.customerId);
+  const reseller = sg === "resellers" && entityId ? resellers.find(r => r.id === entityId) : null;
+  const vendor = sg === "vendors" && entityId ? vendors.find(v => v.id === entityId) : null;
+  const tower = sg === "pops" && entityId ? networkTowers.find(t => t.id === entityId) : null;
+
+  const supportGroupConfig: Record<string, { label: string; icon: typeof Users; color: string }> = {
+    customers: { label: "Customers", icon: Users, color: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" },
+    resellers: { label: "Resellers", icon: UserCheck, color: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300" },
+    pops: { label: "POP's", icon: Wifi, color: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300" },
+    vendors: { label: "Vendors", icon: Building2, color: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300" },
+  };
+
+  const priorityConfig: Record<string, { label: string; className: string }> = {
+    critical: { label: "Critical", className: "bg-red-600 text-white" },
+    high: { label: "High", className: "bg-red-500 text-white" },
+    medium: { label: "Medium", className: "bg-amber-500 text-white" },
+    low: { label: "Low", className: "bg-green-500 text-white" },
+  };
+
+  const statusConfig: Record<string, { label: string; className: string }> = {
+    open: { label: "Open / Pending", className: "bg-amber-500 text-white" },
+    in_progress: { label: "In Progress", className: "bg-blue-500 text-white" },
+    resolved: { label: "Resolved", className: "bg-green-500 text-white" },
+    closed: { label: "Closed", className: "bg-gray-500 text-white" },
+  };
+
+  const groupInfo = supportGroupConfig[sg] || supportGroupConfig.customers;
+  const GroupIcon = groupInfo.icon;
+  const priorityInfo = priorityConfig[ticket.priority] || priorityConfig.medium;
+  const statusInfo = statusConfig[ticket.status] || statusConfig.open;
+
+  const readonlyFieldClass = "h-9 text-xs bg-muted/50 border-muted cursor-default";
+
+  const assignedToList = ticket.assignedTo ? ticket.assignedTo.split(",").map(s => s.trim()).filter(Boolean) : [];
+
+  return (
+    <div className="mt-4 space-y-5">
+      {/* Header */}
+      <div className="bg-[#1a3a5c] text-white py-3 px-6 rounded-t-lg flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button onClick={onBack} className="text-white/80 hover:text-white transition-colors" data-testid="button-view-back">
+            <ChevronDown className="h-5 w-5 rotate-90" />
+          </button>
+          <h2 className="text-lg font-bold tracking-wide" data-testid="text-view-ticket-title">
+            Ticket Details — {ticket.ticketNumber}
+          </h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-white hover:bg-white/20 h-8 gap-1.5 text-xs"
+            onClick={onEdit}
+            data-testid="button-view-edit"
+          >
+            <Edit className="h-3.5 w-3.5" />
+            Edit Ticket
+          </Button>
+          <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-8 w-8" onClick={onBack} data-testid="button-view-close">
+            <XCircle className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="bg-card border rounded-b-lg rounded-t-none -mt-5 p-6 space-y-6">
+
+        {/* Ticket Meta Row */}
+        <div className="flex flex-wrap items-center gap-3 pb-4 border-b">
+          <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${groupInfo.color}`} data-testid="badge-support-group">
+            <GroupIcon className="h-3.5 w-3.5" />
+            {groupInfo.label}
+          </span>
+          {customerSubType && sg === "customers" && (
+            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border capitalize">
+              {customerSubType === "cir" ? "CIR Customer" : customerSubType === "corporate" ? "Corporate Customer" : "Regular Customer"}
+            </span>
+          )}
+          <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${statusInfo.className}`} data-testid="badge-ticket-status">
+            {statusInfo.label}
+          </span>
+          <span className={`px-3 py-1.5 rounded-full text-xs font-semibold ${priorityInfo.className}`} data-testid="badge-ticket-priority">
+            {ticket.priority?.charAt(0).toUpperCase()}{ticket.priority?.slice(1)} Priority
+          </span>
+          <span className="ml-auto text-xs text-muted-foreground">
+            Created: {ticket.createdAt ? new Date(ticket.createdAt).toLocaleString() : "-"}
+          </span>
+        </div>
+
+        {/* Entity Info — Customer */}
+        {sg === "customers" && customer && (
+          <>
+            <div>
+              <h3 className="text-xs font-bold uppercase text-muted-foreground mb-3">Customer Information</h3>
+              <div className="border rounded-lg p-4 bg-muted/20">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Customer Name</label>
+                    <Input className={readonlyFieldClass} value={customer.fullName} readOnly data-testid="view-field-customer-name" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Mobile Number</label>
+                    <Input className={readonlyFieldClass} value={customer.phone || "-"} readOnly />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Client Address</label>
+                    <Input className={readonlyFieldClass} value={customer.address || customer.presentAddress || "-"} readOnly />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Zone / Area</label>
+                    <Input className={readonlyFieldClass} value={customer.zone || customer.area || "-"} readOnly />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Client Code</label>
+                    <Input className={readonlyFieldClass} value={customer.customerId} readOnly />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-3">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Billing Status</label>
+                    <Input className={readonlyFieldClass} value={customer.status || "-"} readOnly />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Monthly Bill</label>
+                    <Input className={readonlyFieldClass} value={customer.monthlyBill ? `Rs. ${customer.monthlyBill}` : "-"} readOnly />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Payment Status</label>
+                    <Input className={readonlyFieldClass} value={customer.status === "active" ? "Paid" : "Unpaid"} readOnly />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Package</label>
+                    <Input className={readonlyFieldClass} value={customer.packageId ? `PKG-${customer.packageId}` : "-"} readOnly />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* No customer found (legacy ticket) */}
+        {sg === "customers" && !customer && ticket.customerId > 0 && (
+          <div className="border rounded-lg p-4 bg-muted/20">
+            <p className="text-sm text-muted-foreground">Customer ID: {ticket.customerId} — details not available</p>
+          </div>
+        )}
+
+        {/* Entity Info — Reseller */}
+        {sg === "resellers" && (
+          <div>
+            <h3 className="text-xs font-bold uppercase text-muted-foreground mb-3">Reseller Information</h3>
+            <div className="border rounded-lg p-4 bg-muted/20">
+              {reseller ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Reseller Name</label>
+                    <Input className={readonlyFieldClass} value={reseller.name} readOnly data-testid="view-field-reseller-name" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Phone</label>
+                    <Input className={readonlyFieldClass} value={reseller.phone || "-"} readOnly />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Area</label>
+                    <Input className={readonlyFieldClass} value={reseller.area || "-"} readOnly />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Reseller Type</label>
+                    <Input className={readonlyFieldClass} value={reseller.resellerType?.replace(/_/g, " ") || "-"} readOnly />
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">{entityName || `Reseller ID: ${entityId}`}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Entity Info — Vendor */}
+        {sg === "vendors" && (
+          <div>
+            <h3 className="text-xs font-bold uppercase text-muted-foreground mb-3">Vendor Information</h3>
+            <div className="border rounded-lg p-4 bg-muted/20">
+              {vendor ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Vendor Name</label>
+                    <Input className={readonlyFieldClass} value={vendor.name} readOnly data-testid="view-field-vendor-name" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Phone</label>
+                    <Input className={readonlyFieldClass} value={vendor.phone || "-"} readOnly />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Vendor Type</label>
+                    <Input className={readonlyFieldClass} value={vendor.vendorType || "-"} readOnly />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Contact Person</label>
+                    <Input className={readonlyFieldClass} value={vendor.contactPerson || "-"} readOnly />
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">{entityName || `Vendor ID: ${entityId}`}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Entity Info — POP/Tower */}
+        {sg === "pops" && (
+          <div>
+            <h3 className="text-xs font-bold uppercase text-muted-foreground mb-3">POP / Tower Information</h3>
+            <div className="border rounded-lg p-4 bg-muted/20">
+              {tower ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Tower Name</label>
+                    <Input className={readonlyFieldClass} value={tower.name} readOnly data-testid="view-field-tower-name" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Tower ID</label>
+                    <Input className={readonlyFieldClass} value={tower.towerId} readOnly />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Tower Type</label>
+                    <Input className={readonlyFieldClass} value={tower.towerType || "-"} readOnly />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Status</label>
+                    <Input className={readonlyFieldClass} value={tower.status || "-"} readOnly />
+                  </div>
+                  {tower.address && (
+                    <div className="col-span-2">
+                      <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Address</label>
+                      <Input className={readonlyFieldClass} value={tower.address} readOnly />
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">{entityName || `Tower ID: ${entityId}`}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Ticket Details */}
+        <div>
+          <h3 className="text-xs font-bold uppercase text-muted-foreground mb-3">Ticket Details</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Ticket Number</label>
+              <Input className={readonlyFieldClass} value={ticket.ticketNumber} readOnly data-testid="view-field-ticket-number" />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Problem Category</label>
+              <Input className={readonlyFieldClass} value={ticket.category} readOnly data-testid="view-field-category" />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Priority</label>
+              <div className="flex items-center h-9">
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${priorityInfo.className}`}>
+                  {ticket.priority?.charAt(0).toUpperCase()}{ticket.priority?.slice(1)}
+                </span>
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Status</label>
+              <div className="flex items-center h-9">
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusInfo.className}`}>
+                  {statusInfo.label}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Assigned To</label>
+              {assignedToList.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5 min-h-[36px] items-center">
+                  {assignedToList.map((a, i) => (
+                    <span key={i} className="px-2.5 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium">
+                      {a}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <Input className={readonlyFieldClass} value="Unassigned" readOnly data-testid="view-field-assigned" />
+              )}
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Date Opened</label>
+              <Input className={readonlyFieldClass} value={ticket.createdAt ? new Date(ticket.createdAt).toLocaleString() : "-"} readOnly data-testid="view-field-created-at" />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Date Resolved</label>
+              <Input className={readonlyFieldClass} value={ticket.resolvedAt ? new Date(ticket.resolvedAt).toLocaleString() : "Not Resolved Yet"} readOnly data-testid="view-field-resolved-at" />
+            </div>
+          </div>
+        </div>
+
+        {/* Remarks */}
+        <div>
+          <h3 className="text-xs font-bold uppercase text-muted-foreground mb-3">Remarks / Description</h3>
+          <div className="border rounded-lg p-4 bg-muted/20 min-h-[100px] text-sm leading-relaxed" data-testid="view-field-description">
+            {ticket.description || ticket.subject || <span className="text-muted-foreground italic">No remarks provided.</span>}
+          </div>
+        </div>
+
+        {/* Generated By */}
+        <div className="border rounded-xl p-5 bg-gradient-to-br from-[#1a3a5c]/5 to-[#0057FF]/5 border-[#1a3a5c]/20">
+          <h3 className="text-xs font-bold uppercase text-muted-foreground mb-4 flex items-center gap-2">
+            <Info className="h-3.5 w-3.5" />
+            Ticket Generation Info
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Generated By</label>
+              <div className="flex items-center gap-2 h-9 px-3 border rounded-md bg-background text-sm font-medium" data-testid="view-field-created-by">
+                <div className="h-6 w-6 rounded-full bg-[#1a3a5c] text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                  {createdBy ? createdBy.charAt(0).toUpperCase() : "?"}
+                </div>
+                {createdBy || <span className="text-muted-foreground">Unknown</span>}
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Support Group</label>
+              <div className={`flex items-center gap-2 h-9 px-3 border rounded-md text-xs font-semibold ${groupInfo.color}`}>
+                <GroupIcon className="h-3.5 w-3.5" />
+                {groupInfo.label}
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Ticket ID</label>
+              <Input className={readonlyFieldClass} value={`#${ticket.id}`} readOnly />
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-between pt-2 border-t">
+          <Button variant="outline" onClick={onBack} className="gap-1.5" data-testid="button-view-back-bottom">
+            <ChevronDown className="h-4 w-4 rotate-90" />
+            Back to List
+          </Button>
+          <Button className="bg-[#1a3a5c] hover:bg-[#1a3a5c]/90 text-white gap-1.5" onClick={onEdit} data-testid="button-view-edit-bottom">
+            <Edit className="h-4 w-4" />
+            Edit Ticket
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TicketListView({
   tickets,
   isLoading,
   supportCategories,
   onEdit,
   onDelete,
+  onView,
 }: {
   tickets: TicketWithCustomer[];
   isLoading: boolean;
   supportCategories: SupportCategory[];
   onEdit: (ticket: TicketWithCustomer) => void;
   onDelete: (id: number) => void;
+  onView: (ticket: TicketWithCustomer) => void;
 }) {
   const [search, setSearch] = useState("");
   const [entriesCount, setEntriesCount] = useState(10);
@@ -1433,11 +1838,14 @@ function TicketListView({
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center justify-center gap-2">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(ticket)} data-testid={`button-edit-ticket-${ticket.id}`}>
+                          <div className="flex items-center justify-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onView(ticket)} data-testid={`button-view-ticket-${ticket.id}`} title="View Ticket">
+                              <Eye className="h-4 w-4 text-green-600" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(ticket)} data-testid={`button-edit-ticket-${ticket.id}`} title="Edit Ticket">
                               <Edit className="h-4 w-4 text-[#0057FF]" />
                             </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDelete(ticket.id)} data-testid={`button-delete-ticket-${ticket.id}`}>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onDelete(ticket.id)} data-testid={`button-delete-ticket-${ticket.id}`} title="Delete Ticket">
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
