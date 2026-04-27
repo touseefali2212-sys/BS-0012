@@ -592,6 +592,10 @@ function NewTicketView({
 
   const handleSubmit = () => {
     if (!canSubmit) return;
+    const selectedReseller = supportGroup === "resellers" && selectedEntityId ? resellers.find(r => r.id === selectedEntityId) : null;
+    const selectedVendor = supportGroup === "vendors" && selectedEntityId ? vendors.find(v => v.id === selectedEntityId) : null;
+    const selectedTower = supportGroup === "pops" && selectedEntityId ? networkTowers.find(t => t.id === selectedEntityId) : null;
+
     const ticketData: InsertTicket = {
       ticketNumber: generateTicketNumber(),
       customerId: selectedCustomer?.id || 0,
@@ -605,7 +609,24 @@ function NewTicketView({
       supportGroup,
       entityId: isCustomerGroup ? null : selectedEntityId,
       entityName: isCustomerGroup ? null : selectedEntityName,
+      entityCode: isCustomerGroup
+        ? (selectedCustomer?.customerId || undefined)
+        : selectedReseller ? String(selectedReseller.id)
+        : selectedVendor ? String(selectedVendor.id)
+        : selectedTower ? selectedTower.towerId
+        : undefined,
+      entityEmail: selectedVendor?.email || undefined,
+      entityPhone: isCustomerGroup
+        ? (selectedCustomer?.phone || undefined)
+        : selectedReseller?.phone || selectedVendor?.phone || undefined,
+      entityBranch: isCustomerGroup
+        ? (selectedCustomer?.area || (selectedCustomer as any)?.branch || undefined)
+        : selectedReseller?.branch || selectedReseller?.area
+        || selectedVendor?.address
+        || selectedTower?.address
+        || undefined,
       customerSubType: isCustomerGroup ? customerSubType : null,
+      complainedNumber: complainedNumber || undefined,
       createdBy: createdBy || undefined,
     } as InsertTicket;
     onSubmit(ticketData);
@@ -1505,6 +1526,38 @@ function TicketListView({
     { key: "vendors", label: "Vendors", icon: Building2 },
   ];
 
+  const colCfg: Record<string, { codeLabel: string; nameLabel: string; extraCol: string | null }> = {
+    customers: { codeLabel: "Customer Code", nameLabel: "Customer Name", extraCol: "Phone" },
+    resellers: { codeLabel: "Reseller Code", nameLabel: "Reseller Name", extraCol: "Phone" },
+    pops:      { codeLabel: "POP Code",      nameLabel: "POP Name",      extraCol: null },
+    vendors:   { codeLabel: "Vendor Code",   nameLabel: "Vendor Name",   extraCol: "MAIL" },
+  };
+  const cfg = colCfg[activeGroup] || colCfg.customers;
+  const totalCols = cfg.extraCol ? 13 : 12;
+
+  const getCode = (ticket: TicketWithCustomer) =>
+    activeGroup === "customers"
+      ? ticket.customerCode || (ticket as any).entityCode || `#${ticket.customerId}`
+      : (ticket as any).entityCode || `#${(ticket as any).entityId || ticket.id}`;
+
+  const getName = (ticket: TicketWithCustomer) =>
+    activeGroup === "customers"
+      ? ticket.customerName || "Unknown"
+      : (ticket as any).entityName || "Unknown";
+
+  const getExtra = (ticket: TicketWithCustomer) => {
+    if (activeGroup === "customers") return ticket.customerPhone || (ticket as any).entityPhone || "-";
+    if (activeGroup === "resellers") return (ticket as any).entityPhone || "-";
+    if (activeGroup === "vendors") return (ticket as any).entityEmail || "-";
+    return "-";
+  };
+
+  const getBranch = (ticket: TicketWithCustomer) =>
+    (ticket as any).entityBranch || ticket.customerArea || "-";
+
+  const getSubmitFrom = (ticket: TicketWithCustomer) =>
+    (ticket as any).complainedNumber || "-";
+
   const priorityConfig: Record<string, string> = {
     critical: "bg-red-600 text-white",
     high: "bg-red-500 text-white",
@@ -1761,24 +1814,25 @@ function TicketListView({
             <Table>
               <TableHeader>
                 <TableRow className="bg-[#1a3a5c] border-[#1a3a5c]">
-                  <TableHead className="text-white text-[11px] font-semibold w-[70px]">Ticket No.</TableHead>
-                  <TableHead className="text-white text-[11px] font-semibold">Client Code</TableHead>
-                  <TableHead className="text-white text-[11px] font-semibold">Customer Name</TableHead>
-                  <TableHead className="text-white text-[11px] font-semibold">Phone</TableHead>
-                  <TableHead className="text-white text-[11px] font-semibold">Zone</TableHead>
-                  <TableHead className="text-white text-[11px] font-semibold">Problem</TableHead>
-                  <TableHead className="text-white text-[11px] font-semibold w-[80px]">Priority</TableHead>
-                  <TableHead className="text-white text-[11px] font-semibold">Complain Time</TableHead>
-                  <TableHead className="text-white text-[11px] font-semibold w-[90px]">Status</TableHead>
-                  <TableHead className="text-white text-[11px] font-semibold">Assign To</TableHead>
-                  <TableHead className="text-white text-[11px] font-semibold">Duration</TableHead>
-                  <TableHead className="text-white text-[11px] font-semibold w-[80px] text-center">Action</TableHead>
+                  <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">Ticket No.</TableHead>
+                  <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">{cfg.codeLabel}</TableHead>
+                  <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">{cfg.nameLabel}</TableHead>
+                  {cfg.extraCol && <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">{cfg.extraCol}</TableHead>}
+                  <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">Branch</TableHead>
+                  <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">Submit From</TableHead>
+                  <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">Problem</TableHead>
+                  <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">Priority</TableHead>
+                  <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">Status</TableHead>
+                  <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">Assign To</TableHead>
+                  <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">Complain Time</TableHead>
+                  <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">Duration</TableHead>
+                  <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap text-center">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {paginated.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={12} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={totalCols} className="text-center py-12 text-muted-foreground">
                       <LifeBuoy className="h-10 w-10 mx-auto mb-2 opacity-30" />
                       <p className="text-sm font-medium">No tickets found</p>
                       <p className="text-xs mt-1">All quiet on the support front</p>
@@ -1789,54 +1843,72 @@ function TicketListView({
                     const sConfig = statusConfig[ticket.status] || statusConfig.open;
                     return (
                       <TableRow key={ticket.id} data-testid={`row-ticket-${ticket.id}`} className="hover:bg-muted/50">
-                        <TableCell className="text-xs font-mono font-medium cursor-pointer" data-testid={`text-ticket-number-${ticket.id}`} onClick={() => onView(ticket)}>
+                        {/* Ticket No. */}
+                        <TableCell className="text-xs font-mono font-medium cursor-pointer whitespace-nowrap" data-testid={`text-ticket-number-${ticket.id}`} onClick={() => onView(ticket)}>
                           <span className="text-[#0057FF] hover:underline">{ticket.ticketNumber}</span>
                         </TableCell>
+                        {/* Code */}
                         <TableCell className="text-xs cursor-pointer" data-testid={`text-ticket-code-${ticket.id}`} onClick={() => onView(ticket)}>
-                          <span className="text-[#0057FF] hover:underline">{ticket.customerCode || ((ticket as any).entityName) || `#${ticket.customerId}`}</span>
+                          <span className="text-[#0057FF] hover:underline">{getCode(ticket)}</span>
                         </TableCell>
+                        {/* Name */}
                         <TableCell className="text-xs font-medium cursor-pointer" data-testid={`text-ticket-customer-${ticket.id}`} onClick={() => onView(ticket)}>
-                          <span className="hover:text-[#0057FF] hover:underline transition-colors">{ticket.customerName || (ticket as any).entityName || "Unknown"}</span>
+                          <span className="hover:text-[#0057FF] hover:underline transition-colors">{getName(ticket)}</span>
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground" data-testid={`text-ticket-phone-${ticket.id}`}>
-                          {ticket.customerPhone || "-"}
+                        {/* Phone / MAIL (optional) */}
+                        {cfg.extraCol && (
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap" data-testid={`text-ticket-extra-${ticket.id}`}>
+                            {getExtra(ticket)}
+                          </TableCell>
+                        )}
+                        {/* Branch */}
+                        <TableCell className="text-xs text-muted-foreground" data-testid={`text-ticket-branch-${ticket.id}`}>
+                          {getBranch(ticket)}
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground" data-testid={`text-ticket-zone-${ticket.id}`}>
-                          {ticket.customerArea || "-"}
+                        {/* Submit From (Complained Number) */}
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap" data-testid={`text-ticket-submitfrom-${ticket.id}`}>
+                          {getSubmitFrom(ticket)}
                         </TableCell>
-                        <TableCell className="text-xs max-w-[150px]" data-testid={`text-ticket-problem-${ticket.id}`}>
-                          <span className="text-blue-600 dark:text-blue-400 font-medium">{ticket.subject}</span>
+                        {/* Problem */}
+                        <TableCell className="text-xs max-w-[140px]" data-testid={`text-ticket-problem-${ticket.id}`}>
+                          <span className="text-blue-600 dark:text-blue-400 font-medium">{ticket.category || ticket.subject}</span>
                         </TableCell>
+                        {/* Priority */}
                         <TableCell data-testid={`badge-ticket-priority-${ticket.id}`}>
                           <Badge className={`text-[10px] font-semibold capitalize border-0 ${priorityConfig[ticket.priority] || priorityConfig.medium}`}>
                             {ticket.priority}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-[11px] text-muted-foreground whitespace-nowrap" data-testid={`text-ticket-time-${ticket.id}`}>
-                          {ticket.createdAt ? new Date(ticket.createdAt).toLocaleString("en-US", {
-                            day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true
-                          }) : "-"}
-                        </TableCell>
+                        {/* Status */}
                         <TableCell data-testid={`badge-ticket-status-${ticket.id}`}>
                           <Badge className={`text-[10px] font-semibold capitalize border-0 ${sConfig.color}`}>
                             {sConfig.label}
                           </Badge>
                         </TableCell>
+                        {/* Assign To */}
                         <TableCell className="text-xs" data-testid={`text-ticket-assigned-${ticket.id}`}>
                           {ticket.assignedTo ? (
-                            <span className="text-green-600 dark:text-green-400 font-medium">{ticket.assignedTo}</span>
+                            <span className="text-green-600 dark:text-green-400 font-medium">{ticket.assignedTo.split(",")[0]}{ticket.assignedTo.includes(",") ? " +more" : ""}</span>
                           ) : (
                             <Button variant="outline" size="sm" className="text-[10px] h-6 px-2 gap-1 text-blue-600 border-blue-200" data-testid={`button-assign-${ticket.id}`}>
                               <UserPlus className="h-3 w-3" /> Assign
                             </Button>
                           )}
                         </TableCell>
+                        {/* Complain Time */}
+                        <TableCell className="text-[11px] text-muted-foreground whitespace-nowrap" data-testid={`text-ticket-time-${ticket.id}`}>
+                          {ticket.createdAt ? new Date(ticket.createdAt).toLocaleString("en-US", {
+                            day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true
+                          }) : "-"}
+                        </TableCell>
+                        {/* Duration */}
                         <TableCell className="text-xs text-muted-foreground whitespace-nowrap" data-testid={`text-ticket-duration-${ticket.id}`}>
                           <div className="flex items-center gap-1">
                             <Timer className="h-3 w-3" />
                             {ticket.createdAt ? getDuration(ticket.createdAt) : "-"}
                           </div>
                         </TableCell>
+                        {/* Action */}
                         <TableCell>
                           <div className="flex items-center justify-center gap-1">
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onView(ticket)} data-testid={`button-view-ticket-${ticket.id}`} title="View Ticket">

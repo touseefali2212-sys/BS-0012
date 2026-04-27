@@ -203,7 +203,12 @@ export const tickets = pgTable("tickets", {
   supportGroup: text("support_group").default("customers"),
   entityId: integer("entity_id"),
   entityName: text("entity_name"),
+  entityCode: text("entity_code"),
+  entityEmail: text("entity_email"),
+  entityPhone: text("entity_phone"),
+  entityBranch: text("entity_branch"),
   customerSubType: text("customer_sub_type"),
+  complainedNumber: text("complained_number"),
   createdBy: text("created_by"),
 });
 
