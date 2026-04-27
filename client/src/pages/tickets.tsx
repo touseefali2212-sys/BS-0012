@@ -2032,7 +2032,7 @@ function TicketListView({
           data-testid="button-toggle-filters"
         >
           <Filter className="h-4 w-4 text-muted-foreground" />
-          Advanced Filters
+          Show Filter
           {filtersOpen ? <ChevronUp className="h-4 w-4 ml-auto" /> : <ChevronDown className="h-4 w-4 ml-auto" />}
         </button>
         {filtersOpen && (
