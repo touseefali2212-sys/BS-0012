@@ -79,6 +79,7 @@ type AnyCustomer = {
   id: number;
   name: string;
   code: string;
+  usernameIp?: string;
   phone: string;
   branch?: string;
   address?: string;
@@ -710,13 +711,18 @@ function NewTicketView({
     setComplainedNumber("");
   };
 
-  const filteredCustomers: { id: number; displayName: string; displayCode: string; phone: string; raw: Customer | CirCustomer | CorporateCustomer }[] = (() => {
+  const filteredCustomers: { id: number; displayName: string; displayCode: string; usernameIp?: string; phone: string; raw: Customer | CirCustomer | CorporateCustomer }[] = (() => {
     if (!customerSearch) return [];
     const s = customerSearch.toLowerCase();
     if (customerSubType === "regular") {
       return customers
-        .filter(c => c.fullName.toLowerCase().includes(s) || c.customerId.toLowerCase().includes(s) || (c.phone || "").includes(s))
-        .map(c => ({ id: c.id, displayName: c.fullName, displayCode: c.customerId, phone: c.phone || "", raw: c }));
+        .filter(c =>
+          c.fullName.toLowerCase().includes(s) ||
+          c.customerId.toLowerCase().includes(s) ||
+          (c.phone || "").includes(s) ||
+          (c.usernameIp || "").toLowerCase().includes(s)
+        )
+        .map(c => ({ id: c.id, displayName: c.fullName, displayCode: c.customerId, usernameIp: c.usernameIp || undefined, phone: c.phone || "", raw: c }));
     }
     if (customerSubType === "cir") {
       return cirCustomers
@@ -749,13 +755,14 @@ function NewTicketView({
     return t.name.toLowerCase().includes(s) || t.towerId.toLowerCase().includes(s) || (t.address || "").toLowerCase().includes(s);
   });
 
-  const selectCustomer = (item: { id: number; displayName: string; displayCode: string; phone: string; raw: Customer | CirCustomer | CorporateCustomer }) => {
+  const selectCustomer = (item: { id: number; displayName: string; displayCode: string; usernameIp?: string; phone: string; raw: Customer | CirCustomer | CorporateCustomer }) => {
     const raw = item.raw;
     const isRegular = customerSubType === "regular";
     const normalized: AnyCustomer = {
       id: item.id,
       name: item.displayName,
       code: item.displayCode,
+      usernameIp: item.usernameIp,
       phone: item.phone,
       branch: (raw as any).branch || undefined,
       address: (raw as any).address || (raw as any).presentAddress || (raw as any).headOfficeAddress || undefined,
@@ -960,6 +967,11 @@ function NewTicketView({
                       <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#0057FF] text-white shrink-0" data-testid="selected-customer-code">
                         {selectedCustomer.code}
                       </span>
+                      {selectedCustomer.usernameIp && (
+                        <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-muted text-muted-foreground shrink-0" data-testid="selected-customer-ip">
+                          {selectedCustomer.usernameIp}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <button
@@ -996,9 +1008,12 @@ function NewTicketView({
                           onClick={() => selectCustomer(item)}
                           data-testid={`option-customer-${item.id}`}
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-medium">{item.displayName}</span>
                             <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-[#0057FF]/10 text-[#0057FF]">{item.displayCode}</span>
+                            {item.usernameIp && (
+                              <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{item.usernameIp}</span>
+                            )}
                           </div>
                           <span className="text-xs text-muted-foreground shrink-0">{item.phone}</span>
                         </button>
