@@ -1123,6 +1123,73 @@ export async function registerRoutes(
     }
   });
 
+  // Custom ticket creation with notifications
+  app.post("/api/tickets", requireAuth, async (req, res) => {
+    try {
+      const parsed = insertTicketSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+      const ticket = await storage.createTicket(parsed.data);
+      const now = new Date().toISOString();
+      const ticketRef = `Ticket No: ${ticket.ticketNumber} | Subject: ${ticket.subject} | Priority: ${ticket.priority.toUpperCase()}`;
+
+      // Notify customer / entity
+      const supportGroup = (ticket as any).supportGroup || "customers";
+      try {
+        if (supportGroup === "customers" && ticket.customerId > 0) {
+          const customer = await storage.getCustomer(ticket.customerId);
+          if (customer) {
+            const msg = `Dear ${customer.fullName}, your support ticket has been registered. ${ticketRef}. Our team will contact you shortly. Thank you.`;
+            await storage.createNotification({ title: `Ticket Opened: ${ticket.ticketNumber}`, message: msg, type: "info", channel: "app", recipientType: "customer", recipientId: customer.id, isRead: false, createdAt: now });
+            if (customer.phone) {
+              await storage.createNotification({ title: `Ticket SMS: ${ticket.ticketNumber}`, message: msg, type: "info", channel: "sms", recipientType: "customer", recipientId: customer.id, isRead: false, createdAt: now });
+            }
+          }
+        } else {
+          const entityPhone = (ticket as any).entityPhone;
+          const entityName = (ticket as any).entityName || "Partner";
+          const entityId = (ticket as any).entityId;
+          const msg = `Dear ${entityName}, a support ticket has been opened for your account. ${ticketRef}. Our team will contact you shortly. Thank you.`;
+          await storage.createNotification({ title: `Ticket Opened: ${ticket.ticketNumber}`, message: msg, type: "info", channel: "app", recipientType: supportGroup, recipientId: entityId || null, isRead: false, createdAt: now });
+          if (entityPhone) {
+            await storage.createNotification({ title: `Ticket SMS: ${ticket.ticketNumber}`, message: msg, type: "info", channel: "sms", recipientType: supportGroup, recipientId: entityId || null, isRead: false, createdAt: now });
+          }
+        }
+      } catch (_) {}
+
+      // Also notify on complainedNumber if different from entity phone
+      const complainedNumber = (ticket as any).complainedNumber;
+      if (complainedNumber) {
+        try {
+          const msg = `Support ticket ${ticket.ticketNumber} has been registered for your complaint. ${ticketRef}. Our team will contact you shortly.`;
+          await storage.createNotification({ title: `Ticket Registered: ${ticket.ticketNumber}`, message: msg, type: "info", channel: "sms", recipientType: "complainant", recipientId: null, isRead: false, createdAt: now });
+        } catch (_) {}
+      }
+
+      // Notify assigned employees
+      if (parsed.data.assignedTo) {
+        const assignedNames = parsed.data.assignedTo.split(",").map((n: string) => n.trim()).filter(Boolean);
+        if (assignedNames.length > 0) {
+          try {
+            const allEmployees = await storage.getEmployees();
+            for (const name of assignedNames) {
+              const emp = allEmployees.find(e => e.fullName === name);
+              const entityLabel = (ticket as any).entityName || (ticket as any).customerName || "N/A";
+              const msg = `You have been assigned a new support ticket. ${ticketRef}. Customer/Entity: ${entityLabel}. Please attend promptly.`;
+              await storage.createNotification({ title: `Assigned: ${ticket.ticketNumber}`, message: msg, type: "info", channel: "app", recipientType: "employee", recipientId: emp?.id || null, isRead: false, createdAt: now });
+              if (emp?.phone) {
+                await storage.createNotification({ title: `Assigned SMS: ${ticket.ticketNumber}`, message: msg, type: "info", channel: "sms", recipientType: "employee", recipientId: emp.id, isRead: false, createdAt: now });
+              }
+            }
+          } catch (_) {}
+        }
+      }
+
+      res.status(201).json(ticket);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to create ticket" });
+    }
+  });
+
   crudRoutes(app, "tickets", insertTicketSchema,
     () => storage.getTickets(),
     (id) => storage.getTicket(id),
