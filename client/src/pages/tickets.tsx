@@ -1098,12 +1098,77 @@ function NewTicketView({
                 </div>
               )}
             </div>
-            {selectedEntityId && (
-              <div className="mt-2 flex items-center gap-2 text-xs text-green-700 dark:text-green-400">
-                <CheckCircle className="h-3.5 w-3.5" />
-                Selected: <span className="font-semibold">{selectedEntityName}</span>
-              </div>
-            )}
+            {selectedEntityId && (() => {
+              const selReseller = supportGroup === "resellers" ? resellers.find(r => r.id === selectedEntityId) : null;
+              const selVendor = supportGroup === "vendors" ? vendors.find(v => v.id === selectedEntityId) : null;
+              const selTower = supportGroup === "pops" ? networkTowers.find(t => t.id === selectedEntityId) : null;
+              return (
+                <div className="mt-3 border rounded-lg p-4 bg-muted/20">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {selReseller && (
+                      <>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Reseller Name</label>
+                          <Input className={readonlyFieldClass} value={selReseller.name} readOnly data-testid="field-entity-name" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Phone</label>
+                          <Input className={readonlyFieldClass} value={selReseller.phone || "-"} readOnly data-testid="field-entity-phone" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Branch</label>
+                          <Input className={readonlyFieldClass} value={selReseller.branch || "-"} readOnly data-testid="field-entity-branch" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Area</label>
+                          <Input className={readonlyFieldClass} value={selReseller.area || "-"} readOnly data-testid="field-entity-area" />
+                        </div>
+                      </>
+                    )}
+                    {selVendor && (
+                      <>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Vendor Name</label>
+                          <Input className={readonlyFieldClass} value={selVendor.name} readOnly data-testid="field-entity-name" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Phone</label>
+                          <Input className={readonlyFieldClass} value={selVendor.phone || "-"} readOnly data-testid="field-entity-phone" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Contact Person</label>
+                          <Input className={readonlyFieldClass} value={selVendor.contactPerson || "-"} readOnly data-testid="field-entity-contact" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Address</label>
+                          <Input className={readonlyFieldClass} value={selVendor.address || "-"} readOnly data-testid="field-entity-address" />
+                        </div>
+                      </>
+                    )}
+                    {selTower && (
+                      <>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">POP / Tower Name</label>
+                          <Input className={readonlyFieldClass} value={selTower.name} readOnly data-testid="field-entity-name" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Tower ID</label>
+                          <Input className={readonlyFieldClass} value={selTower.towerId || "-"} readOnly data-testid="field-entity-tower-id" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Address / Location</label>
+                          <Input className={readonlyFieldClass} value={selTower.address || "-"} readOnly data-testid="field-entity-address" />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Status</label>
+                          <Input className={readonlyFieldClass} value={selTower.status || "-"} readOnly data-testid="field-entity-status" />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -1111,7 +1176,7 @@ function NewTicketView({
         {isCustomerGroup && selectedCustomer && (
           <>
             <div className="border rounded-lg p-4 bg-muted/20">
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4">
                 <div>
                   <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">
                     {selectedCustomer.subType === "regular" ? "Customer Name" : "Company Name"}
@@ -1123,18 +1188,24 @@ function NewTicketView({
                   <Input className={readonlyFieldClass} value={selectedCustomer.phone || "-"} readOnly data-testid="field-mobile" />
                 </div>
                 <div>
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Client Code</label>
+                  <Input className={readonlyFieldClass} value={selectedCustomer.code || "-"} readOnly data-testid="field-client-code" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4 mt-3">
+                <div>
                   <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Address</label>
                   <Input className={readonlyFieldClass} value={selectedCustomer.address || "-"} readOnly data-testid="field-address" />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">
-                    {selectedCustomer.subType === "regular" ? "Zone / Area" : "Branch"}
+                    {selectedCustomer.subType === "regular" ? "Zone / Area" : "Area"}
                   </label>
-                  <Input className={readonlyFieldClass} value={selectedCustomer.zone || selectedCustomer.area || selectedCustomer.branch || "-"} readOnly data-testid="field-zone" />
+                  <Input className={readonlyFieldClass} value={selectedCustomer.zone || selectedCustomer.area || "-"} readOnly data-testid="field-zone" />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Client Code</label>
-                  <Input className={readonlyFieldClass} value={selectedCustomer.code || "-"} readOnly data-testid="field-client-code" />
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Branch</label>
+                  <Input className={readonlyFieldClass} value={selectedCustomer.branch || "-"} readOnly data-testid="field-branch" />
                 </div>
               </div>
               {selectedCustomer.subType === "regular" && (
