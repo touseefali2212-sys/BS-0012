@@ -138,6 +138,13 @@ export default function TicketsPage() {
     queryKey: ["/api/auth/me"],
   });
 
+  const { data: employeesAll } = useQuery<Employee[]>({
+    queryKey: ["/api/employees"],
+  });
+
+  const [editAssignedToList, setEditAssignedToList] = useState<string[]>([]);
+  const [showEditAssignDropdown, setShowEditAssignDropdown] = useState(false);
+
   const form = useForm<InsertTicket>({
     resolver: zodResolver(ticketFormSchema),
     defaultValues: {
@@ -221,6 +228,11 @@ export default function TicketsPage() {
 
   const openEdit = (ticket: Ticket) => {
     setEditingTicket(ticket);
+    const existingAssignees = ticket.assignedTo
+      ? ticket.assignedTo.split(",").map(s => s.trim()).filter(Boolean)
+      : [];
+    setEditAssignedToList(existingAssignees);
+    setShowEditAssignDropdown(false);
     form.reset({
       ticketNumber: ticket.ticketNumber,
       customerId: ticket.customerId,
@@ -238,7 +250,8 @@ export default function TicketsPage() {
 
   const onSubmit = (data: InsertTicket) => {
     if (editingTicket) {
-      updateMutation.mutate({ id: editingTicket.id, data });
+      const updatedData = { ...data, assignedTo: editAssignedToList.length > 0 ? editAssignedToList.join(",") : data.assignedTo };
+      updateMutation.mutate({ id: editingTicket.id, data: updatedData });
     } else {
       createMutation.mutate(data);
     }
@@ -567,19 +580,51 @@ export default function TicketsPage() {
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="assignedTo"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] uppercase font-semibold text-muted-foreground">Assigned To</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Technician name" className="text-xs" data-testid="input-assigned-to" {...field} value={field.value || ""} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase font-semibold text-muted-foreground">Assigned To</label>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      className="w-full h-9 px-3 text-xs border rounded-md bg-background text-left flex items-center justify-between gap-2 hover:border-foreground/40 transition-colors"
+                      onClick={() => setShowEditAssignDropdown(!showEditAssignDropdown)}
+                      data-testid="button-edit-assign-to-toggle"
+                    >
+                      <span className={editAssignedToList.length === 0 ? "text-muted-foreground" : "text-foreground"}>
+                        {editAssignedToList.length === 0 ? "Select assignees..." : editAssignedToList.join(", ")}
+                      </span>
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    </button>
+                    {showEditAssignDropdown && (
+                      <div className="absolute z-50 w-full bg-popover border rounded-lg shadow-lg mt-1 max-h-52 overflow-y-auto">
+                        {(employeesAll || []).length === 0 ? (
+                          <div className="px-4 py-3 text-xs text-muted-foreground text-center">No employees found</div>
+                        ) : (employeesAll || []).map(emp => (
+                          <button
+                            key={emp.id}
+                            type="button"
+                            className="w-full text-left px-4 py-2.5 hover:bg-muted text-sm flex items-center gap-3 border-b last:border-b-0"
+                            onClick={() => {
+                              setEditAssignedToList(prev =>
+                                prev.includes(emp.fullName)
+                                  ? prev.filter(n => n !== emp.fullName)
+                                  : [...prev, emp.fullName]
+                              );
+                            }}
+                            data-testid={`option-edit-assignee-${emp.id}`}
+                          >
+                            <div className={`h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${editAssignedToList.includes(emp.fullName) ? "bg-blue-600 border-blue-600" : "border-muted-foreground"}`}>
+                              {editAssignedToList.includes(emp.fullName) && <CheckCircle className="h-3 w-3 text-white" />}
+                            </div>
+                            <div>
+                              <span className="font-medium text-xs">{emp.fullName}</span>
+                              {(emp as any).designation && <span className="text-[10px] text-muted-foreground ml-1">— {(emp as any).designation}</span>}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
                 {/* Ticket Number & Customer for new ticket only */}
                 {!editingTicket && (
                   <div className="grid grid-cols-2 gap-3">
