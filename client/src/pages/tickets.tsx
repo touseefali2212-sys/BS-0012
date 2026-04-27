@@ -2015,13 +2015,17 @@ function TicketListView({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white" data-testid="card-total-tickets">
+        <Card
+          className={`border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg ${filterStatus === "all" ? "ring-4 ring-white/50 shadow-xl" : ""}`}
+          onClick={() => { setFilterStatus("all"); setCurrentPage(1); }}
+          data-testid="card-total-tickets"
+        >
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-blue-100">Total Tickets</p>
                 <p className="text-3xl font-bold mt-1">{totalTickets}</p>
-                <p className="text-[10px] text-blue-200 mt-1">Total tickets of Current Month</p>
+                <p className="text-[10px] text-blue-200 mt-1">Click to show all tickets</p>
               </div>
               <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
                 <TicketCheck className="h-5 w-5" />
@@ -2029,13 +2033,17 @@ function TicketListView({
             </div>
           </CardContent>
         </Card>
-        <Card className="border-0 bg-gradient-to-br from-green-500 to-green-600 text-white" data-testid="card-pending-tickets">
+        <Card
+          className={`border-0 bg-gradient-to-br from-green-500 to-green-600 text-white cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg ${filterStatus === "open" ? "ring-4 ring-white/50 shadow-xl" : ""}`}
+          onClick={() => { setFilterStatus("open"); setCurrentPage(1); }}
+          data-testid="card-pending-tickets"
+        >
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-green-100">Pending Tickets</p>
                 <p className="text-3xl font-bold mt-1">{pendingTickets}</p>
-                <p className="text-[10px] text-green-200 mt-1">Total pending tickets for filtered data</p>
+                <p className="text-[10px] text-green-200 mt-1">Click to show pending tickets</p>
               </div>
               <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
                 <CircleDot className="h-5 w-5" />
@@ -2043,13 +2051,17 @@ function TicketListView({
             </div>
           </CardContent>
         </Card>
-        <Card className="border-0 bg-gradient-to-br from-orange-500 to-red-500 text-white" data-testid="card-processing-tickets">
+        <Card
+          className={`border-0 bg-gradient-to-br from-orange-500 to-red-500 text-white cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg ${filterStatus === "in_progress" ? "ring-4 ring-white/50 shadow-xl" : ""}`}
+          onClick={() => { setFilterStatus("in_progress"); setCurrentPage(1); }}
+          data-testid="card-processing-tickets"
+        >
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-orange-100">Processing Tickets</p>
                 <p className="text-3xl font-bold mt-1">{processingTickets}</p>
-                <p className="text-[10px] text-orange-200 mt-1">Total processing tickets for filtered data</p>
+                <p className="text-[10px] text-orange-200 mt-1">Click to show processing tickets</p>
               </div>
               <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
                 <Clock className="h-5 w-5" />
@@ -2057,13 +2069,17 @@ function TicketListView({
             </div>
           </CardContent>
         </Card>
-        <Card className="border-0 bg-gradient-to-br from-teal-600 to-teal-700 text-white" data-testid="card-solved-tickets">
+        <Card
+          className={`border-0 bg-gradient-to-br from-teal-600 to-teal-700 text-white cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg ${filterStatus === "resolved" || filterStatus === "closed" ? "ring-4 ring-white/50 shadow-xl" : ""}`}
+          onClick={() => { setFilterStatus("resolved"); setCurrentPage(1); }}
+          data-testid="card-solved-tickets"
+        >
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-teal-100">Solved Tickets</p>
                 <p className="text-3xl font-bold mt-1">{solvedTickets}</p>
-                <p className="text-[10px] text-teal-200 mt-1">Total solved tickets for filtered data</p>
+                <p className="text-[10px] text-teal-200 mt-1">Click to show solved tickets</p>
               </div>
               <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
                 <CheckCircle className="h-5 w-5" />
@@ -2413,6 +2429,17 @@ function TicketHistoryView({ tickets, isLoading, supportCategories }: { tickets:
   const [filterZone, setFilterZone] = useState("all");
   const [filterFromDate, setFilterFromDate] = useState("");
   const [filterToDate, setFilterToDate] = useState("");
+  const [filterHistoryPriority, setFilterHistoryPriority] = useState("all");
+
+  const cycleHistoryPriority = () => {
+    setFilterHistoryPriority(prev => {
+      if (prev === "all") return "high";
+      if (prev === "high") return "medium";
+      if (prev === "medium") return "low";
+      return "all";
+    });
+    setCurrentPage(1);
+  };
 
   const groupFiltered = historyTickets.filter(t => {
     const sg = (t as any).supportGroup || "customers";
@@ -2433,6 +2460,11 @@ function TicketHistoryView({ tickets, isLoading, supportCategories }: { tickets:
     if (filterSolvedBy !== "all" && (t.assignedTo || "") !== filterSolvedBy) return false;
     if (filterCategory !== "all" && t.category !== filterCategory) return false;
     if (filterZone !== "all" && (t.customerArea || "") !== filterZone) return false;
+    if (filterHistoryPriority !== "all") {
+      if (filterHistoryPriority === "high" && t.priority !== "high" && t.priority !== "critical") return false;
+      if (filterHistoryPriority === "medium" && t.priority !== "medium") return false;
+      if (filterHistoryPriority === "low" && t.priority !== "low") return false;
+    }
     if (filterFromDate) {
       const ticketDate = t.resolvedAt ? new Date(t.resolvedAt) : t.createdAt ? new Date(t.createdAt) : null;
       if (ticketDate && ticketDate < new Date(filterFromDate)) return false;
@@ -2568,13 +2600,17 @@ function TicketHistoryView({ tickets, isLoading, supportCategories }: { tickets:
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white" data-testid="card-history-total">
+        <Card
+          className={`border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg ${filterHistoryPriority === "all" ? "ring-4 ring-white/50 shadow-xl" : ""}`}
+          onClick={() => { setFilterHistoryPriority("all"); setCurrentPage(1); }}
+          data-testid="card-history-total"
+        >
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-blue-100">Total Tickets</p>
                 <p className="text-3xl font-bold mt-1">{totalTickets}</p>
-                <p className="text-[10px] text-blue-200 mt-1">Total tickets according to all filters.!</p>
+                <p className="text-[10px] text-blue-200 mt-1">Click to show all resolved tickets</p>
               </div>
               <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
                 <CheckCircle className="h-5 w-5" />
@@ -2582,13 +2618,17 @@ function TicketHistoryView({ tickets, isLoading, supportCategories }: { tickets:
             </div>
           </CardContent>
         </Card>
-        <Card className="border-0 bg-gradient-to-br from-green-500 to-green-600 text-white" data-testid="card-history-client-portal">
+        <Card
+          className="border-0 bg-gradient-to-br from-green-500 to-green-600 text-white cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg"
+          onClick={() => { setFilterHistoryPriority("all"); setCurrentPage(1); }}
+          data-testid="card-history-client-portal"
+        >
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-green-100">From Client Portal</p>
                 <p className="text-3xl font-bold mt-1">{fromClientPortal}</p>
-                <p className="text-[10px] text-green-200 mt-1">Tickets from client portal according to all filters.!</p>
+                <p className="text-[10px] text-green-200 mt-1">Tickets from client portal</p>
               </div>
               <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
                 <Monitor className="h-5 w-5" />
@@ -2596,13 +2636,17 @@ function TicketHistoryView({ tickets, isLoading, supportCategories }: { tickets:
             </div>
           </CardContent>
         </Card>
-        <Card className="border-0 bg-gradient-to-br from-red-500 to-orange-500 text-white" data-testid="card-history-admin-portal">
+        <Card
+          className="border-0 bg-gradient-to-br from-red-500 to-orange-500 text-white cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg"
+          onClick={() => { setFilterHistoryPriority("all"); setCurrentPage(1); }}
+          data-testid="card-history-admin-portal"
+        >
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-orange-100">From Admin Portal</p>
                 <p className="text-3xl font-bold mt-1">{fromAdminPortal}</p>
-                <p className="text-[10px] text-orange-200 mt-1">Tickets from admin portal according to all filters.!</p>
+                <p className="text-[10px] text-orange-200 mt-1">Click to show all admin tickets</p>
               </div>
               <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
                 <Users className="h-5 w-5" />
@@ -2610,13 +2654,19 @@ function TicketHistoryView({ tickets, isLoading, supportCategories }: { tickets:
             </div>
           </CardContent>
         </Card>
-        <Card className="border-0 bg-gradient-to-br from-amber-500 to-orange-500 text-white" data-testid="card-history-priority">
+        <Card
+          className={`border-0 bg-gradient-to-br from-amber-500 to-orange-500 text-white cursor-pointer transition-all hover:scale-[1.02] hover:shadow-lg ${filterHistoryPriority !== "all" ? "ring-4 ring-white/50 shadow-xl" : ""}`}
+          onClick={cycleHistoryPriority}
+          data-testid="card-history-priority"
+        >
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-amber-100">Ticket's Priority</p>
                 <p className="text-2xl font-bold mt-1">H:{highCount} M:{mediumCount} L:{lowCount}</p>
-                <p className="text-[10px] text-amber-200 mt-1">Total processing tickets according to all filters.!</p>
+                <p className="text-[10px] text-amber-200 mt-1">
+                  {filterHistoryPriority === "all" ? "Click to filter by priority" : `Showing: ${filterHistoryPriority.toUpperCase()} priority`}
+                </p>
               </div>
               <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
                 <AlertCircle className="h-5 w-5" />
