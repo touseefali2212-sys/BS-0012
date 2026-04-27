@@ -1789,14 +1789,14 @@ function TicketListView({
                     const sConfig = statusConfig[ticket.status] || statusConfig.open;
                     return (
                       <TableRow key={ticket.id} data-testid={`row-ticket-${ticket.id}`} className="hover:bg-muted/50">
-                        <TableCell className="text-xs font-mono font-medium" data-testid={`text-ticket-number-${ticket.id}`}>
-                          {ticket.ticketNumber}
+                        <TableCell className="text-xs font-mono font-medium cursor-pointer" data-testid={`text-ticket-number-${ticket.id}`} onClick={() => onView(ticket)}>
+                          <span className="text-[#0057FF] hover:underline">{ticket.ticketNumber}</span>
                         </TableCell>
-                        <TableCell className="text-xs" data-testid={`text-ticket-code-${ticket.id}`}>
-                          {ticket.customerCode || `#${ticket.customerId}`}
+                        <TableCell className="text-xs cursor-pointer" data-testid={`text-ticket-code-${ticket.id}`} onClick={() => onView(ticket)}>
+                          <span className="text-[#0057FF] hover:underline">{ticket.customerCode || ((ticket as any).entityName) || `#${ticket.customerId}`}</span>
                         </TableCell>
-                        <TableCell className="text-xs font-medium" data-testid={`text-ticket-customer-${ticket.id}`}>
-                          {ticket.customerName || "Unknown"}
+                        <TableCell className="text-xs font-medium cursor-pointer" data-testid={`text-ticket-customer-${ticket.id}`} onClick={() => onView(ticket)}>
+                          <span className="hover:text-[#0057FF] hover:underline transition-colors">{ticket.customerName || (ticket as any).entityName || "Unknown"}</span>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground" data-testid={`text-ticket-phone-${ticket.id}`}>
                           {ticket.customerPhone || "-"}
