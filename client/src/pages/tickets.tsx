@@ -351,6 +351,24 @@ export default function TicketsPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="text-[10px] font-semibold uppercase text-muted-foreground mb-1 block">
+                        {(editingTicket as any).supportGroup === "resellers" ? "Reseller ID"
+                          : (editingTicket as any).supportGroup === "pops" ? "POP ID"
+                          : (editingTicket as any).supportGroup === "vendors" ? "Vendor ID"
+                          : "Customer ID"}
+                      </label>
+                      <Input
+                        value={
+                          (editingTicket as any).supportGroup === "customers"
+                            ? (editingTicket.customerId || "-")
+                            : ((editingTicket as any).entityId || "-")
+                        }
+                        readOnly
+                        className="bg-muted/40 text-xs cursor-not-allowed"
+                        data-testid="input-entity-id-readonly"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold uppercase text-muted-foreground mb-1 block">
                         {(editingTicket as any).supportGroup === "resellers" ? "Reseller Code"
                           : (editingTicket as any).supportGroup === "pops" ? "POP Code"
                           : (editingTicket as any).supportGroup === "vendors" ? "Vendor Code"
@@ -1327,6 +1345,10 @@ function ViewTicketView({
               <div className="border rounded-lg p-4 bg-muted/20">
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                   <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Customer ID</label>
+                    <Input className={readonlyFieldClass} value={customer.id} readOnly data-testid="view-field-customer-id" />
+                  </div>
+                  <div>
                     <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Customer Name</label>
                     <Input className={readonlyFieldClass} value={customer.fullName} readOnly data-testid="view-field-customer-name" />
                   </div>
@@ -1385,6 +1407,10 @@ function ViewTicketView({
               {reseller ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Reseller ID</label>
+                    <Input className={readonlyFieldClass} value={reseller.id} readOnly data-testid="view-field-reseller-id" />
+                  </div>
+                  <div>
                     <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Reseller Name</label>
                     <Input className={readonlyFieldClass} value={reseller.name} readOnly data-testid="view-field-reseller-name" />
                   </div>
@@ -1416,6 +1442,10 @@ function ViewTicketView({
               {vendor ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Vendor ID</label>
+                    <Input className={readonlyFieldClass} value={vendor.id} readOnly data-testid="view-field-vendor-id" />
+                  </div>
+                  <div>
                     <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Vendor Name</label>
                     <Input className={readonlyFieldClass} value={vendor.name} readOnly data-testid="view-field-vendor-name" />
                   </div>
@@ -1446,6 +1476,10 @@ function ViewTicketView({
             <div className="border rounded-lg p-4 bg-muted/20">
               {tower ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">POP ID</label>
+                    <Input className={readonlyFieldClass} value={tower.id} readOnly data-testid="view-field-tower-id" />
+                  </div>
                   <div>
                     <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Tower Name</label>
                     <Input className={readonlyFieldClass} value={tower.name} readOnly data-testid="view-field-tower-name" />
@@ -1670,7 +1704,7 @@ function TicketListView({
     vendors:   { codeLabel: "Vendor Code",   nameLabel: "Vendor Name",   extraCol: "MAIL" },
   };
   const cfg = colCfg[activeGroup] || colCfg.customers;
-  const totalCols = cfg.extraCol ? 13 : 12;
+  const totalCols = cfg.extraCol ? 14 : 13;
 
   const getCode = (ticket: TicketWithCustomer) =>
     activeGroup === "customers"
@@ -1694,6 +1728,11 @@ function TicketListView({
 
   const getSubmitFrom = (ticket: TicketWithCustomer) =>
     (ticket as any).complainedNumber || "-";
+
+  const getEntityId = (ticket: TicketWithCustomer) =>
+    activeGroup === "customers"
+      ? ticket.customerId
+      : (ticket as any).entityId ?? "-";
 
   const priorityConfig: Record<string, string> = {
     critical: "bg-red-600 text-white",
@@ -1952,6 +1991,7 @@ function TicketListView({
               <TableHeader>
                 <TableRow className="bg-[#1a3a5c] border-[#1a3a5c]">
                   <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">Ticket No.</TableHead>
+                  <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">ID</TableHead>
                   <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">{cfg.codeLabel}</TableHead>
                   <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">{cfg.nameLabel}</TableHead>
                   {cfg.extraCol && <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">{cfg.extraCol}</TableHead>}
@@ -1983,6 +2023,10 @@ function TicketListView({
                         {/* Ticket No. */}
                         <TableCell className="text-xs font-mono font-medium cursor-pointer whitespace-nowrap" data-testid={`text-ticket-number-${ticket.id}`} onClick={() => onView(ticket)}>
                           <span className="text-[#0057FF] hover:underline">{ticket.ticketNumber}</span>
+                        </TableCell>
+                        {/* Entity ID */}
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap" data-testid={`text-ticket-entityid-${ticket.id}`}>
+                          {getEntityId(ticket)}
                         </TableCell>
                         {/* Code */}
                         <TableCell className="text-xs cursor-pointer" data-testid={`text-ticket-code-${ticket.id}`} onClick={() => onView(ticket)}>
