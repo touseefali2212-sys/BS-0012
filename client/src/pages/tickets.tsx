@@ -960,9 +960,6 @@ function NewTicketView({
                       <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#0057FF] text-white shrink-0" data-testid="selected-customer-code">
                         {selectedCustomer.code}
                       </span>
-                      <span className="text-[11px] text-muted-foreground shrink-0" data-testid="selected-customer-dbid">
-                        ID: {selectedCustomer.id}
-                      </span>
                     </div>
                   </div>
                   <button
@@ -1002,7 +999,6 @@ function NewTicketView({
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{item.displayName}</span>
                             <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-[#0057FF]/10 text-[#0057FF]">{item.displayCode}</span>
-                            <span className="text-xs text-muted-foreground">ID: {item.id}</span>
                           </div>
                           <span className="text-xs text-muted-foreground shrink-0">{item.phone}</span>
                         </button>
