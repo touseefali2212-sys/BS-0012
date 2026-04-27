@@ -883,39 +883,67 @@ function NewTicketView({
               <label className="text-xs font-bold uppercase text-muted-foreground mb-1.5 block">
                 User Name (ID) <span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <Input
-                  className="h-10 text-sm pr-10"
-                  placeholder={`Search ${customerSubType === "cir" ? "CIR" : customerSubType === "corporate" ? "corporate" : ""} customer by name, ID, or phone...`}
-                  value={customerSearch}
-                  onChange={(e) => {
-                    setCustomerSearch(e.target.value);
-                    setShowCustomerDropdown(true);
-                    if (!e.target.value) { setSelectedCustomer(null); setConnectionData(null); }
-                  }}
-                  onFocus={() => setShowCustomerDropdown(true)}
-                  data-testid="input-customer-search"
-                />
-                <Search className="h-4 w-4 absolute right-3 top-3 text-muted-foreground" />
-                {showCustomerDropdown && customerSearch && filteredCustomers.length > 0 && (
-                  <div className="absolute z-50 w-full bg-popover border rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
-                    {filteredCustomers.slice(0, 10).map(c => (
-                      <button
-                        key={c.id}
-                        className="w-full text-left px-4 py-2.5 hover:bg-muted text-sm flex items-center justify-between gap-2 border-b last:border-b-0"
-                        onClick={() => selectCustomer(c)}
-                        data-testid={`option-customer-${c.id}`}
-                      >
-                        <div>
-                          <span className="font-medium">{c.fullName}</span>
-                          <span className="text-xs text-muted-foreground ml-2">({c.customerId})</span>
-                        </div>
-                        <span className="text-xs text-muted-foreground">{c.phone}</span>
-                      </button>
-                    ))}
+              {selectedCustomer ? (
+                <div className="flex items-center gap-3 h-11 px-3 border-2 border-[#0057FF]/40 rounded-md bg-[#0057FF]/5" data-testid="selected-customer-display">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-semibold text-foreground truncate" data-testid="selected-customer-name">
+                        {selectedCustomer.fullName}
+                      </span>
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#0057FF] text-white shrink-0" data-testid="selected-customer-code">
+                        {selectedCustomer.customerId}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground shrink-0" data-testid="selected-customer-dbid">
+                        ID: {selectedCustomer.id}
+                      </span>
+                    </div>
                   </div>
-                )}
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedCustomer(null); setCustomerSearch(""); setConnectionData(null); }}
+                    className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
+                    data-testid="button-clear-customer"
+                    title="Clear selection"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <Input
+                    className="h-10 text-sm pr-10"
+                    placeholder={`Search ${customerSubType === "cir" ? "CIR" : customerSubType === "corporate" ? "corporate" : ""} customer by name, ID, or phone...`}
+                    value={customerSearch}
+                    onChange={(e) => {
+                      setCustomerSearch(e.target.value);
+                      setShowCustomerDropdown(true);
+                      if (!e.target.value) { setSelectedCustomer(null); setConnectionData(null); }
+                    }}
+                    onFocus={() => setShowCustomerDropdown(true)}
+                    data-testid="input-customer-search"
+                  />
+                  <Search className="h-4 w-4 absolute right-3 top-3 text-muted-foreground" />
+                  {showCustomerDropdown && customerSearch && filteredCustomers.length > 0 && (
+                    <div className="absolute z-50 w-full bg-popover border rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
+                      {filteredCustomers.slice(0, 10).map(c => (
+                        <button
+                          key={c.id}
+                          className="w-full text-left px-4 py-2.5 hover:bg-muted text-sm flex items-center justify-between gap-2 border-b last:border-b-0"
+                          onClick={() => selectCustomer(c)}
+                          data-testid={`option-customer-${c.id}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{c.fullName}</span>
+                            <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-[#0057FF]/10 text-[#0057FF]">{c.customerId}</span>
+                            <span className="text-xs text-muted-foreground">ID: {c.id}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground shrink-0">{c.phone}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
