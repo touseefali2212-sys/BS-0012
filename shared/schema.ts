@@ -200,6 +200,10 @@ export const tickets = pgTable("tickets", {
   assignedTo: text("assigned_to"),
   createdAt: text("created_at").notNull(),
   resolvedAt: text("resolved_at"),
+  supportGroup: text("support_group").default("customers"),
+  entityId: integer("entity_id"),
+  entityName: text("entity_name"),
+  customerSubType: text("customer_sub_type"),
 });
 
 export const activityLogs = pgTable("activity_logs", {

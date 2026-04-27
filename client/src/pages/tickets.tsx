@@ -70,7 +70,7 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { insertTicketSchema, type Ticket, type InsertTicket, type Customer, type CustomerConnection, insertSupportCategorySchema, type SupportCategory, type InsertSupportCategory, type Employee } from "@shared/schema";
+import { insertTicketSchema, type Ticket, type InsertTicket, type Customer, type CustomerConnection, insertSupportCategorySchema, type SupportCategory, type InsertSupportCategory, type Employee, type Reseller, type Vendor, type NetworkTower } from "@shared/schema";
 import { z } from "zod";
 
 type TicketWithCustomer = Ticket & { customerName?: string; customerCode?: string; customerPhone?: string; customerArea?: string };
@@ -95,6 +95,18 @@ export default function TicketsPage() {
 
   const { data: supportCategories } = useQuery<SupportCategory[]>({
     queryKey: ["/api/support-categories"],
+  });
+
+  const { data: resellers } = useQuery<Reseller[]>({
+    queryKey: ["/api/resellers"],
+  });
+
+  const { data: vendors } = useQuery<Vendor[]>({
+    queryKey: ["/api/vendors"],
+  });
+
+  const { data: networkTowers } = useQuery<NetworkTower[]>({
+    queryKey: ["/api/network-towers"],
   });
 
   const form = useForm<InsertTicket>({
@@ -223,6 +235,9 @@ export default function TicketsPage() {
         <NewTicketView
           customers={customers || []}
           supportCategories={supportCategories || []}
+          resellers={resellers || []}
+          vendors={vendors || []}
+          networkTowers={networkTowers || []}
           onSubmit={(data) => createMutation.mutate(data)}
           isPending={createMutation.isPending}
           onCancel={() => setActiveTab("list")}
@@ -430,26 +445,38 @@ export default function TicketsPage() {
 function NewTicketView({
   customers,
   supportCategories,
+  resellers,
+  vendors,
+  networkTowers,
   onSubmit,
   isPending,
   onCancel,
 }: {
   customers: Customer[];
   supportCategories: SupportCategory[];
+  resellers: Reseller[];
+  vendors: Vendor[];
+  networkTowers: NetworkTower[];
   onSubmit: (data: InsertTicket) => void;
   isPending: boolean;
   onCancel: () => void;
 }) {
+  const [supportGroup, setSupportGroup] = useState("customers");
+  const [customerSubType, setCustomerSubType] = useState("regular");
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [connectionData, setConnectionData] = useState<CustomerConnection | null>(null);
-
+  const [entitySearch, setEntitySearch] = useState("");
+  const [selectedEntityId, setSelectedEntityId] = useState<number | null>(null);
+  const [selectedEntityName, setSelectedEntityName] = useState("");
+  const [showEntityDropdown, setShowEntityDropdown] = useState(false);
   const [priority, setPriority] = useState("medium");
   const [category, setCategory] = useState("");
   const [complainedNumber, setComplainedNumber] = useState("");
   const [remarks, setRemarks] = useState("");
-  const [assignedTo, setAssignedTo] = useState("");
+  const [assignedToList, setAssignedToList] = useState<string[]>([]);
+  const [showAssignDropdown, setShowAssignDropdown] = useState(false);
   const [sendSms, setSendSms] = useState(true);
 
   const { data: employees } = useQuery<Employee[]>({
@@ -463,6 +490,18 @@ function NewTicketView({
 
   const connection = fetchedConnection?.[0] || connectionData;
 
+  const handleSupportGroupChange = (group: string) => {
+    setSupportGroup(group);
+    setCustomerSearch("");
+    setSelectedCustomer(null);
+    setConnectionData(null);
+    setEntitySearch("");
+    setSelectedEntityId(null);
+    setSelectedEntityName("");
+    setCategory("");
+    setComplainedNumber("");
+  };
+
   const filteredCustomers = customers.filter(c => {
     if (!customerSearch) return false;
     const s = customerSearch.toLowerCase();
@@ -473,11 +512,43 @@ function NewTicketView({
     );
   });
 
+  const filteredResellers = resellers.filter(r => {
+    if (!entitySearch) return true;
+    const s = entitySearch.toLowerCase();
+    return r.name.toLowerCase().includes(s) || (r.phone || "").includes(s) || (r.area || "").toLowerCase().includes(s);
+  });
+
+  const filteredVendors = vendors.filter(v => {
+    if (!entitySearch) return true;
+    const s = entitySearch.toLowerCase();
+    return v.name.toLowerCase().includes(s) || (v.phone || "").includes(s);
+  });
+
+  const filteredTowers = networkTowers.filter(t => {
+    if (!entitySearch) return true;
+    const s = entitySearch.toLowerCase();
+    return t.name.toLowerCase().includes(s) || t.towerId.toLowerCase().includes(s) || (t.address || "").toLowerCase().includes(s);
+  });
+
   const selectCustomer = (customer: Customer) => {
     setSelectedCustomer(customer);
     setCustomerSearch(`${customer.fullName} (${customer.customerId})`);
     setComplainedNumber(customer.phone || "");
-    setShowDropdown(false);
+    setShowCustomerDropdown(false);
+  };
+
+  const selectEntity = (id: number, name: string, phone?: string) => {
+    setSelectedEntityId(id);
+    setSelectedEntityName(name);
+    setEntitySearch(name);
+    setComplainedNumber(phone || "");
+    setShowEntityDropdown(false);
+  };
+
+  const toggleAssignee = (name: string) => {
+    setAssignedToList(prev =>
+      prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
+    );
   };
 
   const generateTicketNumber = () => {
@@ -489,21 +560,31 @@ function NewTicketView({
     return `TKT-${y}${m}${d}-${rand}`;
   };
 
+  const isCustomerGroup = supportGroup === "customers";
+  const isEntitySelected = !isCustomerGroup ? !!selectedEntityId : !!selectedCustomer;
+  const canSubmit = isEntitySelected && !!category && !!remarks.trim();
+
+  const filteredCategories = supportCategories.length > 0
+    ? supportCategories.filter(c => !c.targetGroup || c.targetGroup === supportGroup)
+    : ["General", "Connectivity", "Billing", "Speed Issue", "Hardware", "Installation"].map(n => ({ name: n }));
+
   const handleSubmit = () => {
-    if (!selectedCustomer) return;
-    if (!category) return;
-    if (!remarks.trim()) return;
+    if (!canSubmit) return;
     const ticketData: InsertTicket = {
       ticketNumber: generateTicketNumber(),
-      customerId: selectedCustomer.id,
+      customerId: selectedCustomer?.id || 0,
       subject: category,
       description: remarks,
       priority,
       status: "open",
       category,
-      assignedTo: assignedTo || undefined,
+      assignedTo: assignedToList.length > 0 ? assignedToList.join(",") : undefined,
       createdAt: new Date().toISOString(),
-    };
+      supportGroup,
+      entityId: isCustomerGroup ? null : selectedEntityId,
+      entityName: isCustomerGroup ? null : selectedEntityName,
+      customerSubType: isCustomerGroup ? customerSubType : null,
+    } as InsertTicket;
     onSubmit(ticketData);
   };
 
@@ -511,15 +592,25 @@ function NewTicketView({
     setCustomerSearch("");
     setSelectedCustomer(null);
     setConnectionData(null);
+    setEntitySearch("");
+    setSelectedEntityId(null);
+    setSelectedEntityName("");
     setPriority("medium");
     setCategory("");
     setComplainedNumber("");
     setRemarks("");
-    setAssignedTo("");
+    setAssignedToList([]);
     setSendSms(true);
   };
 
   const readonlyFieldClass = "h-9 text-xs bg-muted/50 border-muted cursor-default";
+
+  const supportGroupOptions = [
+    { key: "customers", label: "Customers", icon: Users },
+    { key: "resellers", label: "Resellers", icon: UserCheck },
+    { key: "pops", label: "POP's", icon: Wifi },
+    { key: "vendors", label: "Vendors", icon: Building2 },
+  ];
 
   return (
     <div className="mt-4 space-y-5">
@@ -531,47 +622,188 @@ function NewTicketView({
       </div>
 
       <div className="bg-card border rounded-b-lg rounded-t-none -mt-5 p-6 space-y-6">
+
+        {/* Support Type Selector */}
         <div>
-          <label className="text-xs font-bold uppercase text-muted-foreground mb-1.5 block">User Name (ID)</label>
-          <div className="relative">
-            <Input
-              className="h-10 text-sm pr-10"
-              placeholder="Search customer by name, ID, or phone..."
-              value={customerSearch}
-              onChange={(e) => {
-                setCustomerSearch(e.target.value);
-                setShowDropdown(true);
-                if (!e.target.value) {
-                  setSelectedCustomer(null);
-                  setConnectionData(null);
-                }
-              }}
-              onFocus={() => customerSearch && setShowDropdown(true)}
-              data-testid="input-customer-search"
-            />
-            <Search className="h-4 w-4 absolute right-3 top-3 text-muted-foreground" />
-            {showDropdown && filteredCustomers.length > 0 && (
-              <div className="absolute z-50 w-full bg-popover border rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
-                {filteredCustomers.slice(0, 10).map(c => (
-                  <button
-                    key={c.id}
-                    className="w-full text-left px-4 py-2.5 hover:bg-muted text-sm flex items-center justify-between gap-2 border-b last:border-b-0"
-                    onClick={() => selectCustomer(c)}
-                    data-testid={`option-customer-${c.id}`}
-                  >
-                    <div>
-                      <span className="font-medium">{c.fullName}</span>
-                      <span className="text-xs text-muted-foreground ml-2">({c.customerId})</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">{c.phone}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+          <label className="text-xs font-bold uppercase text-muted-foreground mb-2 block">
+            Support Type <span className="text-red-500">*</span>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {supportGroupOptions.map(g => {
+              const Icon = g.icon;
+              return (
+                <button
+                  key={g.key}
+                  type="button"
+                  onClick={() => handleSupportGroupChange(g.key)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                    supportGroup === g.key
+                      ? "bg-[#1a3a5c] text-white border-[#1a3a5c]"
+                      : "bg-background border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                  }`}
+                  data-testid={`btn-support-group-${g.key}`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {g.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {selectedCustomer && (
+        {/* Customer-specific: sub-type then search */}
+        {isCustomerGroup && (
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-bold uppercase text-muted-foreground mb-1.5 block">
+                Customer Type <span className="text-red-500">*</span>
+              </label>
+              <div className="flex gap-2">
+                {[
+                  { key: "regular", label: "Customer" },
+                  { key: "corporate", label: "Corporate Customer" },
+                  { key: "cir", label: "CIR Customer" },
+                ].map(st => (
+                  <button
+                    key={st.key}
+                    type="button"
+                    onClick={() => { setCustomerSubType(st.key); setCustomerSearch(""); setSelectedCustomer(null); }}
+                    className={`px-3 py-1.5 rounded-md border text-xs font-medium transition-colors ${
+                      customerSubType === st.key
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+                    }`}
+                    data-testid={`btn-customer-subtype-${st.key}`}
+                  >
+                    {st.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-bold uppercase text-muted-foreground mb-1.5 block">
+                User Name (ID) <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <Input
+                  className="h-10 text-sm pr-10"
+                  placeholder={`Search ${customerSubType === "cir" ? "CIR" : customerSubType === "corporate" ? "corporate" : ""} customer by name, ID, or phone...`}
+                  value={customerSearch}
+                  onChange={(e) => {
+                    setCustomerSearch(e.target.value);
+                    setShowCustomerDropdown(true);
+                    if (!e.target.value) { setSelectedCustomer(null); setConnectionData(null); }
+                  }}
+                  onFocus={() => setShowCustomerDropdown(true)}
+                  data-testid="input-customer-search"
+                />
+                <Search className="h-4 w-4 absolute right-3 top-3 text-muted-foreground" />
+                {showCustomerDropdown && customerSearch && filteredCustomers.length > 0 && (
+                  <div className="absolute z-50 w-full bg-popover border rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
+                    {filteredCustomers.slice(0, 10).map(c => (
+                      <button
+                        key={c.id}
+                        className="w-full text-left px-4 py-2.5 hover:bg-muted text-sm flex items-center justify-between gap-2 border-b last:border-b-0"
+                        onClick={() => selectCustomer(c)}
+                        data-testid={`option-customer-${c.id}`}
+                      >
+                        <div>
+                          <span className="font-medium">{c.fullName}</span>
+                          <span className="text-xs text-muted-foreground ml-2">({c.customerId})</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">{c.phone}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Non-customer entity selectors */}
+        {!isCustomerGroup && (
+          <div>
+            <label className="text-xs font-bold uppercase text-muted-foreground mb-1.5 block">
+              {supportGroup === "resellers" ? "Reseller" : supportGroup === "vendors" ? "Vendor" : "POP / Tower"} <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <Input
+                className="h-10 text-sm pr-10"
+                placeholder={`Search ${supportGroup === "resellers" ? "resellers" : supportGroup === "vendors" ? "vendors" : "POP's / towers"} by name...`}
+                value={entitySearch}
+                onChange={(e) => {
+                  setEntitySearch(e.target.value);
+                  setShowEntityDropdown(true);
+                  if (!e.target.value) { setSelectedEntityId(null); setSelectedEntityName(""); }
+                }}
+                onFocus={() => setShowEntityDropdown(true)}
+                data-testid="input-entity-search"
+              />
+              <Search className="h-4 w-4 absolute right-3 top-3 text-muted-foreground" />
+              {showEntityDropdown && (
+                <div className="absolute z-50 w-full bg-popover border rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
+                  {supportGroup === "resellers" && filteredResellers.slice(0, 15).map(r => (
+                    <button
+                      key={r.id}
+                      className="w-full text-left px-4 py-2.5 hover:bg-muted text-sm flex items-center justify-between gap-2 border-b last:border-b-0"
+                      onClick={() => selectEntity(r.id, r.name, r.phone)}
+                      data-testid={`option-reseller-${r.id}`}
+                    >
+                      <div>
+                        <span className="font-medium">{r.name}</span>
+                        <span className="text-xs text-muted-foreground ml-2 capitalize">{r.resellerType?.replace(/_/g, " ")}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{r.area}</span>
+                    </button>
+                  ))}
+                  {supportGroup === "vendors" && filteredVendors.slice(0, 15).map(v => (
+                    <button
+                      key={v.id}
+                      className="w-full text-left px-4 py-2.5 hover:bg-muted text-sm flex items-center justify-between gap-2 border-b last:border-b-0"
+                      onClick={() => selectEntity(v.id, v.name, v.phone)}
+                      data-testid={`option-vendor-${v.id}`}
+                    >
+                      <div>
+                        <span className="font-medium">{v.name}</span>
+                        <span className="text-xs text-muted-foreground ml-2 capitalize">{v.vendorType}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{v.contactPerson}</span>
+                    </button>
+                  ))}
+                  {supportGroup === "pops" && filteredTowers.slice(0, 15).map(t => (
+                    <button
+                      key={t.id}
+                      className="w-full text-left px-4 py-2.5 hover:bg-muted text-sm flex items-center justify-between gap-2 border-b last:border-b-0"
+                      onClick={() => selectEntity(t.id, t.name, undefined)}
+                      data-testid={`option-tower-${t.id}`}
+                    >
+                      <div>
+                        <span className="font-medium">{t.name}</span>
+                        <span className="text-xs text-muted-foreground ml-2">{t.towerId}</span>
+                      </div>
+                      <span className={`text-xs font-medium ${t.status === "active" ? "text-green-600" : "text-red-500"}`}>{t.status}</span>
+                    </button>
+                  ))}
+                  {((supportGroup === "resellers" && filteredResellers.length === 0) ||
+                    (supportGroup === "vendors" && filteredVendors.length === 0) ||
+                    (supportGroup === "pops" && filteredTowers.length === 0)) && (
+                    <div className="px-4 py-3 text-sm text-muted-foreground text-center">No results found</div>
+                  )}
+                </div>
+              )}
+            </div>
+            {selectedEntityId && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-green-700 dark:text-green-400">
+                <CheckCircle className="h-3.5 w-3.5" />
+                Selected: <span className="font-semibold">{selectedEntityName}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Customer info card */}
+        {isCustomerGroup && selectedCustomer && (
           <>
             <div className="border rounded-lg p-4 bg-muted/20">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -580,7 +812,7 @@ function NewTicketView({
                   <Input className={readonlyFieldClass} value={selectedCustomer.fullName} readOnly data-testid="field-customer-name" />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Mobile Number (Existing)</label>
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Mobile Number</label>
                   <Input className={readonlyFieldClass} value={selectedCustomer.phone || "-"} readOnly data-testid="field-mobile" />
                 </div>
                 <div>
@@ -623,26 +855,12 @@ function NewTicketView({
             <div className="border rounded-lg p-4 bg-muted/20">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Uptime</label>
-                  <Input className={readonlyFieldClass} value={"-"} readOnly />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Last Logout Time</label>
-                  <Input className={readonlyFieldClass} value={"-"} readOnly />
-                </div>
-                <div>
                   <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">MAC Address/Caller ID</label>
                   <Input className={readonlyFieldClass} value={connection?.macAddress || "-"} readOnly data-testid="field-mac-address" />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">IP Address</label>
                   <Input className={readonlyFieldClass} value={connection?.ipAddress || "-"} readOnly data-testid="field-ip-address" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4 mt-3">
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Device Vendor Name</label>
-                  <Input className={readonlyFieldClass} value={connection?.routerModel || "-"} readOnly />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Connectivity Status</label>
@@ -654,66 +872,10 @@ function NewTicketView({
                 </div>
               </div>
             </div>
-
-            <div className="border rounded-lg p-4 bg-muted/20">
-              <div className="flex items-center gap-2 mb-3">
-                <h3 className="text-sm font-bold">ONU Informations</h3>
-                <Badge className="bg-green-500 text-white text-[10px] border-0">★ New</Badge>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Client MAC Address</label>
-                  <Input className={readonlyFieldClass} value={connection?.macAddress || "-"} readOnly />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">IP Address</label>
-                  <Input className={readonlyFieldClass} value={connection?.ipAddress || "-"} readOnly />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">OLT Name</label>
-                  <Input className={readonlyFieldClass} value={"-"} readOnly />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Optical Power</label>
-                  <Input className={readonlyFieldClass} value={"-"} readOnly />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-3">
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">OLT Port</label>
-                  <Input className={readonlyFieldClass} value={connection?.port || "-"} readOnly />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">ONU MAC Address/Serial</label>
-                  <Input className={readonlyFieldClass} value={connection?.onuSerial || "-"} readOnly />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Status</label>
-                  <Input className={readonlyFieldClass} value={connection?.status || "-"} readOnly />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Last Deregister Time</label>
-                  <Input className={readonlyFieldClass} value={"-"} readOnly />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4 mt-3">
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Distance</label>
-                  <Input className={readonlyFieldClass} value={"-"} readOnly />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Last Deregister Reasons</label>
-                  <Input className={readonlyFieldClass} value={"-"} readOnly />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Description</label>
-                  <Input className={readonlyFieldClass} value={"-"} readOnly />
-                </div>
-              </div>
-            </div>
           </>
         )}
 
+        {/* Problem Category, Priority, Complained Number, Assign To */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label className="text-xs font-bold uppercase text-muted-foreground mb-1.5 block">
@@ -721,15 +883,15 @@ function NewTicketView({
             </label>
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger className="h-9 text-xs" data-testid="select-new-category">
-                <SelectValue placeholder="Select" />
+                <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                {(supportCategories.length > 0
-                  ? supportCategories.map(c => c.name)
-                  : ["General", "Connectivity", "Billing", "Speed Issue", "Hardware", "Installation"]
-                ).map(cat => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                {filteredCategories.map(c => (
+                  <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
                 ))}
+                {filteredCategories.length === 0 && (
+                  <SelectItem value="general">General</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -763,19 +925,44 @@ function NewTicketView({
           </div>
           <div>
             <label className="text-xs font-bold uppercase text-muted-foreground mb-1.5 block">
-              Assign To
+              Assign To (Multiple)
             </label>
-            <Select value={assignedTo} onValueChange={setAssignedTo}>
-              <SelectTrigger className="h-9 text-xs" data-testid="select-new-assign-to">
-                <SelectValue placeholder="Select assignee" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                {(employees || []).map(emp => (
-                  <SelectItem key={emp.id} value={emp.fullName}>{emp.fullName}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="relative">
+              <button
+                type="button"
+                className="w-full h-9 px-3 text-xs border rounded-md bg-background text-left flex items-center justify-between gap-2 hover:border-foreground/40 transition-colors"
+                onClick={() => setShowAssignDropdown(!showAssignDropdown)}
+                data-testid="button-assign-to-toggle"
+              >
+                <span className={assignedToList.length === 0 ? "text-muted-foreground" : "text-foreground"}>
+                  {assignedToList.length === 0 ? "Select assignees..." : assignedToList.join(", ")}
+                </span>
+                <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              </button>
+              {showAssignDropdown && (
+                <div className="absolute z-50 w-full bg-popover border rounded-lg shadow-lg mt-1 max-h-52 overflow-y-auto">
+                  {(employees || []).length === 0 ? (
+                    <div className="px-4 py-3 text-xs text-muted-foreground text-center">No employees found</div>
+                  ) : (employees || []).map(emp => (
+                    <button
+                      key={emp.id}
+                      type="button"
+                      className="w-full text-left px-4 py-2.5 hover:bg-muted text-sm flex items-center gap-3 border-b last:border-b-0"
+                      onClick={() => toggleAssignee(emp.fullName)}
+                      data-testid={`option-assignee-${emp.id}`}
+                    >
+                      <div className={`h-4 w-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${assignedToList.includes(emp.fullName) ? "bg-blue-600 border-blue-600" : "border-muted-foreground"}`}>
+                        {assignedToList.includes(emp.fullName) && <CheckCircle className="h-3 w-3 text-white" />}
+                      </div>
+                      <div>
+                        <span className="font-medium text-xs">{emp.fullName}</span>
+                        {(emp as any).designation && <span className="text-[10px] text-muted-foreground ml-1">— {(emp as any).designation}</span>}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -801,7 +988,7 @@ function NewTicketView({
               onChange={(e) => setSendSms(e.target.checked)}
               data-testid="checkbox-send-sms"
             />
-            Send SMS to Client?
+            Send SMS to {isCustomerGroup ? "Client" : supportGroup === "resellers" ? "Reseller" : supportGroup === "vendors" ? "Vendor" : "Contact"}?
           </label>
         </div>
 
@@ -827,7 +1014,7 @@ function NewTicketView({
           <Button
             className="px-8 bg-[#1a3a5c] hover:bg-[#1a3a5c]/90 text-white"
             onClick={handleSubmit}
-            disabled={isPending || !selectedCustomer || !category || !remarks.trim()}
+            disabled={isPending || !canSubmit}
             data-testid="button-submit-ticket"
           >
             {isPending ? "Submitting..." : "Submit"}
@@ -855,7 +1042,7 @@ function TicketListView({
   const [entriesCount, setEntriesCount] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [activeGroup, setActiveGroup] = useState("accepted");
+  const [activeGroup, setActiveGroup] = useState("customers");
 
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -867,11 +1054,8 @@ function TicketListView({
   const allTickets = tickets;
 
   const groupFiltered = allTickets.filter(t => {
-    if (activeGroup === "accepted") return t.status !== "closed";
-    if (activeGroup === "pending") return t.status === "open";
-    if (activeGroup === "resellers") return false;
-    if (activeGroup === "bandwidth") return false;
-    return true;
+    const sg = (t as any).supportGroup || "customers";
+    return sg === activeGroup;
   });
 
   const filtered = groupFiltered.filter(t => {
@@ -910,10 +1094,10 @@ function TicketListView({
     : ["General", "Connectivity", "Billing", "Speed Issue", "Hardware", "Installation"];
 
   const groupTabs = [
-    { key: "accepted", label: "Accepted (Client's)", count: null },
-    { key: "pending", label: "Pending (Client's)", count: pendingTickets },
-    { key: "resellers", label: "MAC Reseller's", count: 0 },
-    { key: "bandwidth", label: "Bandwidth POP's", count: 0 },
+    { key: "customers", label: "Customers", icon: Users },
+    { key: "resellers", label: "Resellers", icon: UserCheck },
+    { key: "pops", label: "POP's", icon: Wifi },
+    { key: "vendors", label: "Vendors", icon: Building2 },
   ];
 
   const priorityConfig: Record<string, string> = {
@@ -946,24 +1130,22 @@ function TicketListView({
     <div className="mt-5 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2 flex-wrap">
-          {groupTabs.map(g => (
-            <Button
-              key={g.key}
-              size="sm"
-              variant={activeGroup === g.key ? "default" : "outline"}
-              className={`text-xs gap-1.5 ${activeGroup === g.key ? "bg-[#1a3a5c]" : ""}`}
-              onClick={() => { setActiveGroup(g.key); setCurrentPage(1); }}
-              data-testid={`button-ticket-group-${g.key}`}
-            >
-              <LifeBuoy className="h-3.5 w-3.5" />
-              {g.label}
-              {g.count !== null && (
-                <span className={`ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-bold ${activeGroup === g.key ? "bg-white/20" : "bg-red-500 text-white"}`}>
-                  {g.count}
-                </span>
-              )}
-            </Button>
-          ))}
+          {groupTabs.map(g => {
+            const Icon = g.icon;
+            return (
+              <Button
+                key={g.key}
+                size="sm"
+                variant={activeGroup === g.key ? "default" : "outline"}
+                className={`text-xs gap-1.5 ${activeGroup === g.key ? "bg-[#1a3a5c]" : ""}`}
+                onClick={() => { setActiveGroup(g.key); setCurrentPage(1); }}
+                data-testid={`button-ticket-group-${g.key}`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {g.label}
+              </Button>
+            );
+          })}
         </div>
       </div>
 
@@ -1319,7 +1501,7 @@ function TicketHistoryView({ tickets, isLoading, supportCategories }: { tickets:
   const [search, setSearch] = useState("");
   const [entriesCount, setEntriesCount] = useState(100);
   const [currentPage, setCurrentPage] = useState(1);
-  const [activeGroup, setActiveGroup] = useState("clients");
+  const [activeGroup, setActiveGroup] = useState("customers");
 
   const [filterSolvedBy, setFilterSolvedBy] = useState("all");
   const [filterCategory, setFilterCategory] = useState("all");
@@ -1328,10 +1510,8 @@ function TicketHistoryView({ tickets, isLoading, supportCategories }: { tickets:
   const [filterToDate, setFilterToDate] = useState("");
 
   const groupFiltered = historyTickets.filter(t => {
-    if (activeGroup === "clients") return true;
-    if (activeGroup === "pops") return false;
-    if (activeGroup === "bandwidth") return false;
-    return true;
+    const sg = (t as any).supportGroup || "customers";
+    return sg === activeGroup;
   });
 
   const filtered = groupFiltered.filter(t => {
@@ -1387,9 +1567,10 @@ function TicketHistoryView({ tickets, isLoading, supportCategories }: { tickets:
   };
 
   const groupTabs = [
-    { key: "clients", label: "Client's" },
-    { key: "pops", label: "POP's" },
-    { key: "bandwidth", label: "Bandwidth POP's" },
+    { key: "customers", label: "Customers", icon: Users },
+    { key: "resellers", label: "Resellers", icon: UserCheck },
+    { key: "pops", label: "POP's", icon: Wifi },
+    { key: "vendors", label: "Vendors", icon: Building2 },
   ];
 
   const exportCSV = () => {
@@ -1452,7 +1633,9 @@ function TicketHistoryView({ tickets, isLoading, supportCategories }: { tickets:
 
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2 flex-wrap">
-          {groupTabs.map(g => (
+          {groupTabs.map(g => {
+            const Icon = g.icon;
+            return (
             <Button
               key={g.key}
               size="sm"
@@ -1461,10 +1644,11 @@ function TicketHistoryView({ tickets, isLoading, supportCategories }: { tickets:
               onClick={() => { setActiveGroup(g.key); setCurrentPage(1); }}
               data-testid={`button-history-group-${g.key}`}
             >
-              <CheckCircle className="h-3.5 w-3.5" />
+              <Icon className="h-3.5 w-3.5" />
               {g.label}
             </Button>
-          ))}
+            );
+          })}
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" className="text-xs gap-1.5 bg-[#1a3a5c] text-white hover:bg-[#1a3a5c]/90 border-0" onClick={exportPDF} data-testid="button-generate-pdf">
