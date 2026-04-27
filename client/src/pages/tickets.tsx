@@ -968,7 +968,7 @@ function NewTicketView({
                         {selectedCustomer.code}
                       </span>
                       {selectedCustomer.usernameIp && (
-                        <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-muted text-muted-foreground shrink-0" data-testid="selected-customer-ip">
+                        <span className="text-[11px] font-bold font-mono px-2 py-0.5 rounded bg-orange-500 text-white shrink-0" data-testid="selected-customer-ip">
                           {selectedCustomer.usernameIp}
                         </span>
                       )}
@@ -1011,7 +1011,7 @@ function NewTicketView({
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-[#0057FF]/10 text-[#0057FF]">{item.displayCode}</span>
                             {item.usernameIp && (
-                              <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{item.usernameIp}</span>
+                              <span className="text-[11px] font-bold font-mono px-2 py-0.5 rounded bg-orange-500 text-white">{item.usernameIp}</span>
                             )}
                             <span className="font-medium">{item.displayName}</span>
                           </div>
