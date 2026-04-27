@@ -207,6 +207,7 @@ export default function TicketsPage() {
       category: ticket.category,
       assignedTo: ticket.assignedTo || "",
       createdAt: ticket.createdAt,
+      complainedNumber: (ticket as any).complainedNumber || "",
     });
     setDialogOpen(true);
   };
@@ -283,7 +284,7 @@ export default function TicketsPage() {
       )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingTicket ? "Edit Ticket" : "Create Ticket"}</DialogTitle>
             <DialogDescription>
@@ -291,16 +292,219 @@ export default function TicketsPage() {
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+
+              {/* ── Ticket Information ─────────────────────────────── */}
+              {editingTicket && (
+                <div className="space-y-3">
+                  <p className="text-[11px] font-bold uppercase text-muted-foreground tracking-wide border-b pb-1">Ticket Information</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-[10px] font-semibold uppercase text-muted-foreground mb-1 block">Ticket No.</label>
+                      <Input
+                        value={editingTicket.ticketNumber}
+                        readOnly
+                        className="bg-muted/40 text-xs font-mono font-semibold text-[#0057FF] cursor-not-allowed"
+                        data-testid="input-ticket-number-readonly"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold uppercase text-muted-foreground mb-1 block">Support Type</label>
+                      <Input
+                        value={
+                          (editingTicket as any).supportGroup === "resellers" ? "Resellers"
+                          : (editingTicket as any).supportGroup === "pops" ? "POP's"
+                          : (editingTicket as any).supportGroup === "vendors" ? "Vendors"
+                          : "Customers"
+                        }
+                        readOnly
+                        className="bg-muted/40 text-xs cursor-not-allowed capitalize"
+                        data-testid="input-support-type-readonly"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold uppercase text-muted-foreground mb-1 block">Created By</label>
+                      <Input
+                        value={(editingTicket as any).createdBy || "-"}
+                        readOnly
+                        className="bg-muted/40 text-xs cursor-not-allowed"
+                        data-testid="input-created-by-readonly"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold uppercase text-muted-foreground mb-1 block">Complain Time</label>
+                      <Input
+                        value={editingTicket.createdAt ? new Date(editingTicket.createdAt).toLocaleString("en-US", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }) : "-"}
+                        readOnly
+                        className="bg-muted/40 text-xs cursor-not-allowed"
+                        data-testid="input-created-at-readonly"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Entity Information ─────────────────────────────── */}
+              {editingTicket && (
+                <div className="space-y-3">
+                  <p className="text-[11px] font-bold uppercase text-muted-foreground tracking-wide border-b pb-1">Entity Information</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-[10px] font-semibold uppercase text-muted-foreground mb-1 block">
+                        {(editingTicket as any).supportGroup === "resellers" ? "Reseller Code"
+                          : (editingTicket as any).supportGroup === "pops" ? "POP Code"
+                          : (editingTicket as any).supportGroup === "vendors" ? "Vendor Code"
+                          : "Customer Code"}
+                      </label>
+                      <Input
+                        value={(editingTicket as any).entityCode || (editingTicket as any).customerCode || "-"}
+                        readOnly
+                        className="bg-muted/40 text-xs cursor-not-allowed"
+                        data-testid="input-entity-code-readonly"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold uppercase text-muted-foreground mb-1 block">
+                        {(editingTicket as any).supportGroup === "resellers" ? "Reseller Name"
+                          : (editingTicket as any).supportGroup === "pops" ? "POP Name"
+                          : (editingTicket as any).supportGroup === "vendors" ? "Vendor Name"
+                          : "Customer Name"}
+                      </label>
+                      <Input
+                        value={(editingTicket as any).entityName || (editingTicket as any).customerName || "-"}
+                        readOnly
+                        className="bg-muted/40 text-xs cursor-not-allowed"
+                        data-testid="input-entity-name-readonly"
+                      />
+                    </div>
+                    {(editingTicket as any).supportGroup !== "pops" && (
+                      <div>
+                        <label className="text-[10px] font-semibold uppercase text-muted-foreground mb-1 block">
+                          {(editingTicket as any).supportGroup === "vendors" ? "Email (MAIL)" : "Phone"}
+                        </label>
+                        <Input
+                          value={
+                            (editingTicket as any).supportGroup === "vendors"
+                              ? ((editingTicket as any).entityEmail || "-")
+                              : ((editingTicket as any).entityPhone || (editingTicket as any).customerPhone || "-")
+                          }
+                          readOnly
+                          className="bg-muted/40 text-xs cursor-not-allowed"
+                          data-testid="input-entity-contact-readonly"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      <label className="text-[10px] font-semibold uppercase text-muted-foreground mb-1 block">Branch</label>
+                      <Input
+                        value={(editingTicket as any).entityBranch || (editingTicket as any).customerArea || "-"}
+                        readOnly
+                        className="bg-muted/40 text-xs cursor-not-allowed"
+                        data-testid="input-branch-readonly"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-semibold uppercase text-muted-foreground mb-1 block">Submit From</label>
+                      <FormField
+                        control={form.control}
+                        name="complainedNumber"
+                        render={({ field }) => (
+                          <FormItem className="m-0 space-y-0">
+                            <FormControl>
+                              <Input placeholder="Complained number" className="text-xs" {...field} value={field.value || ""} data-testid="input-complained-number" />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Problem Details ────────────────────────────────── */}
+              <div className="space-y-3">
+                {editingTicket && <p className="text-[11px] font-bold uppercase text-muted-foreground tracking-wide border-b pb-1">Problem Details</p>}
+                <div className="grid grid-cols-3 gap-3">
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] uppercase font-semibold text-muted-foreground">Category</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || "general"}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-category" className="text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="general">General</SelectItem>
+                            <SelectItem value="connectivity">Connectivity</SelectItem>
+                            <SelectItem value="billing">Billing</SelectItem>
+                            <SelectItem value="speed">Speed Issue</SelectItem>
+                            <SelectItem value="hardware">Hardware</SelectItem>
+                            <SelectItem value="installation">Installation</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="priority"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] uppercase font-semibold text-muted-foreground">Priority</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || "medium"}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-priority" className="text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="low">Low</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="high">High</SelectItem>
+                            <SelectItem value="critical">Critical</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] uppercase font-semibold text-muted-foreground">Status</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || "open"}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-tkt-status" className="text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="open">Open</SelectItem>
+                            <SelectItem value="in_progress">In Progress</SelectItem>
+                            <SelectItem value="resolved">Resolved</SelectItem>
+                            <SelectItem value="closed">Closed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={form.control}
-                  name="ticketNumber"
+                  name="subject"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Ticket Number</FormLabel>
+                      <FormLabel className="text-[10px] uppercase font-semibold text-muted-foreground">Subject / Problem</FormLabel>
                       <FormControl>
-                        <Input placeholder="TKT-001" data-testid="input-ticket-number" {...field} />
+                        <Input placeholder="Brief description of the issue" className="text-xs" data-testid="input-ticket-subject" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -308,150 +512,83 @@ export default function TicketsPage() {
                 />
                 <FormField
                   control={form.control}
-                  name="customerId"
+                  name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Customer</FormLabel>
-                      <Select
-                        onValueChange={(v) => field.onChange(parseInt(v))}
-                        value={field.value?.toString() || ""}
-                      >
-                        <FormControl>
-                          <SelectTrigger data-testid="select-ticket-customer">
-                            <SelectValue placeholder="Select customer" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {(customers || []).map((c) => (
-                            <SelectItem key={c.id} value={c.id.toString()}>
-                              {c.fullName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormLabel className="text-[10px] uppercase font-semibold text-muted-foreground">Remarks / Description</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="Detailed description..." className="text-xs min-h-[80px]" data-testid="input-ticket-desc" {...field} value={field.value || ""} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="assignedTo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] uppercase font-semibold text-muted-foreground">Assigned To</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Technician name" className="text-xs" data-testid="input-assigned-to" {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {/* Ticket Number & Customer for new ticket only */}
+                {!editingTicket && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField
+                      control={form.control}
+                      name="ticketNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] uppercase font-semibold text-muted-foreground">Ticket Number</FormLabel>
+                          <FormControl>
+                            <Input placeholder="TKT-001" className="text-xs" data-testid="input-ticket-number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="customerId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[10px] uppercase font-semibold text-muted-foreground">Customer</FormLabel>
+                          <Select
+                            onValueChange={(v) => field.onChange(parseInt(v))}
+                            value={field.value?.toString() || ""}
+                          >
+                            <FormControl>
+                              <SelectTrigger data-testid="select-ticket-customer" className="text-xs">
+                                <SelectValue placeholder="Select customer" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {(customers || []).map((c) => (
+                                <SelectItem key={c.id} value={c.id.toString()}>
+                                  {c.fullName}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
               </div>
-              <FormField
-                control={form.control}
-                name="subject"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Subject / Problem</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Brief description of the issue" data-testid="input-ticket-subject" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea placeholder="Detailed description..." data-testid="input-ticket-desc" {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="priority"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Priority</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || "medium"}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-priority">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="critical">Critical</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || "open"}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-tkt-status">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="open">Open</SelectItem>
-                          <SelectItem value="in_progress">In Progress</SelectItem>
-                          <SelectItem value="resolved">Resolved</SelectItem>
-                          <SelectItem value="closed">Closed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || "general"}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-category">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="general">General</SelectItem>
-                          <SelectItem value="connectivity">Connectivity</SelectItem>
-                          <SelectItem value="billing">Billing</SelectItem>
-                          <SelectItem value="speed">Speed Issue</SelectItem>
-                          <SelectItem value="hardware">Hardware</SelectItem>
-                          <SelectItem value="installation">Installation</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="assignedTo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Assigned To</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Technician name" data-testid="input-assigned-to" {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancel
                 </Button>
                 <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} data-testid="button-save-ticket">
-                  {createMutation.isPending || updateMutation.isPending ? "Saving..." : editingTicket ? "Update" : "Create"}
+                  {createMutation.isPending || updateMutation.isPending ? "Saving..." : editingTicket ? "Update Ticket" : "Create"}
                 </Button>
               </DialogFooter>
             </form>
