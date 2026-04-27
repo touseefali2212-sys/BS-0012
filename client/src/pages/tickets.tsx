@@ -1828,6 +1828,7 @@ function TicketListView({
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterPriority, setFilterPriority] = useState("all");
   const [filterAssignedTo, setFilterAssignedTo] = useState("all");
+  const [filterBranch, setFilterBranch] = useState("all");
   const [filterFromDate, setFilterFromDate] = useState("");
   const [filterToDate, setFilterToDate] = useState("");
 
@@ -1854,6 +1855,7 @@ function TicketListView({
     if (filterStatus !== "all" && t.status !== filterStatus) return false;
     if (filterPriority !== "all" && t.priority !== filterPriority) return false;
     if (filterAssignedTo !== "all" && (t.assignedTo || "") !== filterAssignedTo) return false;
+    if (filterBranch !== "all" && ((t as any).entityBranch || t.customerArea || "") !== filterBranch) return false;
     if (filterFromDate && t.createdAt && new Date(t.createdAt) < new Date(filterFromDate)) return false;
     if (filterToDate && t.createdAt && new Date(t.createdAt) > new Date(filterToDate + "T23:59:59")) return false;
     return true;
@@ -1868,6 +1870,7 @@ function TicketListView({
   const paginated = filtered.slice((currentPage - 1) * entriesCount, currentPage * entriesCount);
 
   const uniqueAssignees = Array.from(new Set(allTickets.map(t => t.assignedTo).filter(Boolean))) as string[];
+  const uniqueBranches = Array.from(new Set(allTickets.map(t => (t as any).entityBranch || t.customerArea).filter(Boolean))) as string[];
 
   const categoryNames = supportCategories.length > 0
     ? supportCategories.map(c => c.name)
@@ -2094,6 +2097,18 @@ function TicketListView({
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase mb-1 block">Branch</label>
+                <Select value={filterBranch} onValueChange={(v) => { setFilterBranch(v); setCurrentPage(1); }}>
+                  <SelectTrigger className="h-9 text-xs" data-testid="filter-branch"><SelectValue placeholder="Select Branch" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Branches</SelectItem>
+                    {uniqueBranches.map(b => (
+                      <SelectItem key={b} value={b}>{b}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <label className="text-[11px] font-semibold text-muted-foreground uppercase mb-1 block">From Date</label>
                 <Input
                   type="date"
@@ -2113,7 +2128,7 @@ function TicketListView({
                   data-testid="filter-to-date"
                 />
               </div>
-              <div className="lg:col-span-2 flex items-end">
+              <div className="flex items-end">
                 <Button
                   variant="outline"
                   size="sm"
@@ -2123,6 +2138,7 @@ function TicketListView({
                     setFilterStatus("all");
                     setFilterPriority("all");
                     setFilterAssignedTo("all");
+                    setFilterBranch("all");
                     setFilterFromDate("");
                     setFilterToDate("");
                     setCurrentPage(1);
