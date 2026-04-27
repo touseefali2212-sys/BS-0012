@@ -70,10 +70,25 @@ import {
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { insertTicketSchema, type Ticket, type InsertTicket, type Customer, type CustomerConnection, insertSupportCategorySchema, type SupportCategory, type InsertSupportCategory, type Employee, type Reseller, type Vendor, type NetworkTower } from "@shared/schema";
+import { insertTicketSchema, type Ticket, type InsertTicket, type Customer, type CustomerConnection, insertSupportCategorySchema, type SupportCategory, type InsertSupportCategory, type Employee, type Reseller, type Vendor, type NetworkTower, type CirCustomer, type CorporateCustomer } from "@shared/schema";
 import { z } from "zod";
 
 type TicketWithCustomer = Ticket & { customerName?: string; customerCode?: string; customerPhone?: string; customerArea?: string };
+
+type AnyCustomer = {
+  id: number;
+  name: string;
+  code: string;
+  phone: string;
+  branch?: string;
+  address?: string;
+  status?: string;
+  area?: string;
+  zone?: string;
+  monthlyBill?: string | number | null;
+  packageId?: number | null;
+  subType: "regular" | "cir" | "corporate";
+};
 
 const ticketFormSchema = insertTicketSchema.extend({
   subject: z.string().min(3, "Subject is required"),
@@ -108,6 +123,14 @@ export default function TicketsPage() {
 
   const { data: networkTowers } = useQuery<NetworkTower[]>({
     queryKey: ["/api/network-towers"],
+  });
+
+  const { data: cirCustomers } = useQuery<CirCustomer[]>({
+    queryKey: ["/api/cir-customers"],
+  });
+
+  const { data: corporateCustomers } = useQuery<CorporateCustomer[]>({
+    queryKey: ["/api/corporate-customers"],
   });
 
   const { data: currentUser } = useQuery<{ id: number; username: string; fullName?: string; role?: string }>({
@@ -240,6 +263,8 @@ export default function TicketsPage() {
       {activeTab === "new" && (
         <NewTicketView
           customers={customers || []}
+          cirCustomers={cirCustomers || []}
+          corporateCustomers={corporateCustomers || []}
           supportCategories={supportCategories || []}
           resellers={resellers || []}
           vendors={vendors || []}
@@ -619,6 +644,8 @@ export default function TicketsPage() {
 
 function NewTicketView({
   customers,
+  cirCustomers,
+  corporateCustomers,
   supportCategories,
   resellers,
   vendors,
@@ -629,6 +656,8 @@ function NewTicketView({
   onCancel,
 }: {
   customers: Customer[];
+  cirCustomers: CirCustomer[];
+  corporateCustomers: CorporateCustomer[];
   supportCategories: SupportCategory[];
   resellers: Reseller[];
   vendors: Vendor[];
@@ -641,7 +670,8 @@ function NewTicketView({
   const [supportGroup, setSupportGroup] = useState("customers");
   const [customerSubType, setCustomerSubType] = useState("regular");
   const [customerSearch, setCustomerSearch] = useState("");
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<AnyCustomer | null>(null);
+  const [regularCustomerId, setRegularCustomerId] = useState<number | null>(null);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [connectionData, setConnectionData] = useState<CustomerConnection | null>(null);
   const [entitySearch, setEntitySearch] = useState("");
@@ -661,8 +691,8 @@ function NewTicketView({
   });
 
   const { data: fetchedConnection } = useQuery<CustomerConnection[]>({
-    queryKey: ["/api/customer-connections", selectedCustomer?.id],
-    enabled: !!selectedCustomer?.id,
+    queryKey: ["/api/customer-connections", regularCustomerId],
+    enabled: !!regularCustomerId,
   });
 
   const connection = fetchedConnection?.[0] || connectionData;
@@ -671,6 +701,7 @@ function NewTicketView({
     setSupportGroup(group);
     setCustomerSearch("");
     setSelectedCustomer(null);
+    setRegularCustomerId(null);
     setConnectionData(null);
     setEntitySearch("");
     setSelectedEntityId(null);
@@ -679,15 +710,26 @@ function NewTicketView({
     setComplainedNumber("");
   };
 
-  const filteredCustomers = customers.filter(c => {
-    if (!customerSearch) return false;
+  const filteredCustomers: { id: number; displayName: string; displayCode: string; phone: string; raw: Customer | CirCustomer | CorporateCustomer }[] = (() => {
+    if (!customerSearch) return [];
     const s = customerSearch.toLowerCase();
-    return (
-      c.fullName.toLowerCase().includes(s) ||
-      c.customerId.toLowerCase().includes(s) ||
-      (c.phone || "").includes(s)
-    );
-  });
+    if (customerSubType === "regular") {
+      return customers
+        .filter(c => c.fullName.toLowerCase().includes(s) || c.customerId.toLowerCase().includes(s) || (c.phone || "").includes(s))
+        .map(c => ({ id: c.id, displayName: c.fullName, displayCode: c.customerId, phone: c.phone || "", raw: c }));
+    }
+    if (customerSubType === "cir") {
+      return cirCustomers
+        .filter(c => c.companyName.toLowerCase().includes(s) || String(c.id).includes(s) || (c.phone || "").includes(s) || (c.contactPerson || "").toLowerCase().includes(s))
+        .map(c => ({ id: c.id, displayName: c.companyName, displayCode: `CIR-${c.id}`, phone: c.phone || "", raw: c }));
+    }
+    if (customerSubType === "corporate") {
+      return corporateCustomers
+        .filter(c => c.companyName.toLowerCase().includes(s) || String(c.id).includes(s) || (c.phone || "").includes(s) || (c.contactFullName || "").toLowerCase().includes(s))
+        .map(c => ({ id: c.id, displayName: c.companyName, displayCode: `CORP-${c.id}`, phone: c.phone || c.mobileNo || "", raw: c }));
+    }
+    return [];
+  })();
 
   const filteredResellers = resellers.filter(r => {
     if (!entitySearch) return true;
@@ -707,10 +749,27 @@ function NewTicketView({
     return t.name.toLowerCase().includes(s) || t.towerId.toLowerCase().includes(s) || (t.address || "").toLowerCase().includes(s);
   });
 
-  const selectCustomer = (customer: Customer) => {
-    setSelectedCustomer(customer);
-    setCustomerSearch(`${customer.fullName} (${customer.customerId})`);
-    setComplainedNumber(customer.phone || "");
+  const selectCustomer = (item: { id: number; displayName: string; displayCode: string; phone: string; raw: Customer | CirCustomer | CorporateCustomer }) => {
+    const raw = item.raw;
+    const isRegular = customerSubType === "regular";
+    const normalized: AnyCustomer = {
+      id: item.id,
+      name: item.displayName,
+      code: item.displayCode,
+      phone: item.phone,
+      branch: (raw as any).branch || undefined,
+      address: (raw as any).address || (raw as any).presentAddress || (raw as any).headOfficeAddress || undefined,
+      status: (raw as any).status || undefined,
+      area: isRegular ? (raw as Customer).area || undefined : undefined,
+      zone: isRegular ? (raw as Customer).zone || undefined : undefined,
+      monthlyBill: isRegular ? (raw as Customer).monthlyBill : undefined,
+      packageId: isRegular ? (raw as Customer).packageId : undefined,
+      subType: customerSubType as "regular" | "cir" | "corporate",
+    };
+    setSelectedCustomer(normalized);
+    setRegularCustomerId(isRegular ? item.id : null);
+    setCustomerSearch(`${item.displayName} — ${item.displayCode}`);
+    setComplainedNumber(item.phone || "");
     setShowCustomerDropdown(false);
   };
 
@@ -751,9 +810,12 @@ function NewTicketView({
     const selectedVendor = supportGroup === "vendors" && selectedEntityId ? vendors.find(v => v.id === selectedEntityId) : null;
     const selectedTower = supportGroup === "pops" && selectedEntityId ? networkTowers.find(t => t.id === selectedEntityId) : null;
 
+    const isRegularCustomer = isCustomerGroup && selectedCustomer?.subType === "regular";
+    const isNonRegularCustomer = isCustomerGroup && selectedCustomer && selectedCustomer.subType !== "regular";
+
     const ticketData: InsertTicket = {
       ticketNumber: generateTicketNumber(),
-      customerId: selectedCustomer?.id || 0,
+      customerId: isRegularCustomer ? selectedCustomer!.id : 0,
       subject: category,
       description: remarks,
       priority,
@@ -762,10 +824,14 @@ function NewTicketView({
       assignedTo: assignedToList.length > 0 ? assignedToList.join(",") : undefined,
       createdAt: new Date().toISOString(),
       supportGroup,
-      entityId: isCustomerGroup ? null : selectedEntityId,
-      entityName: isCustomerGroup ? null : selectedEntityName,
+      entityId: isNonRegularCustomer
+        ? selectedCustomer!.id
+        : isCustomerGroup ? null : selectedEntityId,
+      entityName: isNonRegularCustomer
+        ? selectedCustomer!.name
+        : isCustomerGroup ? null : selectedEntityName,
       entityCode: isCustomerGroup
-        ? (selectedCustomer?.customerId || undefined)
+        ? (selectedCustomer?.code || undefined)
         : selectedReseller ? String(selectedReseller.id)
         : selectedVendor ? String(selectedVendor.id)
         : selectedTower ? selectedTower.towerId
@@ -775,7 +841,7 @@ function NewTicketView({
         ? (selectedCustomer?.phone || undefined)
         : selectedReseller?.phone || selectedVendor?.phone || undefined,
       entityBranch: isCustomerGroup
-        ? (selectedCustomer?.area || (selectedCustomer as any)?.branch || undefined)
+        ? (selectedCustomer?.area || selectedCustomer?.branch || undefined)
         : selectedReseller?.branch || selectedReseller?.area
         || selectedVendor?.address
         || selectedTower?.address
@@ -790,6 +856,7 @@ function NewTicketView({
   const handleClear = () => {
     setCustomerSearch("");
     setSelectedCustomer(null);
+    setRegularCustomerId(null);
     setConnectionData(null);
     setEntitySearch("");
     setSelectedEntityId(null);
@@ -866,7 +933,7 @@ function NewTicketView({
                   <button
                     key={st.key}
                     type="button"
-                    onClick={() => { setCustomerSubType(st.key); setCustomerSearch(""); setSelectedCustomer(null); }}
+                    onClick={() => { setCustomerSubType(st.key); setCustomerSearch(""); setSelectedCustomer(null); setRegularCustomerId(null); setConnectionData(null); }}
                     className={`px-3 py-1.5 rounded-md border text-xs font-medium transition-colors ${
                       customerSubType === st.key
                         ? "bg-blue-600 text-white border-blue-600"
@@ -888,10 +955,10 @@ function NewTicketView({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-foreground truncate" data-testid="selected-customer-name">
-                        {selectedCustomer.fullName}
+                        {selectedCustomer.name}
                       </span>
                       <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-[#0057FF] text-white shrink-0" data-testid="selected-customer-code">
-                        {selectedCustomer.customerId}
+                        {selectedCustomer.code}
                       </span>
                       <span className="text-[11px] text-muted-foreground shrink-0" data-testid="selected-customer-dbid">
                         ID: {selectedCustomer.id}
@@ -900,7 +967,7 @@ function NewTicketView({
                   </div>
                   <button
                     type="button"
-                    onClick={() => { setSelectedCustomer(null); setCustomerSearch(""); setConnectionData(null); }}
+                    onClick={() => { setSelectedCustomer(null); setRegularCustomerId(null); setCustomerSearch(""); setConnectionData(null); }}
                     className="shrink-0 text-muted-foreground hover:text-destructive transition-colors"
                     data-testid="button-clear-customer"
                     title="Clear selection"
@@ -917,7 +984,7 @@ function NewTicketView({
                     onChange={(e) => {
                       setCustomerSearch(e.target.value);
                       setShowCustomerDropdown(true);
-                      if (!e.target.value) { setSelectedCustomer(null); setConnectionData(null); }
+                      if (!e.target.value) { setSelectedCustomer(null); setRegularCustomerId(null); setConnectionData(null); }
                     }}
                     onFocus={() => setShowCustomerDropdown(true)}
                     data-testid="input-customer-search"
@@ -925,19 +992,19 @@ function NewTicketView({
                   <Search className="h-4 w-4 absolute right-3 top-3 text-muted-foreground" />
                   {showCustomerDropdown && customerSearch && filteredCustomers.length > 0 && (
                     <div className="absolute z-50 w-full bg-popover border rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
-                      {filteredCustomers.slice(0, 10).map(c => (
+                      {filteredCustomers.slice(0, 10).map(item => (
                         <button
-                          key={c.id}
+                          key={item.id}
                           className="w-full text-left px-4 py-2.5 hover:bg-muted text-sm flex items-center justify-between gap-2 border-b last:border-b-0"
-                          onClick={() => selectCustomer(c)}
-                          data-testid={`option-customer-${c.id}`}
+                          onClick={() => selectCustomer(item)}
+                          data-testid={`option-customer-${item.id}`}
                         >
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">{c.fullName}</span>
-                            <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-[#0057FF]/10 text-[#0057FF]">{c.customerId}</span>
-                            <span className="text-xs text-muted-foreground">ID: {c.id}</span>
+                            <span className="font-medium">{item.displayName}</span>
+                            <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-[#0057FF]/10 text-[#0057FF]">{item.displayCode}</span>
+                            <span className="text-xs text-muted-foreground">ID: {item.id}</span>
                           </div>
-                          <span className="text-xs text-muted-foreground shrink-0">{c.phone}</span>
+                          <span className="text-xs text-muted-foreground shrink-0">{item.phone}</span>
                         </button>
                       ))}
                     </div>
@@ -1035,48 +1102,54 @@ function NewTicketView({
             <div className="border rounded-lg p-4 bg-muted/20">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Customer Name</label>
-                  <Input className={readonlyFieldClass} value={selectedCustomer.fullName} readOnly data-testid="field-customer-name" />
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">
+                    {selectedCustomer.subType === "regular" ? "Customer Name" : "Company Name"}
+                  </label>
+                  <Input className={readonlyFieldClass} value={selectedCustomer.name} readOnly data-testid="field-customer-name" />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Mobile Number</label>
                   <Input className={readonlyFieldClass} value={selectedCustomer.phone || "-"} readOnly data-testid="field-mobile" />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Client Address</label>
-                  <Input className={readonlyFieldClass} value={selectedCustomer.address || selectedCustomer.presentAddress || "-"} readOnly data-testid="field-address" />
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Address</label>
+                  <Input className={readonlyFieldClass} value={selectedCustomer.address || "-"} readOnly data-testid="field-address" />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Zone</label>
-                  <Input className={readonlyFieldClass} value={selectedCustomer.zone || selectedCustomer.area || "-"} readOnly data-testid="field-zone" />
+                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">
+                    {selectedCustomer.subType === "regular" ? "Zone / Area" : "Branch"}
+                  </label>
+                  <Input className={readonlyFieldClass} value={selectedCustomer.zone || selectedCustomer.area || selectedCustomer.branch || "-"} readOnly data-testid="field-zone" />
                 </div>
                 <div>
                   <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Client Code</label>
-                  <Input className={readonlyFieldClass} value={selectedCustomer.customerId || "-"} readOnly data-testid="field-client-code" />
+                  <Input className={readonlyFieldClass} value={selectedCustomer.code || "-"} readOnly data-testid="field-client-code" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-3">
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Billing Status</label>
-                  <Input className={readonlyFieldClass} value={selectedCustomer.status || "-"} readOnly data-testid="field-billing-status" />
+              {selectedCustomer.subType === "regular" && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mt-3">
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Billing Status</label>
+                    <Input className={readonlyFieldClass} value={selectedCustomer.status || "-"} readOnly data-testid="field-billing-status" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Monthly Bill</label>
+                    <Input className={readonlyFieldClass} value={selectedCustomer.monthlyBill ? `Rs. ${selectedCustomer.monthlyBill}` : "-"} readOnly data-testid="field-monthly-bill" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Last Paid Amount</label>
+                    <Input className={readonlyFieldClass} value={"-"} readOnly data-testid="field-last-paid" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Payment Status</label>
+                    <Input className={readonlyFieldClass} value={selectedCustomer.status === "active" ? "Paid" : "Unpaid"} readOnly data-testid="field-payment-status" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Package</label>
+                    <Input className={readonlyFieldClass} value={selectedCustomer.packageId ? `PKG-${selectedCustomer.packageId}` : "-"} readOnly data-testid="field-package" />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Monthly Bill</label>
-                  <Input className={readonlyFieldClass} value={selectedCustomer.monthlyBill ? `Rs. ${selectedCustomer.monthlyBill}` : "-"} readOnly data-testid="field-monthly-bill" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Last Paid Amount</label>
-                  <Input className={readonlyFieldClass} value={"-"} readOnly data-testid="field-last-paid" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Payment Status</label>
-                  <Input className={readonlyFieldClass} value={selectedCustomer.status === "active" ? "Paid" : "Unpaid"} readOnly data-testid="field-payment-status" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">Package</label>
-                  <Input className={readonlyFieldClass} value={selectedCustomer.packageId ? `PKG-${selectedCustomer.packageId}` : "-"} readOnly data-testid="field-package" />
-                </div>
-              </div>
+              )}
             </div>
 
             <div className="border rounded-lg p-4 bg-muted/20">
