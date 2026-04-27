@@ -1697,11 +1697,11 @@ function TicketListView({
     { key: "vendors", label: "Vendors", icon: Building2 },
   ];
 
-  const colCfg: Record<string, { codeLabel: string; nameLabel: string; extraCol: string | null }> = {
-    customers: { codeLabel: "Customer Code", nameLabel: "Customer Name", extraCol: "Phone" },
-    resellers: { codeLabel: "Reseller Code", nameLabel: "Reseller Name", extraCol: "Phone" },
-    pops:      { codeLabel: "POP Code",      nameLabel: "POP Name",      extraCol: null },
-    vendors:   { codeLabel: "Vendor Code",   nameLabel: "Vendor Name",   extraCol: "MAIL" },
+  const colCfg: Record<string, { idLabel: string; codeLabel: string; nameLabel: string; extraCol: string | null }> = {
+    customers: { idLabel: "Customer ID", codeLabel: "Customer Code", nameLabel: "Customer Name", extraCol: "Phone" },
+    resellers: { idLabel: "Reseller ID", codeLabel: "Reseller Code", nameLabel: "Reseller Name", extraCol: "Phone" },
+    pops:      { idLabel: "POP's ID",    codeLabel: "POP Code",      nameLabel: "POP Name",      extraCol: null },
+    vendors:   { idLabel: "Vendor ID",   codeLabel: "Vendor Code",   nameLabel: "Vendor Name",   extraCol: "MAIL" },
   };
   const cfg = colCfg[activeGroup] || colCfg.customers;
   const totalCols = cfg.extraCol ? 14 : 13;
@@ -1991,7 +1991,7 @@ function TicketListView({
               <TableHeader>
                 <TableRow className="bg-[#1a3a5c] border-[#1a3a5c]">
                   <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">Ticket No.</TableHead>
-                  <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">ID</TableHead>
+                  <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">{cfg.idLabel}</TableHead>
                   <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">{cfg.codeLabel}</TableHead>
                   <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">{cfg.nameLabel}</TableHead>
                   {cfg.extraCol && <TableHead className="text-white text-[11px] font-semibold whitespace-nowrap">{cfg.extraCol}</TableHead>}
