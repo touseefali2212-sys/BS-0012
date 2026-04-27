@@ -1009,11 +1009,11 @@ function NewTicketView({
                           data-testid={`option-customer-${item.id}`}
                         >
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium">{item.displayName}</span>
                             <span className="text-[11px] font-bold px-1.5 py-0.5 rounded bg-[#0057FF]/10 text-[#0057FF]">{item.displayCode}</span>
                             {item.usernameIp && (
                               <span className="text-[11px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{item.usernameIp}</span>
                             )}
+                            <span className="font-medium">{item.displayName}</span>
                           </div>
                           <span className="text-xs text-muted-foreground shrink-0">{item.phone}</span>
                         </button>
